@@ -15,7 +15,7 @@ type ImportType = "migracion" | "matriculas" | "calificaciones" | "asistencia";
 interface MigracionRow {
   estudiante: string;
   asistencia: number;
-  nota: number;
+  nota: number | null;
   aprobadoAsistencia: boolean;
   aprobadaMateria: boolean;
   aula: string;
@@ -28,6 +28,86 @@ interface MigracionData {
   rows: MigracionRow[];
 }
 
+interface ImportResult {
+  ok: number;
+  updated: number;
+  errors: string[];
+}
+
+const normalizeText = (value: string) =>
+  value
+    .toLowerCase()
+    .trim()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/\s+/g, " ");
+
+const parseNullableNumber = (value: unknown): number | null => {
+  const raw = String(value ?? "").trim();
+  if (!raw) return null;
+
+  const cleaned = raw.replace(/\s+/g, "").replace(",", ".");
+  const match = cleaned.match(/-?\d+(?:\.\d+)?/);
+  if (!match) return null;
+
+  const parsed = Number(match[0]);
+  return Number.isNaN(parsed) ? null : parsed;
+};
+
+const parseAffirmative = (value: unknown) =>
+  ["si", "sí", "yes", "true", "1", "x"].includes(normalizeText(String(value ?? "")));
+
+const getNameWords = (value: string) => [...new Set(normalizeText(value).split(" ").filter(Boolean))];
+
+function getRankedPersonaMatches(personas: any[], fullName: string) {
+  const normalizedName = normalizeText(fullName);
+  if (!normalizedName) return [];
+
+  const fileWords = getNameWords(normalizedName);
+  const fileSignature = [...fileWords].sort().join("|");
+
+  return personas
+    .map((persona) => {
+      const directName = normalizeText(`${persona.nombres || ""} ${persona.apellidos || ""}`);
+      const reverseName = normalizeText(`${persona.apellidos || ""} ${persona.nombres || ""}`);
+      const dbWords = getNameWords(directName);
+      const dbSignature = [...dbWords].sort().join("|");
+      const matches = fileWords.filter((word) => dbWords.includes(word)).length;
+      const fileCoverage = fileWords.length ? matches / fileWords.length : 0;
+      const dbCoverage = dbWords.length ? matches / dbWords.length : 0;
+      const sameExtremes = fileWords.length >= 2 && dbWords.includes(fileWords[0]) && dbWords.includes(fileWords[fileWords.length - 1]);
+      const exact = directName === normalizedName || reverseName === normalizedName;
+      const sameSignature = fileSignature && dbSignature === fileSignature;
+      const score =
+        (exact ? 100 : 0) +
+        (sameSignature ? 90 : 0) +
+        fileCoverage * 60 +
+        dbCoverage * 25 +
+        matches * 5 +
+        (sameExtremes ? 5 : 0);
+
+      return {
+        persona,
+        exact,
+        sameSignature,
+        fileCoverage,
+        dbCoverage,
+        matches,
+        sameExtremes,
+        score,
+      };
+    })
+    .filter(
+      (candidate) =>
+        candidate.exact ||
+        candidate.sameSignature ||
+        candidate.fileCoverage >= 0.75 ||
+        (candidate.matches >= 2 && candidate.dbCoverage >= 0.6) ||
+        candidate.sameExtremes
+    )
+    .sort((a, b) => b.score - a.score);
+}
+
 function parseMigracionFile(wb: XLSX.WorkBook): MigracionData | null {
   const sheet = wb.Sheets[wb.SheetNames[0]];
   const raw: any[][] = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: "" });
@@ -36,15 +116,23 @@ function parseMigracionFile(wb: XLSX.WorkBook): MigracionData | null {
   let sede = "";
   let headerRowIdx = -1;
 
-  for (let i = 0; i < Math.min(20, raw.length); i++) {
-    const cell = String(raw[i]?.[0] || "").trim();
-    if (cell.toLowerCase().startsWith("materia:")) {
-      materia = cell.replace(/^materia:\s*/i, "").trim();
+  for (let i = 0; i < Math.min(25, raw.length); i++) {
+    const row = (raw[i] || []).map((cell) => String(cell || "").trim());
+    const firstCell = row[0] || "";
+    const normalizedRow = row.map(normalizeText);
+
+    if (!materia && normalizeText(firstCell).startsWith("materia:")) {
+      materia = firstCell.replace(/^materia:\s*/i, "").trim();
     }
-    if (cell.includes("Principal") || cell.includes("Sede")) {
-      sede = cell.replace(/\n/g, "").trim();
+
+    if (!sede && row.some((cell) => {
+      const normalizedCell = normalizeText(cell);
+      return normalizedCell.includes("principal") || normalizedCell.startsWith("sede");
+    })) {
+      sede = row.filter(Boolean).join(" ").replace(/\s+/g, " ").trim();
     }
-    if (cell === "ESTUDIANTE") {
+
+    if (normalizedRow.includes("estudiante")) {
       headerRowIdx = i;
       break;
     }
@@ -52,21 +140,38 @@ function parseMigracionFile(wb: XLSX.WorkBook): MigracionData | null {
 
   if (headerRowIdx < 0) return null;
 
+  const headers = (raw[headerRowIdx] || []).map((cell) => normalizeText(String(cell || "")));
+  const findColumnIndex = (...aliases: string[]) =>
+    headers.findIndex((header) => aliases.some((alias) => header === alias || header.includes(alias)));
+
+  const estudianteCol = findColumnIndex("estudiante");
+  const asistenciaCol = findColumnIndex("asistencia");
+  const notaCol = findColumnIndex("nota");
+  const aprobadaMateriaCol = findColumnIndex("aprobada materia", "aprobo materia");
+  const aprobadoAsistenciaCol = findColumnIndex("aprobada asistencia", "aprobado asistencia", "aprobo asistencia");
+  const aulaCol = findColumnIndex("aula", "salon", "sede");
+  const maestrosCol = findColumnIndex("maestros", "maestro", "docente", "mentor");
+
+  if (estudianteCol < 0) return null;
+
   const rows: MigracionRow[] = [];
   for (let i = headerRowIdx + 1; i < raw.length; i++) {
-    const r = raw[i];
-    const name = String(r[0] || "").trim();
+    const r = raw[i] || [];
+    const name = String(r[estudianteCol] || "").trim();
     if (!name) continue;
 
-    const asistencia = Number(r[1]) || 0;
-    let notaStr = String(r[2] || "0").replace(/\s+/g, "").replace(",", ".");
-    // Handle cases like "0,0 0" -> "0.00"
-    if (notaStr.includes(" ")) notaStr = notaStr.split(" ")[0];
-    const nota = parseFloat(notaStr) || 0;
-    const aprobadoAsistencia = String(r[3] || "").trim().toUpperCase() === "SI";
-    const aprobadaMateria = String(r[4] || "").trim().toUpperCase() === "SI";
-    const aula = String(r[5] || "").trim();
-    const maestros = String(r[6] || "").replace(/\n/g, " ").replace(/\/\s*$/, "").trim();
+    const asistencia = parseNullableNumber(asistenciaCol >= 0 ? r[asistenciaCol] : null) ?? 0;
+    const nota = parseNullableNumber(notaCol >= 0 ? r[notaCol] : null);
+    const aprobadoAsistencia = aprobadoAsistenciaCol >= 0
+      ? parseAffirmative(r[aprobadoAsistenciaCol])
+      : asistencia > 0;
+    const aprobadaMateria = aprobadaMateriaCol >= 0
+      ? parseAffirmative(r[aprobadaMateriaCol])
+      : (nota ?? 0) >= 3;
+    const aula = aulaCol >= 0 ? String(r[aulaCol] || "").trim() : "";
+    const maestros = maestrosCol >= 0
+      ? String(r[maestrosCol] || "").replace(/\n/g, " ").replace(/\/\s*$/, "").trim()
+      : "";
 
     rows.push({ estudiante: name, asistencia, nota, aprobadoAsistencia, aprobadaMateria, aula, maestros });
   }
@@ -92,7 +197,7 @@ export default function ImportAcademiaDialog() {
   const [preview, setPreview] = useState<any[]>([]);
   const [importing, setImporting] = useState(false);
   const [progress, setProgress] = useState(0);
-  const [result, setResult] = useState<{ ok: number; errors: string[] } | null>(null);
+  const [result, setResult] = useState<ImportResult | null>(null);
   const [migracionData, setMigracionData] = useState<MigracionData | null>(null);
   const [selectedEscuelaId, setSelectedEscuelaId] = useState<string>("");
   const [selectedPeriodoId, setSelectedPeriodoId] = useState<string>("");
@@ -140,7 +245,7 @@ export default function ImportAcademiaDialog() {
           setPreview(data.rows.slice(0, 5).map((r) => ({
             Estudiante: r.estudiante,
             Asistencia: r.asistencia,
-            Nota: r.nota,
+            Nota: r.nota ?? "",
             "Aprobó": r.aprobadaMateria ? "Sí" : "No",
           })));
         }
@@ -180,74 +285,23 @@ export default function ImportAcademiaDialog() {
 
   const findPersona = (personas: any[], doc: string, nombres: string, apellidos: string): string | undefined => {
     if (doc) {
-      const found = personas.find((p) => p.documento?.trim().toLowerCase() === doc.toLowerCase());
+      const normalizedDoc = doc.replace(/\s+/g, "").toLowerCase();
+      const found = personas.find((p) => String(p.documento || "").replace(/\s+/g, "").toLowerCase() === normalizedDoc);
       if (found) return found.id;
     }
     if (nombres && apellidos) {
-      const fullName = `${nombres} ${apellidos}`.toLowerCase();
-      const found = personas.find((p) => `${p.nombres} ${p.apellidos}`.toLowerCase() === fullName);
-      if (found) return found.id;
+      return findPersonaByFullName(personas, `${nombres} ${apellidos}`)
+        || findPersonaByFullName(personas, `${apellidos} ${nombres}`);
     }
     return undefined;
   };
 
   const findPersonaByFullName = (personas: any[], fullName: string): string | undefined => {
-    // Normalize: lowercase, remove accents, collapse spaces
-    const norm = (s: string) => s.toLowerCase().trim()
-      .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
-      .replace(/\s+/g, " ");
+    return getRankedPersonaMatches(personas, fullName)[0]?.persona.id;
+  };
 
-    const fileNorm = norm(fullName);
-    const fileWords = fileNorm.split(" ").filter(Boolean);
-
-    // 1. Exact match "Apellidos Nombres" (normalized)
-    let found = personas.find((p) =>
-      norm(`${p.apellidos} ${p.nombres}`) === fileNorm
-    );
-    if (found) return found.id;
-
-    // 2. Exact match "Nombres Apellidos" (normalized)
-    found = personas.find((p) =>
-      norm(`${p.nombres} ${p.apellidos}`) === fileNorm
-    );
-    if (found) return found.id;
-
-    // 3. All file words exist in DB record (handles extra middle names, accent diffs)
-    found = personas.find((p) => {
-      const dbWords = norm(`${p.nombres} ${p.apellidos}`).split(" ").filter(Boolean);
-      return fileWords.length >= 2 && fileWords.every((w) => dbWords.includes(w));
-    });
-    if (found) return found.id;
-
-    // 4. All DB words exist in file (DB has more words than file)
-    found = personas.find((p) => {
-      const dbWords = norm(`${p.nombres} ${p.apellidos}`).split(" ").filter(Boolean);
-      return dbWords.length >= 2 && dbWords.every((w) => fileWords.includes(w));
-    });
-    if (found) return found.id;
-
-    // 5. High-similarity match: at least 75% of words match (handles one missing/extra word)
-    found = personas.find((p) => {
-      const dbWords = norm(`${p.nombres} ${p.apellidos}`).split(" ").filter(Boolean);
-      const allWords = [...new Set([...fileWords, ...dbWords])];
-      const matches = fileWords.filter((w) => dbWords.includes(w)).length;
-      const maxLen = Math.max(fileWords.length, dbWords.length);
-      return maxLen >= 2 && matches / maxLen >= 0.75;
-    });
-    if (found) return found.id;
-
-    // 6. Last resort: first word (apellido) + last word (nombre) match
-    if (fileWords.length >= 2) {
-      const firstWord = fileWords[0];
-      const lastWord = fileWords[fileWords.length - 1];
-      found = personas.find((p) => {
-        const dbWords = norm(`${p.nombres} ${p.apellidos}`).split(" ").filter(Boolean);
-        return dbWords.includes(firstWord) && dbWords.includes(lastWord);
-      });
-      if (found) return found.id;
-    }
-
-    return undefined;
+  const findClosestPersona = (personas: any[], fullName: string) => {
+    return getRankedPersonaMatches(personas, fullName)[0]?.persona;
   };
 
   const doImportMigracion = async () => {
@@ -256,6 +310,7 @@ export default function ImportAcademiaDialog() {
     setProgress(0);
     const errors: string[] = [];
     let ok = 0;
+    let updated = 0;
 
     try {
       // Recursive load to bypass 1000 row limit
@@ -264,7 +319,12 @@ export default function ImportAcademiaDialog() {
         let from = 0;
         const PAGE = 1000;
         while (true) {
-          const { data } = await supabase.from("personas").select("id, nombres, apellidos, documento").range(from, from + PAGE - 1);
+          const { data, error } = await supabase
+            .from("personas")
+            .select("id, nombres, apellidos, documento")
+            .order("id", { ascending: true })
+            .range(from, from + PAGE - 1);
+          if (error) throw error;
           if (!data || data.length === 0) break;
           all.push(...data);
           if (data.length < PAGE) break;
@@ -278,7 +338,12 @@ export default function ImportAcademiaDialog() {
         let from = 0;
         const PAGE = 1000;
         while (true) {
-          const { data } = await supabase.from("matriculas").select("id, persona_id, curso_id, periodo_id, materia_id").range(from, from + PAGE - 1);
+          const { data, error } = await supabase
+            .from("matriculas")
+            .select("id, persona_id, curso_id, periodo_id, materia_id")
+            .order("id", { ascending: true })
+            .range(from, from + PAGE - 1);
+          if (error) throw error;
           if (!data || data.length === 0) break;
           all.push(...data);
           if (data.length < PAGE) break;
@@ -287,21 +352,16 @@ export default function ImportAcademiaDialog() {
         return all;
       };
 
-      const [personas, { data: materias }, existingMatriculas] = await Promise.all([
+      const [personas, { data: materias, error: materiasError }, existingMatriculas] = await Promise.all([
         loadAllPersonas(),
         supabase.from("materias").select("id, nombre, periodo_id"),
         loadAllMatriculas(),
       ]);
-
-      // Helper: normalize text for fuzzy matching (remove accents, lowercase, trim spaces)
-      const normalize = (s: string) =>
-        s.toLowerCase().trim()
-          .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
-          .replace(/\s+/g, " ");
+      if (materiasError) throw materiasError;
 
       // Find or identify materia — uses normalized comparison to tolerate accent/space differences
       const materia = (materias || []).find(
-        (m) => normalize(m.nombre) === normalize(migracionData.materia) && m.periodo_id === selectedPeriodoId
+        (m) => normalizeText(m.nombre) === normalizeText(migracionData.materia) && m.periodo_id === selectedPeriodoId
       );
 
       if (!materia) {
@@ -313,26 +373,31 @@ export default function ImportAcademiaDialog() {
           `Materia "${migracionData.materia}" no encontrada en el período seleccionado.` +
           (available ? ` Materias disponibles en este período: ${available}` : " No hay materias creadas en este período.")
         );
-        setResult({ ok, errors });
+        setResult({ ok, updated, errors });
         setImporting(false);
         return;
       }
 
-      const records: { persona_id: string; curso_id: string; periodo_id: string; materia_id: string; estado: string; nota_final: number | null }[] = [];
-      const notFoundNames: string[] = [];
+      const inserts: Array<{
+        estudiante: string;
+        persona_id: string;
+        curso_id: string;
+        periodo_id: string;
+        materia_id: string;
+        estado: string;
+        nota_final: number | null;
+      }> = [];
+      const updates: Array<{
+        id: string;
+        estudiante: string;
+        estado: string;
+        nota_final: number | null;
+      }> = [];
 
       for (const row of migracionData.rows) {
         const personaId = findPersonaByFullName(personas || [], row.estudiante);
         if (!personaId) {
-          notFoundNames.push(row.estudiante);
-          // Find closest candidate to help the user
-          const norm = (s: string) => s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, " ").trim();
-          const fileWords = norm(row.estudiante).split(" ");
-          const candidate = (personas || []).find(p => {
-            const dbWords = norm(`${p.nombres} ${p.apellidos}`).split(" ");
-            const matches = fileWords.filter(w => dbWords.includes(w)).length;
-            return matches >= 2;
-          });
+          const candidate = findClosestPersona(personas || [], row.estudiante);
           const hint = candidate ? ` (¿Quizás: "${candidate.nombres} ${candidate.apellidos}"?)` : "";
           errors.push(`Persona no encontrada: "${row.estudiante}"${hint}`);
           continue;
@@ -342,39 +407,81 @@ export default function ImportAcademiaDialog() {
         const exists = (existingMatriculas || []).find(
           (m) => m.persona_id === personaId && m.curso_id === selectedEscuelaId && m.periodo_id === selectedPeriodoId && m.materia_id === materia.id
         );
+        const estado = row.aprobadaMateria ? "Completado" : row.aprobadoAsistencia ? "Activo" : "Retirado";
+
         if (exists) {
-          errors.push(`Matrícula duplicada: "${row.estudiante}"`);
+          updates.push({
+            id: exists.id,
+            estudiante: row.estudiante,
+            estado,
+            nota_final: row.nota,
+          });
           continue;
         }
 
-        records.push({
+        inserts.push({
+          estudiante: row.estudiante,
           persona_id: personaId,
           curso_id: selectedEscuelaId,
           periodo_id: selectedPeriodoId,
           materia_id: materia.id,
-          estado: row.aprobadaMateria ? "Completado" : row.aprobadoAsistencia ? "Activo" : "Retirado",
-          nota_final: row.nota > 0 ? row.nota : null,  // Fix: don't save 0 as nota_final
+          estado,
+          nota_final: row.nota,
         });
       }
 
-      const CHUNK = 200;
-      for (let i = 0; i < records.length; i += CHUNK) {
-        const chunk = records.slice(i, i + CHUNK);
-        const { error } = await supabase.from("matriculas").insert(chunk);
-        if (error) errors.push(`Error lote ${Math.floor(i / CHUNK) + 1}: ${error.message}`);
-        else ok += chunk.length;
-        setProgress(Math.round(((i + chunk.length) / records.length) * 100));
+      const totalOperations = inserts.length + updates.length;
+      let processed = 0;
+      const syncProgress = () => setProgress(totalOperations > 0 ? Math.round((processed / totalOperations) * 100) : 100);
+
+      const CHUNK = 50;
+      for (let i = 0; i < inserts.length; i += CHUNK) {
+        const chunk = inserts.slice(i, i + CHUNK);
+        const results = await Promise.all(
+          chunk.map(({ estudiante, ...record }) =>
+            supabase.from("matriculas").insert(record).then((response) => ({ ...response, estudiante }))
+          )
+        );
+
+        for (const result of results) {
+          if (result.error) errors.push(`No se pudo importar "${result.estudiante}": ${result.error.message}`);
+          else ok += 1;
+          processed += 1;
+        }
+        syncProgress();
       }
 
-      setResult({ ok, errors });
-      if (ok > 0) {
+      for (let i = 0; i < updates.length; i += CHUNK) {
+        const chunk = updates.slice(i, i + CHUNK);
+        const results = await Promise.all(
+          chunk.map(({ id, estudiante, estado, nota_final }) =>
+            supabase
+              .from("matriculas")
+              .update({ estado, nota_final })
+              .eq("id", id)
+              .then((response) => ({ ...response, estudiante }))
+          )
+        );
+
+        for (const result of results) {
+          if (result.error) errors.push(`No se pudo actualizar "${result.estudiante}": ${result.error.message}`);
+          else updated += 1;
+          processed += 1;
+        }
+        syncProgress();
+      }
+
+      setResult({ ok, updated, errors });
+      if (ok > 0 || updated > 0) {
         qc.invalidateQueries({ queryKey: ["matriculas"] });
         qc.invalidateQueries({ queryKey: ["matriculas-all"] });
-        toast.success(`${ok} matrículas importadas desde el sistema anterior`);
+        toast.success(
+          `${ok} matrículas importadas${updated > 0 ? ` y ${updated} actualizadas` : ""} desde el sistema anterior`
+        );
       }
     } catch (err: any) {
       errors.push(`Error general: ${err.message}`);
-      setResult({ ok, errors });
+      setResult({ ok, updated, errors });
     } finally {
       setImporting(false);
     }
@@ -390,6 +497,7 @@ export default function ImportAcademiaDialog() {
     setProgress(0);
     const errors: string[] = [];
     let ok = 0;
+    let updated = 0;
 
     const reader = new FileReader();
     reader.onload = async (ev) => {
@@ -588,8 +696,8 @@ export default function ImportAcademiaDialog() {
           }
         }
 
-        setResult({ ok, errors });
-        if (ok > 0) {
+        setResult({ ok, updated, errors });
+        if (ok > 0 || updated > 0) {
           qc.invalidateQueries({ queryKey: ["matriculas"] });
           qc.invalidateQueries({ queryKey: ["matriculas-all"] });
           qc.invalidateQueries({ queryKey: ["calificaciones"] });
@@ -598,7 +706,7 @@ export default function ImportAcademiaDialog() {
         }
       } catch (err: any) {
         errors.push(`Error general: ${err.message}`);
-        setResult({ ok, errors });
+        setResult({ ok, updated, errors });
       } finally {
         setImporting(false);
       }
@@ -746,8 +854,13 @@ export default function ImportAcademiaDialog() {
 
           {result && (
             <div className="space-y-2 text-sm">
-              <div className="flex items-center gap-2 text-primary">
-                <CheckCircle2 className="h-4 w-4" /> {result.ok} registros importados
+              <div className="flex flex-wrap items-center gap-3 text-primary">
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="h-4 w-4" /> {result.ok} registros importados
+                </div>
+                {result.updated > 0 && (
+                  <div className="text-xs font-medium">{result.updated} registros actualizados</div>
+                )}
               </div>
               {result.errors.length > 0 && (
                 <div className="max-h-32 overflow-y-auto space-y-1">
