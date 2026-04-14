@@ -508,7 +508,7 @@ export default function ImportAcademiaDialog() {
 
         if (!rows.length) {
           errors.push("El archivo está vacío");
-          setResult({ ok, errors });
+          setResult({ ok, updated, errors });
           setImporting(false);
           return;
         }
@@ -793,7 +793,7 @@ export default function ImportAcademiaDialog() {
                   <p><strong>Sede:</strong> {migracionData.sede || "No detectada"}</p>
                   <p><strong>Estudiantes encontrados:</strong> {migracionData.rows.length}</p>
                   {migracionData.materia && (
-                    <p className="text-amber-700 bg-amber-50 rounded px-2 py-1 mt-1">
+                    <p className="rounded border border-border bg-accent/40 px-2 py-1 mt-1 text-accent-foreground">
                       ⚠️ Asegúrate de que exista una materia con este nombre exacto en el período seleccionado (se ignoran acentos y mayúsculas).
                     </p>
                   )}
