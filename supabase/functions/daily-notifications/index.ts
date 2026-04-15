@@ -14,7 +14,48 @@ Deno.serve(async (req) => {
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+
+    // Verify caller is authenticated
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
+      return new Response(
+        JSON.stringify({ error: "No autorizado" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const callerClient = createClient(supabaseUrl, anonKey, {
+      global: { headers: { Authorization: authHeader } },
+    });
+
+    const token = authHeader.replace("Bearer ", "");
+    const { data: claimsData, error: claimsError } = await callerClient.auth.getClaims(token);
+    if (claimsError || !claimsData?.claims) {
+      return new Response(
+        JSON.stringify({ error: "No autorizado" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const userId = claimsData.claims.sub;
+
+    // Verify caller is admin or super_admin
     const supabase = createClient(supabaseUrl, serviceRoleKey);
+    const { data: callerRoles } = await supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", userId);
+
+    const isAdmin = (callerRoles || []).some(
+      (r: any) => r.role === "admin" || r.role === "super_admin"
+    );
+    if (!isAdmin) {
+      return new Response(
+        JSON.stringify({ error: "Acceso denegado" }),
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
     const now = new Date();
     const today = now.toISOString().split("T")[0];
@@ -33,26 +74,13 @@ Deno.serve(async (req) => {
     // Get birthdays today
     const { data: allPersonas } = await supabase
       .from("personas")
-      .select("nombres, apellidos, fecha_nacimiento, email");
+      .select("nombres, apellidos, fecha_nacimiento");
 
     const birthdaysToday = (allPersonas || []).filter((p) => {
       if (!p.fecha_nacimiento) return false;
       const bday = new Date(p.fecha_nacimiento);
       return bday.getMonth() + 1 === todayMonth && bday.getDate() === todayDay;
     });
-
-    // Get all user emails for notification
-    const { data: profiles } = await supabase
-      .from("profiles")
-      .select("user_id, display_name");
-
-    const { data: authUsers } = await supabase.auth.admin.listUsers();
-    const userEmails = (authUsers?.users || []).map((u) => ({
-      email: u.email,
-      name:
-        profiles?.find((p) => p.user_id === u.id)?.display_name ||
-        u.email?.split("@")[0],
-    }));
 
     // Build notification content
     const notifications: string[] = [];
@@ -80,12 +108,6 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Log the notifications (in production, integrate with an email service)
-    console.log("=== DAILY NOTIFICATIONS ===");
-    console.log(`Recipients: ${userEmails.map((u) => u.email).join(", ")}`);
-    console.log(notifications.join("\n"));
-    console.log("===========================");
-
     // Store notifications summary for in-app reference
     return new Response(
       JSON.stringify({
@@ -93,7 +115,6 @@ Deno.serve(async (req) => {
         summary: {
           birthdaysToday: birthdaysToday.length,
           upcomingEvents: (upcomingEvents || []).length,
-          recipientCount: userEmails.length,
           content: notifications.join("\n"),
         },
       }),
@@ -102,7 +123,7 @@ Deno.serve(async (req) => {
   } catch (error) {
     console.error("Error in daily-notifications:", error);
     return new Response(
-      JSON.stringify({ error: (error as Error).message }),
+      JSON.stringify({ error: "Error interno del servidor" }),
       {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
