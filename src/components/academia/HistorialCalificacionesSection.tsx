@@ -114,7 +114,7 @@ export default function HistorialCalificacionesSection() {
         asistencia: totalAtt > 0 ? `${presentAtt} DE ${totalAtt}` : "—",
         notaFinal: notaFinal != null ? Number(notaFinal).toFixed(1) : "—",
         notaFinalNum: notaFinal,
-        aprobo: notaFinal != null && notaFinal >= 3,
+        aprobo: m.estado === "Aprobó" || (notaFinal != null && notaFinal >= 3),
       };
     });
   }, [historyData]);
