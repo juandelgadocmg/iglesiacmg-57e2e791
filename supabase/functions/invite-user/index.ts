@@ -128,7 +128,8 @@ serve(async (req) => {
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (err) {
-    return new Response(JSON.stringify({ error: (err as Error).message }), {
+    console.error("Error in invite-user:", err);
+    return new Response(JSON.stringify({ error: "Error interno del servidor" }), {
       status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
