@@ -556,7 +556,8 @@ function EstudiantesSection({ escuelas, allPeriodos, allMatriculas }: any) {
                 </div>
                 <Badge variant="outline" className={cn("text-[10px]",
                   m.estado === "Activo" ? "bg-success/10 text-success border-success/20" :
-                  m.estado === "Completado" ? "bg-primary/10 text-primary border-primary/20" :
+                  m.estado === "Aprobó" ? "bg-primary/10 text-primary border-primary/20" :
+                  m.estado === "No Aprobó" ? "bg-destructive/10 text-destructive border-destructive/20" :
                   "bg-muted text-muted-foreground"
                 )}>
                   {m.estado}
@@ -594,9 +595,8 @@ function HistorialMatriculasSection({ escuelas, allPeriodos, allMatriculas }: an
 
   const getResultado = (m: any) => {
     if (m.estado === "Activo") return { label: "En curso", color: "bg-blue-500/10 text-blue-600 border-blue-500/20" };
-    if (m.estado === "Retirado") return { label: "Retirado", color: "bg-muted text-muted-foreground" };
-    if (m.nota_final != null && m.nota_final >= 3) return { label: "Aprobó", color: "bg-success/10 text-success border-success/20" };
-    if (m.nota_final != null && m.nota_final < 3) return { label: "Reprobó", color: "bg-destructive/10 text-destructive border-destructive/20" };
+    if (m.estado === "Aprobó") return { label: "Aprobó", color: "bg-success/10 text-success border-success/20" };
+    if (m.estado === "No Aprobó") return { label: "No Aprobó", color: "bg-destructive/10 text-destructive border-destructive/20" };
     return { label: m.estado, color: "bg-muted text-muted-foreground" };
   };
 
@@ -718,7 +718,8 @@ function HistorialMatriculasSection({ escuelas, allPeriodos, allMatriculas }: an
                       <td className="p-3 text-center">
                         <Badge variant="outline" className={cn("text-[10px]",
                           m.estado === "Activo" ? "bg-success/10 text-success" :
-                          m.estado === "Completado" ? "bg-primary/10 text-primary" : ""
+                          m.estado === "Aprobó" ? "bg-primary/10 text-primary" :
+                          m.estado === "No Aprobó" ? "bg-destructive/10 text-destructive" : ""
                         )}>{m.estado}</Badge>
                       </td>
                       <td className="p-3 text-center text-muted-foreground">{m.fecha_matricula}</td>
@@ -1442,11 +1443,11 @@ function PeriodoDetailView({ escuela, periodo, onBackToPeriodos }: any) {
                       <SelectTrigger className="h-8 w-28 text-xs" onClick={(e) => e.stopPropagation()}><SelectValue /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="Activo">Activo</SelectItem>
-                        <SelectItem value="Completado">Completado</SelectItem>
-                        <SelectItem value="Retirado">Retirado</SelectItem>
+                        <SelectItem value="Aprobó">Aprobó</SelectItem>
+                        <SelectItem value="No Aprobó">No Aprobó</SelectItem>
                       </SelectContent>
                     </Select>
-                    {m.estado === "Completado" && (
+                    {m.estado === "Aprobó" && (
                       <Button size="sm" variant="outline" className="gap-1 text-xs shrink-0" onClick={() => handleEmitirCertificado(m)}>
                         <Award className="h-3.5 w-3.5" /> Certificado
                       </Button>
