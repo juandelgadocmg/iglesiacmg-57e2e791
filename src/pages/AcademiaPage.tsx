@@ -738,7 +738,8 @@ function HistorialMatriculasSection({ escuelas, allPeriodos, allMatriculas }: an
                               onKeyDown={(e) => {
                                 if (e.key === "Enter") {
                                   const val = editValue.trim() === "" ? null : parseFloat(editValue);
-                                  updateMatricula.mutate({ id: m.id, nota_final: val } as any);
+                                  const autoEstado = val != null ? (val >= 3 ? "Aprobó" : "No Aprobó") : undefined;
+                                  updateMatricula.mutate({ id: m.id, nota_final: val, ...(autoEstado ? { estado: autoEstado } : {}) } as any);
                                   setEditingId(null);
                                 } else if (e.key === "Escape") {
                                   setEditingId(null);
@@ -747,7 +748,8 @@ function HistorialMatriculasSection({ escuelas, allPeriodos, allMatriculas }: an
                             />
                             <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => {
                               const val = editValue.trim() === "" ? null : parseFloat(editValue);
-                              updateMatricula.mutate({ id: m.id, nota_final: val } as any);
+                              const autoEstado = val != null ? (val >= 3 ? "Aprobó" : "No Aprobó") : undefined;
+                              updateMatricula.mutate({ id: m.id, nota_final: val, ...(autoEstado ? { estado: autoEstado } : {}) } as any);
                               setEditingId(null);
                             }}><Check className="h-3 w-3" /></Button>
                             <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => setEditingId(null)}><X className="h-3 w-3" /></Button>
