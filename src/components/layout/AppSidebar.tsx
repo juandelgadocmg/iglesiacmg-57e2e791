@@ -17,7 +17,7 @@ import {
   LayoutDashboard, Users, UsersRound, Church,
   DollarSign, CalendarDays, GraduationCap,
   Award, BarChart3, Settings, UserCog, ChevronLeft, ChevronRight,
-  LogOut, HandHeart
+  LogOut, HandHeart, MessageCircle
 } from "lucide-react";
 
 const menuItems = [
@@ -33,6 +33,7 @@ const menuItems = [
   { label: "Reportes", icon: BarChart3, path: "/reportes" },
   { label: "Usuarios", icon: UserCog, path: "/usuarios" },
   { label: "Configuración", icon: Settings, path: "/configuracion" },
+  { label: "Chat IA", icon: MessageCircle, path: "/chat" },
 ];
 
 interface AppSidebarProps {
