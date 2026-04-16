@@ -144,7 +144,7 @@ export default function PlanificacionGrupoFormDialog({ open, onOpenChange }: Pro
                   <Select value={grupoId} onValueChange={setGrupoId}>
                     <SelectTrigger><SelectValue placeholder="Seleccionar grupo" /></SelectTrigger>
                     <SelectContent>
-                      {(grupos || []).filter((g: any) => g.tipo === "Casas de paz").map((g: any) => <SelectItem key={g.id} value={g.id}>{g.nombre}</SelectItem>)}
+                      {(grupos || []).filter((g: any) => g.tipo === "Casas de paz" || g.tipo === "Grupos encuentro").map((g: any) => <SelectItem key={g.id} value={g.id}>{g.nombre}</SelectItem>)}
                     </SelectContent>
                   </Select>
                 </div>
