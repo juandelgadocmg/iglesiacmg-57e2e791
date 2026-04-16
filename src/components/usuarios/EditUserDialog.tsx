@@ -106,7 +106,7 @@ export default function EditUserDialog({ profile, userRoles, open, onOpenChange,
   };
 
   const gruposFiltrados = grupos.filter(g => {
-    if (selectedRoles.includes("lider_casa_paz")) return g.tipo === "Casas de paz";
+    if (selectedRoles.includes("lider_casa_paz")) return g.tipo === "Casas de paz" || g.tipo === "Grupos encuentro";
     return true;
   });
 
@@ -298,7 +298,7 @@ export default function EditUserDialog({ profile, userRoles, open, onOpenChange,
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="none">Sin grupo</SelectItem>
-                    {grupos.filter(g => g.tipo === "Casas de paz").map(g => (
+                    {grupos.filter(g => g.tipo === "Casas de paz" || g.tipo === "Grupos encuentro").map(g => (
                       <SelectItem key={g.id} value={g.id}>
                         <span>{g.nombre}</span>
                         {g.red && <span className="text-xs text-muted-foreground ml-2">· Red {g.red}</span>}
