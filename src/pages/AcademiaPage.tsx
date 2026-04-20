@@ -44,6 +44,7 @@ import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
   GraduationCap, BookOpen, Award, Users, Clock, CalendarDays,
   Search, UserCheck, ChevronRight, FileText, Lock, Unlock,
@@ -796,11 +797,12 @@ function HistorialMatriculasSection({ escuelas, allPeriodos, allMatriculas }: an
                 <th className="text-center p-3 font-medium text-muted-foreground">Fecha Matrícula</th>
                 <th className="text-center p-3 font-medium text-muted-foreground">Nota Final</th>
                 <th className="text-center p-3 font-medium text-muted-foreground">Resultado</th>
+                <th className="text-center p-3 font-medium text-muted-foreground">Acciones</th>
               </tr>
             </thead>
             <tbody>
               {!filtered.length ? (
-                <tr><td colSpan={6} className="text-center py-8 text-muted-foreground text-xs">No hay matrículas.</td></tr>
+                <tr><td colSpan={7} className="text-center py-8 text-muted-foreground text-xs">No hay matrículas.</td></tr>
               ) : (
                 filtered.slice(0, 100).map((m: any) => {
                   const res = getResultado(m);
@@ -868,6 +870,29 @@ function HistorialMatriculasSection({ escuelas, allPeriodos, allMatriculas }: an
                       <td className="p-3 text-center">
                         <Badge variant="outline" className={cn("text-[10px]", res.color)}>{res.label}</Badge>
                       </td>
+                      <td className="p-3 text-center">
+                        <div className="flex items-center justify-center gap-1">
+                          <Button
+                            size="icon" variant="ghost" className="h-7 w-7"
+                            title="Editar matrícula"
+                            onClick={() => setEditMatricula(m)}
+                          >
+                            <Pencil className="h-3.5 w-3.5" />
+                          </Button>
+                          <DeleteConfirmDialog
+                            title="¿Eliminar matrícula?"
+                            description="Esta acción eliminará la matrícula y todas las calificaciones, asistencia y pagos asociados. No se puede deshacer."
+                            onConfirm={async () => {
+                              try {
+                                await deleteMatricula.mutateAsync(m.id);
+                                toast.success("Matrícula eliminada");
+                              } catch (err: any) {
+                                toast.error(err.message || "Error al eliminar matrícula");
+                              }
+                            }}
+                          />
+                        </div>
+                      </td>
                     </tr>
                   );
                 })
@@ -876,7 +901,111 @@ function HistorialMatriculasSection({ escuelas, allPeriodos, allMatriculas }: an
           </table>
         </div>
       </div>
+
+      {/* Diálogo de edición de matrícula */}
+      <EditMatriculaDialog
+        matricula={editMatricula}
+        onClose={() => setEditMatricula(null)}
+      />
     </div>
+  );
+}
+
+// Diálogo edición matrícula (estado, nota, materia)
+function EditMatriculaDialog({ matricula, onClose }: { matricula: any; onClose: () => void }) {
+  const updateMatricula = useUpdateMatricula();
+  const { data: materias } = useMaterias(matricula?.periodo_id || null);
+  const [estado, setEstado] = useState("");
+  const [nota, setNota] = useState("");
+  const [materiaId, setMateriaId] = useState("");
+
+  useEffect(() => {
+    if (matricula) {
+      setEstado(matricula.estado || "Activo");
+      setNota(matricula.nota_final != null ? String(matricula.nota_final) : "");
+      setMateriaId(matricula.materia_id || "");
+    }
+  }, [matricula]);
+
+  const handleSave = async () => {
+    if (!matricula) return;
+    try {
+      const notaVal = nota.trim() === "" ? null : parseFloat(nota);
+      await updateMatricula.mutateAsync({
+        id: matricula.id,
+        estado,
+        nota_final: notaVal,
+        materia_id: materiaId || null,
+      });
+      toast.success("Matrícula actualizada");
+      onClose();
+    } catch {
+      toast.error("Error al actualizar matrícula");
+    }
+  };
+
+  return (
+    <Dialog open={!!matricula} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>Editar matrícula</DialogTitle>
+        </DialogHeader>
+        {matricula && (
+          <div className="space-y-4">
+            <div className="rounded-lg bg-muted/40 p-3 text-sm">
+              <p className="font-medium">{matricula.personas?.nombres} {matricula.personas?.apellidos}</p>
+              <p className="text-xs text-muted-foreground">Matriculada: {matricula.fecha_matricula}</p>
+            </div>
+
+            <div>
+              <label className="text-sm font-medium">Estado</label>
+              <Select value={estado} onValueChange={setEstado}>
+                <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Activo">Activo (en curso)</SelectItem>
+                  <SelectItem value="Aprobó">Aprobó</SelectItem>
+                  <SelectItem value="No Aprobó">No Aprobó</SelectItem>
+                  <SelectItem value="Retirado">Retirado</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <label className="text-sm font-medium">Nota final</label>
+              <Input
+                type="number" step="0.1" min="0" max="5"
+                value={nota}
+                onChange={(e) => setNota(e.target.value)}
+                placeholder="Ej: 4.5"
+                className="mt-1"
+              />
+            </div>
+
+            {materias && materias.length > 0 && (
+              <div>
+                <label className="text-sm font-medium">Materia</label>
+                <Select value={materiaId} onValueChange={setMateriaId}>
+                  <SelectTrigger className="mt-1"><SelectValue placeholder="Sin materia asignada" /></SelectTrigger>
+                  <SelectContent>
+                    {materias.map((mat: any) => (
+                      <SelectItem key={mat.id} value={mat.id}>{mat.nombre}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-[10px] text-muted-foreground mt-1">Solo materias del período actual de la matrícula.</p>
+              </div>
+            )}
+
+            <div className="flex justify-end gap-2 pt-2">
+              <Button variant="outline" onClick={onClose}>Cancelar</Button>
+              <Button onClick={handleSave} disabled={updateMatricula.isPending}>
+                {updateMatricula.isPending ? "Guardando..." : "Guardar cambios"}
+              </Button>
+            </div>
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
   );
 }
 
