@@ -1,46 +1,65 @@
 
 
-## Problema confirmado
+## Problema
 
-Consulté la base de datos:
-- **3,367 personas** tienen `grupo_id` asignado
-- **70 personas** NO existen en `grupo_miembros` para ese grupo → no aparecen en el panel del grupo
+En el módulo de Academia faltan capacidades clave de gestión:
 
-### Causas raíz
-1. El panel de miembros (`GrupoMembersPanel`) lee desde `grupo_miembros`, no desde `personas.grupo_id`. Son dos fuentes de verdad sin sincronización garantizada.
-2. `PersonaFormDialog` intenta insertar en `grupo_miembros` después de crear/editar, pero:
-   - No invalida los query keys `grupo_miembros_detail` ni `grupo_miembros_perfil`, así que la UI muestra cache viejo.
-   - Si el insert falla silenciosamente (RLS, race condition), la persona queda huérfana sin alerta clara.
-3. Otros flujos (importación masiva, edición rápida, scripts antiguos) escriben directo en `personas.grupo_id` sin tocar `grupo_miembros`.
+1. **Períodos**: solo se pueden cerrar/reabrir desde la tarjeta. No hay edición completa (nombre, fechas, fechas de matrícula), ni eliminar, ni duplicar (clonando el pensum).
+2. **Cierre de período**: aunque se cierre, `MatriculaFormDialog` deja matricular en períodos cerrados.
+3. **Historial de matrículas**: solo permite editar la nota final inline. No hay editar estado/materia ni eliminar la matrícula.
 
-## Solución: sincronización a nivel de BD + backfill + UI
+## Solución
 
-### 1. Trigger en BD (fuente de verdad única)
-Crear un trigger `AFTER INSERT OR UPDATE OF grupo_id ON personas` que automáticamente:
-- Si `grupo_id` cambió y el anterior no era null → eliminar fila vieja en `grupo_miembros`
-- Si el nuevo `grupo_id` no es null y no existe fila → insertar con `rol = 'asistente'`
+### 1. Gestión completa de Períodos
 
-Esto cubre TODOS los flujos (formulario, importación masiva, edición rápida, ediciones futuras) sin tocar más código.
+**`PeriodoFormDialog`** — convertirlo en componente reutilizable para crear **y editar**:
+- Recibe prop opcional `periodo` (si viene → modo edición, usa `useUpdatePeriodo`).
+- Misma estructura de campos (nombre, estado, fechas período, fechas matrícula).
 
-### 2. Backfill de los 70 registros desincronizados
-Migración que inserta en `grupo_miembros` todas las personas con `grupo_id` que no tienen su fila correspondiente.
+**`PeriodosSection`** (tarjeta de período) — agregar menú `MoreVertical` con:
+- ✏️ **Editar** → abre `PeriodoFormDialog` en modo edición.
+- 📋 **Duplicar (con pensum)** → crea período nuevo + clona todas las `materias` y `cortes_academicos` del período origen.
+- 🗑️ **Eliminar** → `DeleteConfirmDialog`. Verifica que no tenga matrículas activas; si tiene, muestra error claro.
 
-### 3. Limpiar e invalidar correctamente en `PersonaFormDialog.tsx`
-- Quitar la lógica manual de insert/delete en `grupo_miembros` (el trigger se encarga).
-- Agregar `qc.invalidateQueries` para `grupo_miembros_detail`, `grupo_miembros_perfil` y `grupos` después de crear/editar persona.
+**Nuevo hook `useDuplicatePeriodo`** en `useAcademia.ts`:
+1. Inserta nuevo `periodos_academicos` (nombre = "Copia de …" o el que ingrese el usuario).
+2. Obtiene `materias` del período origen → re-inserta con el nuevo `periodo_id` (preservando maestro_id, aula_id, código, configuración, cupos).
+3. Obtiene `cortes_academicos` del período origen → re-inserta con el nuevo `periodo_id`.
+4. **No** clona matrículas, calificaciones ni asistencia (datos del estudiante son por período).
 
-### 4. Invalidación cruzada en `useCreatePersona` / `useUpdatePersona`
-Agregar invalidación de los query keys de miembros para que el panel del grupo se refresque automáticamente al crear/editar desde cualquier parte del sistema.
+### 2. Bloqueo de matrículas en períodos cerrados
+
+**`MatriculaFormDialog`**:
+- Filtrar el select de períodos para mostrar solo los `Abierto` (o marcar los cerrados como `disabled` con etiqueta "Cerrado").
+- Validación adicional en `onSubmit`: si el período seleccionado está `Cerrado`, mostrar `toast.error("Este período está cerrado, no admite nuevas matrículas")` y abortar.
+- En `PeriodoDetailView`: ocultar el botón "Matricular" del header cuando `periodo.estado === "Cerrado"` (ya tiene la lógica de finalizar/reabrir).
+
+### 3. Editar y eliminar matrícula en Historial
+
+**`useAcademia.ts`** — agregar `useDeleteMatricula` (delete por id con invalidación de `matriculas`, `matriculas-all`, `calificaciones-grid`).
+
+**`HistorialMatriculasSection`** — agregar columna "Acciones" con:
+- ✏️ **Editar matrícula** → diálogo modal con: estado (Activo/Aprobó/No Aprobó/Retirado), nota final, materia (select de materias del mismo período). Usa `useUpdateMatricula` extendido para aceptar `materia_id`.
+- 🗑️ **Eliminar** → `DeleteConfirmDialog`. Advertencia: "Eliminar la matrícula también eliminará las calificaciones asociadas".
+
+**`useUpdateMatricula`** — extender el tipo para aceptar `materia_id` opcional.
 
 ## Archivos afectados
 
-- **Nueva migración SQL**:
-  - Función `sync_grupo_miembros_from_persona()` + trigger en `personas`
-  - Backfill de 70 registros huérfanos
-- **`src/components/forms/PersonaFormDialog.tsx`**: eliminar lógica manual de `grupo_miembros` (líneas 167–197), conservar solo el insert de la persona.
-- **`src/hooks/useDatabase.ts`**: agregar invalidación de `grupo_miembros_detail`, `grupo_miembros_perfil` en `useCreatePersona` y `useUpdatePersona`.
+- `src/components/forms/PeriodoFormDialog.tsx` — soporte modo edición.
+- `src/pages/AcademiaPage.tsx`:
+  - `PeriodosSection`: menú de acciones (editar / duplicar / eliminar) en cada tarjeta.
+  - `HistorialMatriculasSection`: columna acciones + diálogo de edición + eliminar.
+  - `MatriculaFormDialog` (uso): nada.
+- `src/components/forms/MatriculaFormDialog.tsx` — filtrar/desactivar períodos cerrados + validación en submit.
+- `src/hooks/useAcademia.ts`:
+  - `useDuplicatePeriodo` (nuevo).
+  - `useDeleteMatricula` (nuevo).
+  - `useUpdateMatricula` extender tipo con `materia_id`.
 
 ## Resultado esperado
 
-Al crear o editar una persona y asignarla a un grupo (Casa de Paz o Grupo Encuentro), el trigger crea automáticamente la fila en `grupo_miembros`. La UI del grupo se refresca y la persona aparece de inmediato en el panel de integrantes. Los 70 registros históricos también se sincronizan.
+- Cada tarjeta de período ofrece editar, duplicar (arrastrando pensum y cortes) y eliminar.
+- Los períodos cerrados aparecen deshabilitados al matricular y bloqueados con mensaje claro.
+- El historial de matrículas permite editar estado/nota/materia y eliminar registros, con confirmación.
 
