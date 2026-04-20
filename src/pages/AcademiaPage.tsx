@@ -204,7 +204,12 @@ function EscuelasSection({ escuelas, allPeriodos, allMatriculas, onSelectEscuela
 function PeriodosSection({ escuelas, allPeriodos, allMatriculas }: any) {
   const [selectedEscuela, setSelectedEscuela] = useState<string>("");
   const [selectedPeriodo, setSelectedPeriodo] = useState<string | null>(null);
+  const [editingPeriodo, setEditingPeriodo] = useState<any>(null);
+  const [duplicatingPeriodo, setDuplicatingPeriodo] = useState<any>(null);
+  const [duplicateName, setDuplicateName] = useState("");
   const updatePeriodo = useUpdatePeriodo();
+  const deletePeriodo = useDeletePeriodo();
+  const duplicatePeriodo = useDuplicatePeriodo();
 
   const periodos = useMemo(() => {
     if (!selectedEscuela || selectedEscuela === "all") return allPeriodos || [];
@@ -223,6 +228,30 @@ function PeriodosSection({ escuelas, allPeriodos, allMatriculas }: any) {
     const nuevo = p.estado === "Abierto" ? "Cerrado" : "Abierto";
     try { await updatePeriodo.mutateAsync({ id: p.id, estado: nuevo }); toast.success(`Período ${nuevo.toLowerCase()}`); }
     catch { toast.error("Error al actualizar"); }
+  };
+
+  const handleDelete = async (p: any) => {
+    try {
+      await deletePeriodo.mutateAsync(p.id);
+      toast.success("Período eliminado");
+    } catch (err: any) {
+      toast.error(err.message || "Error al eliminar período");
+    }
+  };
+
+  const handleDuplicate = async () => {
+    if (!duplicatingPeriodo || !duplicateName.trim()) {
+      toast.error("Ingresa un nombre para el nuevo período");
+      return;
+    }
+    try {
+      await duplicatePeriodo.mutateAsync({ sourceId: duplicatingPeriodo.id, nombre: duplicateName.trim() });
+      toast.success("Período duplicado con su pensum");
+      setDuplicatingPeriodo(null);
+      setDuplicateName("");
+    } catch {
+      toast.error("Error al duplicar período");
+    }
   };
 
   if (selectedPeriodo) {
@@ -262,25 +291,57 @@ function PeriodosSection({ escuelas, allPeriodos, allMatriculas }: any) {
             const cfg = ESTADO_PERIODO[p.estado] || ESTADO_PERIODO.Abierto;
             const Icon = cfg.icon;
             return (
-              <div key={p.id} onClick={() => setSelectedPeriodo(p.id)} className="group rounded-xl border bg-card p-5 cursor-pointer hover:shadow-md transition-all hover:border-primary/30">
-                <div className="text-center mb-3">
-                  <p className="text-[10px] text-muted-foreground mb-1">{p.escuelaNombre}</p>
-                  <h3 className="font-bold text-foreground uppercase text-sm group-hover:text-primary transition-colors">{p.nombre}</h3>
-                  <Badge variant="outline" className={`mt-2 text-[10px] cursor-pointer ${cfg.color}`} onClick={(e) => { e.stopPropagation(); toggleEstado(p); }}>
-                    <Icon className="h-3 w-3 mr-1" /> {p.estado.toUpperCase()}
-                  </Badge>
+              <div key={p.id} className="group relative rounded-xl border bg-card p-5 hover:shadow-md transition-all hover:border-primary/30">
+                {/* Menú de acciones */}
+                <div className="absolute top-2 right-2 z-10" onClick={(e) => e.stopPropagation()}>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-7 w-7 opacity-60 hover:opacity-100">
+                        <MoreVertical className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={() => setEditingPeriodo(p)}>
+                        <Pencil className="h-4 w-4 mr-2" /> Editar
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => { setDuplicatingPeriodo(p); setDuplicateName(`Copia de ${p.nombre}`); }}>
+                        <Copy className="h-4 w-4 mr-2" /> Duplicar (con pensum)
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        className="text-destructive focus:text-destructive"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          if (confirm(`¿Eliminar el período "${p.nombre}"?\n\nSe borrarán también sus materias y cortes. No se podrá deshacer.`)) {
+                            handleDelete(p);
+                          }
+                        }}
+                      >
+                        <Trash2 className="h-4 w-4 mr-2" /> Eliminar
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
-                <div className="text-xs text-muted-foreground space-y-1 mb-4">
-                  {p.fecha_inicio && <p className="flex items-center gap-1"><CalendarDays className="h-3 w-3" /> {format(parseISO(p.fecha_inicio), "yyyy-MM-dd")}{p.fecha_fin ? ` al ${format(parseISO(p.fecha_fin), "yyyy-MM-dd")}` : ""}</p>}
-                </div>
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-muted-foreground">Estudiantes activos</span>
-                    <Badge className="bg-primary text-primary-foreground"><Users className="h-3 w-3 mr-1" /> {p.estudiantesActivos}</Badge>
+
+                <div onClick={() => setSelectedPeriodo(p.id)} className="cursor-pointer">
+                  <div className="text-center mb-3">
+                    <p className="text-[10px] text-muted-foreground mb-1">{p.escuelaNombre}</p>
+                    <h3 className="font-bold text-foreground uppercase text-sm group-hover:text-primary transition-colors">{p.nombre}</h3>
+                    <Badge variant="outline" className={`mt-2 text-[10px] cursor-pointer ${cfg.color}`} onClick={(e) => { e.stopPropagation(); toggleEstado(p); }}>
+                      <Icon className="h-3 w-3 mr-1" /> {p.estado.toUpperCase()}
+                    </Badge>
                   </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-muted-foreground">Total matrículas</span>
-                    <Badge className="bg-primary text-primary-foreground"><GraduationCap className="h-3 w-3 mr-1" /> {p.totalMatriculas}</Badge>
+                  <div className="text-xs text-muted-foreground space-y-1 mb-4">
+                    {p.fecha_inicio && <p className="flex items-center gap-1"><CalendarDays className="h-3 w-3" /> {format(parseISO(p.fecha_inicio), "yyyy-MM-dd")}{p.fecha_fin ? ` al ${format(parseISO(p.fecha_fin), "yyyy-MM-dd")}` : ""}</p>}
+                  </div>
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-muted-foreground">Estudiantes activos</span>
+                      <Badge className="bg-primary text-primary-foreground"><Users className="h-3 w-3 mr-1" /> {p.estudiantesActivos}</Badge>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-muted-foreground">Total matrículas</span>
+                      <Badge className="bg-primary text-primary-foreground"><GraduationCap className="h-3 w-3 mr-1" /> {p.totalMatriculas}</Badge>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -288,6 +349,45 @@ function PeriodosSection({ escuelas, allPeriodos, allMatriculas }: any) {
           })}
         </div>
       )}
+
+      {/* Diálogo edición período */}
+      {editingPeriodo && (
+        <PeriodoFormDialog
+          escuelaId={editingPeriodo.escuela_id}
+          periodo={editingPeriodo}
+          open={!!editingPeriodo}
+          onOpenChange={(o) => !o && setEditingPeriodo(null)}
+        />
+      )}
+
+      {/* Diálogo duplicar período */}
+      <Dialog open={!!duplicatingPeriodo} onOpenChange={(o) => !o && setDuplicatingPeriodo(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Duplicar período</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <p className="text-sm text-muted-foreground">
+              Se creará un nuevo período copiando todas las <strong>materias</strong> y <strong>cortes</strong> del período origen. No se copiarán matrículas ni calificaciones.
+            </p>
+            <div>
+              <label className="text-sm font-medium">Nombre del nuevo período</label>
+              <Input
+                value={duplicateName}
+                onChange={(e) => setDuplicateName(e.target.value)}
+                placeholder="Nombre del nuevo período"
+                className="mt-1"
+              />
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+              <Button variant="outline" onClick={() => setDuplicatingPeriodo(null)}>Cancelar</Button>
+              <Button onClick={handleDuplicate} disabled={duplicatePeriodo.isPending}>
+                {duplicatePeriodo.isPending ? "Duplicando..." : "Duplicar período"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
