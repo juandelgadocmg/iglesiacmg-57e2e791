@@ -65,6 +65,9 @@ export function useUpdatePersona() {
       qc.invalidateQueries({ queryKey: ["peticiones_oracion"] });
       qc.invalidateQueries({ queryKey: ["certificados_iglesia"] });
       qc.invalidateQueries({ queryKey: ["persona-detalle"] });
+      qc.invalidateQueries({ queryKey: ["grupo_miembros_detail"] });
+      qc.invalidateQueries({ queryKey: ["grupo_miembros_perfil"] });
+      qc.invalidateQueries({ queryKey: ["grupos"] });
     },
   });
 }
