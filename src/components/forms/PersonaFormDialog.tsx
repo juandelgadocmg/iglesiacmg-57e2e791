@@ -164,37 +164,8 @@ export default function PersonaFormDialog({ initialData, onClose }: Props) {
         toast.success("Persona creada exitosamente");
       }
 
-      // Sync membership in grupo_miembros so the person appears in the group's members panel
-      if (personaId) {
-        const newGrupoId = payload.grupo_id as string | null;
-        try {
-          // If the assigned group changed (or was removed), clean up old membership
-          if (isEdit && previousGrupoId && previousGrupoId !== newGrupoId) {
-            await supabase
-              .from("grupo_miembros")
-              .delete()
-              .eq("persona_id", personaId)
-              .eq("grupo_id", previousGrupoId);
-          }
-          // Ensure membership row exists for the (new) group
-          if (newGrupoId) {
-            const { data: existing } = await supabase
-              .from("grupo_miembros")
-              .select("id")
-              .eq("persona_id", personaId)
-              .eq("grupo_id", newGrupoId)
-              .maybeSingle();
-            if (!existing) {
-              await supabase
-                .from("grupo_miembros")
-                .insert({ persona_id: personaId, grupo_id: newGrupoId, rol: "asistente" } as any);
-            }
-          }
-        } catch (memErr: any) {
-          console.error("Error syncing grupo_miembros:", memErr);
-          toast.warning("La persona se guardó, pero no se pudo sincronizar con la lista del grupo.");
-        }
-      }
+      // La sincronización con grupo_miembros la maneja el trigger de BD
+      // (sync_grupo_miembros_from_persona) automáticamente al insertar/actualizar grupo_id.
 
       // Save tipos_persona array separately — column may not exist yet if migration pending
       if (personaId && tiposSeleccionados.length > 0) {
