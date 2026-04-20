@@ -679,7 +679,9 @@ function HistorialMatriculasSection({ escuelas, allPeriodos, allMatriculas }: an
   const [selectedEscuela, setSelectedEscuela] = useState<string>("");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editValue, setEditValue] = useState<string>("");
+  const [editMatricula, setEditMatricula] = useState<any>(null);
   const updateMatricula = useUpdateMatricula();
+  const deleteMatricula = useDeleteMatricula();
   const [selectedPeriodo, setSelectedPeriodo] = useState<string>("");
   const { data: aulas } = useAulas();
 
