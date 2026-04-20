@@ -23,7 +23,8 @@ import ImportAcademiaDialog from "@/components/forms/ImportAcademiaDialog";
 import {
   useEscuelas, useAllMatriculas, useCertificados, usePeriodos,
   useMaterias, useMatriculas, useUpdateMatricula, useCreateCertificado,
-  useUpdatePeriodo, useDeleteMateria, useUpdateMateria, useAllPeriodos,
+  useUpdatePeriodo, useDeletePeriodo, useDuplicatePeriodo, useDeleteMatricula,
+  useDeleteMateria, useUpdateMateria, useAllPeriodos,
   useAulas, useUpdateAula, useDeleteAula,
   useCortes, useAllItemsByCorte, useDeleteCorte, useDeleteItemCalificable,
   useCalificacionesByMateriaCorte, useBulkUpsertCalificaciones,
@@ -48,7 +49,7 @@ import {
   Search, UserCheck, ChevronRight, FileText, Lock, Unlock,
   MoreVertical, Trash2, BookText, ArrowLeft, Building2,
   BarChart3, Eye, ClipboardCheck, CheckCircle2, XCircle,
-  Save, Check, X, History, Download, User,
+  Save, Check, X, History, Download, User, Pencil, Copy,
   DollarSign, FolderOpen, RefreshCw, ExternalLink, File, TrendingUp, PieChart, AlertTriangle,
 } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -1334,7 +1335,7 @@ function PeriodoDetailView({ escuela, periodo, onBackToPeriodos }: any) {
               <Unlock className="h-3.5 w-3.5" /> Reabrir período
             </Button>
           )}
-          <MatriculaFormDialog cursoId={escuela.id} periodoId={periodo.id} />
+          {periodo.estado === "Abierto" && <MatriculaFormDialog cursoId={escuela.id} periodoId={periodo.id} />}
         </div>
       </div>
 
