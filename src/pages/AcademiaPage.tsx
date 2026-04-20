@@ -23,7 +23,8 @@ import ImportAcademiaDialog from "@/components/forms/ImportAcademiaDialog";
 import {
   useEscuelas, useAllMatriculas, useCertificados, usePeriodos,
   useMaterias, useMatriculas, useUpdateMatricula, useCreateCertificado,
-  useUpdatePeriodo, useDeleteMateria, useUpdateMateria, useAllPeriodos,
+  useUpdatePeriodo, useDeletePeriodo, useDuplicatePeriodo, useDeleteMatricula,
+  useDeleteMateria, useUpdateMateria, useAllPeriodos,
   useAulas, useUpdateAula, useDeleteAula,
   useCortes, useAllItemsByCorte, useDeleteCorte, useDeleteItemCalificable,
   useCalificacionesByMateriaCorte, useBulkUpsertCalificaciones,
@@ -43,12 +44,13 @@ import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
   GraduationCap, BookOpen, Award, Users, Clock, CalendarDays,
   Search, UserCheck, ChevronRight, FileText, Lock, Unlock,
   MoreVertical, Trash2, BookText, ArrowLeft, Building2,
   BarChart3, Eye, ClipboardCheck, CheckCircle2, XCircle,
-  Save, Check, X, History, Download, User,
+  Save, Check, X, History, Download, User, Pencil, Copy,
   DollarSign, FolderOpen, RefreshCw, ExternalLink, File, TrendingUp, PieChart, AlertTriangle,
 } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -203,7 +205,12 @@ function EscuelasSection({ escuelas, allPeriodos, allMatriculas, onSelectEscuela
 function PeriodosSection({ escuelas, allPeriodos, allMatriculas }: any) {
   const [selectedEscuela, setSelectedEscuela] = useState<string>("");
   const [selectedPeriodo, setSelectedPeriodo] = useState<string | null>(null);
+  const [editingPeriodo, setEditingPeriodo] = useState<any>(null);
+  const [duplicatingPeriodo, setDuplicatingPeriodo] = useState<any>(null);
+  const [duplicateName, setDuplicateName] = useState("");
   const updatePeriodo = useUpdatePeriodo();
+  const deletePeriodo = useDeletePeriodo();
+  const duplicatePeriodo = useDuplicatePeriodo();
 
   const periodos = useMemo(() => {
     if (!selectedEscuela || selectedEscuela === "all") return allPeriodos || [];
@@ -222,6 +229,30 @@ function PeriodosSection({ escuelas, allPeriodos, allMatriculas }: any) {
     const nuevo = p.estado === "Abierto" ? "Cerrado" : "Abierto";
     try { await updatePeriodo.mutateAsync({ id: p.id, estado: nuevo }); toast.success(`Período ${nuevo.toLowerCase()}`); }
     catch { toast.error("Error al actualizar"); }
+  };
+
+  const handleDelete = async (p: any) => {
+    try {
+      await deletePeriodo.mutateAsync(p.id);
+      toast.success("Período eliminado");
+    } catch (err: any) {
+      toast.error(err.message || "Error al eliminar período");
+    }
+  };
+
+  const handleDuplicate = async () => {
+    if (!duplicatingPeriodo || !duplicateName.trim()) {
+      toast.error("Ingresa un nombre para el nuevo período");
+      return;
+    }
+    try {
+      await duplicatePeriodo.mutateAsync({ sourceId: duplicatingPeriodo.id, nombre: duplicateName.trim() });
+      toast.success("Período duplicado con su pensum");
+      setDuplicatingPeriodo(null);
+      setDuplicateName("");
+    } catch {
+      toast.error("Error al duplicar período");
+    }
   };
 
   if (selectedPeriodo) {
@@ -261,25 +292,57 @@ function PeriodosSection({ escuelas, allPeriodos, allMatriculas }: any) {
             const cfg = ESTADO_PERIODO[p.estado] || ESTADO_PERIODO.Abierto;
             const Icon = cfg.icon;
             return (
-              <div key={p.id} onClick={() => setSelectedPeriodo(p.id)} className="group rounded-xl border bg-card p-5 cursor-pointer hover:shadow-md transition-all hover:border-primary/30">
-                <div className="text-center mb-3">
-                  <p className="text-[10px] text-muted-foreground mb-1">{p.escuelaNombre}</p>
-                  <h3 className="font-bold text-foreground uppercase text-sm group-hover:text-primary transition-colors">{p.nombre}</h3>
-                  <Badge variant="outline" className={`mt-2 text-[10px] cursor-pointer ${cfg.color}`} onClick={(e) => { e.stopPropagation(); toggleEstado(p); }}>
-                    <Icon className="h-3 w-3 mr-1" /> {p.estado.toUpperCase()}
-                  </Badge>
+              <div key={p.id} className="group relative rounded-xl border bg-card p-5 hover:shadow-md transition-all hover:border-primary/30">
+                {/* Menú de acciones */}
+                <div className="absolute top-2 right-2 z-10" onClick={(e) => e.stopPropagation()}>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-7 w-7 opacity-60 hover:opacity-100">
+                        <MoreVertical className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={() => setEditingPeriodo(p)}>
+                        <Pencil className="h-4 w-4 mr-2" /> Editar
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => { setDuplicatingPeriodo(p); setDuplicateName(`Copia de ${p.nombre}`); }}>
+                        <Copy className="h-4 w-4 mr-2" /> Duplicar (con pensum)
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        className="text-destructive focus:text-destructive"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          if (confirm(`¿Eliminar el período "${p.nombre}"?\n\nSe borrarán también sus materias y cortes. No se podrá deshacer.`)) {
+                            handleDelete(p);
+                          }
+                        }}
+                      >
+                        <Trash2 className="h-4 w-4 mr-2" /> Eliminar
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
-                <div className="text-xs text-muted-foreground space-y-1 mb-4">
-                  {p.fecha_inicio && <p className="flex items-center gap-1"><CalendarDays className="h-3 w-3" /> {format(parseISO(p.fecha_inicio), "yyyy-MM-dd")}{p.fecha_fin ? ` al ${format(parseISO(p.fecha_fin), "yyyy-MM-dd")}` : ""}</p>}
-                </div>
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-muted-foreground">Estudiantes activos</span>
-                    <Badge className="bg-primary text-primary-foreground"><Users className="h-3 w-3 mr-1" /> {p.estudiantesActivos}</Badge>
+
+                <div onClick={() => setSelectedPeriodo(p.id)} className="cursor-pointer">
+                  <div className="text-center mb-3">
+                    <p className="text-[10px] text-muted-foreground mb-1">{p.escuelaNombre}</p>
+                    <h3 className="font-bold text-foreground uppercase text-sm group-hover:text-primary transition-colors">{p.nombre}</h3>
+                    <Badge variant="outline" className={`mt-2 text-[10px] cursor-pointer ${cfg.color}`} onClick={(e) => { e.stopPropagation(); toggleEstado(p); }}>
+                      <Icon className="h-3 w-3 mr-1" /> {p.estado.toUpperCase()}
+                    </Badge>
                   </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-muted-foreground">Total matrículas</span>
-                    <Badge className="bg-primary text-primary-foreground"><GraduationCap className="h-3 w-3 mr-1" /> {p.totalMatriculas}</Badge>
+                  <div className="text-xs text-muted-foreground space-y-1 mb-4">
+                    {p.fecha_inicio && <p className="flex items-center gap-1"><CalendarDays className="h-3 w-3" /> {format(parseISO(p.fecha_inicio), "yyyy-MM-dd")}{p.fecha_fin ? ` al ${format(parseISO(p.fecha_fin), "yyyy-MM-dd")}` : ""}</p>}
+                  </div>
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-muted-foreground">Estudiantes activos</span>
+                      <Badge className="bg-primary text-primary-foreground"><Users className="h-3 w-3 mr-1" /> {p.estudiantesActivos}</Badge>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-muted-foreground">Total matrículas</span>
+                      <Badge className="bg-primary text-primary-foreground"><GraduationCap className="h-3 w-3 mr-1" /> {p.totalMatriculas}</Badge>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -287,6 +350,45 @@ function PeriodosSection({ escuelas, allPeriodos, allMatriculas }: any) {
           })}
         </div>
       )}
+
+      {/* Diálogo edición período */}
+      {editingPeriodo && (
+        <PeriodoFormDialog
+          escuelaId={editingPeriodo.escuela_id}
+          periodo={editingPeriodo}
+          open={!!editingPeriodo}
+          onOpenChange={(o) => !o && setEditingPeriodo(null)}
+        />
+      )}
+
+      {/* Diálogo duplicar período */}
+      <Dialog open={!!duplicatingPeriodo} onOpenChange={(o) => !o && setDuplicatingPeriodo(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Duplicar período</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <p className="text-sm text-muted-foreground">
+              Se creará un nuevo período copiando todas las <strong>materias</strong> y <strong>cortes</strong> del período origen. No se copiarán matrículas ni calificaciones.
+            </p>
+            <div>
+              <label className="text-sm font-medium">Nombre del nuevo período</label>
+              <Input
+                value={duplicateName}
+                onChange={(e) => setDuplicateName(e.target.value)}
+                placeholder="Nombre del nuevo período"
+                className="mt-1"
+              />
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+              <Button variant="outline" onClick={() => setDuplicatingPeriodo(null)}>Cancelar</Button>
+              <Button onClick={handleDuplicate} disabled={duplicatePeriodo.isPending}>
+                {duplicatePeriodo.isPending ? "Duplicando..." : "Duplicar período"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
@@ -577,7 +679,9 @@ function HistorialMatriculasSection({ escuelas, allPeriodos, allMatriculas }: an
   const [selectedEscuela, setSelectedEscuela] = useState<string>("");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editValue, setEditValue] = useState<string>("");
+  const [editMatricula, setEditMatricula] = useState<any>(null);
   const updateMatricula = useUpdateMatricula();
+  const deleteMatricula = useDeleteMatricula();
   const [selectedPeriodo, setSelectedPeriodo] = useState<string>("");
   const { data: aulas } = useAulas();
 
@@ -695,11 +799,12 @@ function HistorialMatriculasSection({ escuelas, allPeriodos, allMatriculas }: an
                 <th className="text-center p-3 font-medium text-muted-foreground">Fecha Matrícula</th>
                 <th className="text-center p-3 font-medium text-muted-foreground">Nota Final</th>
                 <th className="text-center p-3 font-medium text-muted-foreground">Resultado</th>
+                <th className="text-center p-3 font-medium text-muted-foreground">Acciones</th>
               </tr>
             </thead>
             <tbody>
               {!filtered.length ? (
-                <tr><td colSpan={6} className="text-center py-8 text-muted-foreground text-xs">No hay matrículas.</td></tr>
+                <tr><td colSpan={7} className="text-center py-8 text-muted-foreground text-xs">No hay matrículas.</td></tr>
               ) : (
                 filtered.slice(0, 100).map((m: any) => {
                   const res = getResultado(m);
@@ -767,6 +872,29 @@ function HistorialMatriculasSection({ escuelas, allPeriodos, allMatriculas }: an
                       <td className="p-3 text-center">
                         <Badge variant="outline" className={cn("text-[10px]", res.color)}>{res.label}</Badge>
                       </td>
+                      <td className="p-3 text-center">
+                        <div className="flex items-center justify-center gap-1">
+                          <Button
+                            size="icon" variant="ghost" className="h-7 w-7"
+                            title="Editar matrícula"
+                            onClick={() => setEditMatricula(m)}
+                          >
+                            <Pencil className="h-3.5 w-3.5" />
+                          </Button>
+                          <DeleteConfirmDialog
+                            title="¿Eliminar matrícula?"
+                            description="Esta acción eliminará la matrícula y todas las calificaciones, asistencia y pagos asociados. No se puede deshacer."
+                            onConfirm={async () => {
+                              try {
+                                await deleteMatricula.mutateAsync(m.id);
+                                toast.success("Matrícula eliminada");
+                              } catch (err: any) {
+                                toast.error(err.message || "Error al eliminar matrícula");
+                              }
+                            }}
+                          />
+                        </div>
+                      </td>
                     </tr>
                   );
                 })
@@ -775,7 +903,111 @@ function HistorialMatriculasSection({ escuelas, allPeriodos, allMatriculas }: an
           </table>
         </div>
       </div>
+
+      {/* Diálogo de edición de matrícula */}
+      <EditMatriculaDialog
+        matricula={editMatricula}
+        onClose={() => setEditMatricula(null)}
+      />
     </div>
+  );
+}
+
+// Diálogo edición matrícula (estado, nota, materia)
+function EditMatriculaDialog({ matricula, onClose }: { matricula: any; onClose: () => void }) {
+  const updateMatricula = useUpdateMatricula();
+  const { data: materias } = useMaterias(matricula?.periodo_id || null);
+  const [estado, setEstado] = useState("");
+  const [nota, setNota] = useState("");
+  const [materiaId, setMateriaId] = useState("");
+
+  useEffect(() => {
+    if (matricula) {
+      setEstado(matricula.estado || "Activo");
+      setNota(matricula.nota_final != null ? String(matricula.nota_final) : "");
+      setMateriaId(matricula.materia_id || "");
+    }
+  }, [matricula]);
+
+  const handleSave = async () => {
+    if (!matricula) return;
+    try {
+      const notaVal = nota.trim() === "" ? null : parseFloat(nota);
+      await updateMatricula.mutateAsync({
+        id: matricula.id,
+        estado,
+        nota_final: notaVal,
+        materia_id: materiaId || null,
+      });
+      toast.success("Matrícula actualizada");
+      onClose();
+    } catch {
+      toast.error("Error al actualizar matrícula");
+    }
+  };
+
+  return (
+    <Dialog open={!!matricula} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>Editar matrícula</DialogTitle>
+        </DialogHeader>
+        {matricula && (
+          <div className="space-y-4">
+            <div className="rounded-lg bg-muted/40 p-3 text-sm">
+              <p className="font-medium">{matricula.personas?.nombres} {matricula.personas?.apellidos}</p>
+              <p className="text-xs text-muted-foreground">Matriculada: {matricula.fecha_matricula}</p>
+            </div>
+
+            <div>
+              <label className="text-sm font-medium">Estado</label>
+              <Select value={estado} onValueChange={setEstado}>
+                <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Activo">Activo (en curso)</SelectItem>
+                  <SelectItem value="Aprobó">Aprobó</SelectItem>
+                  <SelectItem value="No Aprobó">No Aprobó</SelectItem>
+                  <SelectItem value="Retirado">Retirado</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <label className="text-sm font-medium">Nota final</label>
+              <Input
+                type="number" step="0.1" min="0" max="5"
+                value={nota}
+                onChange={(e) => setNota(e.target.value)}
+                placeholder="Ej: 4.5"
+                className="mt-1"
+              />
+            </div>
+
+            {materias && materias.length > 0 && (
+              <div>
+                <label className="text-sm font-medium">Materia</label>
+                <Select value={materiaId} onValueChange={setMateriaId}>
+                  <SelectTrigger className="mt-1"><SelectValue placeholder="Sin materia asignada" /></SelectTrigger>
+                  <SelectContent>
+                    {materias.map((mat: any) => (
+                      <SelectItem key={mat.id} value={mat.id}>{mat.nombre}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-[10px] text-muted-foreground mt-1">Solo materias del período actual de la matrícula.</p>
+              </div>
+            )}
+
+            <div className="flex justify-end gap-2 pt-2">
+              <Button variant="outline" onClick={onClose}>Cancelar</Button>
+              <Button onClick={handleSave} disabled={updateMatricula.isPending}>
+                {updateMatricula.isPending ? "Guardando..." : "Guardar cambios"}
+              </Button>
+            </div>
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -1334,7 +1566,7 @@ function PeriodoDetailView({ escuela, periodo, onBackToPeriodos }: any) {
               <Unlock className="h-3.5 w-3.5" /> Reabrir período
             </Button>
           )}
-          <MatriculaFormDialog cursoId={escuela.id} periodoId={periodo.id} />
+          {periodo.estado === "Abierto" && <MatriculaFormDialog cursoId={escuela.id} periodoId={periodo.id} />}
         </div>
       </div>
 

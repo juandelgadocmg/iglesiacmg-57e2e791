@@ -185,6 +185,12 @@ export default function MatriculaFormDialog({ cursoId, periodoId, materiaId }: P
     return (allPeriodos || []).filter((p: any) => p.escuela_id === watchCursoId);
   }, [allPeriodos, watchCursoId]);
 
+  const selectedPeriodo = useMemo(
+    () => periodosFiltered.find((p: any) => p.id === watchPeriodoId),
+    [periodosFiltered, watchPeriodoId]
+  );
+  const isPeriodoCerrado = selectedPeriodo?.estado === "Cerrado";
+
   const { data: materias } = useMaterias(watchPeriodoId || null);
   const { data: conceptos } = useConceptosPago(watchCursoId || null);
 
@@ -196,6 +202,12 @@ export default function MatriculaFormDialog({ cursoId, periodoId, materiaId }: P
 
   const onSubmit = async (values: z.infer<typeof schema>) => {
     try {
+      // Validar que el período no esté cerrado
+      const periodo = (allPeriodos || []).find((p: any) => p.id === values.periodo_id);
+      if (periodo?.estado === "Cerrado") {
+        toast.error("Este período está cerrado, no admite nuevas matrículas");
+        return;
+      }
       const selectedMateriaId = values.materia_id || materiaId;
       if (!selectedMateriaId && materias && materias.length > 0) {
         toast.error("Debe seleccionar una materia");
@@ -287,10 +299,20 @@ export default function MatriculaFormDialog({ cursoId, periodoId, materiaId }: P
                     <FormControl><SelectTrigger><SelectValue placeholder="Seleccionar período" /></SelectTrigger></FormControl>
                     <SelectContent>
                       {periodosFiltered.map((p: any) => (
-                        <SelectItem key={p.id} value={p.id}>{p.nombre}</SelectItem>
+                        <SelectItem key={p.id} value={p.id} disabled={p.estado === "Cerrado"}>
+                          <span className="flex items-center gap-2">
+                            {p.nombre}
+                            {p.estado === "Cerrado" && (
+                              <span className="text-[10px] text-muted-foreground">(Cerrado)</span>
+                            )}
+                          </span>
+                        </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
+                  {isPeriodoCerrado && (
+                    <p className="text-xs text-destructive">Este período está cerrado, no admite nuevas matrículas.</p>
+                  )}
                   <FormMessage />
                 </FormItem>
               )} />

@@ -130,12 +130,76 @@ export function useDeletePeriodo() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
+      // Verificar matrículas existentes
+      const { count, error: countErr } = await supabase
+        .from("matriculas")
+        .select("id", { count: "exact", head: true })
+        .eq("periodo_id", id);
+      if (countErr) throw countErr;
+      if ((count || 0) > 0) {
+        throw new Error(`No se puede eliminar: el período tiene ${count} matrícula(s) asociada(s). Elimina primero las matrículas o cierra el período.`);
+      }
+      // Borrar dependencias del pensum (materias, cortes) — sin matrículas son seguras
+      await supabase.from("items_calificables").delete().in(
+        "materia_id",
+        (await supabase.from("materias").select("id").eq("periodo_id", id)).data?.map((m: any) => m.id) || ["00000000-0000-0000-0000-000000000000"]
+      );
+      await supabase.from("materias").delete().eq("periodo_id", id);
+      await supabase.from("cortes_academicos").delete().eq("periodo_id", id);
       const { error } = await supabase.from("periodos_academicos").delete().eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["periodos"] });
       qc.invalidateQueries({ queryKey: ["periodos-all"] });
+      qc.invalidateQueries({ queryKey: ["materias"] });
+      qc.invalidateQueries({ queryKey: ["cortes"] });
+    },
+  });
+}
+
+// Duplicar período: copia el período + materias + cortes (sin matrículas/calificaciones)
+export function useDuplicatePeriodo() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ sourceId, nombre }: { sourceId: string; nombre: string }) => {
+      // 1. Obtener el período origen
+      const { data: source, error: srcErr } = await supabase
+        .from("periodos_academicos").select("*").eq("id", sourceId).single();
+      if (srcErr) throw srcErr;
+      // 2. Crear nuevo período (estado Abierto, mismas fechas/escuela)
+      const { data: nuevo, error: insErr } = await supabase
+        .from("periodos_academicos")
+        .insert({
+          escuela_id: source.escuela_id,
+          nombre,
+          estado: "Abierto",
+          fecha_inicio: source.fecha_inicio,
+          fecha_fin: source.fecha_fin,
+          fecha_matricula_inicio: source.fecha_matricula_inicio,
+          fecha_matricula_fin: source.fecha_matricula_fin,
+        })
+        .select().single();
+      if (insErr) throw insErr;
+      // 3. Clonar materias
+      const { data: materias } = await supabase.from("materias").select("*").eq("periodo_id", sourceId);
+      if (materias?.length) {
+        const newMaterias = materias.map(({ id, created_at, periodo_id, ...rest }: any) => ({ ...rest, periodo_id: nuevo.id }));
+        await supabase.from("materias").insert(newMaterias);
+      }
+      // 4. Clonar cortes
+      const { data: cortes } = await supabase.from("cortes_academicos").select("*").eq("periodo_id", sourceId);
+      if (cortes?.length) {
+        const newCortes = cortes.map(({ id, created_at, periodo_id, ...rest }: any) => ({ ...rest, periodo_id: nuevo.id }));
+        await supabase.from("cortes_academicos").insert(newCortes);
+      }
+      return nuevo;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["periodos"] });
+      qc.invalidateQueries({ queryKey: ["periodos-all"] });
+      qc.invalidateQueries({ queryKey: ["materias"] });
+      qc.invalidateQueries({ queryKey: ["cortes"] });
     },
   });
 }
@@ -508,13 +572,33 @@ export function useCreateMatricula() {
 export function useUpdateMatricula() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({ id, ...updates }: { id: string; estado?: string; nota_final?: number | null }) => {
+    mutationFn: async ({ id, ...updates }: { id: string; estado?: string; nota_final?: number | null; materia_id?: string | null }) => {
       const { error } = await supabase.from("matriculas").update(updates).eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["matriculas"] });
       qc.invalidateQueries({ queryKey: ["matriculas-all"] });
+    },
+  });
+}
+
+export function useDeleteMatricula() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      // Borrar calificaciones y pagos asociados primero
+      await supabase.from("calificaciones").delete().eq("matricula_id", id);
+      await supabase.from("pagos_matricula").delete().eq("matricula_id", id);
+      await supabase.from("asistencia_materias").delete().eq("matricula_id", id);
+      const { error } = await supabase.from("matriculas").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["matriculas"] });
+      qc.invalidateQueries({ queryKey: ["matriculas-all"] });
+      qc.invalidateQueries({ queryKey: ["calificaciones-grid"] });
+      qc.invalidateQueries({ queryKey: ["calificaciones"] });
     },
   });
 }
