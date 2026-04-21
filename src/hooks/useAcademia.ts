@@ -784,11 +784,9 @@ export async function syncMateriaToCrecimiento(materiaId: string): Promise<SyncR
     .select("id, nombre")
     .order("orden");
 
-  const materiaName = materia.nombre.toLowerCase().trim();
-  const matchedProceso = (procesos || []).find((p: any) => {
-    const pn = p.nombre.toLowerCase().trim();
-    return pn === materiaName || pn.includes(materiaName) || materiaName.includes(pn);
-  });
+  const matchedProceso = (procesos || []).find((p: any) =>
+    matchProcesoNombre(materia.nombre, p.nombre)
+  );
   resumen.procesoNombre = matchedProceso?.nombre ?? null;
 
   // 5. Upsert hitos para aprobados
