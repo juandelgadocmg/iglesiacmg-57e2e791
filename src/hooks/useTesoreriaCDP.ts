@@ -49,8 +49,10 @@ function calcularEstado(
   reportesCount: number,
   entregado: number,
   fechaEntrega: string | null,
-  semanaFin: string
+  semanaFin: string,
+  consignacionCompletada: boolean
 ): EstadoTesoreria {
+  if (consignacionCompletada) return "Cerrado";
   const hoy = format(new Date(), "yyyy-MM-dd");
   const semanaPasada = semanaFin < hoy;
 
