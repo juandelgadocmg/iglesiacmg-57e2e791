@@ -1,103 +1,77 @@
 
 
-## Mejoras a Tesorería CDP: validación, historial, PDF por fila y alertas de mora
+## Sincronización automática Academia → Crecimiento al finalizar materias
 
-### Objetivo
-Cuatro mejoras al módulo "Tesorería CDP":
-1. Validar que el valor consignado no difiera del recaudado físico más de un umbral configurable.
-2. Permitir reemplazar el soporte aun después de cerrado, con historial de cambios.
-3. Botón de PDF por fila cerrada (mini-reporte semanal con comprobante).
-4. Contador de días en mora visible en la tabla + alerta automática.
+### Problema actual
 
----
+Hoy la sincronización con `persona_procesos` solo ocurre cuando un maestro guarda calificaciones desde la grilla, **únicamente para escuelas de Discipulado** y solo para los estudiantes con notas escritas en ese momento. Cuando se pulsa **"Finalizar materia"** (que cambia `materias.estado` a `Finalizada`), no se ejecuta ningún recálculo, por lo que el módulo de Personas queda desactualizado para muchos estudiantes.
 
-### 1. Configuración global del umbral
+### Solución
 
-**Migración SQL** sobre `configuracion_iglesia`:
-- `tesoreria_cdp_tolerancia_pct` (numeric, default 0) — % aceptado de diferencia entre consignado y recaudado físico (ej. 2%).
-- `tesoreria_cdp_tolerancia_abs` (numeric, default 0) — diferencia absoluta tolerada (ej. $5.000).
-- `tesoreria_cdp_dias_mora` (integer, default 7) — días después del cierre de semana para marcar mora.
+Disparar la sincronización completa en el momento exacto en que la materia se cierra, usando el `nota_final` consolidado de cada matrícula (no solo lo que esté en pantalla). La sincronización aplicará tanto a Discipulado como a Seminario Bíblico.
 
-**UI**: en `ConfiguracionPage.tsx`, dentro de la pestaña de "General" (o nueva sub-sección "Tesorería"), tres inputs: tolerancia %, tolerancia absoluta, días para mora.
+#### 1. Nueva función `syncMateriaToCrecimiento(materiaId)` en `src/hooks/useAcademia.ts`
 
-### 2. Historial de soportes de consignación
+Reutilizable desde la UI y desde futuros disparadores. Lógica:
+1. Cargar la materia + escuela + período.
+2. Cargar todas las matrículas de esa materia con `persona_id`, `nota_final`, `estado` (excluyendo `Retirado`).
+3. Si la matrícula no tiene `nota_final`, calcularlo en vivo a partir de `calificaciones` × `items_calificables.porcentaje` × `cortes_academicos.porcentaje` (mismo cálculo que ya hace `HistorialCalificacionesSection`). Persistir el resultado en `matriculas.nota_final` y marcar `estado = 'Completado'` o `'Reprobado'` según `>= 3`.
+4. Buscar el `proceso_crecimiento` que coincida con el nombre de la materia (match igual al actual, case-insensitive con `includes` bidireccional). Si no hay coincidencia → no sincroniza ese proceso pero igual cierra la materia.
+5. Para cada estudiante:
+   - `nota_final >= 3` → upsert en `persona_procesos` con `estado = 'Realizado'`, `fecha_completado = today`, `observacion = 'Finalizado por cierre de materia: {nombre}'`.
+   - `nota_final < 3` (reprobado) → no se marca el hito (queda "No Realizado").
+   - Sin nota → se omite y se reporta en el toast ("N estudiantes sin nota, no sincronizados").
+6. Invalidar queries: `["persona_procesos"]`, `["personas"]`, `["matriculas"]`.
 
-**Nueva tabla `tesoreria_consignacion_historial`**:
+Devuelve un resumen `{ sincronizados, sinNota, sinProcesoMatch, procesoNombre }` para mostrar en el toast.
+
+#### 2. Disparar la sincronización al "Finalizar materia"
+
+En `src/pages/AcademiaPage.tsx` (líneas 1770-1793), reemplazar la llamada actual:
 ```
-- id (uuid pk)
-- registro_id (uuid → tesoreria_ofrendas_cdp)
-- soporte_url (text)
-- valor_consignado (numeric)
-- fecha_consignacion (date)
-- motivo_cambio (text, nullable)
-- cambiado_por (uuid)
-- created_at (timestamp)
+await updateMateria.mutateAsync({ id: m.id, estado: "Finalizada" });
+const resumen = await syncMateriaToCrecimiento(m.id);
+toast.success(
+  `Materia finalizada · ${resumen.sincronizados} hito(s) actualizado(s)` +
+  (resumen.sinNota ? ` · ${resumen.sinNota} sin nota` : "") +
+  (!resumen.procesoNombre ? " · Sin proceso de crecimiento asociado" : "")
+);
 ```
-RLS: ALL para `admin`, `super_admin`, `pastor`, `tesoreria`.
 
-**Hooks** en `useTesoreriaCDP.ts`:
-- `useReemplazarSoporteConsignacion()` — sube nuevo archivo, registra fila en historial con el soporte anterior, actualiza `tesoreria_ofrendas_cdp.soporte_consignacion_url`.
-- `useHistorialConsignacion(registroId)` — devuelve cambios ordenados.
+Cambiar el `confirm()` para advertir el efecto:
+> "¿Finalizar la materia '{nombre}'? Se cerrará para edición y los estudiantes aprobados (≥3) verán su hito de crecimiento marcado como Finalizado."
 
-### 3. Validación en el diálogo de consignación
+#### 3. Reabrir materia → revertir hitos
 
-En `ConsignacionDialog` (`TesoreriaCDPSection.tsx`):
-- Leer tolerancias desde `useConfiguracion`.
-- Calcular diferencia absoluta y porcentual entre `valor_consignado` y `valor_entregado`.
-- Si está dentro de tolerancia → solo aviso amarillo informativo.
-- Si excede → aviso rojo bloqueante: "La diferencia ($X / Y%) supera la tolerancia configurada (Z% / $W). Ajusta el valor o solicita autorización." y el botón "Cerrar proceso" queda deshabilitado.
-- Bypass solo para `admin`/`super_admin` con checkbox "Autorizar diferencia con justificación" + textarea obligatoria, que se guarda en `observacion`.
+En el botón "Reabrir" (línea 1782-1792), después de `updateMateria`, llamar a una contraparte `revertMateriaFromCrecimiento(materiaId)` que:
+- Busca el proceso asociado.
+- Para cada matrícula aprobada, si su `persona_procesos.observacion` empieza con `"Finalizado por cierre de materia: {nombre}"` → eliminar la fila (vuelve a "No Realizado"). Esto evita borrar hitos finalizados manualmente desde el perfil de la persona.
 
-### 4. Reemplazo de soporte con proceso cerrado
+#### 4. Sincronización también desde la grilla (mejora consistencia)
 
-En `FilaEditable`, cuando `cerrado === true`, además del enlace "Ver soporte" agregar:
-- Botón "Reemplazar soporte" (solo `admin`, `pastor`, `tesoreria`) → abre `ReemplazarSoporteDialog` (nuevo, en el mismo archivo) con: input file, motivo (textarea obligatoria) y botón "Subir y registrar cambio".
-- Al confirmar, llama a `useReemplazarSoporteConsignacion`, que mantiene el estado `Cerrado` pero deja trazabilidad.
-- Botón "Ver historial" → modal con tabla del historial completo (fecha, valor, soporte, motivo, usuario).
+Quitar el filtro "solo Discipulado" en `syncWithGrowthModule` (línea 1144) — Seminario Bíblico también debe sincronizar cuando hay match de nombre. Reemplazar la función actual por una llamada a `syncMateriaToCrecimiento(selectedMateria)` después de `bulkUpsert.mutateAsync(records)` para no duplicar lógica.
 
-### 5. PDF por fila cerrada
+#### 5. Indicador en UI
 
-En `FilaEditable`, cuando `cerrado === true` agregar botón "PDF" junto a "Ver soporte" → llama a una nueva función `exportFilaSemanalPDF` en `src/lib/exportTesoreriaCDPPdf.ts`:
-- Encabezado igual al actual (logo, código RE-CO-OC01, semana).
-- Sección de la Casa de Paz: red, nombre, líder.
-- Bloque de datos: recaudado físico, valor entregado, valor consignado, fecha consignación, observación.
-- Si el soporte es imagen → la embebe debajo (escalada). Si es PDF → línea con URL/QR de acceso.
-- Pie con firmas (ELABORADO POR / REVISADO POR).
-- Filename: `Consignacion_{red}_{grupo}_{semana}.pdf`.
-
-### 6. Contador de días en mora + alertas
-
-**En `useTesoreriaSemana` y `useTesoreriaMora`**: leer `tesoreria_cdp_dias_mora` de configuración, calcular para cada fila no-cerrada:
-- `dias_mora = max(0, hoy − semana_fin − dias_configurados)`.
-- Estado "En mora" se activa solo si `dias_mora > 0` (en lugar del cálculo actual fijo de 7 días).
-
-**En la tabla** (`FilaEditable`):
-- Si `dias_mora > 0` → debajo del badge de estado mostrar chip rojo: `⏱ {n} días en mora`.
-- En la columna "Estado" la celda toma fondo `destructive/10` cuando hay mora.
-
-**Banner de mora histórica** (ya existente): añadir columna "Días" en la tabla del modal, con el conteo desde el vencimiento.
-
-**Alerta automática (in-app)**: en `daily-notifications` edge function (ya existente para cumpleaños/eventos) añadir bloque que cada día detecte CDP en mora y cree una notificación dirigida a usuarios con rol `tesoreria` / `pastor` / `admin`. Texto: "X Casas de Paz llevan más de N días sin registrar consignación".
-
----
+En las cards de materia (línea 1722) añadir un mini-badge cuando la materia está finalizada y existe un `proceso_crecimiento` con el mismo nombre:
+`🎯 Sincronizado con: {nombre del proceso}`.
 
 ### Archivos afectados
 
-**Nuevos**
-- Migración SQL: columnas en `configuracion_iglesia` + tabla `tesoreria_consignacion_historial` + RLS.
-
 **Editados**
-- `src/hooks/useTesoreriaCDP.ts` — hooks de historial + reemplazo, lectura de tolerancias y días, recálculo de mora.
-- `src/components/groups/TesoreriaCDPSection.tsx` — validación en diálogo, botones reemplazar/PDF/historial por fila, columna días de mora, dialogs nuevos.
-- `src/lib/exportTesoreriaCDPPdf.ts` — nueva función `exportFilaSemanalPDF` con embebido de imagen del comprobante.
-- `src/pages/ConfiguracionPage.tsx` — sección "Tesorería CDP" con 3 inputs.
-- `src/hooks/useConfiguracion.ts` — sin cambios estructurales, solo se consumen los nuevos campos (los tipos vienen de `types.ts` autogenerado).
-- `supabase/functions/daily-notifications/index.ts` — bloque de detección de mora.
+- `src/hooks/useAcademia.ts` — exportar `syncMateriaToCrecimiento(materiaId)` y `revertMateriaFromCrecimiento(materiaId)`. Lógica de cálculo de `nota_final` consolidado.
+- `src/pages/AcademiaPage.tsx` — invocar las funciones en los botones Finalizar/Reabrir, ampliar el `confirm()`, mejorar mensajes de toast, refactorizar `syncWithGrowthModule` para reutilizar la nueva función y eliminar restricción a Discipulado, añadir badge de sincronización.
+
+**Sin cambios**
+- Esquema de base de datos. La lógica usa las tablas existentes: `materias`, `matriculas`, `calificaciones`, `items_calificables`, `cortes_academicos`, `procesos_crecimiento`, `persona_procesos`.
 
 ### Resultado esperado
 
-- Al consignar, el sistema bloquea el cierre si la diferencia excede el rango configurado (con override autorizado para admin con justificación).
-- En filas cerradas, Tesorería puede reemplazar el comprobante dejando rastro en historial, descargar un PDF individual del proceso (con comprobante embebido) y revisar todos los cambios.
-- La tabla muestra "X días en mora" junto al estado, y diariamente se generan alertas para los responsables.
-- Todos los umbrales y plazos se ajustan desde Configuración sin tocar código.
+Al pulsar **"Finalizar"** en una materia de Academia, el sistema:
+1. Calcula y persiste `nota_final` de cada matrícula que aún no la tenga.
+2. Marca como **Finalizado** el hito de crecimiento correspondiente (mismo nombre) para todos los estudiantes con promedio ≥ 3, con la fecha de hoy.
+3. Muestra un resumen claro: cuántos hitos se actualizaron, cuántos quedaron sin nota, si hubo proceso de crecimiento asociado.
+4. Si la materia se reabre, se revierten únicamente los hitos generados por ese cierre, sin afectar marcaciones manuales.
+
+La sincronización es ahora **inmediata, completa y bidireccional**, eliminando la necesidad de re-guardar calificaciones para que el módulo de Personas refleje el avance espiritual.
 
