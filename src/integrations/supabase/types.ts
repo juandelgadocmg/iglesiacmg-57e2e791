@@ -1921,6 +1921,53 @@ export type Database = {
         }
         Relationships: []
       }
+      tesoreria_ofrendas_cdp: {
+        Row: {
+          created_at: string
+          fecha_entrega: string | null
+          grupo_id: string
+          id: string
+          observacion: string | null
+          registrado_por: string | null
+          semana_fin: string
+          semana_inicio: string
+          updated_at: string
+          valor_entregado: number
+        }
+        Insert: {
+          created_at?: string
+          fecha_entrega?: string | null
+          grupo_id: string
+          id?: string
+          observacion?: string | null
+          registrado_por?: string | null
+          semana_fin: string
+          semana_inicio: string
+          updated_at?: string
+          valor_entregado?: number
+        }
+        Update: {
+          created_at?: string
+          fecha_entrega?: string | null
+          grupo_id?: string
+          id?: string
+          observacion?: string | null
+          registrado_por?: string | null
+          semana_fin?: string
+          semana_inicio?: string
+          updated_at?: string
+          valor_entregado?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tesoreria_ofrendas_cdp_grupo_id_fkey"
+            columns: ["grupo_id"]
+            isOneToOne: false
+            referencedRelation: "grupos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           id: string
