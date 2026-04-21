@@ -1933,6 +1933,7 @@ export type Database = {
       tesoreria_consignacion_historial: {
         Row: {
           cambiado_por: string | null
+          consignacion_semanal_id: string | null
           created_at: string
           fecha_consignacion: string | null
           id: string
@@ -1943,6 +1944,7 @@ export type Database = {
         }
         Insert: {
           cambiado_por?: string | null
+          consignacion_semanal_id?: string | null
           created_at?: string
           fecha_consignacion?: string | null
           id?: string
@@ -1953,6 +1955,7 @@ export type Database = {
         }
         Update: {
           cambiado_por?: string | null
+          consignacion_semanal_id?: string | null
           created_at?: string
           fecha_consignacion?: string | null
           id?: string
@@ -1963,6 +1966,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "tesoreria_consignacion_historial_consignacion_semanal_id_fkey"
+            columns: ["consignacion_semanal_id"]
+            isOneToOne: false
+            referencedRelation: "tesoreria_consignacion_semanal"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "tesoreria_consignacion_historial_registro_id_fkey"
             columns: ["registro_id"]
             isOneToOne: false
@@ -1970,6 +1980,51 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      tesoreria_consignacion_semanal: {
+        Row: {
+          consignacion_completada: boolean
+          created_at: string
+          fecha_consignacion: string | null
+          id: string
+          observacion: string | null
+          registrado_por: string | null
+          semana_fin: string
+          semana_inicio: string
+          soporte_consignacion_url: string | null
+          updated_at: string
+          valor_consignado: number
+          valor_total_entregado: number
+        }
+        Insert: {
+          consignacion_completada?: boolean
+          created_at?: string
+          fecha_consignacion?: string | null
+          id?: string
+          observacion?: string | null
+          registrado_por?: string | null
+          semana_fin: string
+          semana_inicio: string
+          soporte_consignacion_url?: string | null
+          updated_at?: string
+          valor_consignado?: number
+          valor_total_entregado?: number
+        }
+        Update: {
+          consignacion_completada?: boolean
+          created_at?: string
+          fecha_consignacion?: string | null
+          id?: string
+          observacion?: string | null
+          registrado_por?: string | null
+          semana_fin?: string
+          semana_inicio?: string
+          soporte_consignacion_url?: string | null
+          updated_at?: string
+          valor_consignado?: number
+          valor_total_entregado?: number
+        }
+        Relationships: []
       }
       tesoreria_ofrendas_cdp: {
         Row: {

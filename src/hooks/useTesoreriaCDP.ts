@@ -23,8 +23,7 @@ export type EstadoTesoreria =
   | "Sobrante"
   | "En mora"
   | "Pendiente"
-  | "Sin reporte"
-  | "Cerrado";
+  | "Sin reporte";
 
 export interface FilaTesoreriaCDP {
   grupo_id: string;
@@ -37,12 +36,20 @@ export interface FilaTesoreriaCDP {
   valor_entregado: number;
   fecha_entrega: string | null;
   observacion: string | null;
+  estado: EstadoTesoreria;
+  dias_mora: number;
+}
+
+export interface ConsignacionSemanal {
+  id: string;
+  semana_inicio: string;
+  semana_fin: string;
+  valor_total_entregado: number;
   valor_consignado: number;
   fecha_consignacion: string | null;
   soporte_consignacion_url: string | null;
+  observacion: string | null;
   consignacion_completada: boolean;
-  estado: EstadoTesoreria;
-  dias_mora: number;
 }
 
 function calcularEstado(
@@ -51,10 +58,8 @@ function calcularEstado(
   entregado: number,
   fechaEntrega: string | null,
   semanaFin: string,
-  consignacionCompletada: boolean,
   diasMora: number
 ): EstadoTesoreria {
-  if (consignacionCompletada) return "Cerrado";
   const hoy = format(new Date(), "yyyy-MM-dd");
   const semanaPasada = semanaFin < hoy;
 
@@ -81,7 +86,7 @@ export function useTesoreriaSemana(semanaInicio: string, semanaFin: string) {
   return useQuery({
     queryKey: ["tesoreria_cdp_semana", semanaInicio, semanaFin],
     queryFn: async (): Promise<FilaTesoreriaCDP[]> => {
-      // Configuración (tolerancias / días de mora)
+      // Configuración (días de mora)
       const { data: cfg } = await supabase
         .from("configuracion_iglesia")
         .select("tesoreria_cdp_dias_mora")
@@ -107,7 +112,7 @@ export function useTesoreriaSemana(semanaInicio: string, semanaFin: string) {
         .lte("fecha", semanaFin);
       if (errReportes) throw errReportes;
 
-      // 3. Registros tesorería de la semana
+      // 3. Registros tesorería de la semana (entrega física por CDP)
       const { data: registros, error: errReg } = await supabase
         .from("tesoreria_ofrendas_cdp")
         .select("*")
@@ -138,14 +143,12 @@ export function useTesoreriaSemana(semanaInicio: string, semanaFin: string) {
         const reg = registrosPorGrupo[g.id];
         const valorEntregado = Number(reg?.valor_entregado || 0);
         const fechaEntrega = reg?.fecha_entrega || null;
-        const consignacionCompletada = !!reg?.consignacion_completada;
         const lider = g.personas
           ? `${g.personas.nombres} ${g.personas.apellidos}`
           : null;
 
-        // Mora solo aplica si hay reporte sin consignación cerrada
+        // Mora: hay reporte pero entrega física pendiente o parcial
         const aplicaMora =
-          !consignacionCompletada &&
           (rep.total > 0 || valorEntregado > 0) &&
           valorEntregado < rep.total;
         const diasMora = aplicaMora ? diasMoraBase : 0;
@@ -161,11 +164,7 @@ export function useTesoreriaSemana(semanaInicio: string, semanaFin: string) {
           valor_entregado: valorEntregado,
           fecha_entrega: fechaEntrega,
           observacion: reg?.observacion || null,
-          valor_consignado: Number(reg?.valor_consignado || 0),
-          fecha_consignacion: reg?.fecha_consignacion || null,
-          soporte_consignacion_url: reg?.soporte_consignacion_url || null,
-          consignacion_completada: consignacionCompletada,
-          estado: calcularEstado(rep.total, rep.count, valorEntregado, fechaEntrega, semanaFin, consignacionCompletada, diasMora),
+          estado: calcularEstado(rep.total, rep.count, valorEntregado, fechaEntrega, semanaFin, diasMora),
           dias_mora: diasMora,
         };
       });
@@ -185,10 +184,6 @@ export function useUpsertTesoreriaCDP() {
       valor_entregado?: number;
       fecha_entrega?: string | null;
       observacion?: string | null;
-      valor_consignado?: number;
-      fecha_consignacion?: string | null;
-      soporte_consignacion_url?: string | null;
-      consignacion_completada?: boolean;
     }) => {
       const { data: { user } } = await supabase.auth.getUser();
       const payload: any = {
@@ -200,10 +195,6 @@ export function useUpsertTesoreriaCDP() {
       if (input.valor_entregado !== undefined) payload.valor_entregado = input.valor_entregado;
       if (input.fecha_entrega !== undefined) payload.fecha_entrega = input.fecha_entrega;
       if (input.observacion !== undefined) payload.observacion = input.observacion;
-      if (input.valor_consignado !== undefined) payload.valor_consignado = input.valor_consignado;
-      if (input.fecha_consignacion !== undefined) payload.fecha_consignacion = input.fecha_consignacion;
-      if (input.soporte_consignacion_url !== undefined) payload.soporte_consignacion_url = input.soporte_consignacion_url;
-      if (input.consignacion_completada !== undefined) payload.consignacion_completada = input.consignacion_completada;
 
       const { error } = await supabase
         .from("tesoreria_ofrendas_cdp")
@@ -212,6 +203,7 @@ export function useUpsertTesoreriaCDP() {
     },
     onSuccess: (_d, vars) => {
       qc.invalidateQueries({ queryKey: ["tesoreria_cdp_semana", vars.semana_inicio] });
+      qc.invalidateQueries({ queryKey: ["tesoreria_cdp_consignacion_semanal", vars.semana_inicio] });
       qc.invalidateQueries({ queryKey: ["tesoreria_cdp_mora"] });
     },
   });
@@ -223,9 +215,9 @@ export function useUpsertTesoreriaCDP() {
  */
 export function useUploadSoporteConsignacion() {
   return useMutation({
-    mutationFn: async ({ file, grupoId, semanaInicio }: { file: File; grupoId: string; semanaInicio: string }) => {
+    mutationFn: async ({ file, semanaInicio }: { file: File; semanaInicio: string }) => {
       const ext = file.name.split(".").pop() || "bin";
-      const path = `${grupoId}/${semanaInicio}-${Date.now()}.${ext}`;
+      const path = `semanal/${semanaInicio}-${Date.now()}.${ext}`;
       const { error: upErr } = await supabase.storage
         .from("soportes-tesoreria")
         .upload(path, file, { upsert: true, contentType: file.type });
@@ -236,16 +228,79 @@ export function useUploadSoporteConsignacion() {
   });
 }
 
-/**
- * Reemplaza el soporte de consignación de un registro ya cerrado,
- * registrando el cambio en el historial.
- */
-export function useReemplazarSoporteConsignacion() {
+/* ============================================================
+   CONSIGNACIÓN SEMANAL ÚNICA (suma de todas las CDP)
+   ============================================================ */
+
+export function useConsignacionSemanal(semanaInicio: string) {
+  return useQuery({
+    queryKey: ["tesoreria_cdp_consignacion_semanal", semanaInicio],
+    enabled: !!semanaInicio,
+    queryFn: async (): Promise<ConsignacionSemanal | null> => {
+      const { data, error } = await supabase
+        .from("tesoreria_consignacion_semanal")
+        .select("*")
+        .eq("semana_inicio", semanaInicio)
+        .maybeSingle();
+      if (error) throw error;
+      if (!data) return null;
+      return {
+        id: data.id,
+        semana_inicio: data.semana_inicio,
+        semana_fin: data.semana_fin,
+        valor_total_entregado: Number(data.valor_total_entregado || 0),
+        valor_consignado: Number(data.valor_consignado || 0),
+        fecha_consignacion: data.fecha_consignacion,
+        soporte_consignacion_url: data.soporte_consignacion_url,
+        observacion: data.observacion,
+        consignacion_completada: !!data.consignacion_completada,
+      };
+    },
+  });
+}
+
+export function useUpsertConsignacionSemanal() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (input: {
-      registro_id: string;
-      grupo_id: string;
+      semana_inicio: string;
+      semana_fin: string;
+      valor_total_entregado: number;
+      valor_consignado: number;
+      fecha_consignacion: string | null;
+      soporte_consignacion_url: string | null;
+      observacion: string | null;
+      consignacion_completada: boolean;
+    }) => {
+      const { data: { user } } = await supabase.auth.getUser();
+      const { error } = await supabase
+        .from("tesoreria_consignacion_semanal")
+        .upsert(
+          {
+            ...input,
+            registrado_por: user?.id ?? null,
+          },
+          { onConflict: "semana_inicio" }
+        );
+      if (error) throw error;
+    },
+    onSuccess: (_d, vars) => {
+      qc.invalidateQueries({ queryKey: ["tesoreria_cdp_consignacion_semanal", vars.semana_inicio] });
+      qc.invalidateQueries({ queryKey: ["tesoreria_cdp_semana", vars.semana_inicio] });
+      qc.invalidateQueries({ queryKey: ["tesoreria_cdp_mora"] });
+    },
+  });
+}
+
+/**
+ * Reemplaza el soporte de la consignación semanal ya cerrada,
+ * registrando el cambio en el historial.
+ */
+export function useReemplazarSoporteSemanal() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: {
+      consignacion_id: string;
       semana_inicio: string;
       file?: File | null;
       valor_consignado?: number;
@@ -261,7 +316,8 @@ export function useReemplazarSoporteConsignacion() {
       const { error: histErr } = await supabase
         .from("tesoreria_consignacion_historial")
         .insert({
-          registro_id: input.registro_id,
+          consignacion_semanal_id: input.consignacion_id,
+          registro_id: input.consignacion_id, // legacy NOT NULL: reutilizamos el mismo id
           soporte_url: input.soporte_anterior_url,
           valor_consignado: input.valor_anterior,
           fecha_consignacion: input.fecha_anterior,
@@ -274,7 +330,7 @@ export function useReemplazarSoporteConsignacion() {
       let nuevaUrl = input.soporte_anterior_url;
       if (input.file) {
         const ext = input.file.name.split(".").pop() || "bin";
-        const path = `${input.grupo_id}/${input.semana_inicio}-${Date.now()}.${ext}`;
+        const path = `semanal/${input.semana_inicio}-${Date.now()}.${ext}`;
         const { error: upErr } = await supabase.storage
           .from("soportes-tesoreria")
           .upload(path, input.file, { upsert: true, contentType: input.file.type });
@@ -283,35 +339,35 @@ export function useReemplazarSoporteConsignacion() {
         nuevaUrl = data.publicUrl;
       }
 
-      // 3. Actualizar el registro
+      // 3. Actualizar la consignación
       const updates: any = { soporte_consignacion_url: nuevaUrl };
       if (input.valor_consignado !== undefined) updates.valor_consignado = input.valor_consignado;
       if (input.fecha_consignacion !== undefined) updates.fecha_consignacion = input.fecha_consignacion;
       const { error: updErr } = await supabase
-        .from("tesoreria_ofrendas_cdp")
+        .from("tesoreria_consignacion_semanal")
         .update(updates)
-        .eq("id", input.registro_id);
+        .eq("id", input.consignacion_id);
       if (updErr) throw updErr;
     },
     onSuccess: (_d, vars) => {
-      qc.invalidateQueries({ queryKey: ["tesoreria_cdp_semana", vars.semana_inicio] });
-      qc.invalidateQueries({ queryKey: ["tesoreria_cdp_historial", vars.registro_id] });
+      qc.invalidateQueries({ queryKey: ["tesoreria_cdp_consignacion_semanal", vars.semana_inicio] });
+      qc.invalidateQueries({ queryKey: ["tesoreria_cdp_historial_semanal", vars.consignacion_id] });
     },
   });
 }
 
 /**
- * Devuelve el historial de cambios del soporte de consignación de un registro.
+ * Devuelve el historial de cambios del soporte de la consignación semanal.
  */
-export function useHistorialConsignacion(registroId: string | null) {
+export function useHistorialSemanal(consignacionId: string | null) {
   return useQuery({
-    queryKey: ["tesoreria_cdp_historial", registroId],
-    enabled: !!registroId,
+    queryKey: ["tesoreria_cdp_historial_semanal", consignacionId],
+    enabled: !!consignacionId,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("tesoreria_consignacion_historial")
         .select("*")
-        .eq("registro_id", registroId!)
+        .eq("consignacion_semanal_id", consignacionId!)
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data || [];
@@ -350,7 +406,7 @@ export function useTesoreriaMora() {
       // Todos los registros de tesorería
       const { data: registros, error: errReg } = await supabase
         .from("tesoreria_ofrendas_cdp")
-        .select("grupo_id, semana_inicio, semana_fin, valor_entregado, consignacion_completada");
+        .select("grupo_id, semana_inicio, semana_fin, valor_entregado");
       if (errReg) throw errReg;
 
       // Agrupar reportes por grupo + semana (lunes)
@@ -387,7 +443,6 @@ export function useTesoreriaMora() {
         const reg = (registros || []).find(
           (x: any) => x.grupo_id === g.grupo_id && x.semana_inicio === g.semana_inicio
         );
-        if ((reg as any)?.consignacion_completada) return; // ya cerrado
         const entregado = Number(reg?.valor_entregado || 0);
         if (entregado < g.reportado) {
           const diasDesdeFin = differenceInCalendarDays(hoy, parseISO(g.semana_fin));
