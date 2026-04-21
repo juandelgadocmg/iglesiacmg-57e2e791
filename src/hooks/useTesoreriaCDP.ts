@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { format, startOfWeek, endOfWeek, addDays } from "date-fns";
+import { format, startOfWeek, endOfWeek, addDays, differenceInCalendarDays, parseISO } from "date-fns";
 
 /**
  * Devuelve el lunes (semana_inicio) y domingo (semana_fin) en formato 'yyyy-MM-dd'
@@ -42,6 +42,7 @@ export interface FilaTesoreriaCDP {
   soporte_consignacion_url: string | null;
   consignacion_completada: boolean;
   estado: EstadoTesoreria;
+  dias_mora: number;
 }
 
 function calcularEstado(
@@ -50,7 +51,8 @@ function calcularEstado(
   entregado: number,
   fechaEntrega: string | null,
   semanaFin: string,
-  consignacionCompletada: boolean
+  consignacionCompletada: boolean,
+  diasMora: number
 ): EstadoTesoreria {
   if (consignacionCompletada) return "Cerrado";
   const hoy = format(new Date(), "yyyy-MM-dd");
@@ -60,7 +62,7 @@ function calcularEstado(
     return semanaPasada ? "Sin reporte" : "Pendiente";
   }
   if (entregado === 0 && !fechaEntrega) {
-    return semanaPasada ? "En mora" : "Pendiente";
+    return diasMora > 0 ? "En mora" : "Pendiente";
   }
   if (entregado >= reportado && reportado > 0) {
     return entregado > reportado ? "Sobrante" : "Conciliado";
@@ -79,6 +81,14 @@ export function useTesoreriaSemana(semanaInicio: string, semanaFin: string) {
   return useQuery({
     queryKey: ["tesoreria_cdp_semana", semanaInicio, semanaFin],
     queryFn: async (): Promise<FilaTesoreriaCDP[]> => {
+      // Configuración (tolerancias / días de mora)
+      const { data: cfg } = await supabase
+        .from("configuracion_iglesia")
+        .select("tesoreria_cdp_dias_mora")
+        .limit(1)
+        .single();
+      const diasConfigurados = Number((cfg as any)?.tesoreria_cdp_dias_mora ?? 7);
+
       // 1. Casas de paz activas
       const { data: grupos, error: errGrupos } = await supabase
         .from("grupos")
@@ -117,6 +127,12 @@ export function useTesoreriaSemana(semanaInicio: string, semanaFin: string) {
         registrosPorGrupo[r.grupo_id] = r;
       });
 
+      // Calcular días de mora desde fin de semana + días configurados
+      const hoy = new Date();
+      const semanaFinDate = parseISO(semanaFin);
+      const diasDesdeFin = differenceInCalendarDays(hoy, semanaFinDate);
+      const diasMoraBase = Math.max(0, diasDesdeFin - diasConfigurados);
+
       const filas: FilaTesoreriaCDP[] = (grupos || []).map((g: any) => {
         const rep = reportesPorGrupo[g.id] || { total: 0, count: 0 };
         const reg = registrosPorGrupo[g.id];
@@ -126,6 +142,13 @@ export function useTesoreriaSemana(semanaInicio: string, semanaFin: string) {
         const lider = g.personas
           ? `${g.personas.nombres} ${g.personas.apellidos}`
           : null;
+
+        // Mora solo aplica si hay reporte sin consignación cerrada
+        const aplicaMora =
+          !consignacionCompletada &&
+          (rep.total > 0 || valorEntregado > 0) &&
+          valorEntregado < rep.total;
+        const diasMora = aplicaMora ? diasMoraBase : 0;
 
         return {
           grupo_id: g.id,
@@ -142,7 +165,8 @@ export function useTesoreriaSemana(semanaInicio: string, semanaFin: string) {
           fecha_consignacion: reg?.fecha_consignacion || null,
           soporte_consignacion_url: reg?.soporte_consignacion_url || null,
           consignacion_completada: consignacionCompletada,
-          estado: calcularEstado(rep.total, rep.count, valorEntregado, fechaEntrega, semanaFin, consignacionCompletada),
+          estado: calcularEstado(rep.total, rep.count, valorEntregado, fechaEntrega, semanaFin, consignacionCompletada, diasMora),
+          dias_mora: diasMora,
         };
       });
 
@@ -213,17 +237,109 @@ export function useUploadSoporteConsignacion() {
 }
 
 /**
- * Mora histórica: reportes con ofrenda > 0 cuya semana terminó hace más de 7 días
- * y que NO tienen un registro de tesorería con valor_entregado >= reportado.
+ * Reemplaza el soporte de consignación de un registro ya cerrado,
+ * registrando el cambio en el historial.
+ */
+export function useReemplazarSoporteConsignacion() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: {
+      registro_id: string;
+      grupo_id: string;
+      semana_inicio: string;
+      file?: File | null;
+      valor_consignado?: number;
+      fecha_consignacion?: string | null;
+      motivo: string;
+      soporte_anterior_url: string | null;
+      valor_anterior: number;
+      fecha_anterior: string | null;
+    }) => {
+      const { data: { user } } = await supabase.auth.getUser();
+
+      // 1. Guardar el registro anterior en el historial
+      const { error: histErr } = await supabase
+        .from("tesoreria_consignacion_historial")
+        .insert({
+          registro_id: input.registro_id,
+          soporte_url: input.soporte_anterior_url,
+          valor_consignado: input.valor_anterior,
+          fecha_consignacion: input.fecha_anterior,
+          motivo_cambio: input.motivo,
+          cambiado_por: user?.id ?? null,
+        });
+      if (histErr) throw histErr;
+
+      // 2. Subir nuevo soporte si viene
+      let nuevaUrl = input.soporte_anterior_url;
+      if (input.file) {
+        const ext = input.file.name.split(".").pop() || "bin";
+        const path = `${input.grupo_id}/${input.semana_inicio}-${Date.now()}.${ext}`;
+        const { error: upErr } = await supabase.storage
+          .from("soportes-tesoreria")
+          .upload(path, input.file, { upsert: true, contentType: input.file.type });
+        if (upErr) throw upErr;
+        const { data } = supabase.storage.from("soportes-tesoreria").getPublicUrl(path);
+        nuevaUrl = data.publicUrl;
+      }
+
+      // 3. Actualizar el registro
+      const updates: any = { soporte_consignacion_url: nuevaUrl };
+      if (input.valor_consignado !== undefined) updates.valor_consignado = input.valor_consignado;
+      if (input.fecha_consignacion !== undefined) updates.fecha_consignacion = input.fecha_consignacion;
+      const { error: updErr } = await supabase
+        .from("tesoreria_ofrendas_cdp")
+        .update(updates)
+        .eq("id", input.registro_id);
+      if (updErr) throw updErr;
+    },
+    onSuccess: (_d, vars) => {
+      qc.invalidateQueries({ queryKey: ["tesoreria_cdp_semana", vars.semana_inicio] });
+      qc.invalidateQueries({ queryKey: ["tesoreria_cdp_historial", vars.registro_id] });
+    },
+  });
+}
+
+/**
+ * Devuelve el historial de cambios del soporte de consignación de un registro.
+ */
+export function useHistorialConsignacion(registroId: string | null) {
+  return useQuery({
+    queryKey: ["tesoreria_cdp_historial", registroId],
+    enabled: !!registroId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("tesoreria_consignacion_historial")
+        .select("*")
+        .eq("registro_id", registroId!)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data || [];
+    },
+  });
+}
+
+/**
+ * Mora histórica: reportes con ofrenda > 0 cuya semana terminó hace más
+ * que los días configurados y que NO tienen un registro de tesorería con
+ * valor_entregado >= reportado.
  */
 export function useTesoreriaMora() {
   return useQuery({
     queryKey: ["tesoreria_cdp_mora"],
     queryFn: async () => {
-      const hoy = new Date();
-      const limiteFecha = format(addDays(hoy, -7), "yyyy-MM-dd");
+      // Días configurados
+      const { data: cfg } = await supabase
+        .from("configuracion_iglesia")
+        .select("tesoreria_cdp_dias_mora")
+        .limit(1)
+        .single();
+      const diasConfigurados = Number((cfg as any)?.tesoreria_cdp_dias_mora ?? 7);
 
-      // Reportes con ofrenda > 0 hasta hace más de 7 días
+      const hoy = new Date();
+      const limiteFecha = format(addDays(hoy, -diasConfigurados), "yyyy-MM-dd");
+
+      // Reportes con ofrenda > 0 hasta hace más de N días
       const { data: reportes, error: errR } = await supabase
         .from("reportes_grupos")
         .select("id, grupo_id, fecha, ofrenda_casa_paz, grupos(nombre, red)")
@@ -234,7 +350,7 @@ export function useTesoreriaMora() {
       // Todos los registros de tesorería
       const { data: registros, error: errReg } = await supabase
         .from("tesoreria_ofrendas_cdp")
-        .select("grupo_id, semana_inicio, semana_fin, valor_entregado");
+        .select("grupo_id, semana_inicio, semana_fin, valor_entregado, consignacion_completada");
       if (errReg) throw errReg;
 
       // Agrupar reportes por grupo + semana (lunes)
@@ -247,6 +363,7 @@ export function useTesoreriaMora() {
         reportado: number;
         entregado: number;
         diferencia: number;
+        dias_mora: number;
       }> = [];
 
       const agrupados: Record<string, { grupo_id: string; grupo_nombre: string; red: string; semana_inicio: string; semana_fin: string; reportado: number }> = {};
@@ -270,12 +387,16 @@ export function useTesoreriaMora() {
         const reg = (registros || []).find(
           (x: any) => x.grupo_id === g.grupo_id && x.semana_inicio === g.semana_inicio
         );
+        if ((reg as any)?.consignacion_completada) return; // ya cerrado
         const entregado = Number(reg?.valor_entregado || 0);
         if (entregado < g.reportado) {
+          const diasDesdeFin = differenceInCalendarDays(hoy, parseISO(g.semana_fin));
+          const diasMora = Math.max(0, diasDesdeFin - diasConfigurados);
           morosos.push({
             ...g,
             entregado,
             diferencia: g.reportado - entregado,
+            dias_mora: diasMora,
           });
         }
       });

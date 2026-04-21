@@ -82,6 +82,62 @@ Deno.serve(async (req) => {
       return bday.getMonth() + 1 === todayMonth && bday.getDate() === todayDay;
     });
 
+    // CDP en mora — leer días configurados
+    const { data: cfg } = await supabase
+      .from("configuracion_iglesia")
+      .select("tesoreria_cdp_dias_mora")
+      .limit(1)
+      .single();
+    const diasMoraCfg = Number((cfg as any)?.tesoreria_cdp_dias_mora ?? 7);
+
+    const limiteMora = new Date(now);
+    limiteMora.setDate(limiteMora.getDate() - diasMoraCfg);
+    const limiteMoraStr = limiteMora.toISOString().split("T")[0];
+
+    const { data: reportesCDP } = await supabase
+      .from("reportes_grupos")
+      .select("id, grupo_id, fecha, ofrenda_casa_paz, grupos(nombre, red)")
+      .gt("ofrenda_casa_paz", 0)
+      .lte("fecha", limiteMoraStr);
+
+    const { data: registrosCDP } = await supabase
+      .from("tesoreria_ofrendas_cdp")
+      .select("grupo_id, semana_inicio, valor_entregado, consignacion_completada");
+
+    // Agrupar reportes por grupo+semana (lunes)
+    const startOfWeekMonday = (d: Date) => {
+      const date = new Date(d);
+      const day = date.getDay();
+      const diff = (day === 0 ? -6 : 1) - day;
+      date.setDate(date.getDate() + diff);
+      return date.toISOString().split("T")[0];
+    };
+
+    const agrupados: Record<string, { grupo: string; semana: string; reportado: number }> = {};
+    (reportesCDP || []).forEach((r: any) => {
+      const semana = startOfWeekMonday(new Date(r.fecha + "T00:00:00"));
+      const key = `${r.grupo_id}__${semana}`;
+      if (!agrupados[key]) {
+        agrupados[key] = {
+          grupo: r.grupos?.nombre || "—",
+          semana,
+          reportado: 0,
+        };
+      }
+      agrupados[key].reportado += Number(r.ofrenda_casa_paz) || 0;
+    });
+
+    let cdpEnMora = 0;
+    Object.entries(agrupados).forEach(([key, v]) => {
+      const [grupoId, semanaInicio] = key.split("__");
+      const reg = (registrosCDP || []).find(
+        (x: any) => x.grupo_id === grupoId && x.semana_inicio === semanaInicio
+      );
+      if ((reg as any)?.consignacion_completada) return;
+      const entregado = Number(reg?.valor_entregado || 0);
+      if (entregado < v.reportado) cdpEnMora++;
+    });
+
     // Build notification content
     const notifications: string[] = [];
 
@@ -101,6 +157,12 @@ Deno.serve(async (req) => {
       });
     }
 
+    if (cdpEnMora > 0) {
+      notifications.push(
+        `\n⏱ TESORERÍA CDP — MORA:\n  • ${cdpEnMora} ${cdpEnMora === 1 ? "Casa de Paz lleva" : "Casas de Paz llevan"} más de ${diasMoraCfg} días sin registrar consignación.`
+      );
+    }
+
     if (notifications.length === 0) {
       return new Response(
         JSON.stringify({ message: "No notifications to send today" }),
@@ -115,6 +177,7 @@ Deno.serve(async (req) => {
         summary: {
           birthdaysToday: birthdaysToday.length,
           upcomingEvents: (upcomingEvents || []).length,
+          cdpEnMora,
           content: notifications.join("\n"),
         },
       }),

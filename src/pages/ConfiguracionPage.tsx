@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Church, Globe, Clock, Save, BookOpen, ImageIcon, Video, Radio } from "lucide-react";
+import { Church, Globe, Clock, Save, BookOpen, ImageIcon, Video, Radio, DollarSign } from "lucide-react";
 import { toast } from "sonner";
 
 // Lazy-load sub-pages as tab content
@@ -58,6 +58,9 @@ export default function ConfiguracionPage() {
         tema_semana_titulo: config.tema_semana_titulo || "",
         tema_semana_descripcion: config.tema_semana_descripcion || "",
         tema_semana_url: config.tema_semana_url || "",
+        tesoreria_cdp_tolerancia_pct: String((config as any).tesoreria_cdp_tolerancia_pct ?? 0),
+        tesoreria_cdp_tolerancia_abs: String((config as any).tesoreria_cdp_tolerancia_abs ?? 0),
+        tesoreria_cdp_dias_mora: String((config as any).tesoreria_cdp_dias_mora ?? 7),
       });
     }
   }, [config]);
@@ -75,7 +78,12 @@ export default function ConfiguracionPage() {
 
   const handleSave = async () => {
     try {
-      await updateConfig.mutateAsync(form);
+      // Convertir campos numéricos
+      const payload: Record<string, any> = { ...form };
+      payload.tesoreria_cdp_tolerancia_pct = Number(form.tesoreria_cdp_tolerancia_pct) || 0;
+      payload.tesoreria_cdp_tolerancia_abs = Number(form.tesoreria_cdp_tolerancia_abs) || 0;
+      payload.tesoreria_cdp_dias_mora = parseInt(form.tesoreria_cdp_dias_mora) || 7;
+      await updateConfig.mutateAsync(payload);
       toast.success("Configuración guardada correctamente");
     } catch {
       toast.error("Error al guardar la configuración");
@@ -194,6 +202,51 @@ export default function ConfiguracionPage() {
                     <input type="color" value={form.color_primario || "#6366f1"} onChange={e => set("color_primario", e.target.value)} className="h-10 w-14 rounded-md border border-input cursor-pointer" />
                     <Input value={form.color_primario || ""} onChange={e => set("color_primario", e.target.value)} className="flex-1" placeholder="#6366f1" />
                   </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Tesorería CDP */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base flex items-center gap-2"><DollarSign className="h-4 w-4" /> Tesorería · Casas de Paz</CardTitle>
+                <CardDescription>Umbrales de tolerancia y plazos para el control de ofrendas</CardDescription>
+              </CardHeader>
+              <CardContent className="grid gap-4 sm:grid-cols-3">
+                <div className="space-y-2">
+                  <Label>Tolerancia porcentual (%)</Label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={form.tesoreria_cdp_tolerancia_pct || "0"}
+                    onChange={e => set("tesoreria_cdp_tolerancia_pct", e.target.value)}
+                    placeholder="Ej: 2"
+                  />
+                  <p className="text-xs text-muted-foreground">% máximo de diferencia permitida entre lo entregado y lo consignado.</p>
+                </div>
+                <div className="space-y-2">
+                  <Label>Tolerancia absoluta</Label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={form.tesoreria_cdp_tolerancia_abs || "0"}
+                    onChange={e => set("tesoreria_cdp_tolerancia_abs", e.target.value)}
+                    placeholder="Ej: 5000"
+                  />
+                  <p className="text-xs text-muted-foreground">Monto máximo (en moneda) de diferencia permitida.</p>
+                </div>
+                <div className="space-y-2">
+                  <Label>Días para considerar mora</Label>
+                  <Input
+                    type="number"
+                    min="1"
+                    value={form.tesoreria_cdp_dias_mora || "7"}
+                    onChange={e => set("tesoreria_cdp_dias_mora", e.target.value)}
+                    placeholder="7"
+                  />
+                  <p className="text-xs text-muted-foreground">Días después de cierre de semana para marcar una CDP en mora.</p>
                 </div>
               </CardContent>
             </Card>
