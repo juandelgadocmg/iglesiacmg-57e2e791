@@ -57,7 +57,8 @@ export type ActionPermission =
   | "peticiones:view"
   | "peticiones:respond"
   | "reportes_grupos:create"
-  | "reportes_grupos:edit";
+  | "reportes_grupos:edit"
+  | "tesoreria_cdp:manage";
 
 const ACTION_PERMISSIONS: Record<ActionPermission, AppRole[]> = {
   "personas:create": ["admin", "super_admin", "pastor", "lider", "secretaria", "consolidador_lider"],
@@ -72,6 +73,7 @@ const ACTION_PERMISSIONS: Record<ActionPermission, AppRole[]> = {
   "peticiones:respond": ["admin", "super_admin", "pastor", "lider_intercesion"],
   "reportes_grupos:create": ["admin", "super_admin", "pastor", "lider", "lider_red", "lider_casa_paz"],
   "reportes_grupos:edit":   ["admin", "super_admin", "pastor", "lider", "lider_red"],
+  "tesoreria_cdp:manage":   ["admin", "super_admin", "pastor", "tesoreria"],
 };
 
 export function canAccess(userRoles: AppRole[], path: string): boolean {
