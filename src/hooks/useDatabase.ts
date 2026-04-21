@@ -83,6 +83,66 @@ export function useDeletePersona() {
   });
 }
 
+// ============ PERSONAS PARA EXPORT (Informe de Consolidación) ============
+export interface PersonaExportFiltros {
+  from?: string; // inclusive ISO date (yyyy-mm-dd)
+  to?: string;   // exclusive ISO date (yyyy-mm-dd)
+}
+
+export function useProcesosCrecimiento() {
+  return useQuery({
+    queryKey: ["procesos_crecimiento"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("procesos_crecimiento")
+        .select("id, nombre, orden")
+        .order("orden", { ascending: true });
+      if (error) throw error;
+      return data || [];
+    },
+  });
+}
+
+export function usePersonasParaExport(filtros: PersonaExportFiltros, enabled = true) {
+  return useQuery({
+    queryKey: ["personas_export", filtros],
+    enabled,
+    queryFn: async () => {
+      const all: any[] = [];
+      const PAGE_SIZE = 500;
+      let from = 0;
+      let hasMore = true;
+
+      while (hasMore) {
+        let q = supabase
+          .from("personas")
+          .select(`
+            id, nombres, apellidos, tipo_persona, estado_iglesia, vinculacion, ministerio, red,
+            fecha_ingreso, invitado_por, seguimiento_por, created_at,
+            grupos!fk_personas_grupo(nombre),
+            persona_procesos(proceso_id, estado, fecha_completado, observacion)
+          `)
+          .order("created_at", { ascending: false })
+          .range(from, from + PAGE_SIZE - 1);
+
+        if (filtros.from) q = q.gte("created_at", filtros.from);
+        if (filtros.to) q = q.lt("created_at", filtros.to);
+
+        const { data, error } = await q;
+        if (error) throw error;
+        if (data && data.length > 0) {
+          all.push(...data);
+          from += PAGE_SIZE;
+          hasMore = data.length === PAGE_SIZE;
+        } else {
+          hasMore = false;
+        }
+      }
+      return all;
+    },
+  });
+}
+
 // ============ GRUPOS ============
 export function useGrupos() {
   return useQuery({

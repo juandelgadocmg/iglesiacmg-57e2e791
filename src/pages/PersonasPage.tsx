@@ -23,6 +23,7 @@ import { toast } from "sonner";
 import { format, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
 import ExportDropdown from "@/components/shared/ExportDropdown";
+import ExportPersonasDialog from "@/components/forms/ExportPersonasDialog";
 import ImportPersonasDialog from "@/components/forms/ImportPersonasDialog";
 import { useUserRoles } from "@/hooks/useUserRoles";
 import { canPerform } from "@/lib/permissions";
@@ -151,6 +152,7 @@ export default function PersonasPage() {
           { header: "Tipo", key: "tipo_persona" }, { header: "Grupo", key: "grupoNombre" },
           { header: "Estado", key: "estado_iglesia" },
         ]} data={tableData} />
+        <ExportPersonasDialog />
         {canCreate && <ImportPersonasDialog />}
         {canCreate && <PersonaFormDialog />}
       </PageHeader>
