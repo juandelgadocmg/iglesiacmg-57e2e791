@@ -1162,58 +1162,9 @@ function GradingGrid({ cortes, materias, periodoId, maestroId, escuelaName }: an
     } catch { toast.error("Error al guardar"); }
   };
 
-  // Sync approved grades with persona_procesos
-  const syncWithGrowthModule = async (students: any[], items: any[], grades: Record<string, string>) => {
-    try {
-      // Get all procesos for matching
-      const { data: procesos } = await supabase
-        .from("procesos_crecimiento")
-        .select("*")
-        .order("orden");
-
-      if (!procesos?.length) return;
-
-      const today = format(new Date(), "yyyy-MM-dd");
-      const upsertRecords: any[] = [];
-
-      for (const student of students) {
-        // Calculate average for this student across all items
-        const studentGrades = items.map((item: any) => {
-          const val = grades[`${student.id}_${item.id}`];
-          return val ? parseFloat(val) : null;
-        }).filter((g): g is number => g !== null);
-
-        if (!studentGrades.length) continue;
-        const avg = studentGrades.reduce((s, v) => s + v, 0) / studentGrades.length;
-
-        // If student passed (avg >= 3), try to match with a growth process
-        if (avg >= 3 && selectedMateriaObj) {
-          const materiaName = selectedMateriaObj.nombre?.toLowerCase() || "";
-          const matchedProceso = procesos.find((p: any) =>
-            materiaName.includes(p.nombre.toLowerCase()) || p.nombre.toLowerCase().includes(materiaName)
-          );
-
-          if (matchedProceso) {
-            upsertRecords.push({
-              persona_id: student.persona_id,
-              proceso_id: matchedProceso.id,
-              estado: "Realizado",
-              fecha_completado: today,
-            });
-          }
-        }
-      }
-
-      if (upsertRecords.length > 0) {
-        await supabase
-          .from("persona_procesos")
-          .upsert(upsertRecords, { onConflict: "persona_id,proceso_id" });
-        toast.success(`${upsertRecords.length} proceso(s) de crecimiento actualizado(s)`);
-      }
-    } catch (err) {
-      console.error("Error syncing growth module:", err);
-    }
-  };
+  // (La sincronización con procesos de crecimiento ahora vive en
+  // syncMateriaToCrecimiento() — ver useAcademia.ts. Se invoca tanto al guardar
+  // calificaciones como al finalizar la materia, garantizando consistencia.)
 
   const exportGrades = () => {
     if (!materiaItems.length || !activeStudents.length) return;
