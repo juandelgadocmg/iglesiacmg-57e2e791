@@ -29,6 +29,8 @@ import {
   useCortes, useAllItemsByCorte, useDeleteCorte, useDeleteItemCalificable,
   useCalificacionesByMateriaCorte, useBulkUpsertCalificaciones,
   useAsistenciaMaterias, useUpsertAsistenciaMateria,
+  syncMateriaToCrecimiento, useProcesosCrecimiento,
+  useSyncMateriaToCrecimiento, useRevertMateriaFromCrecimiento,
 } from "@/hooks/useAcademia";
 import {
   useConceptosPago, useDeleteConceptoPago, usePagosMatricula, useUpdatePagoMatricula,
