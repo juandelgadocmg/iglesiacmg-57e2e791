@@ -14,17 +14,19 @@ import {
 import {
   ChevronLeft, ChevronRight, CalendarIcon, FileDown, AlertTriangle,
   DollarSign, CheckCircle2, Clock, History, Upload, Lock, FileText, ExternalLink,
-  Replace, Timer, FileText as FileTextIcon,
+  Replace, Timer,
 } from "lucide-react";
 import {
-  useTesoreriaSemana, useUpsertTesoreriaCDP, useTesoreriaMora, useUploadSoporteConsignacion,
-  useReemplazarSoporteConsignacion, useHistorialConsignacion,
-  getSemanaRange, type FilaTesoreriaCDP, type EstadoTesoreria,
+  useTesoreriaSemana, useUpsertTesoreriaCDP, useTesoreriaMora,
+  useUploadSoporteConsignacion,
+  useConsignacionSemanal, useUpsertConsignacionSemanal,
+  useReemplazarSoporteSemanal, useHistorialSemanal,
+  getSemanaRange, type FilaTesoreriaCDP, type EstadoTesoreria, type ConsignacionSemanal,
 } from "@/hooks/useTesoreriaCDP";
 import { useConfiguracion } from "@/hooks/useConfiguracion";
 import { useAuth } from "@/hooks/useAuth";
 import { useUserRoles } from "@/hooks/useUserRoles";
-import { exportTesoreriaSemanalPDF, exportFilaSemanalPDF } from "@/lib/exportTesoreriaCDPPdf";
+import { exportTesoreriaSemanalPDF, exportConsignacionSemanalPDF } from "@/lib/exportTesoreriaCDPPdf";
 import { format, parseISO, addDays, subDays } from "date-fns";
 import { es } from "date-fns/locale";
 import { cn } from "@/lib/utils";
@@ -37,7 +39,6 @@ const estadoBadge: Record<EstadoTesoreria, { className: string; label: string }>
   "En mora":     { className: "bg-destructive text-destructive-foreground border-transparent", label: "En mora" },
   "Pendiente":   { className: "bg-muted text-muted-foreground border-transparent", label: "Pendiente" },
   "Sin reporte": { className: "bg-muted/50 text-muted-foreground border-transparent", label: "Sin reporte" },
-  "Cerrado":     { className: "bg-primary text-primary-foreground border-transparent", label: "Cerrado ✓" },
 };
 
 const fmt = (n: number) =>
@@ -46,12 +47,13 @@ const fmt = (n: number) =>
 export default function TesoreriaCDPSection() {
   const [fechaSemana, setFechaSemana] = useState<Date>(new Date());
   const [showMora, setShowMora] = useState(false);
-  const [filaConsignacion, setFilaConsignacion] = useState<FilaTesoreriaCDP | null>(null);
-  const [filaReemplazar, setFilaReemplazar] = useState<FilaTesoreriaCDP | null>(null);
-  const [filaHistorial, setFilaHistorial] = useState<FilaTesoreriaCDP | null>(null);
+  const [showConsignacion, setShowConsignacion] = useState(false);
+  const [showReemplazar, setShowReemplazar] = useState(false);
+  const [showHistorial, setShowHistorial] = useState(false);
   const semana = useMemo(() => getSemanaRange(fechaSemana), [fechaSemana]);
 
   const { data: filas, isLoading } = useTesoreriaSemana(semana.inicio, semana.fin);
+  const { data: consignacion } = useConsignacionSemanal(semana.inicio);
   const { data: morosos } = useTesoreriaMora();
   const { data: config } = useConfiguracion();
   const { user } = useAuth();
@@ -73,18 +75,23 @@ export default function TesoreriaCDPSection() {
     return {
       reportado: arr.reduce((s, f) => s + f.valor_reportado, 0),
       entregado: arr.reduce((s, f) => s + f.valor_entregado, 0),
-      consignado: arr.reduce((s, f) => s + f.valor_consignado, 0),
       enMora: arr.filter((f) => f.estado === "En mora").length,
       conciliados: arr.filter((f) => f.estado === "Conciliado" || f.estado === "Sobrante").length,
-      cerrados: arr.filter((f) => f.consignacion_completada).length,
-      pendientesConsignar: arr.filter((f) => f.valor_entregado > 0 && !f.consignacion_completada).length,
     };
   }, [filas]);
+
+  const cerrada = !!consignacion?.consignacion_completada;
+  const consignado = consignacion?.valor_consignado || 0;
+  const porConsignar = totales.entregado - consignado;
 
   const handleSave = async (
     fila: FilaTesoreriaCDP,
     patch: { valor_entregado?: number; fecha_entrega?: string | null; observacion?: string | null }
   ) => {
+    if (cerrada) {
+      toast.error("La consignación de la semana ya fue cerrada.");
+      return;
+    }
     try {
       await upsert.mutateAsync({
         grupo_id: fila.grupo_id,
@@ -119,10 +126,15 @@ export default function TesoreriaCDPSection() {
     }
   };
 
-  const handleDownloadFilaPDF = async (fila: FilaTesoreriaCDP) => {
+  const handleDownloadConsignacionPDF = async () => {
+    if (!consignacion) {
+      toast.error("Aún no hay consignación cerrada esta semana.");
+      return;
+    }
     try {
-      await exportFilaSemanalPDF({
-        fila,
+      await exportConsignacionSemanalPDF({
+        consignacion,
+        filas: filas || [],
         semanaInicio: semana.inicio,
         semanaFin: semana.fin,
         configIglesia: config,
@@ -211,15 +223,15 @@ export default function TesoreriaCDPSection() {
         </div>
         <div className="rounded-xl border bg-card p-4">
           <p className="text-xs text-muted-foreground">Consignado banco</p>
-          <p className="text-xl font-bold mt-1 text-primary">{fmt(totales.consignado)}</p>
+          <p className="text-xl font-bold mt-1 text-primary">{fmt(consignado)}</p>
         </div>
         <div className="rounded-xl border bg-card p-4">
           <p className="text-xs text-muted-foreground">Por consignar</p>
           <p className={cn(
             "text-xl font-bold mt-1",
-            totales.pendientesConsignar > 0 ? "text-amber-600" : "text-success"
+            porConsignar > 0 ? "text-amber-600" : "text-success"
           )}>
-            {totales.pendientesConsignar}
+            {fmt(porConsignar)}
           </p>
         </div>
         <div className="rounded-xl border bg-card p-4">
@@ -270,14 +282,12 @@ export default function TesoreriaCDPSection() {
                 <TableHead className="w-[150px]">Fecha entrega</TableHead>
                 <TableHead className="min-w-[180px]">Observación</TableHead>
                 <TableHead className="w-[120px] text-center">Estado</TableHead>
-                <TableHead className="w-[170px] text-center">Consignación</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {Object.entries(porRed).map(([red, items]) => {
                 const subRep = items.reduce((s, f) => s + f.valor_reportado, 0);
                 const subEnt = items.reduce((s, f) => s + f.valor_entregado, 0);
-                const subCons = items.reduce((s, f) => s + f.valor_consignado, 0);
                 return (
                   <>
                     {items.map((f, idx) => (
@@ -286,23 +296,16 @@ export default function TesoreriaCDPSection() {
                         fila={f}
                         showRed={idx === 0}
                         red={red}
-                        canManageSoporte={canManageSoporte}
+                        bloqueado={cerrada}
                         onSave={handleSave}
-                        onOpenConsignacion={() => setFilaConsignacion(f)}
-                        onReplaceSoporte={() => setFilaReemplazar(f)}
-                        onShowHistorial={() => setFilaHistorial(f)}
-                        onDownloadPDF={() => handleDownloadFilaPDF(f)}
                       />
                     ))}
                     <TableRow className="bg-muted/40 font-medium">
                       <TableCell colSpan={2} className="text-right text-xs">Subtotal {red}</TableCell>
                       <TableCell className="text-right text-xs">{fmt(subRep)}</TableCell>
                       <TableCell className="text-xs">{fmt(subEnt)}</TableCell>
-                      <TableCell colSpan={2} className="text-xs text-muted-foreground">
+                      <TableCell colSpan={3} className="text-xs text-muted-foreground">
                         Diferencia: {fmt(subRep - subEnt)}
-                      </TableCell>
-                      <TableCell colSpan={2} className="text-xs text-right">
-                        Consignado: <strong>{fmt(subCons)}</strong>
                       </TableCell>
                     </TableRow>
                   </>
@@ -312,13 +315,10 @@ export default function TesoreriaCDPSection() {
                 <TableCell colSpan={2} className="text-right">TOTAL GENERAL</TableCell>
                 <TableCell className="text-right">{fmt(totales.reportado)}</TableCell>
                 <TableCell>{fmt(totales.entregado)}</TableCell>
-                <TableCell colSpan={2}>
+                <TableCell colSpan={3}>
                   Diferencia: <span className={totales.reportado - totales.entregado > 0 ? "text-destructive" : "text-success"}>
                     {fmt(totales.reportado - totales.entregado)}
                   </span>
-                </TableCell>
-                <TableCell colSpan={2} className="text-right">
-                  Consignado: <span className="text-primary">{fmt(totales.consignado)}</span>
                 </TableCell>
               </TableRow>
             </TableBody>
@@ -326,27 +326,42 @@ export default function TesoreriaCDPSection() {
         </div>
       )}
 
-      {/* Modal de consignación */}
-      <ConsignacionDialog
-        fila={filaConsignacion}
+      {/* Bloque consignación semanal */}
+      <ConsignacionSemanalBlock
+        consignacion={consignacion || null}
+        totalEntregado={totales.entregado}
+        canManage={canManageSoporte}
+        onCerrar={() => setShowConsignacion(true)}
+        onReemplazar={() => setShowReemplazar(true)}
+        onHistorial={() => setShowHistorial(true)}
+        onDownloadPDF={handleDownloadConsignacionPDF}
+      />
+
+      {/* Modal cerrar consignación semanal */}
+      <ConsignacionSemanalDialog
+        open={showConsignacion}
+        consignacion={consignacion || null}
+        totalEntregado={totales.entregado}
         semanaInicio={semana.inicio}
         semanaFin={semana.fin}
         config={config}
         canBypass={hasRole("admin") || hasRole("super_admin")}
-        onClose={() => setFilaConsignacion(null)}
+        onClose={() => setShowConsignacion(false)}
       />
 
-      {/* Modal de reemplazo de soporte */}
-      <ReemplazarSoporteDialog
-        fila={filaReemplazar}
+      {/* Modal reemplazar soporte semanal */}
+      <ReemplazarSoporteSemanalDialog
+        open={showReemplazar}
+        consignacion={consignacion || null}
         semanaInicio={semana.inicio}
-        onClose={() => setFilaReemplazar(null)}
+        onClose={() => setShowReemplazar(false)}
       />
 
-      {/* Modal historial */}
-      <HistorialDialog
-        fila={filaHistorial}
-        onClose={() => setFilaHistorial(null)}
+      {/* Modal historial semanal */}
+      <HistorialSemanalDialog
+        open={showHistorial}
+        consignacion={consignacion || null}
+        onClose={() => setShowHistorial(false)}
       />
 
       {/* Modal mora histórica */}
@@ -409,36 +424,29 @@ export default function TesoreriaCDPSection() {
   );
 }
 
+/* ----------------------- FILA POR CDP (entrega física) ----------------------- */
+
 function FilaEditable({
   fila,
   showRed,
   red,
-  canManageSoporte,
+  bloqueado,
   onSave,
-  onOpenConsignacion,
-  onReplaceSoporte,
-  onShowHistorial,
-  onDownloadPDF,
 }: {
   fila: FilaTesoreriaCDP;
   showRed: boolean;
   red: string;
-  canManageSoporte: boolean;
+  bloqueado: boolean;
   onSave: (f: FilaTesoreriaCDP, patch: any) => void;
-  onOpenConsignacion: () => void;
-  onReplaceSoporte: () => void;
-  onShowHistorial: () => void;
-  onDownloadPDF: () => void;
 }) {
   const [entregado, setEntregado] = useState(String(fila.valor_entregado || ""));
   const [fechaEntrega, setFechaEntrega] = useState(fila.fecha_entrega || "");
   const [obs, setObs] = useState(fila.observacion || "");
   const badge = estadoBadge[fila.estado];
-  const cerrado = fila.consignacion_completada;
-  const enMora = fila.dias_mora > 0 && !cerrado;
+  const enMora = fila.dias_mora > 0;
 
   return (
-    <TableRow className={cn(cerrado && "bg-success/5", enMora && "bg-destructive/5")}>
+    <TableRow className={cn(enMora && "bg-destructive/5")}>
       <TableCell className="text-xs text-muted-foreground">{showRed ? red : ""}</TableCell>
       <TableCell>
         <p className="text-sm font-medium">{fila.grupo_nombre}</p>
@@ -459,7 +467,7 @@ function FilaEditable({
           type="number"
           step="0.01"
           value={entregado}
-          disabled={cerrado}
+          disabled={bloqueado}
           onChange={(e) => setEntregado(e.target.value)}
           onBlur={() => {
             const num = parseFloat(entregado) || 0;
@@ -473,7 +481,7 @@ function FilaEditable({
         <Input
           type="date"
           value={fechaEntrega}
-          disabled={cerrado}
+          disabled={bloqueado}
           onChange={(e) => setFechaEntrega(e.target.value)}
           onBlur={() => {
             if (fechaEntrega !== (fila.fecha_entrega || "")) {
@@ -486,7 +494,7 @@ function FilaEditable({
       <TableCell>
         <Input
           value={obs}
-          disabled={cerrado}
+          disabled={bloqueado}
           onChange={(e) => setObs(e.target.value)}
           onBlur={() => {
             if (obs !== (fila.observacion || "")) onSave(fila, { observacion: obs || null });
@@ -500,93 +508,169 @@ function FilaEditable({
           <Badge className={cn("text-[10px]", badge.className)}>{badge.label}</Badge>
           {enMora && (
             <Badge variant="destructive" className="text-[10px] gap-0.5 h-5 px-1.5">
-              <Timer className="h-3 w-3" /> {fila.dias_mora}d en mora
+              <Timer className="h-3 w-3" /> {fila.dias_mora}d
             </Badge>
           )}
         </div>
-      </TableCell>
-      <TableCell className="text-center">
-        {cerrado ? (
-          <div className="flex flex-col items-center gap-1">
-            <Badge className="bg-success text-success-foreground border-transparent text-[10px] gap-1">
-              <Lock className="h-3 w-3" /> Cerrado
-            </Badge>
-            <div className="flex items-center gap-1 flex-wrap justify-center">
-              {fila.soporte_consignacion_url && (
-                <a
-                  href={fila.soporte_consignacion_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-[10px] text-primary hover:underline inline-flex items-center gap-0.5"
-                  title="Ver soporte"
-                >
-                  <FileText className="h-3 w-3" /> Ver
-                </a>
-              )}
-              <button
-                type="button"
-                onClick={onDownloadPDF}
-                className="text-[10px] text-primary hover:underline inline-flex items-center gap-0.5"
-                title="Descargar PDF"
-              >
-                <FileDown className="h-3 w-3" /> PDF
-              </button>
-              {canManageSoporte && (
-                <>
-                  <button
-                    type="button"
-                    onClick={onReplaceSoporte}
-                    className="text-[10px] text-primary hover:underline inline-flex items-center gap-0.5"
-                    title="Reemplazar soporte"
-                  >
-                    <Replace className="h-3 w-3" /> Reemplazar
-                  </button>
-                  <button
-                    type="button"
-                    onClick={onShowHistorial}
-                    className="text-[10px] text-muted-foreground hover:underline inline-flex items-center gap-0.5"
-                    title="Ver historial"
-                  >
-                    <History className="h-3 w-3" /> Historial
-                  </button>
-                </>
-              )}
-            </div>
-          </div>
-        ) : (
-          <Button
-            size="sm"
-            variant="outline"
-            className="h-8 gap-1 text-xs"
-            disabled={fila.valor_entregado <= 0}
-            onClick={onOpenConsignacion}
-            title={fila.valor_entregado <= 0 ? "Registra primero el valor entregado" : "Cerrar con consignación"}
-          >
-            <Upload className="h-3 w-3" /> Consignar
-          </Button>
-        )}
       </TableCell>
     </TableRow>
   );
 }
 
-function ConsignacionDialog({
-  fila,
+/* ----------------------- BLOQUE CONSIGNACIÓN SEMANAL ----------------------- */
+
+function ConsignacionSemanalBlock({
+  consignacion,
+  totalEntregado,
+  canManage,
+  onCerrar,
+  onReemplazar,
+  onHistorial,
+  onDownloadPDF,
+}: {
+  consignacion: ConsignacionSemanal | null;
+  totalEntregado: number;
+  canManage: boolean;
+  onCerrar: () => void;
+  onReemplazar: () => void;
+  onHistorial: () => void;
+  onDownloadPDF: () => void;
+}) {
+  const cerrada = !!consignacion?.consignacion_completada;
+  const consignado = consignacion?.valor_consignado || 0;
+  const diff = totalEntregado - consignado;
+
+  return (
+    <div className={cn(
+      "rounded-xl border p-4",
+      cerrada ? "bg-success/5 border-success/30" : "bg-card"
+    )}>
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+        <div className="flex items-start gap-3">
+          <div className={cn(
+            "rounded-lg p-2",
+            cerrada ? "bg-success/20 text-success" : "bg-primary/10 text-primary"
+          )}>
+            {cerrada ? <Lock className="h-5 w-5" /> : <Upload className="h-5 w-5" />}
+          </div>
+          <div>
+            <h4 className="text-sm font-semibold flex items-center gap-2">
+              Consignación bancaria de la semana
+              {cerrada && (
+                <Badge className="bg-success text-success-foreground border-transparent text-[10px] gap-1">
+                  <Lock className="h-3 w-3" /> Cerrada
+                </Badge>
+              )}
+            </h4>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Una sola consignación con la suma del recaudo físico de todas las Casas de Paz.
+            </p>
+          </div>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2">
+          {!cerrada ? (
+            <Button
+              size="sm"
+              className="gap-1"
+              disabled={totalEntregado <= 0 || !canManage}
+              onClick={onCerrar}
+              title={
+                !canManage ? "Solo tesorería puede cerrar" :
+                totalEntregado <= 0 ? "Registra primero las entregas físicas" :
+                "Cerrar consignación de la semana"
+              }
+            >
+              <Upload className="h-4 w-4" /> Registrar consignación
+            </Button>
+          ) : (
+            <>
+              <Button size="sm" variant="outline" className="gap-1" onClick={onDownloadPDF}>
+                <FileDown className="h-4 w-4" /> PDF cierre
+              </Button>
+              {consignacion?.soporte_consignacion_url && (
+                <Button size="sm" variant="ghost" asChild className="gap-1">
+                  <a href={consignacion.soporte_consignacion_url} target="_blank" rel="noopener noreferrer">
+                    <FileText className="h-4 w-4" /> Ver soporte
+                  </a>
+                </Button>
+              )}
+              {canManage && (
+                <>
+                  <Button size="sm" variant="outline" className="gap-1" onClick={onReemplazar}>
+                    <Replace className="h-4 w-4" /> Reemplazar soporte
+                  </Button>
+                  <Button size="sm" variant="ghost" className="gap-1" onClick={onHistorial}>
+                    <History className="h-4 w-4" /> Historial
+                  </Button>
+                </>
+              )}
+            </>
+          )}
+        </div>
+      </div>
+
+      {/* Resumen */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-4 pt-4 border-t">
+        <div>
+          <p className="text-[11px] text-muted-foreground uppercase tracking-wide">Total recaudado</p>
+          <p className="text-lg font-bold">{fmt(totalEntregado)}</p>
+        </div>
+        <div>
+          <p className="text-[11px] text-muted-foreground uppercase tracking-wide">Consignado</p>
+          <p className="text-lg font-bold text-primary">{fmt(consignado)}</p>
+        </div>
+        <div>
+          <p className="text-[11px] text-muted-foreground uppercase tracking-wide">Diferencia</p>
+          <p className={cn(
+            "text-lg font-bold",
+            Math.abs(diff) < 0.01 ? "text-success" : "text-destructive"
+          )}>
+            {fmt(diff)}
+          </p>
+        </div>
+        <div>
+          <p className="text-[11px] text-muted-foreground uppercase tracking-wide">Fecha</p>
+          <p className="text-lg font-bold">
+            {consignacion?.fecha_consignacion
+              ? format(parseISO(consignacion.fecha_consignacion), "dd MMM yyyy", { locale: es })
+              : "—"}
+          </p>
+        </div>
+      </div>
+
+      {consignacion?.observacion && (
+        <div className="mt-3 pt-3 border-t">
+          <p className="text-[11px] text-muted-foreground uppercase tracking-wide mb-1">Observación</p>
+          <p className="text-sm whitespace-pre-line">{consignacion.observacion}</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ----------------------- DIÁLOGO REGISTRAR CONSIGNACIÓN SEMANAL ----------------------- */
+
+function ConsignacionSemanalDialog({
+  open,
+  consignacion,
+  totalEntregado,
   semanaInicio,
   semanaFin,
   config,
   canBypass,
   onClose,
 }: {
-  fila: FilaTesoreriaCDP | null;
+  open: boolean;
+  consignacion: ConsignacionSemanal | null;
+  totalEntregado: number;
   semanaInicio: string;
   semanaFin: string;
   config: any;
   canBypass: boolean;
   onClose: () => void;
 }) {
-  const open = !!fila;
-  const upsert = useUpsertTesoreriaCDP();
+  const upsert = useUpsertConsignacionSemanal();
   const upload = useUploadSoporteConsignacion();
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -598,38 +682,31 @@ function ConsignacionDialog({
   const [autorizar, setAutorizar] = useState(false);
   const [justificacion, setJustificacion] = useState("");
 
-  // Reset cuando se abre
   useEffect(() => {
-    if (fila) {
-      setValorConsignado(String(fila.valor_consignado || fila.valor_entregado || ""));
-      setFechaCons(fila.fecha_consignacion || format(new Date(), "yyyy-MM-dd"));
-      setObs(fila.observacion || "");
+    if (open) {
+      setValorConsignado(String(consignacion?.valor_consignado || totalEntregado || ""));
+      setFechaCons(consignacion?.fecha_consignacion || format(new Date(), "yyyy-MM-dd"));
+      setObs(consignacion?.observacion || "");
       setFile(null);
       setAutorizar(false);
       setJustificacion("");
     }
-  }, [fila]);
-
-  if (!fila) return null;
+  }, [open, consignacion, totalEntregado]);
 
   const tolPct = Number(config?.tesoreria_cdp_tolerancia_pct ?? 0);
   const tolAbs = Number(config?.tesoreria_cdp_tolerancia_abs ?? 0);
 
   const num = parseFloat(valorConsignado) || 0;
-  const diferencia = Math.abs(num - fila.valor_entregado);
-  const diferenciaPct =
-    fila.valor_entregado > 0 ? (diferencia / fila.valor_entregado) * 100 : 0;
+  const diferencia = Math.abs(num - totalEntregado);
+  const diferenciaPct = totalEntregado > 0 ? (diferencia / totalEntregado) * 100 : 0;
 
-  // Excede si supera AMBOS umbrales (cuando ambos > 0). Si solo uno > 0, ese aplica.
   let excedeTolerancia = false;
-  if (num > 0 && fila.valor_entregado > 0) {
+  if (num > 0 && totalEntregado > 0) {
     const excedePct = tolPct > 0 ? diferenciaPct > tolPct : false;
     const excedeAbs = tolAbs > 0 ? diferencia > tolAbs : false;
     if (tolPct > 0 && tolAbs > 0) excedeTolerancia = excedePct && excedeAbs;
     else if (tolPct > 0) excedeTolerancia = excedePct;
     else if (tolAbs > 0) excedeTolerancia = excedeAbs;
-    else excedeTolerancia = diferencia > 0; // sin tolerancia = cualquier diferencia bloquea? mejor: solo aviso
-    if (tolPct === 0 && tolAbs === 0) excedeTolerancia = false; // sin umbral, no bloquea
   }
 
   const bloqueado = excedeTolerancia && !(canBypass && autorizar && justificacion.trim().length > 0);
@@ -639,7 +716,7 @@ function ConsignacionDialog({
       toast.error("Ingresa el valor consignado.");
       return;
     }
-    if (!file && !fila.soporte_consignacion_url) {
+    if (!file && !consignacion?.soporte_consignacion_url) {
       toast.error("Adjunta el soporte de la consignación.");
       return;
     }
@@ -649,29 +726,25 @@ function ConsignacionDialog({
     }
     setSaving(true);
     try {
-      let url = fila.soporte_consignacion_url;
+      let url = consignacion?.soporte_consignacion_url || null;
       if (file) {
-        url = await upload.mutateAsync({
-          file,
-          grupoId: fila.grupo_id,
-          semanaInicio,
-        });
+        url = await upload.mutateAsync({ file, semanaInicio });
       }
       let observacionFinal = obs || null;
       if (excedeTolerancia && canBypass && autorizar) {
         observacionFinal = `${observacionFinal ? observacionFinal + "\n\n" : ""}[AUTORIZACIÓN ADMIN]: ${justificacion.trim()}`;
       }
       await upsert.mutateAsync({
-        grupo_id: fila.grupo_id,
         semana_inicio: semanaInicio,
         semana_fin: semanaFin,
-        observacion: observacionFinal,
+        valor_total_entregado: totalEntregado,
         valor_consignado: num,
         fecha_consignacion: fechaCons || null,
         soporte_consignacion_url: url,
+        observacion: observacionFinal,
         consignacion_completada: true,
       });
-      toast.success("Consignación registrada y proceso cerrado.");
+      toast.success("Consignación registrada y semana cerrada.");
       onClose();
     } catch (e: any) {
       toast.error("Error: " + (e.message || ""));
@@ -685,18 +758,19 @@ function ConsignacionDialog({
       <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Upload className="h-5 w-5 text-primary" /> Cerrar con consignación
+            <Upload className="h-5 w-5 text-primary" /> Registrar consignación semanal
           </DialogTitle>
           <DialogDescription>
-            <span className="font-medium text-foreground">{fila.grupo_nombre}</span> · {fila.red}
+            Semana del <strong>{format(parseISO(semanaInicio), "dd MMM", { locale: es })}</strong> al{" "}
+            <strong>{format(parseISO(semanaFin), "dd MMM yyyy", { locale: es })}</strong>
             <br />
-            Recaudado en físico: <strong>{fmt(fila.valor_entregado)}</strong>
+            Total recaudado físico de todas las Casas de Paz: <strong>{fmt(totalEntregado)}</strong>
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-3">
           <div>
-            <Label htmlFor="valor-cons">Valor consignado al banco *</Label>
+            <Label htmlFor="valor-cons">Valor total consignado al banco *</Label>
             <Input
               id="valor-cons"
               type="number"
@@ -708,18 +782,18 @@ function ConsignacionDialog({
             {num > 0 && diferencia > 0 && !excedeTolerancia && (
               <div className="mt-2 rounded-md border border-amber-500/30 bg-amber-500/10 p-2">
                 <p className="text-xs text-amber-700 dark:text-amber-400">
-                  ⚠️ Diferencia: <strong>{fmt(diferencia)}</strong> ({diferenciaPct.toFixed(2)}%) — dentro de la tolerancia configurada.
+                  ⚠️ Diferencia: <strong>{fmt(diferencia)}</strong> ({diferenciaPct.toFixed(2)}%) — dentro de la tolerancia.
                 </p>
               </div>
             )}
             {num > 0 && excedeTolerancia && (
               <div className="mt-2 rounded-md border border-destructive/40 bg-destructive/10 p-2">
                 <p className="text-xs text-destructive font-medium">
-                  ⛔ La diferencia ({fmt(diferencia)} / {diferenciaPct.toFixed(2)}%) supera la tolerancia configurada
+                  ⛔ Diferencia ({fmt(diferencia)} / {diferenciaPct.toFixed(2)}%) supera la tolerancia configurada
                   {tolPct > 0 && ` (${tolPct}%)`}{tolPct > 0 && tolAbs > 0 && " /"}{tolAbs > 0 && ` ${fmt(tolAbs)}`}.
                 </p>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Ajusta el valor o {canBypass ? "autoriza la diferencia con justificación abajo" : "solicita autorización a un administrador"}.
+                  Ajusta el valor o {canBypass ? "autoriza la diferencia abajo" : "solicita autorización a un administrador"}.
                 </p>
               </div>
             )}
@@ -744,9 +818,9 @@ function ConsignacionDialog({
               accept="image/*,application/pdf"
               onChange={(e) => setFile(e.target.files?.[0] || null)}
             />
-            {fila.soporte_consignacion_url && !file && (
+            {consignacion?.soporte_consignacion_url && !file && (
               <a
-                href={fila.soporte_consignacion_url}
+                href={consignacion.soporte_consignacion_url}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-xs text-primary hover:underline inline-flex items-center gap-1 mt-1"
@@ -767,7 +841,6 @@ function ConsignacionDialog({
             />
           </div>
 
-          {/* Bypass admin */}
           {excedeTolerancia && canBypass && (
             <div className="rounded-md border border-primary/30 bg-primary/5 p-3 space-y-2">
               <div className="flex items-start gap-2">
@@ -797,7 +870,7 @@ function ConsignacionDialog({
           <Button variant="outline" onClick={onClose} disabled={saving}>Cancelar</Button>
           <Button onClick={handleConfirm} disabled={saving || bloqueado} className="gap-1">
             <Lock className="h-4 w-4" />
-            {saving ? "Guardando…" : "Cerrar proceso"}
+            {saving ? "Guardando…" : "Cerrar semana"}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -805,17 +878,20 @@ function ConsignacionDialog({
   );
 }
 
-function ReemplazarSoporteDialog({
-  fila,
+/* ----------------------- DIÁLOGO REEMPLAZAR SOPORTE SEMANAL ----------------------- */
+
+function ReemplazarSoporteSemanalDialog({
+  open,
+  consignacion,
   semanaInicio,
   onClose,
 }: {
-  fila: FilaTesoreriaCDP | null;
+  open: boolean;
+  consignacion: ConsignacionSemanal | null;
   semanaInicio: string;
   onClose: () => void;
 }) {
-  const open = !!fila;
-  const reemplazar = useReemplazarSoporteConsignacion();
+  const reemplazar = useReemplazarSoporteSemanal();
   const [file, setFile] = useState<File | null>(null);
   const [valor, setValor] = useState("");
   const [fecha, setFecha] = useState("");
@@ -823,40 +899,39 @@ function ReemplazarSoporteDialog({
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    if (fila) {
+    if (open && consignacion) {
       setFile(null);
-      setValor(String(fila.valor_consignado || ""));
-      setFecha(fila.fecha_consignacion || "");
+      setValor(String(consignacion.valor_consignado || ""));
+      setFecha(consignacion.fecha_consignacion || "");
       setMotivo("");
     }
-  }, [fila]);
+  }, [open, consignacion]);
 
-  if (!fila || !fila.registro_id) return null;
+  if (!consignacion) return null;
 
   const handleConfirm = async () => {
     if (!motivo.trim()) {
       toast.error("Indica el motivo del cambio.");
       return;
     }
-    if (!file && Number(valor) === fila.valor_consignado && fecha === (fila.fecha_consignacion || "")) {
+    if (!file && Number(valor) === consignacion.valor_consignado && fecha === (consignacion.fecha_consignacion || "")) {
       toast.error("Selecciona un nuevo archivo o cambia algún dato.");
       return;
     }
     setSaving(true);
     try {
       await reemplazar.mutateAsync({
-        registro_id: fila.registro_id!,
-        grupo_id: fila.grupo_id,
+        consignacion_id: consignacion.id,
         semana_inicio: semanaInicio,
         file,
-        valor_consignado: Number(valor) || fila.valor_consignado,
-        fecha_consignacion: fecha || fila.fecha_consignacion,
+        valor_consignado: Number(valor) || consignacion.valor_consignado,
+        fecha_consignacion: fecha || consignacion.fecha_consignacion,
         motivo: motivo.trim(),
-        soporte_anterior_url: fila.soporte_consignacion_url,
-        valor_anterior: fila.valor_consignado,
-        fecha_anterior: fila.fecha_consignacion,
+        soporte_anterior_url: consignacion.soporte_consignacion_url,
+        valor_anterior: consignacion.valor_consignado,
+        fecha_anterior: consignacion.fecha_consignacion,
       });
-      toast.success("Soporte reemplazado y cambio registrado en historial.");
+      toast.success("Soporte reemplazado y registrado en historial.");
       onClose();
     } catch (e: any) {
       toast.error("Error: " + (e.message || ""));
@@ -870,12 +945,10 @@ function ReemplazarSoporteDialog({
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Replace className="h-5 w-5 text-primary" /> Reemplazar soporte
+            <Replace className="h-5 w-5 text-primary" /> Reemplazar soporte semanal
           </DialogTitle>
           <DialogDescription>
-            <span className="font-medium text-foreground">{fila.grupo_nombre}</span> · {fila.red}
-            <br />
-            El proceso permanece <strong>cerrado</strong>; el cambio queda en historial.
+            La consignación permanece <strong>cerrada</strong>; el cambio queda en el historial.
           </DialogDescription>
         </DialogHeader>
 
@@ -887,9 +960,9 @@ function ReemplazarSoporteDialog({
               accept="image/*,application/pdf"
               onChange={(e) => setFile(e.target.files?.[0] || null)}
             />
-            {fila.soporte_consignacion_url && (
+            {consignacion.soporte_consignacion_url && (
               <a
-                href={fila.soporte_consignacion_url}
+                href={consignacion.soporte_consignacion_url}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-xs text-muted-foreground hover:underline inline-flex items-center gap-1 mt-1"
@@ -940,35 +1013,33 @@ function ReemplazarSoporteDialog({
   );
 }
 
-function HistorialDialog({
-  fila,
+/* ----------------------- DIÁLOGO HISTORIAL ----------------------- */
+
+function HistorialSemanalDialog({
+  open,
+  consignacion,
   onClose,
 }: {
-  fila: FilaTesoreriaCDP | null;
+  open: boolean;
+  consignacion: ConsignacionSemanal | null;
   onClose: () => void;
 }) {
-  const open = !!fila;
-  const { data: historial, isLoading } = useHistorialConsignacion(fila?.registro_id || null);
-
-  if (!fila) return null;
+  const { data: historial, isLoading } = useHistorialSemanal(consignacion?.id || null);
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <History className="h-5 w-5 text-primary" /> Historial de cambios
+            <History className="h-5 w-5 text-primary" /> Historial de cambios — Consignación semanal
           </DialogTitle>
-          <DialogDescription>
-            {fila.grupo_nombre} · {fila.red}
-          </DialogDescription>
         </DialogHeader>
 
         {isLoading ? (
           <div className="py-8 text-center text-muted-foreground">Cargando…</div>
         ) : (historial || []).length === 0 ? (
           <div className="py-8 text-center text-muted-foreground flex flex-col items-center gap-2">
-            <FileTextIcon className="h-10 w-10 opacity-40" />
+            <FileText className="h-10 w-10 opacity-40" />
             <p>Sin cambios registrados aún.</p>
           </div>
         ) : (

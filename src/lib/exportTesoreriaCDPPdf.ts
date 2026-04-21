@@ -2,7 +2,7 @@ import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { format, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
-import type { FilaTesoreriaCDP } from "@/hooks/useTesoreriaCDP";
+import type { FilaTesoreriaCDP, ConsignacionSemanal } from "@/hooks/useTesoreriaCDP";
 
 interface ExportArgs {
   semanaInicio: string;
@@ -175,8 +175,9 @@ export async function exportTesoreriaSemanalPDF({
   doc.save(filename);
 }
 
-interface ExportFilaArgs {
-  fila: FilaTesoreriaCDP;
+interface ExportConsignacionArgs {
+  consignacion: ConsignacionSemanal;
+  filas: FilaTesoreriaCDP[];
   semanaInicio: string;
   semanaFin: string;
   configIglesia: any;
@@ -185,23 +186,23 @@ interface ExportFilaArgs {
 }
 
 /**
- * Exporta el cierre de consignación de UNA Casa de Paz, incluyendo el comprobante embebido
- * cuando es imagen. Si el soporte es PDF u otro, se imprime el enlace.
+ * Exporta el cierre de la consignación SEMANAL única (suma de todas las CDP),
+ * incluyendo el comprobante embebido cuando es imagen.
  */
-export async function exportFilaSemanalPDF({
-  fila,
+export async function exportConsignacionSemanalPDF({
+  consignacion,
+  filas,
   semanaInicio,
   semanaFin,
   configIglesia,
   elaboradoPor,
   revisadoPor,
-}: ExportFilaArgs) {
+}: ExportConsignacionArgs) {
   const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "letter" });
   const pageWidth = doc.internal.pageSize.getWidth();
   const margin = 12;
   let cursorY = margin;
 
-  // Logo
   if (configIglesia?.logo_url) {
     try {
       const img = await loadImage(configIglesia.logo_url);
@@ -211,7 +212,6 @@ export async function exportFilaSemanalPDF({
     }
   }
 
-  // Encabezado central
   doc.setFontSize(12);
   doc.setFont("helvetica", "bold");
   doc.text(
@@ -221,7 +221,7 @@ export async function exportFilaSemanalPDF({
     { align: "center" }
   );
   doc.setFontSize(10);
-  doc.text("CIERRE DE CONSIGNACIÓN — CASA DE PAZ", pageWidth / 2, cursorY + 12, { align: "center" });
+  doc.text("CIERRE DE CONSIGNACIÓN SEMANAL — CASAS DE PAZ", pageWidth / 2, cursorY + 12, { align: "center" });
   doc.setFontSize(8);
   doc.setFont("helvetica", "normal");
   doc.text(
@@ -231,7 +231,6 @@ export async function exportFilaSemanalPDF({
     { align: "center" }
   );
 
-  // Caja código
   const boxX = pageWidth - margin - 45;
   doc.setDrawColor(0);
   doc.setLineWidth(0.2);
@@ -240,43 +239,67 @@ export async function exportFilaSemanalPDF({
   doc.text("CÓDIGO: RE-CO-OC01", boxX + 2, cursorY + 5);
   doc.text("VERSIÓN: 1", boxX + 2, cursorY + 10);
   doc.text(`FECHA: ${format(new Date(), "dd/MM/yyyy")}`, boxX + 2, cursorY + 15);
-  doc.text("CIERRE INDIVIDUAL", boxX + 2, cursorY + 20);
+  doc.text("CIERRE SEMANAL", boxX + 2, cursorY + 20);
 
   cursorY += 28;
 
-  // Datos de la Casa de Paz
+  // Resumen general
+  const totalEntregado = filas.reduce((s, f) => s + f.valor_entregado, 0);
+  const totalReportado = filas.reduce((s, f) => s + f.valor_reportado, 0);
+  const diferencia = totalEntregado - consignacion.valor_consignado;
+
   autoTable(doc, {
     startY: cursorY,
-    head: [["DATOS DE LA CASA DE PAZ", ""]],
+    head: [["RESUMEN DE LA SEMANA", ""]],
     body: [
-      ["Red", fila.red],
-      ["Casa de Paz", fila.grupo_nombre],
-      ["Líder", fila.lider_nombre || "—"],
+      ["Total reportado por líderes", formatCurrency(totalReportado)],
+      ["Total recaudado en físico (entregado)", formatCurrency(totalEntregado)],
+      ["Total consignado al banco", formatCurrency(consignacion.valor_consignado)],
+      ["Diferencia (físico vs banco)", formatCurrency(diferencia)],
+      ["Fecha de consignación", consignacion.fecha_consignacion ? format(parseISO(consignacion.fecha_consignacion), "dd/MM/yyyy") : "—"],
+      ["Estado", consignacion.consignacion_completada ? "Cerrada" : "Abierta"],
+      ["Observación", consignacion.observacion || "—"],
     ],
     styles: { fontSize: 9, cellPadding: 2 },
     headStyles: { fillColor: [50, 80, 130], textColor: 255, fontSize: 9, halign: "left" },
-    columnStyles: { 0: { fontStyle: "bold", cellWidth: 50 } },
+    columnStyles: { 0: { fontStyle: "bold", cellWidth: 70 } },
     theme: "grid",
     margin: { left: margin, right: margin },
   });
 
-  // Datos del cierre
+  // Detalle por CDP
   cursorY = (doc as any).lastAutoTable.finalY + 4;
+
+  const detalleBody: any[] = [];
+  const redes: Record<string, FilaTesoreriaCDP[]> = {};
+  filas.forEach((f) => {
+    if (!redes[f.red]) redes[f.red] = [];
+    redes[f.red].push(f);
+  });
+  Object.entries(redes).forEach(([red, items]) => {
+    items.forEach((it, idx) => {
+      detalleBody.push([
+        idx === 0 ? red : "",
+        it.grupo_nombre,
+        it.lider_nombre || "—",
+        formatCurrency(it.valor_reportado),
+        formatCurrency(it.valor_entregado),
+      ]);
+    });
+  });
+  detalleBody.push([
+    { content: "TOTAL", colSpan: 3, styles: { fontStyle: "bold", halign: "right", fillColor: [220, 230, 240] } },
+    { content: formatCurrency(totalReportado), styles: { fontStyle: "bold", fillColor: [220, 230, 240] } },
+    { content: formatCurrency(totalEntregado), styles: { fontStyle: "bold", fillColor: [220, 230, 240] } },
+  ]);
+
   autoTable(doc, {
     startY: cursorY,
-    head: [["DATOS DEL CIERRE", ""]],
-    body: [
-      ["Recaudado en físico (entregado)", formatCurrency(fila.valor_entregado)],
-      ["Valor consignado al banco", formatCurrency(fila.valor_consignado)],
-      ["Diferencia", formatCurrency(fila.valor_entregado - fila.valor_consignado)],
-      ["Fecha de consignación", fila.fecha_consignacion ? format(parseISO(fila.fecha_consignacion), "dd/MM/yyyy") : "—"],
-      ["Fecha de entrega", fila.fecha_entrega ? format(parseISO(fila.fecha_entrega), "dd/MM/yyyy") : "—"],
-      ["Estado", fila.estado],
-      ["Observación", fila.observacion || "—"],
-    ],
-    styles: { fontSize: 9, cellPadding: 2 },
-    headStyles: { fillColor: [50, 80, 130], textColor: 255, fontSize: 9, halign: "left" },
-    columnStyles: { 0: { fontStyle: "bold", cellWidth: 60 } },
+    head: [["RED", "CASA DE PAZ", "LÍDER", "REPORTADO", "ENTREGADO"]],
+    body: detalleBody,
+    styles: { fontSize: 7, cellPadding: 1.5 },
+    headStyles: { fillColor: [50, 80, 130], textColor: 255, fontSize: 7, halign: "center" },
+    columnStyles: { 3: { halign: "right" }, 4: { halign: "right" } },
     theme: "grid",
     margin: { left: margin, right: margin },
   });
@@ -289,14 +312,14 @@ export async function exportFilaSemanalPDF({
   doc.text("SOPORTE DE LA CONSIGNACIÓN", margin, cursorY);
   cursorY += 4;
 
-  if (fila.soporte_consignacion_url) {
-    const isImage = /\.(png|jpe?g|gif|webp|bmp)(\?|$)/i.test(fila.soporte_consignacion_url);
+  if (consignacion.soporte_consignacion_url) {
+    const isImage = /\.(png|jpe?g|gif|webp|bmp)(\?|$)/i.test(consignacion.soporte_consignacion_url);
     if (isImage) {
       try {
-        const dataUrl = await loadImage(fila.soporte_consignacion_url);
+        const dataUrl = await loadImage(consignacion.soporte_consignacion_url);
         const maxW = pageWidth - 2 * margin;
-        const maxH = 130;
-        // Estimar proporción
+        const remainingH = doc.internal.pageSize.getHeight() - cursorY - 40;
+        const maxH = Math.max(60, Math.min(120, remainingH));
         const props = (doc as any).getImageProperties
           ? (doc as any).getImageProperties(dataUrl)
           : { width: 800, height: 600 };
@@ -321,8 +344,8 @@ export async function exportFilaSemanalPDF({
       doc.setFontSize(8);
       doc.text("Soporte (PDF / archivo):", margin, cursorY + 4);
       doc.setTextColor(0, 0, 200);
-      doc.textWithLink(fila.soporte_consignacion_url, margin, cursorY + 9, {
-        url: fila.soporte_consignacion_url,
+      doc.textWithLink(consignacion.soporte_consignacion_url, margin, cursorY + 9, {
+        url: consignacion.soporte_consignacion_url,
       });
       doc.setTextColor(0, 0, 0);
       cursorY += 14;
@@ -349,8 +372,7 @@ export async function exportFilaSemanalPDF({
   doc.text("Firma y nombre", margin, finalY + 21);
   doc.text("Firma y nombre", margin + colW, finalY + 21);
 
-  const slug = (s: string) => s.replace(/[^a-zA-Z0-9]+/g, "_").slice(0, 30);
-  const filename = `Consignacion_${slug(fila.red)}_${slug(fila.grupo_nombre)}_${semanaInicio}.pdf`;
+  const filename = `Consignacion_Semanal_${semanaInicio}_a_${semanaFin}.pdf`;
   doc.save(filename);
 }
 
