@@ -1,87 +1,103 @@
 
 
-## Funcionalidad: Tesorería de Ofrendas Casas de Paz (semanal)
+## Mejoras a Tesorería CDP: validación, historial, PDF por fila y alertas de mora
 
 ### Objetivo
-Replicar el formato físico **RE-CO-OC01** dentro del módulo de Grupos como una nueva pestaña **"Tesorería CDP"**. Cada semana se genera automáticamente un consolidado con todas las Casas de Paz, mostrando lo reportado por el líder y permitiendo a Tesorería registrar lo entregado en físico, con observaciones, totales, alertas de mora y descarga en PDF.
+Cuatro mejoras al módulo "Tesorería CDP":
+1. Validar que el valor consignado no difiera del recaudado físico más de un umbral configurable.
+2. Permitir reemplazar el soporte aun después de cerrado, con historial de cambios.
+3. Botón de PDF por fila cerrada (mini-reporte semanal con comprobante).
+4. Contador de días en mora visible en la tabla + alerta automática.
 
-### Solución
+---
 
-#### 1. Nueva tabla `tesoreria_ofrendas_cdp`
-Una fila por Casa de Paz × semana. Tesorería la edita; el "valor reportado" se calcula en vivo desde `reportes_grupos`.
+### 1. Configuración global del umbral
 
+**Migración SQL** sobre `configuracion_iglesia`:
+- `tesoreria_cdp_tolerancia_pct` (numeric, default 0) — % aceptado de diferencia entre consignado y recaudado físico (ej. 2%).
+- `tesoreria_cdp_tolerancia_abs` (numeric, default 0) — diferencia absoluta tolerada (ej. $5.000).
+- `tesoreria_cdp_dias_mora` (integer, default 7) — días después del cierre de semana para marcar mora.
+
+**UI**: en `ConfiguracionPage.tsx`, dentro de la pestaña de "General" (o nueva sub-sección "Tesorería"), tres inputs: tolerancia %, tolerancia absoluta, días para mora.
+
+### 2. Historial de soportes de consignación
+
+**Nueva tabla `tesoreria_consignacion_historial`**:
 ```
-- id (uuid, pk)
-- grupo_id (uuid, FK → grupos)
-- semana_inicio (date)         ← lunes de la semana
-- semana_fin (date)            ← domingo
-- valor_entregado (numeric, default 0)
-- fecha_entrega (date, nullable)
-- observacion (text, nullable)
-- registrado_por (uuid)
-- created_at / updated_at
-- UNIQUE (grupo_id, semana_inicio)
+- id (uuid pk)
+- registro_id (uuid → tesoreria_ofrendas_cdp)
+- soporte_url (text)
+- valor_consignado (numeric)
+- fecha_consignacion (date)
+- motivo_cambio (text, nullable)
+- cambiado_por (uuid)
+- created_at (timestamp)
 ```
 RLS: ALL para `admin`, `super_admin`, `pastor`, `tesoreria`.
 
-#### 2. Nueva pestaña "Tesorería CDP" en `GruposPage.tsx`
-Solo visible para roles con `tesoreria:manage` (admin, super_admin, pastor, tesoreria).
+**Hooks** en `useTesoreriaCDP.ts`:
+- `useReemplazarSoporteConsignacion()` — sube nuevo archivo, registra fila en historial con el soporte anterior, actualiza `tesoreria_ofrendas_cdp.soporte_consignacion_url`.
+- `useHistorialConsignacion(registroId)` — devuelve cambios ordenados.
 
-**Header de la semana**
-- Selector "Semana": navegación ◀ semana actual ▶ + selector de fecha.
-- Métricas: Total reportado · Total entregado · Diferencia · CDP en mora (no entregado pasada 1 semana).
+### 3. Validación en el diálogo de consignación
 
-**Tabla agrupada por Red** (igual al PDF físico)
-| RED | CASA DE PAZ | VALOR REPORTADO | VALOR ENTREGADO | FECHA ENTREGA | OBSERVACIÓN | ESTADO |
-|-----|-------------|-----------------|-----------------|---------------|-------------|--------|
+En `ConsignacionDialog` (`TesoreriaCDPSection.tsx`):
+- Leer tolerancias desde `useConfiguracion`.
+- Calcular diferencia absoluta y porcentual entre `valor_consignado` y `valor_entregado`.
+- Si está dentro de tolerancia → solo aviso amarillo informativo.
+- Si excede → aviso rojo bloqueante: "La diferencia ($X / Y%) supera la tolerancia configurada (Z% / $W). Ajusta el valor o solicita autorización." y el botón "Cerrar proceso" queda deshabilitado.
+- Bypass solo para `admin`/`super_admin` con checkbox "Autorizar diferencia con justificación" + textarea obligatoria, que se guarda en `observacion`.
 
-- **Valor reportado**: suma de `reportes_grupos.ofrenda_casa_paz` para ese grupo cuya `fecha` cae dentro de la semana. Si no hay reporte → "Sin reporte" (gris).
-- **Valor entregado / Fecha / Observación**: inputs editables inline (autosave on blur). Crea/upsert en `tesoreria_ofrendas_cdp`.
-- **Estado**: badge automático
-  - 🟢 `Conciliado` — entregado = reportado
-  - 🟡 `Parcial` — entregado < reportado
-  - 🔴 `En mora` — sin entrega y semana ya pasó
-  - ⚪ `Pendiente` — semana en curso, sin entrega aún
-  - ℹ️ `Sin reporte` — el líder no envió reporte
-- **Filas de subtotal por Red** + **fila final TOTALES** (reportado / entregado / diferencia).
+### 4. Reemplazo de soporte con proceso cerrado
 
-**Alertas de mora**
-- Banner superior cuando hay CDP en mora (semanas anteriores con reporte pero sin entrega): "⚠️ X Casas de Paz tienen ofrendas pendientes de entregar".
-- Vista "Mora histórica" (botón → modal): lista de todas las semanas con saldo pendiente por CDP.
+En `FilaEditable`, cuando `cerrado === true`, además del enlace "Ver soporte" agregar:
+- Botón "Reemplazar soporte" (solo `admin`, `pastor`, `tesoreria`) → abre `ReemplazarSoporteDialog` (nuevo, en el mismo archivo) con: input file, motivo (textarea obligatoria) y botón "Subir y registrar cambio".
+- Al confirmar, llama a `useReemplazarSoporteConsignacion`, que mantiene el estado `Cerrado` pero deja trazabilidad.
+- Botón "Ver historial" → modal con tabla del historial completo (fecha, valor, soporte, motivo, usuario).
 
-**Descarga PDF semanal**
-- Botón "Descargar PDF" usa `jsPDF + jspdf-autotable` para generar el documento idéntico al formato físico:
-  - Encabezado: logo CMG (de `configuracion_iglesia.logo_url`), código RE-CO-OC01, versión, fecha.
-  - Departamento: Tesorería · Encargado: Pastor principal · Fecha: semana.
-  - Tabla agrupada por Red con todas las columnas.
-  - Fila TOTALES.
-  - Pie con "Elaborado por" y "Revisado por" (configurables en `configuracion_iglesia` o pre-llenados con el usuario actual y el pastor principal).
+### 5. PDF por fila cerrada
 
-#### 3. Hook `useTesoreriaOfrendasCDP(semanaInicio)` en `src/hooks/useTesoreriaCDP.ts` (nuevo)
-- `useTesoreriaSemana(semanaInicio)` — devuelve por cada Casa de Paz: grupo, red, reportado (suma de reportes de la semana), entregado, fecha_entrega, observación, estado calculado.
-- `useUpsertTesoreriaCDP()` — upsert sobre `(grupo_id, semana_inicio)`.
-- `useTesoreriaMora()` — devuelve registros con `valor_entregado < valor_reportado` o `valor_entregado IS NULL` y `semana_fin < CURRENT_DATE`.
+En `FilaEditable`, cuando `cerrado === true` agregar botón "PDF" junto a "Ver soporte" → llama a una nueva función `exportFilaSemanalPDF` en `src/lib/exportTesoreriaCDPPdf.ts`:
+- Encabezado igual al actual (logo, código RE-CO-OC01, semana).
+- Sección de la Casa de Paz: red, nombre, líder.
+- Bloque de datos: recaudado físico, valor entregado, valor consignado, fecha consignación, observación.
+- Si el soporte es imagen → la embebe debajo (escalada). Si es PDF → línea con URL/QR de acceso.
+- Pie con firmas (ELABORADO POR / REVISADO POR).
+- Filename: `Consignacion_{red}_{grupo}_{semana}.pdf`.
 
-#### 4. Utilidad PDF en `src/lib/exportTesoreriaCDPPdf.ts` (nuevo)
-Función `exportTesoreriaSemanalPDF({ semana, filas, totales, configIglesia, elaboradoPor, revisadoPor })` que genera el documento.
+### 6. Contador de días en mora + alertas
 
-#### 5. Indicador en pestaña "Reportes"
-En `ReportesGruposPage` (cards de cada reporte): si la ofrenda reportada **no ha sido entregada en tesorería** después de 7 días, mostrar badge rojo "💰 Pendiente entregar a tesorería".
+**En `useTesoreriaSemana` y `useTesoreriaMora`**: leer `tesoreria_cdp_dias_mora` de configuración, calcular para cada fila no-cerrada:
+- `dias_mora = max(0, hoy − semana_fin − dias_configurados)`.
+- Estado "En mora" se activa solo si `dias_mora > 0` (en lugar del cálculo actual fijo de 7 días).
+
+**En la tabla** (`FilaEditable`):
+- Si `dias_mora > 0` → debajo del badge de estado mostrar chip rojo: `⏱ {n} días en mora`.
+- En la columna "Estado" la celda toma fondo `destructive/10` cuando hay mora.
+
+**Banner de mora histórica** (ya existente): añadir columna "Días" en la tabla del modal, con el conteo desde el vencimiento.
+
+**Alerta automática (in-app)**: en `daily-notifications` edge function (ya existente para cumpleaños/eventos) añadir bloque que cada día detecte CDP en mora y cree una notificación dirigida a usuarios con rol `tesoreria` / `pastor` / `admin`. Texto: "X Casas de Paz llevan más de N días sin registrar consignación".
+
+---
 
 ### Archivos afectados
 
 **Nuevos**
-- Migración SQL: tabla `tesoreria_ofrendas_cdp` + RLS.
-- `src/hooks/useTesoreriaCDP.ts`
-- `src/lib/exportTesoreriaCDPPdf.ts`
-- `src/components/groups/TesoreriaCDPSection.tsx` — la pestaña completa (header semana, tabla agrupada, banner mora, botón PDF, modal histórico).
+- Migración SQL: columnas en `configuracion_iglesia` + tabla `tesoreria_consignacion_historial` + RLS.
 
 **Editados**
-- `src/pages/GruposPage.tsx` — agregar tab "Tesorería CDP" (visible solo con permiso).
-- `src/lib/permissions.ts` — agregar permiso `tesoreria_cdp:manage` (admin, super_admin, pastor, tesoreria).
-- `src/pages/ReportesGruposPage.tsx` — badge "Pendiente entregar" en cards.
+- `src/hooks/useTesoreriaCDP.ts` — hooks de historial + reemplazo, lectura de tolerancias y días, recálculo de mora.
+- `src/components/groups/TesoreriaCDPSection.tsx` — validación en diálogo, botones reemplazar/PDF/historial por fila, columna días de mora, dialogs nuevos.
+- `src/lib/exportTesoreriaCDPPdf.ts` — nueva función `exportFilaSemanalPDF` con embebido de imagen del comprobante.
+- `src/pages/ConfiguracionPage.tsx` — sección "Tesorería CDP" con 3 inputs.
+- `src/hooks/useConfiguracion.ts` — sin cambios estructurales, solo se consumen los nuevos campos (los tipos vienen de `types.ts` autogenerado).
+- `supabase/functions/daily-notifications/index.ts` — bloque de detección de mora.
 
 ### Resultado esperado
 
-Tesorería abre la pestaña **"Tesorería CDP"** y ve, semana a semana, la lista exacta del formato físico: cada Casa de Paz agrupada por Red, con lo reportado por el líder y campos editables para registrar lo entregado, fecha y observación. La tabla totaliza, marca en rojo las CDP en mora y permite descargar el PDF idéntico al RE-CO-OC01 para archivar y firmar. Las alertas de mora aparecen también en el listado de reportes.
+- Al consignar, el sistema bloquea el cierre si la diferencia excede el rango configurado (con override autorizado para admin con justificación).
+- En filas cerradas, Tesorería puede reemplazar el comprobante dejando rastro en historial, descargar un PDF individual del proceso (con comprobante embebido) y revisar todos los cambios.
+- La tabla muestra "X días en mora" junto al estado, y diariamente se generan alertas para los responsables.
+- Todos los umbrales y plazos se ajustan desde Configuración sin tocar código.
 
