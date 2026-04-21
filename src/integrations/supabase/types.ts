@@ -338,6 +338,9 @@ export type Database = {
           tema_semana_descripcion: string | null
           tema_semana_titulo: string | null
           tema_semana_url: string | null
+          tesoreria_cdp_dias_mora: number
+          tesoreria_cdp_tolerancia_abs: number
+          tesoreria_cdp_tolerancia_pct: number
           updated_at: string
           zona_horaria: string | null
         }
@@ -362,6 +365,9 @@ export type Database = {
           tema_semana_descripcion?: string | null
           tema_semana_titulo?: string | null
           tema_semana_url?: string | null
+          tesoreria_cdp_dias_mora?: number
+          tesoreria_cdp_tolerancia_abs?: number
+          tesoreria_cdp_tolerancia_pct?: number
           updated_at?: string
           zona_horaria?: string | null
         }
@@ -386,6 +392,9 @@ export type Database = {
           tema_semana_descripcion?: string | null
           tema_semana_titulo?: string | null
           tema_semana_url?: string | null
+          tesoreria_cdp_dias_mora?: number
+          tesoreria_cdp_tolerancia_abs?: number
+          tesoreria_cdp_tolerancia_pct?: number
           updated_at?: string
           zona_horaria?: string | null
         }
@@ -1920,6 +1929,47 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      tesoreria_consignacion_historial: {
+        Row: {
+          cambiado_por: string | null
+          created_at: string
+          fecha_consignacion: string | null
+          id: string
+          motivo_cambio: string | null
+          registro_id: string
+          soporte_url: string | null
+          valor_consignado: number | null
+        }
+        Insert: {
+          cambiado_por?: string | null
+          created_at?: string
+          fecha_consignacion?: string | null
+          id?: string
+          motivo_cambio?: string | null
+          registro_id: string
+          soporte_url?: string | null
+          valor_consignado?: number | null
+        }
+        Update: {
+          cambiado_por?: string | null
+          created_at?: string
+          fecha_consignacion?: string | null
+          id?: string
+          motivo_cambio?: string | null
+          registro_id?: string
+          soporte_url?: string | null
+          valor_consignado?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tesoreria_consignacion_historial_registro_id_fkey"
+            columns: ["registro_id"]
+            isOneToOne: false
+            referencedRelation: "tesoreria_ofrendas_cdp"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       tesoreria_ofrendas_cdp: {
         Row: {
