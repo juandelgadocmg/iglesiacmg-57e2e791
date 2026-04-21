@@ -1,19 +1,21 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import {
   ChevronLeft, ChevronRight, CalendarIcon, FileDown, AlertTriangle,
-  DollarSign, CheckCircle2, Clock, History,
+  DollarSign, CheckCircle2, Clock, History, Upload, Lock, FileText, ExternalLink,
 } from "lucide-react";
 import {
-  useTesoreriaSemana, useUpsertTesoreriaCDP, useTesoreriaMora,
+  useTesoreriaSemana, useUpsertTesoreriaCDP, useTesoreriaMora, useUploadSoporteConsignacion,
   getSemanaRange, type FilaTesoreriaCDP, type EstadoTesoreria,
 } from "@/hooks/useTesoreriaCDP";
 import { useConfiguracion } from "@/hooks/useConfiguracion";
@@ -31,6 +33,7 @@ const estadoBadge: Record<EstadoTesoreria, { className: string; label: string }>
   "En mora":     { className: "bg-destructive text-destructive-foreground border-transparent", label: "En mora" },
   "Pendiente":   { className: "bg-muted text-muted-foreground border-transparent", label: "Pendiente" },
   "Sin reporte": { className: "bg-muted/50 text-muted-foreground border-transparent", label: "Sin reporte" },
+  "Cerrado":     { className: "bg-primary text-primary-foreground border-transparent", label: "Cerrado ✓" },
 };
 
 const fmt = (n: number) =>
