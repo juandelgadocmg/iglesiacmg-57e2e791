@@ -1677,6 +1677,11 @@ function PeriodoDetailView({ escuela, periodo, onBackToPeriodos }: any) {
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {materias.map((m: any) => {
                 const matriculasMateria = (matriculas || []).filter((mat: any) => mat.materia_id === m.id && mat.estado !== "Retirado").length;
+                const materiaName = (m.nombre || "").toLowerCase().trim();
+                const procesoMatch = (procesosCrecimiento || []).find((p: any) => {
+                  const pn = p.nombre.toLowerCase().trim();
+                  return pn === materiaName || pn.includes(materiaName) || materiaName.includes(pn);
+                });
                 return (
                   <div key={m.id} className="rounded-xl border bg-card p-4 space-y-3 hover:shadow-md transition-shadow cursor-pointer group"
                     onClick={() => { setActiveTab("calificaciones"); }}>
@@ -1691,6 +1696,13 @@ function PeriodoDetailView({ escuela, periodo, onBackToPeriodos }: any) {
                         {(m as any).estado || "En Curso"}
                       </Badge>
                     </div>
+
+                    {procesoMatch && (
+                      <div className="rounded-md border border-primary/20 bg-primary/5 px-2 py-1 text-[10px] text-primary flex items-center gap-1">
+                        <span>🎯</span>
+                        <span className="truncate">Sincronizado con: <strong>{procesoMatch.nombre}</strong></span>
+                      </div>
+                    )}
 
                     <div className="space-y-1.5 text-xs text-muted-foreground">
                       <div className="flex items-center justify-between">
@@ -1736,23 +1748,43 @@ function PeriodoDetailView({ escuela, periodo, onBackToPeriodos }: any) {
                     <div className="flex gap-1.5 pt-1" onClick={(e) => e.stopPropagation()}>
                       {(m as any).estado !== "Finalizada" ? (
                         <Button size="sm" variant="outline" className="h-7 text-[10px] flex-1 gap-1"
+                          disabled={syncCrecimiento.isPending || updateMateria.isPending}
                           onClick={async () => {
-                            if (!confirm(`¿Finalizar la materia "${m.nombre}"?`)) return;
+                            const msg = `¿Finalizar la materia "${m.nombre}"?\n\nSe cerrará para edición y los estudiantes aprobados (≥3.0) verán su hito de crecimiento marcado como Finalizado.`;
+                            if (!confirm(msg)) return;
                             try {
                               await updateMateria.mutateAsync({ id: m.id, estado: "Finalizada" });
-                              toast.success("Materia finalizada");
-                            } catch { toast.error("Error"); }
+                              const r = await syncCrecimiento.mutateAsync(m.id);
+                              const partes = [`Materia finalizada · ${r.sincronizados} hito(s) actualizado(s)`];
+                              if (r.sinNota > 0) partes.push(`${r.sinNota} sin nota`);
+                              if (r.reprobados > 0) partes.push(`${r.reprobados} reprobado(s)`);
+                              if (!r.procesoNombre) partes.push("sin proceso de crecimiento asociado");
+                              toast.success(partes.join(" · "));
+                            } catch (err: any) {
+                              console.error(err);
+                              toast.error(err?.message || "Error al finalizar");
+                            }
                           }}>
                           <Lock className="h-3 w-3" /> Finalizar
                         </Button>
                       ) : (
                         <Button size="sm" variant="outline" className="h-7 text-[10px] flex-1 gap-1 text-success border-success/30 hover:bg-success/10"
+                          disabled={revertCrecimiento.isPending || updateMateria.isPending}
                           onClick={async () => {
-                            if (!confirm(`¿Reabrir la materia "${m.nombre}" para corregir calificaciones?`)) return;
+                            const msg = `¿Reabrir la materia "${m.nombre}" para corregir calificaciones?\n\nLos hitos de crecimiento que se generaron al cerrar esta materia se revertirán (las marcas manuales no se afectan).`;
+                            if (!confirm(msg)) return;
                             try {
                               await updateMateria.mutateAsync({ id: m.id, estado: "En Curso" });
-                              toast.success("Materia reabierta");
-                            } catch { toast.error("Error"); }
+                              const r = await revertCrecimiento.mutateAsync(m.id);
+                              toast.success(
+                                r.revertidos > 0
+                                  ? `Materia reabierta · ${r.revertidos} hito(s) revertido(s)`
+                                  : "Materia reabierta"
+                              );
+                            } catch (err: any) {
+                              console.error(err);
+                              toast.error(err?.message || "Error al reabrir");
+                            }
                           }}>
                           <Unlock className="h-3 w-3" /> Reabrir
                         </Button>
