@@ -30,6 +30,7 @@ import { useActiveRole } from "@/hooks/useActiveRole";
 const ReportesGruposContent = lazy(() => import("@/pages/ReportesGruposPage"));
 const MapaGruposContent = lazy(() => import("@/pages/MapaGruposPage"));
 const GraficoMinisterioContent = lazy(() => import("@/pages/GraficoMinisterioPage"));
+const TesoreriaCDPSection = lazy(() => import("@/components/groups/TesoreriaCDPSection"));
 
 const REDES = ["Nissi", "Rohi", "Jireh", "Adonai", "Shaddai", "Elohim"];
 
@@ -103,6 +104,7 @@ export default function GruposPage() {
   const canEditGrupo     = canPerform(roles, "grupos:edit");
   const canDeleteGrupo   = canPerform(roles, "grupos:delete");
   const canCreateReporte = canPerform(roles, "reportes_grupos:create");
+  const canManageTesoreriaCDP = canPerform(roles, "tesoreria_cdp:manage");
 
   // Use activeRole to determine the view — respects the profile switcher
   const isLiderCDP = activeRole === "lider_casa_paz";
@@ -278,6 +280,11 @@ export default function GruposPage() {
             <ClipboardList className="h-3.5 w-3.5" /> Reporte
           </TabsTrigger>
           <TabsTrigger value="reportes" className="text-xs sm:text-sm">Reportes</TabsTrigger>
+          {canManageTesoreriaCDP && (
+            <TabsTrigger value="tesoreria-cdp" className="gap-1 text-xs sm:text-sm">
+              <DollarSign className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Tesorería</span> CDP
+            </TabsTrigger>
+          )}
           <TabsTrigger value="mapa" className="text-xs sm:text-sm">Mapa</TabsTrigger>
           <TabsTrigger value="organigrama" className="text-xs sm:text-sm">Organigrama</TabsTrigger>
           <TabsTrigger value="planificacion" className="gap-1 text-xs sm:text-sm">
@@ -380,6 +387,14 @@ export default function GruposPage() {
             <ReportesGruposContent />
           </Suspense>
         </TabsContent>
+
+        {canManageTesoreriaCDP && (
+          <TabsContent value="tesoreria-cdp">
+            <Suspense fallback={<Skeleton className="h-[400px] w-full" />}>
+              <TesoreriaCDPSection />
+            </Suspense>
+          </TabsContent>
+        )}
 
         <TabsContent value="mapa">
           <Suspense fallback={<Skeleton className="h-[400px] w-full" />}>

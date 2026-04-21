@@ -10,6 +10,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import DeleteConfirmDialog from "@/components/shared/DeleteConfirmDialog";
 import ReporteGrupoFormDialog from "@/components/forms/ReporteGrupoFormDialog";
 import { useReportesGrupos, useDeleteReporteGrupo, useUpdateReporteGrupo } from "@/hooks/useReportesGrupos";
+import { useTesoreriaMora, getSemanaRange } from "@/hooks/useTesoreriaCDP";
 import { cn } from "@/lib/utils";
 import { format, isWithinInterval, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
@@ -39,6 +40,14 @@ export default function ReportesGruposPage() {
   const { data: reportes, isLoading } = useReportesGrupos();
   const deleteReporte = useDeleteReporteGrupo();
   const updateReporte = useUpdateReporteGrupo();
+  const { data: morosos } = useTesoreriaMora();
+
+  // Set de "grupo_id__semana_inicio" con saldo pendiente
+  const morosaSet = useMemo(() => {
+    const s = new Set<string>();
+    (morosos || []).forEach((m) => s.add(`${m.grupo_id}__${m.semana_inicio}`));
+    return s;
+  }, [morosos]);
 
   const filtered = useMemo(() => {
     if (!reportes) return [];
@@ -195,6 +204,18 @@ export default function ReportesGruposPage() {
                     Reportado: {format(parseISO(r.created_at), "PPP 'a las' hh:mm a", { locale: es })}
                   </div>
                 </div>
+
+                {(() => {
+                  // Badge "pendiente entregar a tesorería"
+                  const semana = getSemanaRange(parseISO(r.fecha));
+                  const key = `${r.grupo_id}__${semana.inicio}`;
+                  const enMora = morosaSet.has(key) && Number(r.ofrenda_casa_paz) > 0;
+                  return enMora ? (
+                    <Badge variant="destructive" className="gap-1 text-[10px]">
+                      <DollarSign className="h-3 w-3" /> Pendiente entregar a tesorería
+                    </Badge>
+                  ) : null;
+                })()}
 
                 {r.observaciones && (
                   <p className="text-sm text-muted-foreground line-clamp-2">{r.observaciones}</p>
