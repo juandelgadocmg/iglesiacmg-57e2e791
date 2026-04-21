@@ -176,28 +176,32 @@ export default function TesoreriaCDPSection() {
       </div>
 
       {/* Métricas */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
         <div className="rounded-xl border bg-card p-4">
-          <p className="text-xs text-muted-foreground">Total Reportado</p>
-          <p className="text-2xl font-bold mt-1">{fmt(totales.reportado)}</p>
+          <p className="text-xs text-muted-foreground">Reportado</p>
+          <p className="text-xl font-bold mt-1">{fmt(totales.reportado)}</p>
         </div>
         <div className="rounded-xl border bg-card p-4">
-          <p className="text-xs text-muted-foreground">Total Entregado</p>
-          <p className="text-2xl font-bold mt-1 text-success">{fmt(totales.entregado)}</p>
+          <p className="text-xs text-muted-foreground">Entregado físico</p>
+          <p className="text-xl font-bold mt-1 text-success">{fmt(totales.entregado)}</p>
         </div>
         <div className="rounded-xl border bg-card p-4">
-          <p className="text-xs text-muted-foreground">Diferencia</p>
+          <p className="text-xs text-muted-foreground">Consignado banco</p>
+          <p className="text-xl font-bold mt-1 text-primary">{fmt(totales.consignado)}</p>
+        </div>
+        <div className="rounded-xl border bg-card p-4">
+          <p className="text-xs text-muted-foreground">Por consignar</p>
           <p className={cn(
-            "text-2xl font-bold mt-1",
-            totales.reportado - totales.entregado > 0 ? "text-destructive" : "text-success"
+            "text-xl font-bold mt-1",
+            totales.pendientesConsignar > 0 ? "text-amber-600" : "text-success"
           )}>
-            {fmt(totales.reportado - totales.entregado)}
+            {totales.pendientesConsignar}
           </p>
         </div>
         <div className="rounded-xl border bg-card p-4">
           <p className="text-xs text-muted-foreground">CDP en mora</p>
           <p className={cn(
-            "text-2xl font-bold mt-1",
+            "text-xl font-bold mt-1",
             totales.enMora > 0 ? "text-destructive" : "text-success"
           )}>
             {totales.enMora}
