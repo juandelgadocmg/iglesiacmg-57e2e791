@@ -31,6 +31,7 @@ interface Props {
 
 export default function ExportPersonasDialog({ trigger }: Props) {
   const [open, setOpen] = useState(false);
+  const [campoFecha, setCampoFecha] = useState<"fecha_ingreso" | "created_at">("fecha_ingreso");
   const [filterType, setFilterType] = useState<FilterType>("todos");
   const currentYear = new Date().getFullYear();
   const [year, setYear] = useState<string>(String(currentYear));
@@ -40,7 +41,7 @@ export default function ExportPersonasDialog({ trigger }: Props) {
 
   // Build filtros
   const filtros: PersonaExportFiltros = useMemo(() => {
-    const f: PersonaExportFiltros = {};
+    const f: PersonaExportFiltros = { campo: campoFecha };
     if (filterType === "anio") {
       f.from = `${year}-01-01`;
       f.to = `${Number(year) + 1}-01-01`;
@@ -61,7 +62,7 @@ export default function ExportPersonasDialog({ trigger }: Props) {
       }
     }
     return f;
-  }, [filterType, year, month, desde, hasta]);
+  }, [filterType, year, month, desde, hasta, campoFecha]);
 
   const { data: personas = [], isLoading } = usePersonasParaExport(filtros, open);
   const { data: procesos = [] } = useProcesosCrecimiento();
@@ -129,6 +130,22 @@ export default function ExportPersonasDialog({ trigger }: Props) {
         </DialogHeader>
 
         <div className="space-y-4">
+          <div className="space-y-2">
+            <Label>Filtrar por</Label>
+            <Select value={campoFecha} onValueChange={(v) => setCampoFecha(v as "fecha_ingreso" | "created_at")}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="fecha_ingreso">Fecha de ingreso a la iglesia</SelectItem>
+                <SelectItem value="created_at">Fecha de creación del registro</SelectItem>
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">
+              {campoFecha === "fecha_ingreso"
+                ? "Recomendado: filtra por la fecha real en que la persona ingresó a la iglesia."
+                : "Filtra por la fecha en que se creó el registro en el sistema."}
+            </p>
+          </div>
+
           <div className="space-y-2">
             <Label>Tipo de filtro</Label>
             <Select value={filterType} onValueChange={(v) => setFilterType(v as FilterType)}>
