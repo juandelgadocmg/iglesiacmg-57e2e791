@@ -669,3 +669,229 @@ export function useUpsertAsistenciaMateria() {
 
 // Legacy aliases
 export const useCursos = useEscuelas;
+
+// ============ SYNC ACADEMIA → CRECIMIENTO ============
+// Reusable helper that recalculates final grades and syncs persona_procesos
+// when a materia is finalized.
+export type SyncResumen = {
+  sincronizados: number;
+  sinNota: number;
+  reprobados: number;
+  procesoNombre: string | null;
+  materiaNombre: string;
+};
+
+export async function syncMateriaToCrecimiento(materiaId: string): Promise<SyncResumen> {
+  // 1. Materia
+  const { data: materia, error: matErr } = await supabase
+    .from("materias")
+    .select("id, nombre, periodo_id")
+    .eq("id", materiaId)
+    .single();
+  if (matErr) throw matErr;
+
+  const today = new Date().toISOString().slice(0, 10);
+  const resumen: SyncResumen = {
+    sincronizados: 0,
+    sinNota: 0,
+    reprobados: 0,
+    procesoNombre: null,
+    materiaNombre: materia.nombre,
+  };
+
+  // 2. Matrículas activas
+  const { data: matriculas, error: matrErr } = await supabase
+    .from("matriculas")
+    .select("id, persona_id, nota_final, estado")
+    .eq("materia_id", materiaId)
+    .neq("estado", "Retirado");
+  if (matrErr) throw matrErr;
+  if (!matriculas?.length) return resumen;
+
+  // 3. Cortes y items para recalcular notas faltantes
+  const { data: cortes } = await supabase
+    .from("cortes_academicos")
+    .select("id, porcentaje")
+    .eq("periodo_id", materia.periodo_id);
+  const corteIds = (cortes || []).map((c: any) => c.id);
+
+  const { data: items } = corteIds.length
+    ? await supabase
+        .from("items_calificables")
+        .select("id, corte_id, porcentaje, es_calificable")
+        .eq("materia_id", materiaId)
+        .in("corte_id", corteIds)
+    : { data: [] as any[] };
+
+  const matriculaIds = matriculas.map((m: any) => m.id);
+  const { data: califs } = matriculaIds.length && (items || []).length
+    ? await supabase
+        .from("calificaciones")
+        .select("matricula_id, item_id, nota")
+        .in("matricula_id", matriculaIds)
+        .in("item_id", (items || []).map((i: any) => i.id))
+    : { data: [] as any[] };
+
+  // Index helpers
+  const itemsById = new Map<string, any>((items || []).map((i: any) => [i.id, i]));
+  const cortesById = new Map<string, any>((cortes || []).map((c: any) => [c.id, c]));
+
+  // Calc nota_final consolidada por matrícula (peso item × peso corte / 10000)
+  const computedNotas = new Map<string, number | null>();
+  for (const m of matriculas) {
+    if (m.nota_final != null) {
+      computedNotas.set(m.id, Number(m.nota_final));
+      continue;
+    }
+    const myCalifs = (califs || []).filter((c: any) => c.matricula_id === m.id && c.nota != null);
+    if (!myCalifs.length) {
+      computedNotas.set(m.id, null);
+      continue;
+    }
+    let total = 0;
+    let pesoAplicado = 0;
+    for (const c of myCalifs) {
+      const item = itemsById.get(c.item_id);
+      if (!item || item.es_calificable === false) continue;
+      const corte = cortesById.get(item.corte_id);
+      const pItem = Number(item.porcentaje ?? 0);
+      const pCorte = Number(corte?.porcentaje ?? 0);
+      if (!pItem || !pCorte) continue;
+      const peso = (pItem * pCorte) / 10000;
+      total += Number(c.nota) * peso;
+      pesoAplicado += peso;
+    }
+    const nota = pesoAplicado > 0 ? total / pesoAplicado : null;
+    computedNotas.set(m.id, nota != null ? Number(nota.toFixed(2)) : null);
+  }
+
+  // Persistir nota_final + estado para matrículas que cambiaron
+  for (const m of matriculas) {
+    const nota = computedNotas.get(m.id);
+    const wasNull = m.nota_final == null;
+    if (wasNull && nota != null) {
+      const nuevoEstado = nota >= 3 ? "Completado" : "Reprobado";
+      await supabase
+        .from("matriculas")
+        .update({ nota_final: nota, estado: nuevoEstado })
+        .eq("id", m.id);
+    }
+  }
+
+  // 4. Buscar proceso_crecimiento que coincida con el nombre
+  const { data: procesos } = await supabase
+    .from("procesos_crecimiento")
+    .select("id, nombre")
+    .order("orden");
+
+  const materiaName = materia.nombre.toLowerCase().trim();
+  const matchedProceso = (procesos || []).find((p: any) => {
+    const pn = p.nombre.toLowerCase().trim();
+    return pn === materiaName || pn.includes(materiaName) || materiaName.includes(pn);
+  });
+  resumen.procesoNombre = matchedProceso?.nombre ?? null;
+
+  // 5. Upsert hitos para aprobados
+  const observacion = `Finalizado por cierre de materia: ${materia.nombre}`;
+  for (const m of matriculas) {
+    const nota = computedNotas.get(m.id);
+    if (nota == null) {
+      resumen.sinNota++;
+      continue;
+    }
+    if (nota < 3) {
+      resumen.reprobados++;
+      continue;
+    }
+    if (!matchedProceso) continue;
+    const { error: upErr } = await supabase
+      .from("persona_procesos")
+      .upsert(
+        {
+          persona_id: m.persona_id,
+          proceso_id: matchedProceso.id,
+          estado: "Realizado",
+          fecha_completado: today,
+          observacion,
+        } as any,
+        { onConflict: "persona_id,proceso_id" }
+      );
+    if (!upErr) resumen.sincronizados++;
+  }
+
+  return resumen;
+}
+
+export async function revertMateriaFromCrecimiento(materiaId: string): Promise<{ revertidos: number }> {
+  const { data: materia, error } = await supabase
+    .from("materias")
+    .select("id, nombre")
+    .eq("id", materiaId)
+    .single();
+  if (error) throw error;
+
+  const { data: procesos } = await supabase
+    .from("procesos_crecimiento")
+    .select("id, nombre")
+    .order("orden");
+
+  const materiaName = materia.nombre.toLowerCase().trim();
+  const matchedProceso = (procesos || []).find((p: any) => {
+    const pn = p.nombre.toLowerCase().trim();
+    return pn === materiaName || pn.includes(materiaName) || materiaName.includes(pn);
+  });
+  if (!matchedProceso) return { revertidos: 0 };
+
+  // Borrar solo los hitos generados automáticamente por el cierre de esta materia
+  const observacion = `Finalizado por cierre de materia: ${materia.nombre}`;
+  const { data: deleted, error: delErr } = await supabase
+    .from("persona_procesos")
+    .delete()
+    .eq("proceso_id", matchedProceso.id)
+    .eq("observacion", observacion)
+    .select("id");
+  if (delErr) throw delErr;
+
+  return { revertidos: (deleted || []).length };
+}
+
+// Hook que envuelve las funciones para invalidar queries y exponerlas como mutations
+export function useSyncMateriaToCrecimiento() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (materiaId: string) => syncMateriaToCrecimiento(materiaId),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["persona-procesos"] });
+      qc.invalidateQueries({ queryKey: ["personas"] });
+      qc.invalidateQueries({ queryKey: ["matriculas"] });
+      qc.invalidateQueries({ queryKey: ["matriculas-all"] });
+    },
+  });
+}
+
+export function useRevertMateriaFromCrecimiento() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (materiaId: string) => revertMateriaFromCrecimiento(materiaId),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["persona-procesos"] });
+      qc.invalidateQueries({ queryKey: ["personas"] });
+    },
+  });
+}
+
+// Hook auxiliar: lista de procesos de crecimiento (para badge de UI)
+export function useProcesosCrecimiento() {
+  return useQuery({
+    queryKey: ["procesos-crecimiento-list"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("procesos_crecimiento")
+        .select("id, nombre")
+        .order("orden");
+      if (error) throw error;
+      return data || [];
+    },
+  });
+}
+
