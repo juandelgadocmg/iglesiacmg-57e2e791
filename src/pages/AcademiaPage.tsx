@@ -1142,13 +1142,23 @@ function GradingGrid({ cortes, materias, periodoId, maestroId, escuelaName }: an
     try {
       await bulkUpsert.mutateAsync(records);
 
-      // INTEGRATION: Update growth module for Discipulado schools
-      const isDiscipulado = escuelaName?.toLowerCase().includes("discipulado") || escuelaName?.toLowerCase().includes("discipul");
-      if (isDiscipulado) {
-        await syncWithGrowthModule(activeStudents, materiaItems, localGrades);
+      // INTEGRATION: sincronizar con módulo de Crecimiento (Discipulado y Seminario)
+      // Reutiliza la misma lógica que el cierre de materia para garantizar consistencia.
+      if (selectedMateria) {
+        try {
+          const r = await syncMateriaToCrecimiento(selectedMateria);
+          if (r.procesoNombre && r.sincronizados > 0) {
+            toast.success(`Calificaciones guardadas · ${r.sincronizados} hito(s) de crecimiento actualizado(s)`);
+          } else {
+            toast.success("Calificaciones guardadas");
+          }
+        } catch (err) {
+          console.error("Sync crecimiento error:", err);
+          toast.success("Calificaciones guardadas");
+        }
+      } else {
+        toast.success("Calificaciones guardadas");
       }
-
-      toast.success("Calificaciones guardadas");
     } catch { toast.error("Error al guardar"); }
   };
 
