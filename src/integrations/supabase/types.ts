@@ -1923,7 +1923,9 @@ export type Database = {
       }
       tesoreria_ofrendas_cdp: {
         Row: {
+          consignacion_completada: boolean
           created_at: string
+          fecha_consignacion: string | null
           fecha_entrega: string | null
           grupo_id: string
           id: string
@@ -1931,11 +1933,15 @@ export type Database = {
           registrado_por: string | null
           semana_fin: string
           semana_inicio: string
+          soporte_consignacion_url: string | null
           updated_at: string
+          valor_consignado: number
           valor_entregado: number
         }
         Insert: {
+          consignacion_completada?: boolean
           created_at?: string
+          fecha_consignacion?: string | null
           fecha_entrega?: string | null
           grupo_id: string
           id?: string
@@ -1943,11 +1949,15 @@ export type Database = {
           registrado_por?: string | null
           semana_fin: string
           semana_inicio: string
+          soporte_consignacion_url?: string | null
           updated_at?: string
+          valor_consignado?: number
           valor_entregado?: number
         }
         Update: {
+          consignacion_completada?: boolean
           created_at?: string
+          fecha_consignacion?: string | null
           fecha_entrega?: string | null
           grupo_id?: string
           id?: string
@@ -1955,7 +1965,9 @@ export type Database = {
           registrado_por?: string | null
           semana_fin?: string
           semana_inicio?: string
+          soporte_consignacion_url?: string | null
           updated_at?: string
+          valor_consignado?: number
           valor_entregado?: number
         }
         Relationships: [
