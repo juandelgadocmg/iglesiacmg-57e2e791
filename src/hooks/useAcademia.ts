@@ -833,11 +833,9 @@ export async function revertMateriaFromCrecimiento(materiaId: string): Promise<{
     .select("id, nombre")
     .order("orden");
 
-  const materiaName = materia.nombre.toLowerCase().trim();
-  const matchedProceso = (procesos || []).find((p: any) => {
-    const pn = p.nombre.toLowerCase().trim();
-    return pn === materiaName || pn.includes(materiaName) || materiaName.includes(pn);
-  });
+  const matchedProceso = (procesos || []).find((p: any) =>
+    matchProcesoNombre(materia.nombre, p.nombre)
+  );
   if (!matchedProceso) return { revertidos: 0 };
 
   // Borrar solo los hitos generados automáticamente por el cierre de esta materia
