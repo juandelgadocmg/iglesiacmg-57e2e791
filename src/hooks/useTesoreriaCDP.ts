@@ -161,27 +161,53 @@ export function useUpsertTesoreriaCDP() {
       valor_entregado?: number;
       fecha_entrega?: string | null;
       observacion?: string | null;
+      valor_consignado?: number;
+      fecha_consignacion?: string | null;
+      soporte_consignacion_url?: string | null;
+      consignacion_completada?: boolean;
     }) => {
       const { data: { user } } = await supabase.auth.getUser();
+      const payload: any = {
+        grupo_id: input.grupo_id,
+        semana_inicio: input.semana_inicio,
+        semana_fin: input.semana_fin,
+        registrado_por: user?.id ?? null,
+      };
+      if (input.valor_entregado !== undefined) payload.valor_entregado = input.valor_entregado;
+      if (input.fecha_entrega !== undefined) payload.fecha_entrega = input.fecha_entrega;
+      if (input.observacion !== undefined) payload.observacion = input.observacion;
+      if (input.valor_consignado !== undefined) payload.valor_consignado = input.valor_consignado;
+      if (input.fecha_consignacion !== undefined) payload.fecha_consignacion = input.fecha_consignacion;
+      if (input.soporte_consignacion_url !== undefined) payload.soporte_consignacion_url = input.soporte_consignacion_url;
+      if (input.consignacion_completada !== undefined) payload.consignacion_completada = input.consignacion_completada;
+
       const { error } = await supabase
         .from("tesoreria_ofrendas_cdp")
-        .upsert(
-          {
-            grupo_id: input.grupo_id,
-            semana_inicio: input.semana_inicio,
-            semana_fin: input.semana_fin,
-            valor_entregado: input.valor_entregado ?? 0,
-            fecha_entrega: input.fecha_entrega ?? null,
-            observacion: input.observacion ?? null,
-            registrado_por: user?.id ?? null,
-          },
-          { onConflict: "grupo_id,semana_inicio" }
-        );
+        .upsert(payload, { onConflict: "grupo_id,semana_inicio" });
       if (error) throw error;
     },
     onSuccess: (_d, vars) => {
       qc.invalidateQueries({ queryKey: ["tesoreria_cdp_semana", vars.semana_inicio] });
       qc.invalidateQueries({ queryKey: ["tesoreria_cdp_mora"] });
+    },
+  });
+}
+
+/**
+ * Sube el archivo de soporte de consignación al bucket público.
+ * Devuelve la URL pública.
+ */
+export function useUploadSoporteConsignacion() {
+  return useMutation({
+    mutationFn: async ({ file, grupoId, semanaInicio }: { file: File; grupoId: string; semanaInicio: string }) => {
+      const ext = file.name.split(".").pop() || "bin";
+      const path = `${grupoId}/${semanaInicio}-${Date.now()}.${ext}`;
+      const { error: upErr } = await supabase.storage
+        .from("soportes-tesoreria")
+        .upload(path, file, { upsert: true, contentType: file.type });
+      if (upErr) throw upErr;
+      const { data } = supabase.storage.from("soportes-tesoreria").getPublicUrl(path);
+      return data.publicUrl;
     },
   });
 }
