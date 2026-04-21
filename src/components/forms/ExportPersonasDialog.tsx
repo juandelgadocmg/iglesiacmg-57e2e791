@@ -16,7 +16,7 @@ import {
   exportPersonasInformeConsolidacionPDF,
 } from "@/lib/exportPersonasUtils";
 
-type FilterType = "todos" | "anio" | "anio_mes" | "rango";
+type FilterType = "todos" | "dia" | "anio" | "anio_mes" | "rango";
 
 const MESES = [
   { value: "1", label: "Enero" }, { value: "2", label: "Febrero" }, { value: "3", label: "Marzo" },
@@ -31,8 +31,9 @@ interface Props {
 
 export default function ExportPersonasDialog({ trigger }: Props) {
   const [open, setOpen] = useState(false);
-  const [campoFecha, setCampoFecha] = useState<"fecha_ingreso" | "created_at">("fecha_ingreso");
+  const [campoFecha, setCampoFecha] = useState<"fecha_ingreso" | "created_at">("created_at");
   const [filterType, setFilterType] = useState<FilterType>("todos");
+  const [dia, setDia] = useState<Date | undefined>();
   const currentYear = new Date().getFullYear();
   const [year, setYear] = useState<string>(String(currentYear));
   const [month, setMonth] = useState<string>(String(new Date().getMonth() + 1));
@@ -52,6 +53,11 @@ export default function ExportPersonasDialog({ trigger }: Props) {
       const nextY = m === 12 ? y + 1 : y;
       f.from = `${y}-${String(m).padStart(2, "0")}-01`;
       f.to = `${nextY}-${String(nextM).padStart(2, "0")}-01`;
+    } else if (filterType === "dia" && dia) {
+      const next = new Date(dia);
+      next.setDate(next.getDate() + 1);
+      f.from = format(dia, "yyyy-MM-dd");
+      f.to = format(next, "yyyy-MM-dd");
     } else if (filterType === "rango") {
       if (desde) f.from = format(desde, "yyyy-MM-dd");
       if (hasta) {
@@ -62,7 +68,7 @@ export default function ExportPersonasDialog({ trigger }: Props) {
       }
     }
     return f;
-  }, [filterType, year, month, desde, hasta, campoFecha]);
+  }, [filterType, year, month, desde, hasta, campoFecha, dia]);
 
   const { data: personas = [], isLoading } = usePersonasParaExport(filtros, open);
   const { data: procesos = [] } = useProcesosCrecimiento();
@@ -80,25 +86,29 @@ export default function ExportPersonasDialog({ trigger }: Props) {
       const mLabel = MESES.find((m) => m.value === month)?.label || month;
       return `${mLabel} ${year}`;
     }
+    if (filterType === "dia") {
+      return dia ? `Día ${format(dia, "dd/MM/yyyy")}` : "Día no seleccionado";
+    }
     if (filterType === "rango") {
       const d = desde ? format(desde, "dd/MM/yyyy") : "—";
       const h = hasta ? format(hasta, "dd/MM/yyyy") : "—";
       return `Del ${d} al ${h}`;
     }
     return "";
-  }, [filterType, year, month, desde, hasta]);
+  }, [filterType, year, month, desde, hasta, dia]);
 
   const filenameBase = useMemo(() => {
     if (filterType === "todos") return "informe_consolidacion_todos";
     if (filterType === "anio") return `informe_consolidacion_${year}`;
     if (filterType === "anio_mes") return `informe_consolidacion_${year}_${month.padStart(2, "0")}`;
+    if (filterType === "dia") return `informe_consolidacion_${dia ? format(dia, "yyyyMMdd") : "dia"}`;
     if (filterType === "rango") {
       const d = desde ? format(desde, "yyyyMMdd") : "ini";
       const h = hasta ? format(hasta, "yyyyMMdd") : "fin";
       return `informe_consolidacion_${d}_${h}`;
     }
     return "informe_consolidacion";
-  }, [filterType, year, month, desde, hasta]);
+  }, [filterType, year, month, desde, hasta, dia]);
 
   const handleExcel = () => {
     if (!personas.length) {
@@ -135,14 +145,14 @@ export default function ExportPersonasDialog({ trigger }: Props) {
             <Select value={campoFecha} onValueChange={(v) => setCampoFecha(v as "fecha_ingreso" | "created_at")}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
+                <SelectItem value="created_at">Fecha de creación del registro (recomendado)</SelectItem>
                 <SelectItem value="fecha_ingreso">Fecha de ingreso a la iglesia</SelectItem>
-                <SelectItem value="created_at">Fecha de creación del registro</SelectItem>
               </SelectContent>
             </Select>
             <p className="text-xs text-muted-foreground">
-              {campoFecha === "fecha_ingreso"
-                ? "Recomendado: filtra por la fecha real en que la persona ingresó a la iglesia."
-                : "Filtra por la fecha en que se creó el registro en el sistema."}
+              {campoFecha === "created_at"
+                ? "Recomendado para seguimiento: filtra por la fecha en que se creó el registro en el sistema."
+                : "Filtra por la fecha real en que la persona ingresó a la iglesia (puede estar vacía en algunos registros)."}
             </p>
           </div>
 
@@ -152,12 +162,30 @@ export default function ExportPersonasDialog({ trigger }: Props) {
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="todos">Todos los registros</SelectItem>
-                <SelectItem value="anio">Por año</SelectItem>
+                <SelectItem value="dia">Por día específico</SelectItem>
                 <SelectItem value="anio_mes">Por año y mes</SelectItem>
+                <SelectItem value="anio">Por año</SelectItem>
                 <SelectItem value="rango">Por rango de días</SelectItem>
               </SelectContent>
             </Select>
           </div>
+
+          {filterType === "dia" && (
+            <div className="space-y-2">
+              <Label>Día</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className={cn("w-full justify-start text-left font-normal", !dia && "text-muted-foreground")}>
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {dia ? format(dia, "dd MMM yyyy", { locale: es }) : "Seleccionar día"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar mode="single" selected={dia} onSelect={setDia} initialFocus className={cn("p-3 pointer-events-auto")} />
+                </PopoverContent>
+              </Popover>
+            </div>
+          )}
 
           {filterType === "anio" && (
             <div className="space-y-2">
