@@ -145,8 +145,8 @@ export default function ExportPersonasDialog({ trigger }: Props) {
             <Select value={campoFecha} onValueChange={(v) => setCampoFecha(v as "fecha_ingreso" | "created_at")}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
+                <SelectItem value="created_at">Fecha de creación del registro (recomendado)</SelectItem>
                 <SelectItem value="fecha_ingreso">Fecha de ingreso a la iglesia</SelectItem>
-                <SelectItem value="created_at">Fecha de creación del registro</SelectItem>
               </SelectContent>
             </Select>
             <p className="text-xs text-muted-foreground">
@@ -162,12 +162,30 @@ export default function ExportPersonasDialog({ trigger }: Props) {
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="todos">Todos los registros</SelectItem>
-                <SelectItem value="anio">Por año</SelectItem>
+                <SelectItem value="dia">Por día específico</SelectItem>
                 <SelectItem value="anio_mes">Por año y mes</SelectItem>
+                <SelectItem value="anio">Por año</SelectItem>
                 <SelectItem value="rango">Por rango de días</SelectItem>
               </SelectContent>
             </Select>
           </div>
+
+          {filterType === "dia" && (
+            <div className="space-y-2">
+              <Label>Día</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className={cn("w-full justify-start text-left font-normal", !dia && "text-muted-foreground")}>
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {dia ? format(dia, "dd MMM yyyy", { locale: es }) : "Seleccionar día"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar mode="single" selected={dia} onSelect={setDia} initialFocus className={cn("p-3 pointer-events-auto")} />
+                </PopoverContent>
+              </Popover>
+            </div>
+          )}
 
           {filterType === "anio" && (
             <div className="space-y-2">
