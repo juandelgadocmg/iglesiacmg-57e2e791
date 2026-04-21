@@ -122,6 +122,7 @@ export function useTesoreriaSemana(semanaInicio: string, semanaFin: string) {
         const reg = registrosPorGrupo[g.id];
         const valorEntregado = Number(reg?.valor_entregado || 0);
         const fechaEntrega = reg?.fecha_entrega || null;
+        const consignacionCompletada = !!reg?.consignacion_completada;
         const lider = g.personas
           ? `${g.personas.nombres} ${g.personas.apellidos}`
           : null;
@@ -137,7 +138,11 @@ export function useTesoreriaSemana(semanaInicio: string, semanaFin: string) {
           valor_entregado: valorEntregado,
           fecha_entrega: fechaEntrega,
           observacion: reg?.observacion || null,
-          estado: calcularEstado(rep.total, rep.count, valorEntregado, fechaEntrega, semanaFin),
+          valor_consignado: Number(reg?.valor_consignado || 0),
+          fecha_consignacion: reg?.fecha_consignacion || null,
+          soporte_consignacion_url: reg?.soporte_consignacion_url || null,
+          consignacion_completada: consignacionCompletada,
+          estado: calcularEstado(rep.total, rep.count, valorEntregado, fechaEntrega, semanaFin, consignacionCompletada),
         };
       });
 
