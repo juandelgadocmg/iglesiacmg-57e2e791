@@ -87,6 +87,7 @@ export function useDeletePersona() {
 export interface PersonaExportFiltros {
   from?: string; // inclusive ISO date (yyyy-mm-dd)
   to?: string;   // exclusive ISO date (yyyy-mm-dd)
+  campo?: "created_at" | "fecha_ingreso"; // campo de fecha a filtrar (default: fecha_ingreso)
 }
 
 export function useProcesosCrecimiento() {
@@ -125,8 +126,9 @@ export function usePersonasParaExport(filtros: PersonaExportFiltros, enabled = t
           .order("created_at", { ascending: false })
           .range(from, from + PAGE_SIZE - 1);
 
-        if (filtros.from) q = q.gte("created_at", filtros.from);
-        if (filtros.to) q = q.lt("created_at", filtros.to);
+        const campo = filtros.campo || "fecha_ingreso";
+        if (filtros.from) q = q.gte(campo, filtros.from);
+        if (filtros.to) q = q.lt(campo, filtros.to);
 
         const { data, error } = await q;
         if (error) throw error;
