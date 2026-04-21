@@ -23,7 +23,8 @@ export type EstadoTesoreria =
   | "Sobrante"
   | "En mora"
   | "Pendiente"
-  | "Sin reporte";
+  | "Sin reporte"
+  | "Cerrado";
 
 export interface FilaTesoreriaCDP {
   grupo_id: string;
@@ -36,6 +37,10 @@ export interface FilaTesoreriaCDP {
   valor_entregado: number;
   fecha_entrega: string | null;
   observacion: string | null;
+  valor_consignado: number;
+  fecha_consignacion: string | null;
+  soporte_consignacion_url: string | null;
+  consignacion_completada: boolean;
   estado: EstadoTesoreria;
 }
 
