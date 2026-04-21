@@ -1,65 +1,53 @@
 
 
-## Problema
+## Funcionalidad: Exportación avanzada de Personas con filtro por fecha
 
-En el módulo de Academia faltan capacidades clave de gestión:
+### Objetivo
+Permitir descargar la información completa de las personas (datos básicos + los 25 procesos de consolidación) en el mismo formato de la plantilla de importación, con la posibilidad de filtrar por **rango de fechas de creación** (año, mes, día) para hacer seguimiento.
 
-1. **Períodos**: solo se pueden cerrar/reabrir desde la tarjeta. No hay edición completa (nombre, fechas, fechas de matrícula), ni eliminar, ni duplicar (clonando el pensum).
-2. **Cierre de período**: aunque se cierre, `MatriculaFormDialog` deja matricular en períodos cerrados.
-3. **Historial de matrículas**: solo permite editar la nota final inline. No hay editar estado/materia ni eliminar la matrícula.
+### Solución
 
-## Solución
+#### 1. Nuevo componente `ExportPersonasDialog.tsx`
+Dialog con:
+- **Filtros de fecha de creación**:
+  - Selector "Tipo de filtro": Todos / Por año / Por año y mes / Por rango de días
+  - Inputs dinámicos según selección (Select de año, Select de mes, dos DatePicker para rango)
+- **Vista previa**: muestra cuántas personas coinciden con el filtro
+- **Botones**: Exportar a Excel (.xlsx en formato plantilla) / Exportar a PDF (resumen tabular)
 
-### 1. Gestión completa de Períodos
+#### 2. Lógica de exportación en `src/lib/exportPersonasUtils.ts` (nuevo)
+Función `exportPersonasInformeConsolidacion(personas, procesos)`:
+- Construye filas con todas las columnas de la plantilla:
+  - Datos básicos: `nombres`, `apellidos`, `tipo_persona`, `estado_iglesia`, `vinculacion`, `ministerio`, `red`, `grupo`, `fecha_ingreso`, `invitado_por`, `seguimiento_por`
+  - Por cada uno de los 25 procesos: 3 columnas → `(Estado)`, `(Fecha)`, `(Observación)`
+- Usa `xlsx` para generar el archivo en el mismo orden de la plantilla original.
+- Anchos de columna razonables y encabezado en negrita.
 
-**`PeriodoFormDialog`** — convertirlo en componente reutilizable para crear **y editar**:
-- Recibe prop opcional `periodo` (si viene → modo edición, usa `useUpdatePeriodo`).
-- Misma estructura de campos (nombre, estado, fechas período, fechas matrícula).
+#### 3. Hook auxiliar `usePersonasParaExport(filtros)` en `useDatabase.ts`
+- Carga personas con `created_at` dentro del rango.
+- Hace JOIN con `persona_procesos` (estado, fecha_completado, observación) y `procesos_crecimiento` (nombre, orden).
+- Hace JOIN con `grupos` para `grupo.nombre`.
+- Devuelve datos listos para mapear a filas de Excel.
 
-**`PeriodosSection`** (tarjeta de período) — agregar menú `MoreVertical` con:
-- ✏️ **Editar** → abre `PeriodoFormDialog` en modo edición.
-- 📋 **Duplicar (con pensum)** → crea período nuevo + clona todas las `materias` y `cortes_academicos` del período origen.
-- 🗑️ **Eliminar** → `DeleteConfirmDialog`. Verifica que no tenga matrículas activas; si tiene, muestra error claro.
+#### 4. Integración en `PersonasPage.tsx`
+- Reemplazar el actual `<ExportDropdown>` por un dropdown ampliado con tres opciones:
+  - **Exportar lista básica (Excel/PDF)** → comportamiento actual
+  - **Exportar Informe de Consolidación (filtrar por fecha)** → abre el nuevo dialog
 
-**Nuevo hook `useDuplicatePeriodo`** en `useAcademia.ts`:
-1. Inserta nuevo `periodos_academicos` (nombre = "Copia de …" o el que ingrese el usuario).
-2. Obtiene `materias` del período origen → re-inserta con el nuevo `periodo_id` (preservando maestro_id, aula_id, código, configuración, cupos).
-3. Obtiene `cortes_academicos` del período origen → re-inserta con el nuevo `periodo_id`.
-4. **No** clona matrículas, calificaciones ni asistencia (datos del estudiante son por período).
+### Filtros de fecha disponibles
+```
+- Todos los registros
+- Por año:           [2026 ▾]
+- Por año y mes:     [2026 ▾] [Abril ▾]
+- Por rango días:    [Desde 📅] [Hasta 📅]
+```
 
-### 2. Bloqueo de matrículas en períodos cerrados
+### Archivos afectados
+- **Nuevo**: `src/components/forms/ExportPersonasDialog.tsx` — dialog con filtros y preview.
+- **Nuevo**: `src/lib/exportPersonasUtils.ts` — generación del Excel en formato plantilla.
+- **Editar**: `src/hooks/useDatabase.ts` — agregar hook que trae personas + procesos + grupo, con filtro de fecha opcional.
+- **Editar**: `src/pages/PersonasPage.tsx` — agregar el nuevo botón/opción de exportación.
 
-**`MatriculaFormDialog`**:
-- Filtrar el select de períodos para mostrar solo los `Abierto` (o marcar los cerrados como `disabled` con etiqueta "Cerrado").
-- Validación adicional en `onSubmit`: si el período seleccionado está `Cerrado`, mostrar `toast.error("Este período está cerrado, no admite nuevas matrículas")` y abortar.
-- En `PeriodoDetailView`: ocultar el botón "Matricular" del header cuando `periodo.estado === "Cerrado"` (ya tiene la lógica de finalizar/reabrir).
-
-### 3. Editar y eliminar matrícula en Historial
-
-**`useAcademia.ts`** — agregar `useDeleteMatricula` (delete por id con invalidación de `matriculas`, `matriculas-all`, `calificaciones-grid`).
-
-**`HistorialMatriculasSection`** — agregar columna "Acciones" con:
-- ✏️ **Editar matrícula** → diálogo modal con: estado (Activo/Aprobó/No Aprobó/Retirado), nota final, materia (select de materias del mismo período). Usa `useUpdateMatricula` extendido para aceptar `materia_id`.
-- 🗑️ **Eliminar** → `DeleteConfirmDialog`. Advertencia: "Eliminar la matrícula también eliminará las calificaciones asociadas".
-
-**`useUpdateMatricula`** — extender el tipo para aceptar `materia_id` opcional.
-
-## Archivos afectados
-
-- `src/components/forms/PeriodoFormDialog.tsx` — soporte modo edición.
-- `src/pages/AcademiaPage.tsx`:
-  - `PeriodosSection`: menú de acciones (editar / duplicar / eliminar) en cada tarjeta.
-  - `HistorialMatriculasSection`: columna acciones + diálogo de edición + eliminar.
-  - `MatriculaFormDialog` (uso): nada.
-- `src/components/forms/MatriculaFormDialog.tsx` — filtrar/desactivar períodos cerrados + validación en submit.
-- `src/hooks/useAcademia.ts`:
-  - `useDuplicatePeriodo` (nuevo).
-  - `useDeleteMatricula` (nuevo).
-  - `useUpdateMatricula` extender tipo con `materia_id`.
-
-## Resultado esperado
-
-- Cada tarjeta de período ofrece editar, duplicar (arrastrando pensum y cortes) y eliminar.
-- Los períodos cerrados aparecen deshabilitados al matricular y bloqueados con mensaje claro.
-- El historial de matrículas permite editar estado/nota/materia y eliminar registros, con confirmación.
+### Resultado esperado
+El usuario puede generar un archivo Excel idéntico a la plantilla de "Informe de Consolidación", filtrando por año/mes/día de creación de la persona, lo que permite hacer seguimiento de bloques específicos de nuevos miembros (p. ej. todos los registrados en abril 2026).
 
