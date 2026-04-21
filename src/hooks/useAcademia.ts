@@ -681,6 +681,35 @@ export type SyncResumen = {
   materiaNombre: string;
 };
 
+// Normaliza: minúsculas, sin acentos, sin signos, sin stopwords, plurales reducidos
+function normalizeForMatch(s: string): string {
+  const stop = new Set(["de", "del", "la", "las", "el", "los", "y", "a", "en", "para"]);
+  const tokens = s
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9\s]/g, " ")
+    .split(/\s+/)
+    .filter(Boolean)
+    .filter((t) => !stop.has(t))
+    .map((t) => (t.length > 3 && t.endsWith("s") ? t.slice(0, -1) : t)); // singularizar simple
+  return tokens.sort().join(" ");
+}
+
+// Devuelve true si materia y proceso coinciden tras normalización (igualdad o contención bidireccional)
+function matchProcesoNombre(materiaNombre: string, procesoNombre: string): boolean {
+  const a = normalizeForMatch(materiaNombre);
+  const b = normalizeForMatch(procesoNombre);
+  if (!a || !b) return false;
+  if (a === b) return true;
+  // Contención por palabras: todas las palabras de uno están en el otro
+  const aw = a.split(" ");
+  const bw = b.split(" ");
+  const aInB = aw.every((w) => bw.includes(w));
+  const bInA = bw.every((w) => aw.includes(w));
+  return aInB || bInA;
+}
+
 export async function syncMateriaToCrecimiento(materiaId: string): Promise<SyncResumen> {
   // 1. Materia
   const { data: materia, error: matErr } = await supabase
