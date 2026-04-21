@@ -1806,26 +1806,45 @@ function PeriodoDetailView({ escuela, periodo, onBackToPeriodos }: any) {
                           <Lock className="h-3 w-3" /> Finalizar
                         </Button>
                       ) : (
-                        <Button size="sm" variant="outline" className="h-7 text-[10px] flex-1 gap-1 text-success border-success/30 hover:bg-success/10"
-                          disabled={revertCrecimiento.isPending || updateMateria.isPending}
-                          onClick={async () => {
-                            const msg = `¿Reabrir la materia "${m.nombre}" para corregir calificaciones?\n\nLos hitos de crecimiento que se generaron al cerrar esta materia se revertirán (las marcas manuales no se afectan).`;
-                            if (!confirm(msg)) return;
-                            try {
-                              await updateMateria.mutateAsync({ id: m.id, estado: "En Curso" });
-                              const r = await revertCrecimiento.mutateAsync(m.id);
-                              toast.success(
-                                r.revertidos > 0
-                                  ? `Materia reabierta · ${r.revertidos} hito(s) revertido(s)`
-                                  : "Materia reabierta"
-                              );
-                            } catch (err: any) {
-                              console.error(err);
-                              toast.error(err?.message || "Error al reabrir");
-                            }
-                          }}>
-                          <Unlock className="h-3 w-3" /> Reabrir
-                        </Button>
+                        <>
+                          <Button size="sm" variant="outline" className="h-7 text-[10px] flex-1 gap-1 text-primary border-primary/30 hover:bg-primary/10"
+                            disabled={syncCrecimiento.isPending}
+                            onClick={async () => {
+                              try {
+                                const r = await syncCrecimiento.mutateAsync(m.id);
+                                const partes = [`${r.sincronizados} hito(s) actualizado(s)`];
+                                if (r.sinNota > 0) partes.push(`${r.sinNota} sin nota`);
+                                if (r.reprobados > 0) partes.push(`${r.reprobados} reprobado(s)`);
+                                if (!r.procesoNombre) partes.push("sin proceso asociado");
+                                toast.success(partes.join(" · "));
+                              } catch (err: any) {
+                                console.error(err);
+                                toast.error(err?.message || "Error al sincronizar");
+                              }
+                            }}>
+                            <RefreshCw className={cn("h-3 w-3", syncCrecimiento.isPending && "animate-spin")} /> Sincronizar
+                          </Button>
+                          <Button size="sm" variant="outline" className="h-7 text-[10px] flex-1 gap-1 text-success border-success/30 hover:bg-success/10"
+                            disabled={revertCrecimiento.isPending || updateMateria.isPending}
+                            onClick={async () => {
+                              const msg = `¿Reabrir la materia "${m.nombre}" para corregir calificaciones?\n\nLos hitos de crecimiento que se generaron al cerrar esta materia se revertirán (las marcas manuales no se afectan).`;
+                              if (!confirm(msg)) return;
+                              try {
+                                await updateMateria.mutateAsync({ id: m.id, estado: "En Curso" });
+                                const r = await revertCrecimiento.mutateAsync(m.id);
+                                toast.success(
+                                  r.revertidos > 0
+                                    ? `Materia reabierta · ${r.revertidos} hito(s) revertido(s)`
+                                    : "Materia reabierta"
+                                );
+                              } catch (err: any) {
+                                console.error(err);
+                                toast.error(err?.message || "Error al reabrir");
+                              }
+                            }}>
+                            <Unlock className="h-3 w-3" /> Reabrir
+                          </Button>
+                        </>
                       )}
                       <DeleteConfirmDialog title="Eliminar materia" description={`¿Eliminar "${m.nombre}"?`} onConfirm={() => deleteMateria.mutateAsync(m.id)} />
                     </div>
