@@ -31,8 +31,9 @@ interface Props {
 
 export default function ExportPersonasDialog({ trigger }: Props) {
   const [open, setOpen] = useState(false);
-  const [campoFecha, setCampoFecha] = useState<"fecha_ingreso" | "created_at">("fecha_ingreso");
+  const [campoFecha, setCampoFecha] = useState<"fecha_ingreso" | "created_at">("created_at");
   const [filterType, setFilterType] = useState<FilterType>("todos");
+  const [dia, setDia] = useState<Date | undefined>();
   const currentYear = new Date().getFullYear();
   const [year, setYear] = useState<string>(String(currentYear));
   const [month, setMonth] = useState<string>(String(new Date().getMonth() + 1));
