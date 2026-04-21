@@ -235,7 +235,7 @@ export default function TesoreriaCDPSection() {
           No hay Casas de Paz activas registradas.
         </div>
       ) : (
-        <div className="rounded-xl border bg-card overflow-hidden">
+        <div className="rounded-xl border bg-card overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow className="bg-muted/50">
@@ -246,12 +246,14 @@ export default function TesoreriaCDPSection() {
                 <TableHead className="w-[150px]">Fecha entrega</TableHead>
                 <TableHead className="min-w-[180px]">Observación</TableHead>
                 <TableHead className="w-[110px] text-center">Estado</TableHead>
+                <TableHead className="w-[140px] text-center">Consignación</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {Object.entries(porRed).map(([red, items]) => {
                 const subRep = items.reduce((s, f) => s + f.valor_reportado, 0);
                 const subEnt = items.reduce((s, f) => s + f.valor_entregado, 0);
+                const subCons = items.reduce((s, f) => s + f.valor_consignado, 0);
                 return (
                   <>
                     {items.map((f, idx) => (
@@ -261,14 +263,18 @@ export default function TesoreriaCDPSection() {
                         showRed={idx === 0}
                         red={red}
                         onSave={handleSave}
+                        onOpenConsignacion={() => setFilaConsignacion(f)}
                       />
                     ))}
                     <TableRow className="bg-muted/40 font-medium">
                       <TableCell colSpan={2} className="text-right text-xs">Subtotal {red}</TableCell>
                       <TableCell className="text-right text-xs">{fmt(subRep)}</TableCell>
                       <TableCell className="text-xs">{fmt(subEnt)}</TableCell>
-                      <TableCell colSpan={3} className="text-xs text-muted-foreground">
+                      <TableCell colSpan={2} className="text-xs text-muted-foreground">
                         Diferencia: {fmt(subRep - subEnt)}
+                      </TableCell>
+                      <TableCell colSpan={2} className="text-xs text-right">
+                        Consignado: <strong>{fmt(subCons)}</strong>
                       </TableCell>
                     </TableRow>
                   </>
@@ -278,16 +284,27 @@ export default function TesoreriaCDPSection() {
                 <TableCell colSpan={2} className="text-right">TOTAL GENERAL</TableCell>
                 <TableCell className="text-right">{fmt(totales.reportado)}</TableCell>
                 <TableCell>{fmt(totales.entregado)}</TableCell>
-                <TableCell colSpan={3}>
+                <TableCell colSpan={2}>
                   Diferencia: <span className={totales.reportado - totales.entregado > 0 ? "text-destructive" : "text-success"}>
                     {fmt(totales.reportado - totales.entregado)}
                   </span>
+                </TableCell>
+                <TableCell colSpan={2} className="text-right">
+                  Consignado: <span className="text-primary">{fmt(totales.consignado)}</span>
                 </TableCell>
               </TableRow>
             </TableBody>
           </Table>
         </div>
       )}
+
+      {/* Modal de consignación */}
+      <ConsignacionDialog
+        fila={filaConsignacion}
+        semanaInicio={semana.inicio}
+        semanaFin={semana.fin}
+        onClose={() => setFilaConsignacion(null)}
+      />
 
       {/* Modal mora histórica */}
       <Dialog open={showMora} onOpenChange={setShowMora}>
