@@ -1662,11 +1662,49 @@ function PeriodoDetailView({ escuela, periodo, onBackToPeriodos }: any) {
 
       {activeTab === "pensum" && (
         <div className="space-y-4">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between gap-2 flex-wrap">
             <p className="text-sm text-muted-foreground">
               Materias del pensum del período <strong>{periodo.nombre}</strong>.
             </p>
-            <MateriaFormDialog periodoId={periodo.id} />
+            <div className="flex items-center gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                className="gap-1.5 text-xs"
+                disabled={syncCrecimiento.isPending}
+                onClick={async () => {
+                  const finalizadas = (materias || []).filter((m: any) => m.estado === "Finalizada");
+                  if (!finalizadas.length) {
+                    toast.info("No hay materias finalizadas en este período.");
+                    return;
+                  }
+                  if (!confirm(`Re-sincronizar ${finalizadas.length} materia(s) finalizada(s) con el módulo de Crecimiento?\n\nSe actualizarán los hitos de los estudiantes aprobados (≥3.0) según las notas actuales.`)) return;
+                  let totalSinc = 0, totalSinNota = 0, totalRepro = 0, sinProceso = 0, errores = 0;
+                  for (const m of finalizadas) {
+                    try {
+                      const r = await syncCrecimiento.mutateAsync(m.id);
+                      totalSinc += r.sincronizados;
+                      totalSinNota += r.sinNota;
+                      totalRepro += r.reprobados;
+                      if (!r.procesoNombre) sinProceso++;
+                    } catch (e) {
+                      console.error(`Error sincronizando ${m.nombre}:`, e);
+                      errores++;
+                    }
+                  }
+                  const partes = [`${totalSinc} hito(s) actualizado(s) en ${finalizadas.length} materia(s)`];
+                  if (totalSinNota > 0) partes.push(`${totalSinNota} sin nota`);
+                  if (totalRepro > 0) partes.push(`${totalRepro} reprobado(s)`);
+                  if (sinProceso > 0) partes.push(`${sinProceso} sin proceso asociado`);
+                  if (errores > 0) partes.push(`${errores} error(es)`);
+                  toast.success(partes.join(" · "));
+                }}
+              >
+                <RefreshCw className={cn("h-3.5 w-3.5", syncCrecimiento.isPending && "animate-spin")} />
+                Re-sincronizar finalizadas
+              </Button>
+              <MateriaFormDialog periodoId={periodo.id} />
+            </div>
           </div>
           {loadingMaterias ? <Skeleton className="h-32" /> : !materias?.length ? (
             <div className="rounded-xl border bg-card p-12 text-center text-muted-foreground">
