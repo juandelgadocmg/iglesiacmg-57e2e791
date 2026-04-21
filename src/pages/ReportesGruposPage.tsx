@@ -10,6 +10,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import DeleteConfirmDialog from "@/components/shared/DeleteConfirmDialog";
 import ReporteGrupoFormDialog from "@/components/forms/ReporteGrupoFormDialog";
 import { useReportesGrupos, useDeleteReporteGrupo, useUpdateReporteGrupo } from "@/hooks/useReportesGrupos";
+import { useTesoreriaMora } from "@/hooks/useTesoreriaCDP";
 import { cn } from "@/lib/utils";
 import { format, isWithinInterval, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
@@ -39,6 +40,14 @@ export default function ReportesGruposPage() {
   const { data: reportes, isLoading } = useReportesGrupos();
   const deleteReporte = useDeleteReporteGrupo();
   const updateReporte = useUpdateReporteGrupo();
+  const { data: morosos } = useTesoreriaMora();
+
+  // Set de "grupo_id__semana_inicio" con saldo pendiente
+  const morosaSet = useMemo(() => {
+    const s = new Set<string>();
+    (morosos || []).forEach((m) => s.add(`${m.grupo_id}__${m.semana_inicio}`));
+    return s;
+  }, [morosos]);
 
   const filtered = useMemo(() => {
     if (!reportes) return [];
