@@ -29,6 +29,8 @@ import {
   useCortes, useAllItemsByCorte, useDeleteCorte, useDeleteItemCalificable,
   useCalificacionesByMateriaCorte, useBulkUpsertCalificaciones,
   useAsistenciaMaterias, useUpsertAsistenciaMateria,
+  syncMateriaToCrecimiento, useProcesosCrecimiento,
+  useSyncMateriaToCrecimiento, useRevertMateriaFromCrecimiento,
 } from "@/hooks/useAcademia";
 import {
   useConceptosPago, useDeleteConceptoPago, usePagosMatricula, useUpdatePagoMatricula,
@@ -1140,68 +1142,29 @@ function GradingGrid({ cortes, materias, periodoId, maestroId, escuelaName }: an
     try {
       await bulkUpsert.mutateAsync(records);
 
-      // INTEGRATION: Update growth module for Discipulado schools
-      const isDiscipulado = escuelaName?.toLowerCase().includes("discipulado") || escuelaName?.toLowerCase().includes("discipul");
-      if (isDiscipulado) {
-        await syncWithGrowthModule(activeStudents, materiaItems, localGrades);
+      // INTEGRATION: sincronizar con módulo de Crecimiento (Discipulado y Seminario)
+      // Reutiliza la misma lógica que el cierre de materia para garantizar consistencia.
+      if (selectedMateria) {
+        try {
+          const r = await syncMateriaToCrecimiento(selectedMateria);
+          if (r.procesoNombre && r.sincronizados > 0) {
+            toast.success(`Calificaciones guardadas · ${r.sincronizados} hito(s) de crecimiento actualizado(s)`);
+          } else {
+            toast.success("Calificaciones guardadas");
+          }
+        } catch (err) {
+          console.error("Sync crecimiento error:", err);
+          toast.success("Calificaciones guardadas");
+        }
+      } else {
+        toast.success("Calificaciones guardadas");
       }
-
-      toast.success("Calificaciones guardadas");
     } catch { toast.error("Error al guardar"); }
   };
 
-  // Sync approved grades with persona_procesos
-  const syncWithGrowthModule = async (students: any[], items: any[], grades: Record<string, string>) => {
-    try {
-      // Get all procesos for matching
-      const { data: procesos } = await supabase
-        .from("procesos_crecimiento")
-        .select("*")
-        .order("orden");
-
-      if (!procesos?.length) return;
-
-      const today = format(new Date(), "yyyy-MM-dd");
-      const upsertRecords: any[] = [];
-
-      for (const student of students) {
-        // Calculate average for this student across all items
-        const studentGrades = items.map((item: any) => {
-          const val = grades[`${student.id}_${item.id}`];
-          return val ? parseFloat(val) : null;
-        }).filter((g): g is number => g !== null);
-
-        if (!studentGrades.length) continue;
-        const avg = studentGrades.reduce((s, v) => s + v, 0) / studentGrades.length;
-
-        // If student passed (avg >= 3), try to match with a growth process
-        if (avg >= 3 && selectedMateriaObj) {
-          const materiaName = selectedMateriaObj.nombre?.toLowerCase() || "";
-          const matchedProceso = procesos.find((p: any) =>
-            materiaName.includes(p.nombre.toLowerCase()) || p.nombre.toLowerCase().includes(materiaName)
-          );
-
-          if (matchedProceso) {
-            upsertRecords.push({
-              persona_id: student.persona_id,
-              proceso_id: matchedProceso.id,
-              estado: "Realizado",
-              fecha_completado: today,
-            });
-          }
-        }
-      }
-
-      if (upsertRecords.length > 0) {
-        await supabase
-          .from("persona_procesos")
-          .upsert(upsertRecords, { onConflict: "persona_id,proceso_id" });
-        toast.success(`${upsertRecords.length} proceso(s) de crecimiento actualizado(s)`);
-      }
-    } catch (err) {
-      console.error("Error syncing growth module:", err);
-    }
-  };
+  // (La sincronización con procesos de crecimiento ahora vive en
+  // syncMateriaToCrecimiento() — ver useAcademia.ts. Se invoca tanto al guardar
+  // calificaciones como al finalizar la materia, garantizando consistencia.)
 
   const exportGrades = () => {
     if (!materiaItems.length || !activeStudents.length) return;
@@ -1485,6 +1448,9 @@ function PeriodoDetailView({ escuela, periodo, onBackToPeriodos }: any) {
   const updateMateria = useUpdateMateria();
   const deleteCorte = useDeleteCorte();
   const updatePeriodo = useUpdatePeriodo();
+  const syncCrecimiento = useSyncMateriaToCrecimiento();
+  const revertCrecimiento = useRevertMateriaFromCrecimiento();
+  const { data: procesosCrecimiento } = useProcesosCrecimiento();
   const [activeTab, setActiveTab] = useState<string>("info");
   const [editingMateria, setEditingMateria] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<{ nombre: string; descripcion: string; maestro_id: string; aula_id: string; horario: string }>({ nombre: "", descripcion: "", maestro_id: "", aula_id: "", horario: "" });
@@ -1711,6 +1677,11 @@ function PeriodoDetailView({ escuela, periodo, onBackToPeriodos }: any) {
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {materias.map((m: any) => {
                 const matriculasMateria = (matriculas || []).filter((mat: any) => mat.materia_id === m.id && mat.estado !== "Retirado").length;
+                const materiaName = (m.nombre || "").toLowerCase().trim();
+                const procesoMatch = (procesosCrecimiento || []).find((p: any) => {
+                  const pn = p.nombre.toLowerCase().trim();
+                  return pn === materiaName || pn.includes(materiaName) || materiaName.includes(pn);
+                });
                 return (
                   <div key={m.id} className="rounded-xl border bg-card p-4 space-y-3 hover:shadow-md transition-shadow cursor-pointer group"
                     onClick={() => { setActiveTab("calificaciones"); }}>
@@ -1725,6 +1696,13 @@ function PeriodoDetailView({ escuela, periodo, onBackToPeriodos }: any) {
                         {(m as any).estado || "En Curso"}
                       </Badge>
                     </div>
+
+                    {procesoMatch && (
+                      <div className="rounded-md border border-primary/20 bg-primary/5 px-2 py-1 text-[10px] text-primary flex items-center gap-1">
+                        <span>🎯</span>
+                        <span className="truncate">Sincronizado con: <strong>{procesoMatch.nombre}</strong></span>
+                      </div>
+                    )}
 
                     <div className="space-y-1.5 text-xs text-muted-foreground">
                       <div className="flex items-center justify-between">
@@ -1770,23 +1748,43 @@ function PeriodoDetailView({ escuela, periodo, onBackToPeriodos }: any) {
                     <div className="flex gap-1.5 pt-1" onClick={(e) => e.stopPropagation()}>
                       {(m as any).estado !== "Finalizada" ? (
                         <Button size="sm" variant="outline" className="h-7 text-[10px] flex-1 gap-1"
+                          disabled={syncCrecimiento.isPending || updateMateria.isPending}
                           onClick={async () => {
-                            if (!confirm(`¿Finalizar la materia "${m.nombre}"?`)) return;
+                            const msg = `¿Finalizar la materia "${m.nombre}"?\n\nSe cerrará para edición y los estudiantes aprobados (≥3.0) verán su hito de crecimiento marcado como Finalizado.`;
+                            if (!confirm(msg)) return;
                             try {
                               await updateMateria.mutateAsync({ id: m.id, estado: "Finalizada" });
-                              toast.success("Materia finalizada");
-                            } catch { toast.error("Error"); }
+                              const r = await syncCrecimiento.mutateAsync(m.id);
+                              const partes = [`Materia finalizada · ${r.sincronizados} hito(s) actualizado(s)`];
+                              if (r.sinNota > 0) partes.push(`${r.sinNota} sin nota`);
+                              if (r.reprobados > 0) partes.push(`${r.reprobados} reprobado(s)`);
+                              if (!r.procesoNombre) partes.push("sin proceso de crecimiento asociado");
+                              toast.success(partes.join(" · "));
+                            } catch (err: any) {
+                              console.error(err);
+                              toast.error(err?.message || "Error al finalizar");
+                            }
                           }}>
                           <Lock className="h-3 w-3" /> Finalizar
                         </Button>
                       ) : (
                         <Button size="sm" variant="outline" className="h-7 text-[10px] flex-1 gap-1 text-success border-success/30 hover:bg-success/10"
+                          disabled={revertCrecimiento.isPending || updateMateria.isPending}
                           onClick={async () => {
-                            if (!confirm(`¿Reabrir la materia "${m.nombre}" para corregir calificaciones?`)) return;
+                            const msg = `¿Reabrir la materia "${m.nombre}" para corregir calificaciones?\n\nLos hitos de crecimiento que se generaron al cerrar esta materia se revertirán (las marcas manuales no se afectan).`;
+                            if (!confirm(msg)) return;
                             try {
                               await updateMateria.mutateAsync({ id: m.id, estado: "En Curso" });
-                              toast.success("Materia reabierta");
-                            } catch { toast.error("Error"); }
+                              const r = await revertCrecimiento.mutateAsync(m.id);
+                              toast.success(
+                                r.revertidos > 0
+                                  ? `Materia reabierta · ${r.revertidos} hito(s) revertido(s)`
+                                  : "Materia reabierta"
+                              );
+                            } catch (err: any) {
+                              console.error(err);
+                              toast.error(err?.message || "Error al reabrir");
+                            }
                           }}>
                           <Unlock className="h-3 w-3" /> Reabrir
                         </Button>
