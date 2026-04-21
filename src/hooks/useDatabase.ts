@@ -110,7 +110,7 @@ export function usePersonasParaExport(filtros: PersonaExportFiltros, enabled = t
     enabled,
     queryFn: async () => {
       const all: any[] = [];
-      const PAGE_SIZE = 500;
+      const PAGE_SIZE = 1000;
       let from = 0;
       let hasMore = true;
 
@@ -118,7 +118,7 @@ export function usePersonasParaExport(filtros: PersonaExportFiltros, enabled = t
         let q = supabase
           .from("personas")
           .select(`
-            id, nombres, apellidos, tipo_persona, estado_iglesia, vinculacion, ministerio, red,
+            id, nombres, apellidos, tipo_persona, estado_iglesia, vinculacion, ministerio,
             fecha_ingreso, invitado_por, seguimiento_por, created_at,
             grupos!fk_personas_grupo(nombre),
             persona_procesos(proceso_id, estado, fecha_completado, observacion)
