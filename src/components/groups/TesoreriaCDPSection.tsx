@@ -42,6 +42,7 @@ const fmt = (n: number) =>
 export default function TesoreriaCDPSection() {
   const [fechaSemana, setFechaSemana] = useState<Date>(new Date());
   const [showMora, setShowMora] = useState(false);
+  const [filaConsignacion, setFilaConsignacion] = useState<FilaTesoreriaCDP | null>(null);
   const semana = useMemo(() => getSemanaRange(fechaSemana), [fechaSemana]);
 
   const { data: filas, isLoading } = useTesoreriaSemana(semana.inicio, semana.fin);
@@ -49,6 +50,7 @@ export default function TesoreriaCDPSection() {
   const { data: config } = useConfiguracion();
   const { user } = useAuth();
   const upsert = useUpsertTesoreriaCDP();
+  const uploadSoporte = useUploadSoporteConsignacion();
 
   // Agrupar por red
   const porRed = useMemo(() => {
@@ -65,8 +67,11 @@ export default function TesoreriaCDPSection() {
     return {
       reportado: arr.reduce((s, f) => s + f.valor_reportado, 0),
       entregado: arr.reduce((s, f) => s + f.valor_entregado, 0),
+      consignado: arr.reduce((s, f) => s + f.valor_consignado, 0),
       enMora: arr.filter((f) => f.estado === "En mora").length,
       conciliados: arr.filter((f) => f.estado === "Conciliado" || f.estado === "Sobrante").length,
+      cerrados: arr.filter((f) => f.consignacion_completada).length,
+      pendientesConsignar: arr.filter((f) => f.valor_entregado > 0 && !f.consignacion_completada).length,
     };
   }, [filas]);
 
