@@ -192,6 +192,8 @@ export default function PeticionesPage() {
             { header: "Tipo", key: "tipo" },
             { header: "Estado", key: "estado" },
             { header: "Prioridad", key: "prioridad" },
+            { header: "WhatsApp", key: "whatsapp_estado" },
+            { header: "Fecha contacto WA", key: "whatsapp_fecha" },
             { header: "Descripción", key: "descripcion" },
             { header: "Seguimiento", key: "fecha_seguimiento" },
             { header: "Fecha", key: "fecha" },
@@ -234,12 +236,16 @@ export default function PeticionesPage() {
         fechaHasta={fechaHasta}
         setFechaDesde={setFechaDesde}
         setFechaHasta={setFechaHasta}
+        soloContactadasWA={soloContactadasWA}
+        setSoloContactadasWA={setSoloContactadasWA}
       />
 
-      {rangoActivo && (
-        <div className="text-xs text-muted-foreground bg-muted/40 border rounded-md px-3 py-2">
-          Mostrando <strong>{filtered.length}</strong> petición(es) del período <strong>{rangoLabel}</strong>.
-          El informe exportado incluirá únicamente este rango.
+      {(rangoActivo || soloContactadasWA) && (
+        <div className="text-xs text-muted-foreground bg-muted/40 border rounded-md px-3 py-2 space-x-1">
+          <span>Mostrando <strong>{filtered.length}</strong> petición(es)</span>
+          {rangoActivo && <span>del período <strong>{rangoLabel}</strong></span>}
+          {soloContactadasWA && <span className="text-success font-medium">· solo contactadas por WhatsApp</span>}
+          <span>. El informe exportado refleja estos filtros.</span>
         </div>
       )}
 
