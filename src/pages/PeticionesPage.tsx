@@ -82,9 +82,10 @@ export default function PeticionesPage() {
         } else if (desde && fecha < desde) return false;
         else if (hasta && fecha > hasta) return false;
       }
+      if (soloContactadasWA && !fueContactadoPorWhatsApp(p.notas_seguimiento)) return false;
       return true;
     });
-  }, [peticiones, tab, search, fechaDesde, fechaHasta]);
+  }, [peticiones, tab, search, fechaDesde, fechaHasta, soloContactadasWA]);
 
   // Conteos sobre el listado filtrado por fecha (sin filtrar por tab)
   const peticionesEnRango = useMemo(() => {
@@ -138,16 +139,22 @@ export default function PeticionesPage() {
     toast.success("Petición marcada como respondida");
   };
 
-  const exportData = (filtered as any[]).map(p => ({
-    titulo: p.titulo,
-    persona: p.personas ? `${p.personas.nombres} ${p.personas.apellidos}` : "Sin asignar",
-    tipo: p.tipo || "Sin tipo",
-    estado: p.estado,
-    prioridad: p.prioridad,
-    descripcion: p.descripcion || "",
-    fecha_seguimiento: p.fecha_seguimiento || "",
-    fecha: p.created_at ? format(parseISO(p.created_at), "dd/MM/yyyy") : "",
-  }));
+  const exportData = (filtered as any[]).map(p => {
+    const contactadoWA = fueContactadoPorWhatsApp(p.notas_seguimiento);
+    const ultContacto = ultimoContactoWhatsApp(p.notas_seguimiento);
+    return {
+      titulo: p.titulo,
+      persona: p.personas ? `${p.personas.nombres} ${p.personas.apellidos}` : "Sin asignar",
+      tipo: p.tipo || "Sin tipo",
+      estado: p.estado,
+      prioridad: p.prioridad,
+      whatsapp_estado: contactadoWA ? "Contactado" : "Pendiente",
+      whatsapp_fecha: ultContacto || "",
+      descripcion: p.descripcion || "",
+      fecha_seguimiento: p.fecha_seguimiento || "",
+      fecha: p.created_at ? format(parseISO(p.created_at), "dd/MM/yyyy") : "",
+    };
+  });
 
   const rangoActivo = fechaDesde || fechaHasta;
   const rangoLabel = useMemo(() => {
