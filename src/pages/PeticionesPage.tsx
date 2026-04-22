@@ -25,6 +25,9 @@ import { format, parseISO, isPast, startOfDay, endOfDay, startOfWeek, endOfWeek,
 import { es } from "date-fns/locale";
 import ExportDropdown from "@/components/shared/ExportDropdown";
 import { cn } from "@/lib/utils";
+import { fueContactadoPorWhatsApp, ultimoContactoWhatsApp } from "@/lib/whatsapp";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 
 const ESTADOS = ["Todos", "Pendiente", "En oración", "Respondida", "Archivada"];
 const PIE_COLORS = ["hsl(var(--warning))", "hsl(var(--info))", "hsl(var(--success))", "hsl(var(--muted-foreground))"];
