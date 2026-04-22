@@ -1,77 +1,43 @@
 
 
-## Sincronización automática Academia → Crecimiento al finalizar materias
+## Filtro por fecha + envío por WhatsApp en Peticiones
 
-### Problema actual
+### 1. Filtro por fecha con exportación
 
-Hoy la sincronización con `persona_procesos` solo ocurre cuando un maestro guarda calificaciones desde la grilla, **únicamente para escuelas de Discipulado** y solo para los estudiantes con notas escritas en ese momento. Cuando se pulsa **"Finalizar materia"** (que cambia `materias.estado` a `Finalizada`), no se ejecuta ningún recálculo, por lo que el módulo de Personas queda desactualizado para muchos estudiantes.
+En `src/pages/PeticionesPage.tsx`:
 
-### Solución
+- Dos selectores **Desde / Hasta** (Popover + Calendar shadcn) junto al buscador, con botón "Limpiar".
+- Presets rápidos: **Hoy**, **Esta semana**, **Este mes**, **Este año**.
+- Filtra por `created_at` de la petición; aplica también a contadores, gráfica y tabla.
+- El botón **Exportar** (PDF / Excel) usa el listado ya filtrado.
+- Cuando hay rango activo, el título y nombre del archivo incluyen el período: `Peticiones de Oración (01/04/2026 – 22/04/2026)` y `peticiones-oracion-20260401-20260422`.
+- Indicador visible: "Mostrando X peticiones del DD/MM/YYYY al DD/MM/YYYY".
 
-Disparar la sincronización completa en el momento exacto en que la materia se cierra, usando el `nota_final` consolidado de cada matrícula (no solo lo que esté en pantalla). La sincronización aplicará tanto a Discipulado como a Seminario Bíblico.
+### 2. Responder por WhatsApp
 
-#### 1. Nueva función `syncMateriaToCrecimiento(materiaId)` en `src/hooks/useAcademia.ts`
+Enfoque: **WhatsApp click-to-chat** (`https://wa.me/<numero>?text=<mensaje>`). No requiere API, ni keys, ni edge functions. Funciona con WhatsApp Web (en escritorio) o la app (en móvil) según el dispositivo del usuario, usando el WhatsApp del propio responsable.
 
-Reutilizable desde la UI y desde futuros disparadores. Lógica:
-1. Cargar la materia + escuela + período.
-2. Cargar todas las matrículas de esa materia con `persona_id`, `nota_final`, `estado` (excluyendo `Retirado`).
-3. Si la matrícula no tiene `nota_final`, calcularlo en vivo a partir de `calificaciones` × `items_calificables.porcentaje` × `cortes_academicos.porcentaje` (mismo cálculo que ya hace `HistorialCalificacionesSection`). Persistir el resultado en `matriculas.nota_final` y marcar `estado = 'Completado'` o `'Reprobado'` según `>= 3`.
-4. Buscar el `proceso_crecimiento` que coincida con el nombre de la materia (match igual al actual, case-insensitive con `includes` bidireccional). Si no hay coincidencia → no sincroniza ese proceso pero igual cierra la materia.
-5. Para cada estudiante:
-   - `nota_final >= 3` → upsert en `persona_procesos` con `estado = 'Realizado'`, `fecha_completado = today`, `observacion = 'Finalizado por cierre de materia: {nombre}'`.
-   - `nota_final < 3` (reprobado) → no se marca el hito (queda "No Realizado").
-   - Sin nota → se omite y se reporta en el toast ("N estudiantes sin nota, no sincronizados").
-6. Invalidar queries: `["persona_procesos"]`, `["personas"]`, `["matriculas"]`.
+En la tarjeta de cada petición (modo Gestionar) y en una nueva columna de acción (modo Panel):
 
-Devuelve un resumen `{ sincronizados, sinNota, sinProcesoMatch, procesoNombre }` para mostrar en el toast.
+- Botón **"Responder por WhatsApp"** (verde, ícono de WhatsApp).
+- Habilitado solo si la persona tiene `whatsapp` o `telefono` registrado; deshabilitado con tooltip "Sin número de WhatsApp" en caso contrario.
+- Al pulsar, abre `https://wa.me/<numero>?text=<plantilla>` en una nueva pestaña.
+- Plantilla de mensaje editable en un pequeño diálogo previo con texto sugerido, por ejemplo:
 
-#### 2. Disparar la sincronización al "Finalizar materia"
+  > Hola {nombre}, desde {iglesia} estamos orando por tu petición: "{titulo}". {mensaje_personalizado} Bendiciones.
 
-En `src/pages/AcademiaPage.tsx` (líneas 1770-1793), reemplazar la llamada actual:
-```
-await updateMateria.mutateAsync({ id: m.id, estado: "Finalizada" });
-const resumen = await syncMateriaToCrecimiento(m.id);
-toast.success(
-  `Materia finalizada · ${resumen.sincronizados} hito(s) actualizado(s)` +
-  (resumen.sinNota ? ` · ${resumen.sinNota} sin nota` : "") +
-  (!resumen.procesoNombre ? " · Sin proceso de crecimiento asociado" : "")
-);
-```
+  El usuario puede ajustar el mensaje y pulsar **Enviar por WhatsApp**.
+- Se normaliza el número (quita espacios, guiones, paréntesis y el "+"). Si el número no tiene código de país, se antepone el código por defecto (Colombia `57`, configurable más adelante).
+- Al enviar, se actualiza opcionalmente el estado de la petición a **"En oración"** si estaba en **"Pendiente"** y se agrega una línea a `notas_seguimiento` tipo `"[22/04/2026] Respondida por WhatsApp"` para dejar trazabilidad.
 
-Cambiar el `confirm()` para advertir el efecto:
-> "¿Finalizar la materia '{nombre}'? Se cerrará para edición y los estudiantes aprobados (≥3) verán su hito de crecimiento marcado como Finalizado."
+### Detalles técnicos
 
-#### 3. Reabrir materia → revertir hitos
+- Sin cambios en base de datos, RLS ni edge functions.
+- Se reutilizan `Popover`, `Calendar`, `Dialog`, `Textarea`, `Button`, `date-fns`, `usePeticiones`, `useUpdatePeticion`, `useConfiguracion` (para tomar el nombre de la iglesia en la plantilla).
+- Nuevo helper `src/lib/whatsapp.ts` con `buildWhatsAppUrl(numero, mensaje, defaultCountryCode)` y `normalizePhone(numero)`.
+- Asegurar `pointer-events-auto` en `Calendar` dentro de `Popover`.
 
-En el botón "Reabrir" (línea 1782-1792), después de `updateMateria`, llamar a una contraparte `revertMateriaFromCrecimiento(materiaId)` que:
-- Busca el proceso asociado.
-- Para cada matrícula aprobada, si su `persona_procesos.observacion` empieza con `"Finalizado por cierre de materia: {nombre}"` → eliminar la fila (vuelve a "No Realizado"). Esto evita borrar hitos finalizados manualmente desde el perfil de la persona.
+### Resultado
 
-#### 4. Sincronización también desde la grilla (mejora consistencia)
-
-Quitar el filtro "solo Discipulado" en `syncWithGrowthModule` (línea 1144) — Seminario Bíblico también debe sincronizar cuando hay match de nombre. Reemplazar la función actual por una llamada a `syncMateriaToCrecimiento(selectedMateria)` después de `bulkUpsert.mutateAsync(records)` para no duplicar lógica.
-
-#### 5. Indicador en UI
-
-En las cards de materia (línea 1722) añadir un mini-badge cuando la materia está finalizada y existe un `proceso_crecimiento` con el mismo nombre:
-`🎯 Sincronizado con: {nombre del proceso}`.
-
-### Archivos afectados
-
-**Editados**
-- `src/hooks/useAcademia.ts` — exportar `syncMateriaToCrecimiento(materiaId)` y `revertMateriaFromCrecimiento(materiaId)`. Lógica de cálculo de `nota_final` consolidado.
-- `src/pages/AcademiaPage.tsx` — invocar las funciones en los botones Finalizar/Reabrir, ampliar el `confirm()`, mejorar mensajes de toast, refactorizar `syncWithGrowthModule` para reutilizar la nueva función y eliminar restricción a Discipulado, añadir badge de sincronización.
-
-**Sin cambios**
-- Esquema de base de datos. La lógica usa las tablas existentes: `materias`, `matriculas`, `calificaciones`, `items_calificables`, `cortes_academicos`, `procesos_crecimiento`, `persona_procesos`.
-
-### Resultado esperado
-
-Al pulsar **"Finalizar"** en una materia de Academia, el sistema:
-1. Calcula y persiste `nota_final` de cada matrícula que aún no la tenga.
-2. Marca como **Finalizado** el hito de crecimiento correspondiente (mismo nombre) para todos los estudiantes con promedio ≥ 3, con la fecha de hoy.
-3. Muestra un resumen claro: cuántos hitos se actualizaron, cuántos quedaron sin nota, si hubo proceso de crecimiento asociado.
-4. Si la materia se reabre, se revierten únicamente los hitos generados por ese cierre, sin afectar marcaciones manuales.
-
-La sincronización es ahora **inmediata, completa y bidireccional**, eliminando la necesidad de re-guardar calificaciones para que el módulo de Personas refleje el avance espiritual.
+El usuario podrá: (1) elegir un rango de fechas y descargar un informe PDF/Excel solo con las peticiones de ese período, y (2) abrir WhatsApp con un mensaje pre-redactado para responder directamente a cada persona, registrando automáticamente el contacto en el seguimiento de la petición.
 
