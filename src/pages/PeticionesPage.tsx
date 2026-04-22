@@ -378,39 +378,70 @@ function WhatsAppButton({ peticion, onClick, size = "sm" }: { peticion: any; onC
   const tienePersona = !!peticion?.personas;
   const disabled = !tienePersona || !numero;
   const reason = !tienePersona ? "Petición sin persona asignada" : !numero ? "La persona no tiene WhatsApp ni teléfono" : "";
+  const contactado = fueContactadoPorWhatsApp(peticion?.notas_seguimiento);
 
-  const btn = size === "icon" ? (
+  const handleClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (disabled) return;
+    onClick(peticion);
+  };
+
+  if (size === "icon") {
+    const icon = (
+      <Button
+        type="button"
+        variant="ghost"
+        size="icon"
+        className={cn("h-8 w-8", contactado ? "text-success" : "text-muted-foreground hover:text-success", "hover:bg-success/10")}
+        disabled={disabled}
+        onClick={handleClick}
+      >
+        <MessageCircle className="h-4 w-4" />
+      </Button>
+    );
+    if (disabled) {
+      return (
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild><span tabIndex={0}>{icon}</span></TooltipTrigger>
+            <TooltipContent>{reason}</TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      );
+    }
+    return icon;
+  }
+
+  const btn = (
     <Button
-      variant="ghost"
-      size="icon"
-      className="h-8 w-8 text-success hover:bg-success/10"
-      disabled={disabled}
-      onClick={() => onClick(peticion)}
-    >
-      <MessageCircle className="h-4 w-4" />
-    </Button>
-  ) : (
-    <Button
+      type="button"
       size="sm"
       variant="outline"
-      className="gap-1 text-xs border-success/40 text-success hover:bg-success/10"
+      className={cn(
+        "gap-1 text-xs",
+        contactado
+          ? "border-success bg-success/10 text-success hover:bg-success/20"
+          : "border-success/40 text-success hover:bg-success/10"
+      )}
       disabled={disabled}
-      onClick={() => onClick(peticion)}
+      onClick={handleClick}
     >
-      <MessageCircle className="h-3.5 w-3.5" /> WhatsApp
+      <MessageCircle className="h-3.5 w-3.5" />
+      {contactado ? "Reenviar WA" : "WhatsApp"}
     </Button>
   );
-
-  if (!disabled) return btn;
-
-  return (
-    <TooltipProvider>
-      <Tooltip>
-        <TooltipTrigger asChild><span>{btn}</span></TooltipTrigger>
-        <TooltipContent>{reason}</TooltipContent>
-      </Tooltip>
-    </TooltipProvider>
-  );
+  if (disabled) {
+    return (
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild><span tabIndex={0}>{btn}</span></TooltipTrigger>
+          <TooltipContent>{reason}</TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+    );
+  }
+  return btn;
 }
 
 // ============ PANEL VIEW ============
