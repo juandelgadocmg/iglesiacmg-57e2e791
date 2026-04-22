@@ -7,7 +7,7 @@ export function usePeticiones() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("peticiones_oracion")
-        .select("*, personas(nombres, apellidos)")
+        .select("*, personas(nombres, apellidos, whatsapp, telefono)")
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data;
