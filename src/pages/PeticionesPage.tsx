@@ -279,7 +279,7 @@ export default function PeticionesPage() {
 }
 
 // ============ DATE RANGE FILTER ============
-function DateRangeFilter({ fechaDesde, fechaHasta, setFechaDesde, setFechaHasta }: any) {
+function DateRangeFilter({ fechaDesde, fechaHasta, setFechaDesde, setFechaHasta, soloContactadasWA, setSoloContactadasWA }: any) {
   const setPreset = (preset: "hoy" | "semana" | "mes" | "anio") => {
     const now = new Date();
     if (preset === "hoy") {
@@ -349,16 +349,24 @@ function DateRangeFilter({ fechaDesde, fechaHasta, setFechaDesde, setFechaHasta 
         <Button variant="ghost" size="sm" className="h-8 text-xs" onClick={() => setPreset("mes")}>Este mes</Button>
         <Button variant="ghost" size="sm" className="h-8 text-xs" onClick={() => setPreset("anio")}>Este año</Button>
 
-        {(fechaDesde || fechaHasta) && (
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-8 text-xs text-destructive ml-auto gap-1"
-            onClick={() => { setFechaDesde(undefined); setFechaHasta(undefined); }}
-          >
-            <X className="h-3 w-3" /> Limpiar
-          </Button>
-        )}
+        <div className="flex items-center gap-2 ml-auto">
+          <div className="flex items-center gap-2 px-2 py-1 rounded-md border bg-success/5">
+            <MessageCircle className="h-3.5 w-3.5 text-success" />
+            <Label htmlFor="solo-wa" className="text-xs cursor-pointer select-none">Solo contactadas por WhatsApp</Label>
+            <Switch id="solo-wa" checked={!!soloContactadasWA} onCheckedChange={setSoloContactadasWA} />
+          </div>
+
+          {(fechaDesde || fechaHasta) && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 text-xs text-destructive gap-1"
+              onClick={() => { setFechaDesde(undefined); setFechaHasta(undefined); }}
+            >
+              <X className="h-3 w-3" /> Limpiar
+            </Button>
+          )}
+        </div>
       </CardContent>
     </Card>
   );
