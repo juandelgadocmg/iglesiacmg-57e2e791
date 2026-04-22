@@ -59,6 +59,7 @@ export default function PeticionesPage() {
   const [fechaDesde, setFechaDesde] = useState<Date | undefined>(undefined);
   const [fechaHasta, setFechaHasta] = useState<Date | undefined>(undefined);
   const [waPeticion, setWaPeticion] = useState<any | null>(null);
+  const [soloContactadasWA, setSoloContactadasWA] = useState(false);
 
   const filtered = useMemo(() => {
     if (!peticiones) return [];
