@@ -25,6 +25,9 @@ import { format, parseISO, isPast, startOfDay, endOfDay, startOfWeek, endOfWeek,
 import { es } from "date-fns/locale";
 import ExportDropdown from "@/components/shared/ExportDropdown";
 import { cn } from "@/lib/utils";
+import { fueContactadoPorWhatsApp, ultimoContactoWhatsApp } from "@/lib/whatsapp";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 
 const ESTADOS = ["Todos", "Pendiente", "En oración", "Respondida", "Archivada"];
 const PIE_COLORS = ["hsl(var(--warning))", "hsl(var(--info))", "hsl(var(--success))", "hsl(var(--muted-foreground))"];
@@ -56,6 +59,7 @@ export default function PeticionesPage() {
   const [fechaDesde, setFechaDesde] = useState<Date | undefined>(undefined);
   const [fechaHasta, setFechaHasta] = useState<Date | undefined>(undefined);
   const [waPeticion, setWaPeticion] = useState<any | null>(null);
+  const [soloContactadasWA, setSoloContactadasWA] = useState(false);
 
   const filtered = useMemo(() => {
     if (!peticiones) return [];
@@ -78,9 +82,10 @@ export default function PeticionesPage() {
         } else if (desde && fecha < desde) return false;
         else if (hasta && fecha > hasta) return false;
       }
+      if (soloContactadasWA && !fueContactadoPorWhatsApp(p.notas_seguimiento)) return false;
       return true;
     });
-  }, [peticiones, tab, search, fechaDesde, fechaHasta]);
+  }, [peticiones, tab, search, fechaDesde, fechaHasta, soloContactadasWA]);
 
   // Conteos sobre el listado filtrado por fecha (sin filtrar por tab)
   const peticionesEnRango = useMemo(() => {
@@ -134,16 +139,22 @@ export default function PeticionesPage() {
     toast.success("Petición marcada como respondida");
   };
 
-  const exportData = (filtered as any[]).map(p => ({
-    titulo: p.titulo,
-    persona: p.personas ? `${p.personas.nombres} ${p.personas.apellidos}` : "Sin asignar",
-    tipo: p.tipo || "Sin tipo",
-    estado: p.estado,
-    prioridad: p.prioridad,
-    descripcion: p.descripcion || "",
-    fecha_seguimiento: p.fecha_seguimiento || "",
-    fecha: p.created_at ? format(parseISO(p.created_at), "dd/MM/yyyy") : "",
-  }));
+  const exportData = (filtered as any[]).map(p => {
+    const contactadoWA = fueContactadoPorWhatsApp(p.notas_seguimiento);
+    const ultContacto = ultimoContactoWhatsApp(p.notas_seguimiento);
+    return {
+      titulo: p.titulo,
+      persona: p.personas ? `${p.personas.nombres} ${p.personas.apellidos}` : "Sin asignar",
+      tipo: p.tipo || "Sin tipo",
+      estado: p.estado,
+      prioridad: p.prioridad,
+      whatsapp_estado: contactadoWA ? "Contactado" : "Pendiente",
+      whatsapp_fecha: ultContacto || "",
+      descripcion: p.descripcion || "",
+      fecha_seguimiento: p.fecha_seguimiento || "",
+      fecha: p.created_at ? format(parseISO(p.created_at), "dd/MM/yyyy") : "",
+    };
+  });
 
   const rangoActivo = fechaDesde || fechaHasta;
   const rangoLabel = useMemo(() => {
@@ -181,6 +192,8 @@ export default function PeticionesPage() {
             { header: "Tipo", key: "tipo" },
             { header: "Estado", key: "estado" },
             { header: "Prioridad", key: "prioridad" },
+            { header: "WhatsApp", key: "whatsapp_estado" },
+            { header: "Fecha contacto WA", key: "whatsapp_fecha" },
             { header: "Descripción", key: "descripcion" },
             { header: "Seguimiento", key: "fecha_seguimiento" },
             { header: "Fecha", key: "fecha" },
@@ -223,12 +236,16 @@ export default function PeticionesPage() {
         fechaHasta={fechaHasta}
         setFechaDesde={setFechaDesde}
         setFechaHasta={setFechaHasta}
+        soloContactadasWA={soloContactadasWA}
+        setSoloContactadasWA={setSoloContactadasWA}
       />
 
-      {rangoActivo && (
-        <div className="text-xs text-muted-foreground bg-muted/40 border rounded-md px-3 py-2">
-          Mostrando <strong>{filtered.length}</strong> petición(es) del período <strong>{rangoLabel}</strong>.
-          El informe exportado incluirá únicamente este rango.
+      {(rangoActivo || soloContactadasWA) && (
+        <div className="text-xs text-muted-foreground bg-muted/40 border rounded-md px-3 py-2 space-x-1">
+          <span>Mostrando <strong>{filtered.length}</strong> petición(es)</span>
+          {rangoActivo && <span>del período <strong>{rangoLabel}</strong></span>}
+          {soloContactadasWA && <span className="text-success font-medium">· solo contactadas por WhatsApp</span>}
+          <span>. El informe exportado refleja estos filtros.</span>
         </div>
       )}
 
@@ -262,7 +279,7 @@ export default function PeticionesPage() {
 }
 
 // ============ DATE RANGE FILTER ============
-function DateRangeFilter({ fechaDesde, fechaHasta, setFechaDesde, setFechaHasta }: any) {
+function DateRangeFilter({ fechaDesde, fechaHasta, setFechaDesde, setFechaHasta, soloContactadasWA, setSoloContactadasWA }: any) {
   const setPreset = (preset: "hoy" | "semana" | "mes" | "anio") => {
     const now = new Date();
     if (preset === "hoy") {
@@ -332,16 +349,24 @@ function DateRangeFilter({ fechaDesde, fechaHasta, setFechaDesde, setFechaHasta 
         <Button variant="ghost" size="sm" className="h-8 text-xs" onClick={() => setPreset("mes")}>Este mes</Button>
         <Button variant="ghost" size="sm" className="h-8 text-xs" onClick={() => setPreset("anio")}>Este año</Button>
 
-        {(fechaDesde || fechaHasta) && (
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-8 text-xs text-destructive ml-auto gap-1"
-            onClick={() => { setFechaDesde(undefined); setFechaHasta(undefined); }}
-          >
-            <X className="h-3 w-3" /> Limpiar
-          </Button>
-        )}
+        <div className="flex items-center gap-2 ml-auto">
+          <div className="flex items-center gap-2 px-2 py-1 rounded-md border bg-success/5">
+            <MessageCircle className="h-3.5 w-3.5 text-success" />
+            <Label htmlFor="solo-wa" className="text-xs cursor-pointer select-none">Solo contactadas por WhatsApp</Label>
+            <Switch id="solo-wa" checked={!!soloContactadasWA} onCheckedChange={setSoloContactadasWA} />
+          </div>
+
+          {(fechaDesde || fechaHasta) && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 text-xs text-destructive gap-1"
+              onClick={() => { setFechaDesde(undefined); setFechaHasta(undefined); }}
+            >
+              <X className="h-3 w-3" /> Limpiar
+            </Button>
+          )}
+        </div>
       </CardContent>
     </Card>
   );
@@ -353,39 +378,70 @@ function WhatsAppButton({ peticion, onClick, size = "sm" }: { peticion: any; onC
   const tienePersona = !!peticion?.personas;
   const disabled = !tienePersona || !numero;
   const reason = !tienePersona ? "Petición sin persona asignada" : !numero ? "La persona no tiene WhatsApp ni teléfono" : "";
+  const contactado = fueContactadoPorWhatsApp(peticion?.notas_seguimiento);
 
-  const btn = size === "icon" ? (
+  const handleClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (disabled) return;
+    onClick(peticion);
+  };
+
+  if (size === "icon") {
+    const icon = (
+      <Button
+        type="button"
+        variant="ghost"
+        size="icon"
+        className={cn("h-8 w-8", contactado ? "text-success" : "text-muted-foreground hover:text-success", "hover:bg-success/10")}
+        disabled={disabled}
+        onClick={handleClick}
+      >
+        <MessageCircle className="h-4 w-4" />
+      </Button>
+    );
+    if (disabled) {
+      return (
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild><span tabIndex={0}>{icon}</span></TooltipTrigger>
+            <TooltipContent>{reason}</TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      );
+    }
+    return icon;
+  }
+
+  const btn = (
     <Button
-      variant="ghost"
-      size="icon"
-      className="h-8 w-8 text-success hover:bg-success/10"
-      disabled={disabled}
-      onClick={() => onClick(peticion)}
-    >
-      <MessageCircle className="h-4 w-4" />
-    </Button>
-  ) : (
-    <Button
+      type="button"
       size="sm"
       variant="outline"
-      className="gap-1 text-xs border-success/40 text-success hover:bg-success/10"
+      className={cn(
+        "gap-1 text-xs",
+        contactado
+          ? "border-success bg-success/10 text-success hover:bg-success/20"
+          : "border-success/40 text-success hover:bg-success/10"
+      )}
       disabled={disabled}
-      onClick={() => onClick(peticion)}
+      onClick={handleClick}
     >
-      <MessageCircle className="h-3.5 w-3.5" /> WhatsApp
+      <MessageCircle className="h-3.5 w-3.5" />
+      {contactado ? "Reenviar WA" : "WhatsApp"}
     </Button>
   );
-
-  if (!disabled) return btn;
-
-  return (
-    <TooltipProvider>
-      <Tooltip>
-        <TooltipTrigger asChild><span>{btn}</span></TooltipTrigger>
-        <TooltipContent>{reason}</TooltipContent>
-      </Tooltip>
-    </TooltipProvider>
-  );
+  if (disabled) {
+    return (
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild><span tabIndex={0}>{btn}</span></TooltipTrigger>
+          <TooltipContent>{reason}</TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+    );
+  }
+  return btn;
 }
 
 // ============ PANEL VIEW ============
@@ -565,6 +621,12 @@ function GestionarView({ filtered, tab, setTab, search, setSearch, onEdit, onDel
 
               <div className="flex items-center gap-2 flex-wrap">
                 <Badge className={prioridadColor[p.prioridad] || ""} variant="secondary">{p.prioridad}</Badge>
+                {fueContactadoPorWhatsApp(p.notas_seguimiento) && (
+                  <Badge className="bg-success/15 text-success border-success/40 gap-1" variant="outline">
+                    <MessageCircle className="h-3 w-3" />
+                    WhatsApp {ultimoContactoWhatsApp(p.notas_seguimiento) ? `· ${ultimoContactoWhatsApp(p.notas_seguimiento)}` : ""}
+                  </Badge>
+                )}
                 {p.fecha_seguimiento && (
                   <span className={`text-xs flex items-center gap-1 ${isPast(parseISO(p.fecha_seguimiento)) ? "text-destructive" : "text-muted-foreground"}`}>
                     <Clock className="h-3 w-3" />
