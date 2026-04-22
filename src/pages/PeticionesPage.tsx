@@ -621,6 +621,12 @@ function GestionarView({ filtered, tab, setTab, search, setSearch, onEdit, onDel
 
               <div className="flex items-center gap-2 flex-wrap">
                 <Badge className={prioridadColor[p.prioridad] || ""} variant="secondary">{p.prioridad}</Badge>
+                {fueContactadoPorWhatsApp(p.notas_seguimiento) && (
+                  <Badge className="bg-success/15 text-success border-success/40 gap-1" variant="outline">
+                    <MessageCircle className="h-3 w-3" />
+                    WhatsApp {ultimoContactoWhatsApp(p.notas_seguimiento) ? `· ${ultimoContactoWhatsApp(p.notas_seguimiento)}` : ""}
+                  </Badge>
+                )}
                 {p.fecha_seguimiento && (
                   <span className={`text-xs flex items-center gap-1 ${isPast(parseISO(p.fecha_seguimiento)) ? "text-destructive" : "text-muted-foreground"}`}>
                     <Clock className="h-3 w-3" />
