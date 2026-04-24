@@ -293,6 +293,54 @@ export function useUpsertConsignacionSemanal() {
 }
 
 /**
+ * Reabre una consignación semanal previamente cerrada para permitir
+ * conciliar entregas que llegan días o semanas después.
+ * Registra el evento en el historial con el motivo.
+ */
+export function useReabrirConsignacionSemanal() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: {
+      consignacion_id: string;
+      semana_inicio: string;
+      motivo: string;
+      soporte_url: string | null;
+      valor_consignado: number;
+      fecha_consignacion: string | null;
+    }) => {
+      const { data: { user } } = await supabase.auth.getUser();
+
+      // 1. Registrar el evento en el historial
+      const { error: histErr } = await supabase
+        .from("tesoreria_consignacion_historial")
+        .insert({
+          consignacion_semanal_id: input.consignacion_id,
+          registro_id: input.consignacion_id,
+          soporte_url: input.soporte_url,
+          valor_consignado: input.valor_consignado,
+          fecha_consignacion: input.fecha_consignacion,
+          motivo_cambio: `[REAPERTURA] ${input.motivo}`,
+          cambiado_por: user?.id ?? null,
+        });
+      if (histErr) throw histErr;
+
+      // 2. Marcar como no completada (reabrir)
+      const { error: updErr } = await supabase
+        .from("tesoreria_consignacion_semanal")
+        .update({ consignacion_completada: false })
+        .eq("id", input.consignacion_id);
+      if (updErr) throw updErr;
+    },
+    onSuccess: (_d, vars) => {
+      qc.invalidateQueries({ queryKey: ["tesoreria_cdp_consignacion_semanal", vars.semana_inicio] });
+      qc.invalidateQueries({ queryKey: ["tesoreria_cdp_semana", vars.semana_inicio] });
+      qc.invalidateQueries({ queryKey: ["tesoreria_cdp_mora"] });
+      qc.invalidateQueries({ queryKey: ["tesoreria_cdp_historial_semanal", vars.consignacion_id] });
+    },
+  });
+}
+
+/**
  * Reemplaza el soporte de la consignación semanal ya cerrada,
  * registrando el cambio en el historial.
  */
