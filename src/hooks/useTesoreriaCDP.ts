@@ -310,12 +310,12 @@ export function useReabrirConsignacionSemanal() {
     }) => {
       const { data: { user } } = await supabase.auth.getUser();
 
-      // 1. Registrar el evento en el historial
+      // 1. Registrar el evento en el historial (sin registro_id porque aplica a la semana global)
       const { error: histErr } = await supabase
         .from("tesoreria_consignacion_historial")
         .insert({
           consignacion_semanal_id: input.consignacion_id,
-          registro_id: input.consignacion_id,
+          registro_id: null,
           soporte_url: input.soporte_url,
           valor_consignado: input.valor_consignado,
           fecha_consignacion: input.fecha_consignacion,
