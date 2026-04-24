@@ -1938,7 +1938,7 @@ export type Database = {
           fecha_consignacion: string | null
           id: string
           motivo_cambio: string | null
-          registro_id: string
+          registro_id: string | null
           soporte_url: string | null
           valor_consignado: number | null
         }
@@ -1949,7 +1949,7 @@ export type Database = {
           fecha_consignacion?: string | null
           id?: string
           motivo_cambio?: string | null
-          registro_id: string
+          registro_id?: string | null
           soporte_url?: string | null
           valor_consignado?: number | null
         }
@@ -1960,7 +1960,7 @@ export type Database = {
           fecha_consignacion?: string | null
           id?: string
           motivo_cambio?: string | null
-          registro_id?: string
+          registro_id?: string | null
           soporte_url?: string | null
           valor_consignado?: number | null
         }
