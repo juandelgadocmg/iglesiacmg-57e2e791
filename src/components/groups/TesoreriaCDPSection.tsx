@@ -51,6 +51,7 @@ export default function TesoreriaCDPSection() {
   const [showConsignacion, setShowConsignacion] = useState(false);
   const [showReemplazar, setShowReemplazar] = useState(false);
   const [showHistorial, setShowHistorial] = useState(false);
+  const [showReabrir, setShowReabrir] = useState(false);
   const semana = useMemo(() => getSemanaRange(fechaSemana), [fechaSemana]);
 
   const { data: filas, isLoading } = useTesoreriaSemana(semana.inicio, semana.fin);
