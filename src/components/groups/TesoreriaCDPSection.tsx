@@ -13,14 +13,15 @@ import {
 } from "@/components/ui/table";
 import {
   ChevronLeft, ChevronRight, CalendarIcon, FileDown, AlertTriangle,
-  DollarSign, CheckCircle2, Clock, History, Upload, Lock, FileText, ExternalLink,
-  Replace, Timer,
+  DollarSign, CheckCircle2, Clock, History, Upload, Lock, Unlock, FileText, ExternalLink,
+  Replace, Timer, Save,
 } from "lucide-react";
 import {
   useTesoreriaSemana, useUpsertTesoreriaCDP, useTesoreriaMora,
   useUploadSoporteConsignacion,
   useConsignacionSemanal, useUpsertConsignacionSemanal,
   useReemplazarSoporteSemanal, useHistorialSemanal,
+  useReabrirConsignacionSemanal,
   getSemanaRange, type FilaTesoreriaCDP, type EstadoTesoreria, type ConsignacionSemanal,
 } from "@/hooks/useTesoreriaCDP";
 import { useConfiguracion } from "@/hooks/useConfiguracion";
