@@ -733,16 +733,16 @@ function ConsignacionSemanalDialog({
 
   const bloqueado = excedeTolerancia && !(canBypass && autorizar && justificacion.trim().length > 0);
 
-  const handleConfirm = async () => {
+  const handleConfirm = async (cerrarSemana: boolean) => {
     if (num <= 0) {
       toast.error("Ingresa el valor consignado.");
       return;
     }
-    if (!file && !consignacion?.soporte_consignacion_url) {
-      toast.error("Adjunta el soporte de la consignación.");
+    if (cerrarSemana && !file && !consignacion?.soporte_consignacion_url) {
+      toast.error("Adjunta el soporte de la consignación para cerrar.");
       return;
     }
-    if (bloqueado) {
+    if (cerrarSemana && bloqueado) {
       toast.error("La diferencia supera la tolerancia configurada.");
       return;
     }
@@ -753,7 +753,7 @@ function ConsignacionSemanalDialog({
         url = await upload.mutateAsync({ file, semanaInicio });
       }
       let observacionFinal = obs || null;
-      if (excedeTolerancia && canBypass && autorizar) {
+      if (cerrarSemana && excedeTolerancia && canBypass && autorizar) {
         observacionFinal = `${observacionFinal ? observacionFinal + "\n\n" : ""}[AUTORIZACIÓN ADMIN]: ${justificacion.trim()}`;
       }
       await upsert.mutateAsync({
@@ -764,9 +764,13 @@ function ConsignacionSemanalDialog({
         fecha_consignacion: fechaCons || null,
         soporte_consignacion_url: url,
         observacion: observacionFinal,
-        consignacion_completada: true,
+        consignacion_completada: cerrarSemana,
       });
-      toast.success("Consignación registrada y semana cerrada.");
+      toast.success(
+        cerrarSemana
+          ? "Consignación registrada y semana cerrada."
+          : "Consignación guardada. La semana sigue abierta para conciliar entregas pendientes."
+      );
       onClose();
     } catch (e: any) {
       toast.error("Error: " + (e.message || ""));
