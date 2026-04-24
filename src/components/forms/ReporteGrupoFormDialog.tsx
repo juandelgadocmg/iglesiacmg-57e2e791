@@ -158,6 +158,12 @@ export default function ReporteGrupoFormDialog({ open, onOpenChange, editReporte
     return allReportes.filter(r => r.grupo_id === grupoId);
   }, [allReportes, grupoId]);
 
+  const selectedDateKey = format(selectedDate, "yyyy-MM-dd");
+  const duplicateReporte = useMemo(() => {
+    if (!grupoId) return null;
+    return grupoReportes.find(r => r.fecha === selectedDateKey && r.id !== editReporteId) || null;
+  }, [grupoId, grupoReportes, selectedDateKey, editReporteId]);
+
   const liderInfo = useMemo(() => {
     if (!selectedGrupo) return null;
     return (selectedGrupo as any).personas || null;
@@ -355,6 +361,10 @@ export default function ReporteGrupoFormDialog({ open, onOpenChange, editReporte
       toast.error("Complete los datos obligatorios.");
       return;
     }
+    if (duplicateReporte) {
+      toast.error("Ya existe un reporte para este grupo en esta fecha.");
+      return;
+    }
     if (seRealizo && !attendanceValid) {
       toast.error("Debe indicar el motivo de ausencia para todos los ausentes.");
       return;
@@ -406,7 +416,7 @@ export default function ReporteGrupoFormDialog({ open, onOpenChange, editReporte
       } else {
         await createReporte.mutateAsync({
           grupo_id: grupoId,
-          fecha: format(selectedDate, "yyyy-MM-dd"),
+          fecha: selectedDateKey,
           mensaje,
           observaciones: observaciones || undefined,
           ofrenda_casa_paz: parseFloat(ofrendaCasaPaz) || 0,
@@ -419,7 +429,7 @@ export default function ReporteGrupoFormDialog({ open, onOpenChange, editReporte
           grupo: selectedGrupo?.nombre,
           tipo: selectedGrupo?.tipo,
           dia_reunion: diaReunion,
-          fecha: format(selectedDate, "yyyy-MM-dd"),
+          fecha: selectedDateKey,
           mensaje,
           noRealizado: !seRealizo,
           presentes: presentesCount,
@@ -435,7 +445,10 @@ export default function ReporteGrupoFormDialog({ open, onOpenChange, editReporte
         toast.success("Reporte enviado exitosamente.");
       }
     } catch (err: any) {
-      toast.error("Error: " + (err.message || ""));
+      const message = err.message?.includes("Ya existe un reporte")
+        ? "Ya existe un reporte para este grupo en esta fecha."
+        : (err.message || "");
+      toast.error("Error: " + message);
     }
   };
 
@@ -462,7 +475,7 @@ export default function ReporteGrupoFormDialog({ open, onOpenChange, editReporte
     setEditAttendanceApplied(false);
   };
 
-  const canCreateReport = !!grupoId && !!mensaje;
+  const canCreateReport = !!grupoId && !!mensaje && !duplicateReporte;
 
   // Day restriction - only for new reports, not edits
   const dayAllowed = isEditMode || isDayAllowed(diaReunion);
@@ -760,7 +773,7 @@ export default function ReporteGrupoFormDialog({ open, onOpenChange, editReporte
                   {isEditMode ? "Continuar edición" : "Crear reporte"}
                 </Button>
               ) : (
-                <Button size="sm" onClick={handleSubmit} disabled={createReporte.isPending || updateReporte.isPending}>
+                <Button size="sm" onClick={handleSubmit} disabled={createReporte.isPending || updateReporte.isPending || !!duplicateReporte}>
                   {(createReporte.isPending || updateReporte.isPending) ? "Guardando..." : isEditMode ? "Guardar Cambios" : "Finalizar Reporte"}
                 </Button>
               )}
@@ -871,8 +884,14 @@ export default function ReporteGrupoFormDialog({ open, onOpenChange, editReporte
                         className="w-full"
                         modifiers={reportDateModifiers}
                         modifiersClassNames={{ reported: "bg-destructive/20 text-destructive font-bold" }}
-                        disabled={isEditMode}
+                        disabled={isEditMode ? true : reportDates}
                       />
+                      {duplicateReporte && (
+                        <div className="mt-3 flex items-center gap-2 rounded-md border border-destructive/30 bg-destructive/10 p-2 text-xs text-destructive">
+                          <AlertTriangle className="h-3.5 w-3.5" />
+                          Ya existe un reporte para este grupo en esta fecha.
+                        </div>
+                      )}
                       {grupoReportes.length > 0 && (
                         <div className="mt-3 space-y-1">
                           <p className="text-xs text-muted-foreground font-medium">Reportes existentes:</p>
@@ -1009,7 +1028,7 @@ export default function ReporteGrupoFormDialog({ open, onOpenChange, editReporte
                 </div>
 
                 <div className="flex justify-start pt-4">
-                  <Button onClick={handleSubmit} disabled={createReporte.isPending || updateReporte.isPending || (!seRealizo ? false : !attendanceValid)} className="gap-2">
+                  <Button onClick={handleSubmit} disabled={createReporte.isPending || updateReporte.isPending || !!duplicateReporte || (!seRealizo ? false : !attendanceValid)} className="gap-2">
                     <Send className="h-4 w-4" />
                     {(createReporte.isPending || updateReporte.isPending) ? "Guardando..." : isEditMode ? "Guardar Cambios" : "Finalizar Reporte"}
                   </Button>
