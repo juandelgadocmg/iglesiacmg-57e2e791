@@ -336,6 +336,7 @@ export default function TesoreriaCDPSection() {
         onCerrar={() => setShowConsignacion(true)}
         onReemplazar={() => setShowReemplazar(true)}
         onHistorial={() => setShowHistorial(true)}
+        onReabrir={() => setShowReabrir(true)}
         onDownloadPDF={handleDownloadConsignacionPDF}
       />
 
@@ -364,6 +365,14 @@ export default function TesoreriaCDPSection() {
         open={showHistorial}
         consignacion={consignacion || null}
         onClose={() => setShowHistorial(false)}
+      />
+
+      {/* Modal reabrir semana */}
+      <ReabrirSemanaDialog
+        open={showReabrir}
+        consignacion={consignacion || null}
+        semanaInicio={semana.inicio}
+        onClose={() => setShowReabrir(false)}
       />
 
       {/* Modal mora histórica */}
