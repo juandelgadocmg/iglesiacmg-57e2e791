@@ -537,6 +537,7 @@ function ConsignacionSemanalBlock({
   onCerrar,
   onReemplazar,
   onHistorial,
+  onReabrir,
   onDownloadPDF,
 }: {
   consignacion: ConsignacionSemanal | null;
@@ -545,6 +546,7 @@ function ConsignacionSemanalBlock({
   onCerrar: () => void;
   onReemplazar: () => void;
   onHistorial: () => void;
+  onReabrir: () => void;
   onDownloadPDF: () => void;
 }) {
   const cerrada = !!consignacion?.consignacion_completada;
