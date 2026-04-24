@@ -13,14 +13,15 @@ import {
 } from "@/components/ui/table";
 import {
   ChevronLeft, ChevronRight, CalendarIcon, FileDown, AlertTriangle,
-  DollarSign, CheckCircle2, Clock, History, Upload, Lock, FileText, ExternalLink,
-  Replace, Timer,
+  DollarSign, CheckCircle2, Clock, History, Upload, Lock, Unlock, FileText, ExternalLink,
+  Replace, Timer, Save,
 } from "lucide-react";
 import {
   useTesoreriaSemana, useUpsertTesoreriaCDP, useTesoreriaMora,
   useUploadSoporteConsignacion,
   useConsignacionSemanal, useUpsertConsignacionSemanal,
   useReemplazarSoporteSemanal, useHistorialSemanal,
+  useReabrirConsignacionSemanal,
   getSemanaRange, type FilaTesoreriaCDP, type EstadoTesoreria, type ConsignacionSemanal,
 } from "@/hooks/useTesoreriaCDP";
 import { useConfiguracion } from "@/hooks/useConfiguracion";
@@ -50,6 +51,7 @@ export default function TesoreriaCDPSection() {
   const [showConsignacion, setShowConsignacion] = useState(false);
   const [showReemplazar, setShowReemplazar] = useState(false);
   const [showHistorial, setShowHistorial] = useState(false);
+  const [showReabrir, setShowReabrir] = useState(false);
   const semana = useMemo(() => getSemanaRange(fechaSemana), [fechaSemana]);
 
   const { data: filas, isLoading } = useTesoreriaSemana(semana.inicio, semana.fin);
@@ -334,6 +336,7 @@ export default function TesoreriaCDPSection() {
         onCerrar={() => setShowConsignacion(true)}
         onReemplazar={() => setShowReemplazar(true)}
         onHistorial={() => setShowHistorial(true)}
+        onReabrir={() => setShowReabrir(true)}
         onDownloadPDF={handleDownloadConsignacionPDF}
       />
 
@@ -362,6 +365,14 @@ export default function TesoreriaCDPSection() {
         open={showHistorial}
         consignacion={consignacion || null}
         onClose={() => setShowHistorial(false)}
+      />
+
+      {/* Modal reabrir semana */}
+      <ReabrirSemanaDialog
+        open={showReabrir}
+        consignacion={consignacion || null}
+        semanaInicio={semana.inicio}
+        onClose={() => setShowReabrir(false)}
       />
 
       {/* Modal mora histórica */}
@@ -526,6 +537,7 @@ function ConsignacionSemanalBlock({
   onCerrar,
   onReemplazar,
   onHistorial,
+  onReabrir,
   onDownloadPDF,
 }: {
   consignacion: ConsignacionSemanal | null;
@@ -534,6 +546,7 @@ function ConsignacionSemanalBlock({
   onCerrar: () => void;
   onReemplazar: () => void;
   onHistorial: () => void;
+  onReabrir: () => void;
   onDownloadPDF: () => void;
 }) {
   const cerrada = !!consignacion?.consignacion_completada;
@@ -599,6 +612,15 @@ function ConsignacionSemanalBlock({
                 <>
                   <Button size="sm" variant="outline" className="gap-1" onClick={onReemplazar}>
                     <Replace className="h-4 w-4" /> Reemplazar soporte
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="gap-1 text-amber-600 border-amber-500/40 hover:bg-amber-500/10"
+                    onClick={onReabrir}
+                    title="Reabrir la semana para registrar entregas que llegaron después"
+                  >
+                    <Unlock className="h-4 w-4" /> Reabrir semana
                   </Button>
                   <Button size="sm" variant="ghost" className="gap-1" onClick={onHistorial}>
                     <History className="h-4 w-4" /> Historial
@@ -711,16 +733,16 @@ function ConsignacionSemanalDialog({
 
   const bloqueado = excedeTolerancia && !(canBypass && autorizar && justificacion.trim().length > 0);
 
-  const handleConfirm = async () => {
+  const handleConfirm = async (cerrarSemana: boolean) => {
     if (num <= 0) {
       toast.error("Ingresa el valor consignado.");
       return;
     }
-    if (!file && !consignacion?.soporte_consignacion_url) {
-      toast.error("Adjunta el soporte de la consignación.");
+    if (cerrarSemana && !file && !consignacion?.soporte_consignacion_url) {
+      toast.error("Adjunta el soporte de la consignación para cerrar.");
       return;
     }
-    if (bloqueado) {
+    if (cerrarSemana && bloqueado) {
       toast.error("La diferencia supera la tolerancia configurada.");
       return;
     }
@@ -731,7 +753,7 @@ function ConsignacionSemanalDialog({
         url = await upload.mutateAsync({ file, semanaInicio });
       }
       let observacionFinal = obs || null;
-      if (excedeTolerancia && canBypass && autorizar) {
+      if (cerrarSemana && excedeTolerancia && canBypass && autorizar) {
         observacionFinal = `${observacionFinal ? observacionFinal + "\n\n" : ""}[AUTORIZACIÓN ADMIN]: ${justificacion.trim()}`;
       }
       await upsert.mutateAsync({
@@ -742,9 +764,13 @@ function ConsignacionSemanalDialog({
         fecha_consignacion: fechaCons || null,
         soporte_consignacion_url: url,
         observacion: observacionFinal,
-        consignacion_completada: true,
+        consignacion_completada: cerrarSemana,
       });
-      toast.success("Consignación registrada y semana cerrada.");
+      toast.success(
+        cerrarSemana
+          ? "Consignación registrada y semana cerrada."
+          : "Consignación guardada. La semana sigue abierta para conciliar entregas pendientes."
+      );
       onClose();
     } catch (e: any) {
       toast.error("Error: " + (e.message || ""));
@@ -866,9 +892,23 @@ function ConsignacionSemanalDialog({
           )}
         </div>
 
-        <DialogFooter>
+        <DialogFooter className="flex-col sm:flex-row gap-2">
           <Button variant="outline" onClick={onClose} disabled={saving}>Cancelar</Button>
-          <Button onClick={handleConfirm} disabled={saving || bloqueado} className="gap-1">
+          <Button
+            variant="secondary"
+            onClick={() => handleConfirm(false)}
+            disabled={saving}
+            className="gap-1"
+            title="Guardar la consignación parcial sin cerrar la semana, para poder seguir conciliando entregas que lleguen después."
+          >
+            <Save className="h-4 w-4" />
+            {saving ? "Guardando…" : "Guardar sin cerrar"}
+          </Button>
+          <Button
+            onClick={() => handleConfirm(true)}
+            disabled={saving || bloqueado}
+            className="gap-1"
+          >
             <Lock className="h-4 w-4" />
             {saving ? "Guardando…" : "Cerrar semana"}
           </Button>
@@ -1085,6 +1125,99 @@ function HistorialSemanalDialog({
             </TableBody>
           </Table>
         )}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+/* ----------------------- DIÁLOGO REABRIR SEMANA ----------------------- */
+
+function ReabrirSemanaDialog({
+  open,
+  consignacion,
+  semanaInicio,
+  onClose,
+}: {
+  open: boolean;
+  consignacion: ConsignacionSemanal | null;
+  semanaInicio: string;
+  onClose: () => void;
+}) {
+  const reabrir = useReabrirConsignacionSemanal();
+  const [motivo, setMotivo] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (open) setMotivo("");
+  }, [open]);
+
+  if (!consignacion) return null;
+
+  const handleConfirm = async () => {
+    if (!motivo.trim()) {
+      toast.error("Indica el motivo de la reapertura.");
+      return;
+    }
+    setSaving(true);
+    try {
+      await reabrir.mutateAsync({
+        consignacion_id: consignacion.id,
+        semana_inicio: semanaInicio,
+        motivo: motivo.trim(),
+        soporte_url: consignacion.soporte_consignacion_url,
+        valor_consignado: consignacion.valor_consignado,
+        fecha_consignacion: consignacion.fecha_consignacion,
+      });
+      toast.success("Semana reabierta. Ya puedes registrar entregas pendientes y volver a cerrarla.");
+      onClose();
+    } catch (e: any) {
+      toast.error("Error: " + (e.message || ""));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Unlock className="h-5 w-5 text-amber-600" /> Reabrir semana
+          </DialogTitle>
+          <DialogDescription>
+            La semana volverá a estar <strong>editable</strong> para registrar entregas que llegaron después.
+            Podrás cerrarla nuevamente cuando termines la conciliación. El evento queda en el historial.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-3">
+          <div className="rounded-md border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-800 dark:text-amber-300">
+            ⚠️ Al reabrir, los líderes de tesorería podrán modificar nuevamente los valores entregados,
+            fechas y observaciones de cada Casa de Paz de esta semana.
+          </div>
+          <div>
+            <Label htmlFor="motivo-reapertura">Motivo de la reapertura *</Label>
+            <Textarea
+              id="motivo-reapertura"
+              value={motivo}
+              onChange={(e) => setMotivo(e.target.value)}
+              placeholder="Ej: La CDP X entregó la ofrenda 2 semanas después; falta conciliar $50.000."
+              rows={3}
+            />
+          </div>
+        </div>
+
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose} disabled={saving}>Cancelar</Button>
+          <Button
+            onClick={handleConfirm}
+            disabled={saving}
+            className="gap-1 bg-amber-600 hover:bg-amber-700 text-white"
+          >
+            <Unlock className="h-4 w-4" />
+            {saving ? "Reabriendo…" : "Reabrir semana"}
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
