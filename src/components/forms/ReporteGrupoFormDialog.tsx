@@ -773,7 +773,7 @@ export default function ReporteGrupoFormDialog({ open, onOpenChange, editReporte
                   {isEditMode ? "Continuar edición" : "Crear reporte"}
                 </Button>
               ) : (
-                <Button size="sm" onClick={handleSubmit} disabled={createReporte.isPending || updateReporte.isPending}>
+                <Button size="sm" onClick={handleSubmit} disabled={createReporte.isPending || updateReporte.isPending || !!duplicateReporte}>
                   {(createReporte.isPending || updateReporte.isPending) ? "Guardando..." : isEditMode ? "Guardar Cambios" : "Finalizar Reporte"}
                 </Button>
               )}
@@ -884,8 +884,14 @@ export default function ReporteGrupoFormDialog({ open, onOpenChange, editReporte
                         className="w-full"
                         modifiers={reportDateModifiers}
                         modifiersClassNames={{ reported: "bg-destructive/20 text-destructive font-bold" }}
-                        disabled={isEditMode}
+                        disabled={isEditMode ? true : reportDates}
                       />
+                      {duplicateReporte && (
+                        <div className="mt-3 flex items-center gap-2 rounded-md border border-destructive/30 bg-destructive/10 p-2 text-xs text-destructive">
+                          <AlertTriangle className="h-3.5 w-3.5" />
+                          Ya existe un reporte para este grupo en esta fecha.
+                        </div>
+                      )}
                       {grupoReportes.length > 0 && (
                         <div className="mt-3 space-y-1">
                           <p className="text-xs text-muted-foreground font-medium">Reportes existentes:</p>
@@ -1022,7 +1028,7 @@ export default function ReporteGrupoFormDialog({ open, onOpenChange, editReporte
                 </div>
 
                 <div className="flex justify-start pt-4">
-                  <Button onClick={handleSubmit} disabled={createReporte.isPending || updateReporte.isPending || (!seRealizo ? false : !attendanceValid)} className="gap-2">
+                  <Button onClick={handleSubmit} disabled={createReporte.isPending || updateReporte.isPending || !!duplicateReporte || (!seRealizo ? false : !attendanceValid)} className="gap-2">
                     <Send className="h-4 w-4" />
                     {(createReporte.isPending || updateReporte.isPending) ? "Guardando..." : isEditMode ? "Guardar Cambios" : "Finalizar Reporte"}
                   </Button>
