@@ -892,9 +892,23 @@ function ConsignacionSemanalDialog({
           )}
         </div>
 
-        <DialogFooter>
+        <DialogFooter className="flex-col sm:flex-row gap-2">
           <Button variant="outline" onClick={onClose} disabled={saving}>Cancelar</Button>
-          <Button onClick={handleConfirm} disabled={saving || bloqueado} className="gap-1">
+          <Button
+            variant="secondary"
+            onClick={() => handleConfirm(false)}
+            disabled={saving}
+            className="gap-1"
+            title="Guardar la consignación parcial sin cerrar la semana, para poder seguir conciliando entregas que lleguen después."
+          >
+            <Save className="h-4 w-4" />
+            {saving ? "Guardando…" : "Guardar sin cerrar"}
+          </Button>
+          <Button
+            onClick={() => handleConfirm(true)}
+            disabled={saving || bloqueado}
+            className="gap-1"
+          >
             <Lock className="h-4 w-4" />
             {saving ? "Guardando…" : "Cerrar semana"}
           </Button>
