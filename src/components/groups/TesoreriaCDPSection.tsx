@@ -613,6 +613,15 @@ function ConsignacionSemanalBlock({
                   <Button size="sm" variant="outline" className="gap-1" onClick={onReemplazar}>
                     <Replace className="h-4 w-4" /> Reemplazar soporte
                   </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="gap-1 text-amber-600 border-amber-500/40 hover:bg-amber-500/10"
+                    onClick={onReabrir}
+                    title="Reabrir la semana para registrar entregas que llegaron después"
+                  >
+                    <Unlock className="h-4 w-4" /> Reabrir semana
+                  </Button>
                   <Button size="sm" variant="ghost" className="gap-1" onClick={onHistorial}>
                     <History className="h-4 w-4" /> Historial
                   </Button>
