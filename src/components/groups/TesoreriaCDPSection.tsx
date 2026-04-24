@@ -1129,3 +1129,96 @@ function HistorialSemanalDialog({
     </Dialog>
   );
 }
+
+/* ----------------------- DIÁLOGO REABRIR SEMANA ----------------------- */
+
+function ReabrirSemanaDialog({
+  open,
+  consignacion,
+  semanaInicio,
+  onClose,
+}: {
+  open: boolean;
+  consignacion: ConsignacionSemanal | null;
+  semanaInicio: string;
+  onClose: () => void;
+}) {
+  const reabrir = useReabrirConsignacionSemanal();
+  const [motivo, setMotivo] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (open) setMotivo("");
+  }, [open]);
+
+  if (!consignacion) return null;
+
+  const handleConfirm = async () => {
+    if (!motivo.trim()) {
+      toast.error("Indica el motivo de la reapertura.");
+      return;
+    }
+    setSaving(true);
+    try {
+      await reabrir.mutateAsync({
+        consignacion_id: consignacion.id,
+        semana_inicio: semanaInicio,
+        motivo: motivo.trim(),
+        soporte_url: consignacion.soporte_consignacion_url,
+        valor_consignado: consignacion.valor_consignado,
+        fecha_consignacion: consignacion.fecha_consignacion,
+      });
+      toast.success("Semana reabierta. Ya puedes registrar entregas pendientes y volver a cerrarla.");
+      onClose();
+    } catch (e: any) {
+      toast.error("Error: " + (e.message || ""));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Unlock className="h-5 w-5 text-amber-600" /> Reabrir semana
+          </DialogTitle>
+          <DialogDescription>
+            La semana volverá a estar <strong>editable</strong> para registrar entregas que llegaron después.
+            Podrás cerrarla nuevamente cuando termines la conciliación. El evento queda en el historial.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-3">
+          <div className="rounded-md border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-800 dark:text-amber-300">
+            ⚠️ Al reabrir, los líderes de tesorería podrán modificar nuevamente los valores entregados,
+            fechas y observaciones de cada Casa de Paz de esta semana.
+          </div>
+          <div>
+            <Label htmlFor="motivo-reapertura">Motivo de la reapertura *</Label>
+            <Textarea
+              id="motivo-reapertura"
+              value={motivo}
+              onChange={(e) => setMotivo(e.target.value)}
+              placeholder="Ej: La CDP X entregó la ofrenda 2 semanas después; falta conciliar $50.000."
+              rows={3}
+            />
+          </div>
+        </div>
+
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose} disabled={saving}>Cancelar</Button>
+          <Button
+            onClick={handleConfirm}
+            disabled={saving}
+            className="gap-1 bg-amber-600 hover:bg-amber-700 text-white"
+          >
+            <Unlock className="h-4 w-4" />
+            {saving ? "Reabriendo…" : "Reabrir semana"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
