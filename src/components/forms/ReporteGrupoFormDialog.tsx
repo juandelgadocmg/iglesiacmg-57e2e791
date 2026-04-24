@@ -158,6 +158,12 @@ export default function ReporteGrupoFormDialog({ open, onOpenChange, editReporte
     return allReportes.filter(r => r.grupo_id === grupoId);
   }, [allReportes, grupoId]);
 
+  const selectedDateKey = format(selectedDate, "yyyy-MM-dd");
+  const duplicateReporte = useMemo(() => {
+    if (!grupoId) return null;
+    return grupoReportes.find(r => r.fecha === selectedDateKey && r.id !== editReporteId) || null;
+  }, [grupoId, grupoReportes, selectedDateKey, editReporteId]);
+
   const liderInfo = useMemo(() => {
     if (!selectedGrupo) return null;
     return (selectedGrupo as any).personas || null;
@@ -355,6 +361,10 @@ export default function ReporteGrupoFormDialog({ open, onOpenChange, editReporte
       toast.error("Complete los datos obligatorios.");
       return;
     }
+    if (duplicateReporte) {
+      toast.error("Ya existe un reporte para este grupo en esta fecha.");
+      return;
+    }
     if (seRealizo && !attendanceValid) {
       toast.error("Debe indicar el motivo de ausencia para todos los ausentes.");
       return;
@@ -406,7 +416,7 @@ export default function ReporteGrupoFormDialog({ open, onOpenChange, editReporte
       } else {
         await createReporte.mutateAsync({
           grupo_id: grupoId,
-          fecha: format(selectedDate, "yyyy-MM-dd"),
+          fecha: selectedDateKey,
           mensaje,
           observaciones: observaciones || undefined,
           ofrenda_casa_paz: parseFloat(ofrendaCasaPaz) || 0,
@@ -419,7 +429,7 @@ export default function ReporteGrupoFormDialog({ open, onOpenChange, editReporte
           grupo: selectedGrupo?.nombre,
           tipo: selectedGrupo?.tipo,
           dia_reunion: diaReunion,
-          fecha: format(selectedDate, "yyyy-MM-dd"),
+          fecha: selectedDateKey,
           mensaje,
           noRealizado: !seRealizo,
           presentes: presentesCount,
@@ -435,7 +445,10 @@ export default function ReporteGrupoFormDialog({ open, onOpenChange, editReporte
         toast.success("Reporte enviado exitosamente.");
       }
     } catch (err: any) {
-      toast.error("Error: " + (err.message || ""));
+      const message = err.message?.includes("Ya existe un reporte")
+        ? "Ya existe un reporte para este grupo en esta fecha."
+        : (err.message || "");
+      toast.error("Error: " + message);
     }
   };
 
@@ -462,7 +475,7 @@ export default function ReporteGrupoFormDialog({ open, onOpenChange, editReporte
     setEditAttendanceApplied(false);
   };
 
-  const canCreateReport = !!grupoId && !!mensaje;
+  const canCreateReport = !!grupoId && !!mensaje && !duplicateReporte;
 
   // Day restriction - only for new reports, not edits
   const dayAllowed = isEditMode || isDayAllowed(diaReunion);
