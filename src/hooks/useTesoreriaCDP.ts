@@ -360,12 +360,12 @@ export function useReemplazarSoporteSemanal() {
     }) => {
       const { data: { user } } = await supabase.auth.getUser();
 
-      // 1. Guardar el registro anterior en el historial
+      // 1. Guardar el registro anterior en el historial (semana global, sin registro_id)
       const { error: histErr } = await supabase
         .from("tesoreria_consignacion_historial")
         .insert({
           consignacion_semanal_id: input.consignacion_id,
-          registro_id: input.consignacion_id, // legacy NOT NULL: reutilizamos el mismo id
+          registro_id: null,
           soporte_url: input.soporte_anterior_url,
           valor_consignado: input.valor_anterior,
           fecha_consignacion: input.fecha_anterior,
