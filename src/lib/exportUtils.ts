@@ -40,19 +40,40 @@ export function exportToPDF({ title, columns, data, filename }: ExportOptions) {
 }
 
 export function exportToExcel({ title, columns, data, filename }: ExportOptions) {
-  const wsData = [
-    columns.map((c) => c.header),
-    ...data.map((row) => columns.map((c) => row[c.key] ?? "")),
-  ];
+  try {
+    const wsData = [
+      columns.map((c) => c.header),
+      ...data.map((row) => columns.map((c) => row[c.key] ?? "")),
+    ];
 
-  const ws = XLSX.utils.aoa_to_sheet(wsData);
+    const ws = XLSX.utils.aoa_to_sheet(wsData);
 
-  // Set column widths
-  ws["!cols"] = columns.map(() => ({ wch: 20 }));
+    // Set column widths
+    ws["!cols"] = columns.map(() => ({ wch: 20 }));
 
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, title.slice(0, 31));
-  XLSX.writeFile(wb, `${filename}.xlsx`);
+    // Sanitize sheet name (Excel: max 31 chars, no : \ / ? * [ ])
+    const safeSheetName = (title || "Hoja1").replace(/[:\\/?*[\]]/g, "").slice(0, 31) || "Hoja1";
+
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, safeSheetName);
+
+    // Generate as array buffer and trigger download via Blob (more reliable across browsers)
+    const wbout = XLSX.write(wb, { bookType: "xlsx", type: "array" });
+    const blob = new Blob([wbout], {
+      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${filename}.xlsx`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  } catch (err) {
+    console.error("[exportToExcel] Error:", err);
+    throw err;
+  }
 }
 
 export function exportGroupProfilePDF(grupo: {
