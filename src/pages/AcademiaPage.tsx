@@ -1916,7 +1916,7 @@ function PeriodoDetailView({ escuela, periodo, onBackToPeriodos }: any) {
                           <label className="text-[10px] text-muted-foreground font-medium">Maestro</label>
                           <MaestroSearchPickerShared
                             personas={(personas || []).filter((p: any) => {
-                              const TIPOS = ["Maestro Seminario", "Maestro Discipulado", "Maestro", "Mentor", "Pastor Principal"];
+                              const TIPOS = ["Maestro Seminario", "Maestro Discipulado", "Maestro", "Mentor", "Pastor Principal", "Líder de Red", "Líder Casa de Paz", "Líder"];
                               return TIPOS.includes(p.tipo_persona) || (p.tipos_persona || []).some((t: string) => TIPOS.includes(t));
                             })}
                             value={editForm.maestro_id || ""}
