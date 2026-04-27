@@ -439,7 +439,7 @@ function MaestrosSection({ escuelas, allPeriodos }: any) {
       {filtered.length === 0 ? (
         <div className="rounded-xl border bg-card p-12 text-center text-muted-foreground">
           <UserCheck className="h-12 w-12 mx-auto mb-3 opacity-40" />
-          <p className="text-sm">No hay maestros registrados. Asigna tipo "Maestro Seminario" o "Maestro Discipulado" a una persona.</p>
+          <p className="text-sm">No hay maestros registrados. Asigna tipo "Maestro Seminario", "Maestro Discipulado", "Líder de Red" o "Líder Casa de Paz" a una persona.</p>
         </div>
       ) : (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
