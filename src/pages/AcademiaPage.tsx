@@ -401,8 +401,8 @@ function MaestrosSection({ escuelas, allPeriodos }: any) {
   const [search, setSearch] = useState("");
   const [selectedMaestro, setSelectedMaestro] = useState<any>(null);
 
-  // Include ALL teacher types: Seminario, Discipulado, Maestro, Mentor
-  const TIPOS_MAESTRO = ["Maestro Seminario", "Maestro Discipulado", "Maestro", "Mentor", "Pastor Principal"];
+  // Include ALL teacher and leader types eligible to teach
+  const TIPOS_MAESTRO = ["Maestro Seminario", "Maestro Discipulado", "Maestro", "Mentor", "Pastor Principal", "Líder de Red", "Líder Casa de Paz", "Líder"];
   const maestros = useMemo(() => {
     if (!personas) return [];
     return personas.filter((p: any) =>
