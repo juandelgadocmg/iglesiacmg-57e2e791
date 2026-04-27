@@ -123,6 +123,16 @@ export default function PersonasPage() {
         return tipos.includes(t);
       }).length;
     });
+    // DIAG temporal: listar Líderes de Red detectados en cliente
+    const lideresRed = personas.filter((p: any) => {
+      const tipos: string[] = p.tipos_persona?.length ? p.tipos_persona : [p.tipo_persona];
+      return tipos.includes("Líder de Red");
+    });
+    console.log("[DIAG] Líderes de Red en cliente:", lideresRed.length, lideresRed.map((p: any) => ({
+      nombre: `${p.nombres} ${p.apellidos}`,
+      tipo_persona: p.tipo_persona,
+      tipos_persona: p.tipos_persona,
+    })));
     return c;
   }, [personas]);
 
