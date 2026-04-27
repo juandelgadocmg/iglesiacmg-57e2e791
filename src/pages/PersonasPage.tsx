@@ -80,19 +80,31 @@ export default function PersonasPage() {
     }
   }, []);
 
+  const norm = (s: any) =>
+    String(s ?? "")
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "");
+  const onlyDigits = (s: any) => String(s ?? "").replace(/\D/g, "");
+
   const filtered = useMemo(() => {
     if (!personas) return [];
+    const q = norm(search.trim());
+    const qDigits = onlyDigits(search);
     return personas.filter((p: any) => {
       if (tipoFilter !== "Todos") {
         const tipos: string[] = p.tipos_persona?.length ? p.tipos_persona : [p.tipo_persona];
         if (!tipos.includes(tipoFilter)) return false;
       }
       if (estadoFilter !== "all" && p.estado_iglesia !== estadoFilter) return false;
-      if (search) {
-        const q = search.toLowerCase();
-        return `${p.nombres} ${p.apellidos}`.toLowerCase().includes(q) ||
-          p.email?.toLowerCase().includes(q) ||
-          p.telefono?.includes(q);
+      if (q) {
+        const haystack = norm(
+          `${p.nombres ?? ""} ${p.apellidos ?? ""} ${p.email ?? ""} ${p.documento ?? ""} ${p.ocupacion ?? ""} ${p.direccion ?? ""}`
+        );
+        const phones = `${onlyDigits(p.telefono)} ${onlyDigits(p.whatsapp)}`;
+        const matchText = haystack.includes(q);
+        const matchPhone = qDigits.length >= 3 && phones.includes(qDigits);
+        if (!matchText && !matchPhone) return false;
       }
       return true;
     });
@@ -173,7 +185,7 @@ export default function PersonasPage() {
       <div className="flex flex-col sm:flex-row gap-3">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input placeholder="Buscar por nombre, email o teléfono..." value={search} onChange={e => setSearch(e.target.value)} className="pl-10" />
+          <Input placeholder="Buscar por nombre, apellido, documento, email o teléfono..." value={search} onChange={e => setSearch(e.target.value)} className="pl-10" />
         </div>
         <Select value={estadoFilter} onValueChange={setEstadoFilter}>
           <SelectTrigger className="w-40"><SelectValue placeholder="Estado" /></SelectTrigger>
