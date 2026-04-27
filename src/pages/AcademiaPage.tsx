@@ -401,8 +401,8 @@ function MaestrosSection({ escuelas, allPeriodos }: any) {
   const [search, setSearch] = useState("");
   const [selectedMaestro, setSelectedMaestro] = useState<any>(null);
 
-  // Include ALL teacher types: Seminario, Discipulado, Maestro, Mentor
-  const TIPOS_MAESTRO = ["Maestro Seminario", "Maestro Discipulado", "Maestro", "Mentor", "Pastor Principal"];
+  // Include ALL teacher and leader types eligible to teach
+  const TIPOS_MAESTRO = ["Maestro Seminario", "Maestro Discipulado", "Maestro", "Mentor", "Pastor Principal", "Líder de Red", "Líder Casa de Paz", "Líder"];
   const maestros = useMemo(() => {
     if (!personas) return [];
     return personas.filter((p: any) =>
@@ -439,7 +439,7 @@ function MaestrosSection({ escuelas, allPeriodos }: any) {
       {filtered.length === 0 ? (
         <div className="rounded-xl border bg-card p-12 text-center text-muted-foreground">
           <UserCheck className="h-12 w-12 mx-auto mb-3 opacity-40" />
-          <p className="text-sm">No hay maestros registrados. Asigna tipo "Maestro Seminario" o "Maestro Discipulado" a una persona.</p>
+          <p className="text-sm">No hay maestros registrados. Asigna tipo "Maestro Seminario", "Maestro Discipulado", "Líder de Red" o "Líder Casa de Paz" a una persona.</p>
         </div>
       ) : (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -1916,7 +1916,7 @@ function PeriodoDetailView({ escuela, periodo, onBackToPeriodos }: any) {
                           <label className="text-[10px] text-muted-foreground font-medium">Maestro</label>
                           <MaestroSearchPickerShared
                             personas={(personas || []).filter((p: any) => {
-                              const TIPOS = ["Maestro Seminario", "Maestro Discipulado", "Maestro", "Mentor", "Pastor Principal"];
+                              const TIPOS = ["Maestro Seminario", "Maestro Discipulado", "Maestro", "Mentor", "Pastor Principal", "Líder de Red", "Líder Casa de Paz", "Líder"];
                               return TIPOS.includes(p.tipo_persona) || (p.tipos_persona || []).some((t: string) => TIPOS.includes(t));
                             })}
                             value={editForm.maestro_id || ""}
