@@ -86,6 +86,13 @@ export default function PersonasPage() {
       .normalize("NFD")
       .replace(/[\u0300-\u036f]/g, "");
   const onlyDigits = (s: any) => String(s ?? "").replace(/\D/g, "");
+  const getPersonaTipos = (p: any) => {
+    const tipos = [p.tipo_persona, ...(Array.isArray(p.tipos_persona) ? p.tipos_persona : [])]
+      .filter(Boolean)
+      .map((tipo: string) => String(tipo).trim());
+    return [...new Set(tipos)];
+  };
+  const hasTipo = (p: any, tipo: string) => getPersonaTipos(p).some((t: string) => norm(t) === norm(tipo));
 
   const filtered = useMemo(() => {
     if (!personas) return [];
@@ -93,8 +100,7 @@ export default function PersonasPage() {
     const qDigits = onlyDigits(search);
     return personas.filter((p: any) => {
       if (tipoFilter !== "Todos") {
-        const tipos: string[] = p.tipos_persona?.length ? p.tipos_persona : [p.tipo_persona];
-        if (!tipos.includes(tipoFilter)) return false;
+        if (!hasTipo(p, tipoFilter)) return false;
       }
       if (estadoFilter !== "all" && p.estado_iglesia !== estadoFilter) return false;
       if (q) {
@@ -112,27 +118,14 @@ export default function PersonasPage() {
 
   // Reset page on filter change
   const filterKey = `${search}-${tipoFilter}-${estadoFilter}`;
-  useMemo(() => setPage(1), [filterKey]);
+  useEffect(() => setPage(1), [filterKey]);
 
   const counts = useMemo(() => {
     if (!personas) return {} as Record<string, number>;
     const c: Record<string, number> = { total: personas.length };
     TIPOS.filter(t => t !== "Todos").forEach(t => {
-      c[t] = personas.filter((p: any) => {
-        const tipos: string[] = p.tipos_persona?.length ? p.tipos_persona : [p.tipo_persona];
-        return tipos.includes(t);
-      }).length;
+      c[t] = personas.filter((p: any) => hasTipo(p, t)).length;
     });
-    // DIAG temporal: listar Líderes de Red detectados en cliente
-    const lideresRed = personas.filter((p: any) => {
-      const tipos: string[] = p.tipos_persona?.length ? p.tipos_persona : [p.tipo_persona];
-      return tipos.includes("Líder de Red");
-    });
-    console.log("[DIAG] Líderes de Red en cliente:", lideresRed.length, lideresRed.map((p: any) => ({
-      nombre: `${p.nombres} ${p.apellidos}`,
-      tipo_persona: p.tipo_persona,
-      tipos_persona: p.tipos_persona,
-    })));
     return c;
   }, [personas]);
 
@@ -239,10 +232,7 @@ export default function PersonasPage() {
                         <p className="font-semibold text-foreground truncate">{p.nombres} {p.apellidos}</p>
                         <div className="flex items-center gap-2 mt-1">
                           {(() => {
-                            // Use tipos_persona only if it's consistent (contains tipo_persona)
-                            const tipoP: string = p.tipo_persona || "Miembro";
-                            const arr: string[] = p.tipos_persona?.length ? p.tipos_persona : [tipoP];
-                            const tipos = arr.includes(tipoP) ? [...new Set(arr)] : [tipoP];
+                            const tipos = getPersonaTipos(p).length ? getPersonaTipos(p) : ["Miembro"];
                             return tipos.map((tipo: string) => (
                               <Badge key={tipo} variant="secondary" className={`text-[10px] ${tipoColor[tipo] || ""}`}>{tipo}</Badge>
                             ));
