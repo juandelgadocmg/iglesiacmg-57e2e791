@@ -14,7 +14,7 @@ import { useCreateMateria, useAulas } from "@/hooks/useAcademia";
 import { usePersonas } from "@/hooks/useDatabase";
 import { toast } from "sonner";
 
-const TIPOS_MAESTRO = ["Maestro Seminario", "Maestro Discipulado", "Maestro", "Mentor", "Pastor Principal"];
+const TIPOS_MAESTRO = ["Maestro Seminario", "Maestro Discipulado", "Maestro", "Mentor", "Pastor Principal", "Líder de Red", "Líder Casa de Paz", "Líder"];
 
 const schema = z.object({
   nombre: z.string().min(1, "El nombre es requerido"),
