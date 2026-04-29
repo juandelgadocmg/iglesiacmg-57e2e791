@@ -12,9 +12,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Plus, Search, X } from "lucide-react";
 import { useCreateMateria, useAulas } from "@/hooks/useAcademia";
 import { usePersonas } from "@/hooks/useDatabase";
+import { getAcademiaMaestroTipo, isAcademiaMaestro } from "@/lib/personaRoles";
 import { toast } from "sonner";
-
-const TIPOS_MAESTRO = ["Maestro Seminario", "Maestro Discipulado", "Maestro", "Mentor", "Pastor Principal", "Líder de Red", "Líder Casa de Paz", "Líder"];
 
 const schema = z.object({
   nombre: z.string().min(1, "El nombre es requerido"),
@@ -63,7 +62,7 @@ function MaestroSearchPicker({
       <div className="flex items-center justify-between rounded-md border px-3 py-2 bg-background text-sm">
         <div>
           <span className="font-medium">{selected.nombres} {selected.apellidos}</span>
-          <span className="text-xs text-muted-foreground ml-2">({selected.tipo_persona})</span>
+          <span className="text-xs text-muted-foreground ml-2">({getAcademiaMaestroTipo(selected)})</span>
         </div>
         <button type="button" onClick={() => { onChange(""); setQuery(""); }}
           className="text-muted-foreground hover:text-destructive ml-2">
@@ -99,7 +98,7 @@ function MaestroSearchPicker({
               </div>
               <div className="flex-1 min-w-0">
                 <p className="font-medium truncate">{p.nombres} {p.apellidos}</p>
-                <p className="text-[10px] text-muted-foreground">{p.tipo_persona}</p>
+                <p className="text-[10px] text-muted-foreground">{getAcademiaMaestroTipo(p)}</p>
               </div>
             </div>
           ))}
@@ -155,11 +154,7 @@ export default function MateriaFormDialog({ periodoId }: { periodoId: string }) 
     }
   };
 
-  // Include ALL teacher types (Seminario + Discipulado + Maestro + Mentor)
-  const maestros = (personas || []).filter((p: any) =>
-    TIPOS_MAESTRO.includes(p.tipo_persona) ||
-    (p.tipos_persona || []).some((t: string) => TIPOS_MAESTRO.includes(t))
-  );
+  const maestros = (personas || []).filter(isAcademiaMaestro);
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
