@@ -507,7 +507,7 @@ function GestionarComoMaestro({ maestro, escuelas, allPeriodos, onBack }: any) {
         </Avatar>
         <div>
           <h2 className="text-lg font-bold text-foreground">{maestro.nombres} {maestro.apellidos}</h2>
-          <p className="text-sm text-muted-foreground">{maestro.tipo_persona} · Gestionar como maestro</p>
+          <p className="text-sm text-muted-foreground">{getAcademiaMaestroTipo(maestro)} · Gestionar como maestro</p>
         </div>
       </div>
 
@@ -1911,10 +1911,7 @@ function PeriodoDetailView({ escuela, periodo, onBackToPeriodos }: any) {
                         <div>
                           <label className="text-[10px] text-muted-foreground font-medium">Maestro</label>
                           <MaestroSearchPickerShared
-                            personas={(personas || []).filter((p: any) => {
-                              const TIPOS = ["Maestro Seminario", "Maestro Discipulado", "Maestro", "Mentor", "Pastor Principal", "Líder de Red", "Líder Casa de Paz", "Líder"];
-                              return TIPOS.includes(p.tipo_persona) || (p.tipos_persona || []).some((t: string) => TIPOS.includes(t));
-                            })}
+                            personas={(personas || []).filter(isAcademiaMaestro)}
                             value={editForm.maestro_id || ""}
                             onChange={(v) => setEditForm(f => ({ ...f, maestro_id: v }))}
                           />
