@@ -61,6 +61,7 @@ import { format, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
 import { exportToExcel, exportToPDF } from "@/lib/exportUtils";
 import { cn } from "@/lib/utils";
+import { getAcademiaMaestroTipo, isAcademiaMaestro } from "@/lib/personaRoles";
 
 const ESTADO_PERIODO: Record<string, { icon: any; color: string }> = {
   Abierto: { icon: Unlock, color: "bg-success/10 text-success border-success/20" },
@@ -401,14 +402,9 @@ function MaestrosSection({ escuelas, allPeriodos }: any) {
   const [search, setSearch] = useState("");
   const [selectedMaestro, setSelectedMaestro] = useState<any>(null);
 
-  // Include ALL teacher and leader types eligible to teach
-  const TIPOS_MAESTRO = ["Maestro Seminario", "Maestro Discipulado", "Maestro", "Mentor", "Pastor Principal", "Líder de Red", "Líder Casa de Paz", "Líder"];
   const maestros = useMemo(() => {
     if (!personas) return [];
-    return personas.filter((p: any) =>
-      TIPOS_MAESTRO.includes(p.tipo_persona) ||
-      (p.tipos_persona || []).some((t: string) => TIPOS_MAESTRO.includes(t))
-    );
+    return personas.filter(isAcademiaMaestro);
   }, [personas]);
 
   const filtered = useMemo(() => {
@@ -439,7 +435,7 @@ function MaestrosSection({ escuelas, allPeriodos }: any) {
       {filtered.length === 0 ? (
         <div className="rounded-xl border bg-card p-12 text-center text-muted-foreground">
           <UserCheck className="h-12 w-12 mx-auto mb-3 opacity-40" />
-          <p className="text-sm">No hay maestros registrados. Asigna tipo "Maestro Seminario", "Maestro Discipulado", "Líder de Red" o "Líder Casa de Paz" a una persona.</p>
+          <p className="text-sm">No hay maestros registrados. Asigna tipo "Maestro Seminario", "Maestro Discipulado", "Maestro", "Mentor" o "Líder de Red" a una persona.</p>
         </div>
       ) : (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -455,7 +451,7 @@ function MaestrosSection({ escuelas, allPeriodos }: any) {
                   </Avatar>
                   <div className="flex-1 min-w-0">
                     <h4 className="font-semibold text-foreground text-sm group-hover:text-primary transition-colors truncate">{m.nombres} {m.apellidos}</h4>
-                    <p className="text-xs text-muted-foreground">{m.tipo_persona}</p>
+                    <p className="text-xs text-muted-foreground">{getAcademiaMaestroTipo(m)}</p>
                   </div>
                 </div>
                 <div className="flex items-center justify-between">
@@ -511,7 +507,7 @@ function GestionarComoMaestro({ maestro, escuelas, allPeriodos, onBack }: any) {
         </Avatar>
         <div>
           <h2 className="text-lg font-bold text-foreground">{maestro.nombres} {maestro.apellidos}</h2>
-          <p className="text-sm text-muted-foreground">{maestro.tipo_persona} · Gestionar como maestro</p>
+          <p className="text-sm text-muted-foreground">{getAcademiaMaestroTipo(maestro)} · Gestionar como maestro</p>
         </div>
       </div>
 
@@ -1915,10 +1911,7 @@ function PeriodoDetailView({ escuela, periodo, onBackToPeriodos }: any) {
                         <div>
                           <label className="text-[10px] text-muted-foreground font-medium">Maestro</label>
                           <MaestroSearchPickerShared
-                            personas={(personas || []).filter((p: any) => {
-                              const TIPOS = ["Maestro Seminario", "Maestro Discipulado", "Maestro", "Mentor", "Pastor Principal", "Líder de Red", "Líder Casa de Paz", "Líder"];
-                              return TIPOS.includes(p.tipo_persona) || (p.tipos_persona || []).some((t: string) => TIPOS.includes(t));
-                            })}
+                            personas={(personas || []).filter(isAcademiaMaestro)}
                             value={editForm.maestro_id || ""}
                             onChange={(v) => setEditForm(f => ({ ...f, maestro_id: v }))}
                           />
