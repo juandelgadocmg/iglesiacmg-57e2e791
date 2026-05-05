@@ -284,6 +284,90 @@ export type Database = {
           },
         ]
       }
+      citas_consejeria: {
+        Row: {
+          consejero_email: string | null
+          consejero_nombre: string | null
+          consejero_persona_id: string
+          created_at: string
+          created_by: string | null
+          enlace_virtual: string | null
+          estado: string
+          fecha: string
+          hora_fin: string
+          hora_inicio: string
+          id: string
+          lugar: string | null
+          modalidad: string
+          motivo_cancelacion: string | null
+          motivo_categoria: string
+          motivo_descripcion: string | null
+          notas_admin: string | null
+          requiere_consolidacion: boolean
+          requiere_intercesion: boolean
+          solicitante_email: string | null
+          solicitante_nombre: string
+          solicitante_persona_id: string | null
+          solicitante_telefono: string | null
+          solicitante_user_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          consejero_email?: string | null
+          consejero_nombre?: string | null
+          consejero_persona_id: string
+          created_at?: string
+          created_by?: string | null
+          enlace_virtual?: string | null
+          estado?: string
+          fecha: string
+          hora_fin: string
+          hora_inicio: string
+          id?: string
+          lugar?: string | null
+          modalidad: string
+          motivo_cancelacion?: string | null
+          motivo_categoria?: string
+          motivo_descripcion?: string | null
+          notas_admin?: string | null
+          requiere_consolidacion?: boolean
+          requiere_intercesion?: boolean
+          solicitante_email?: string | null
+          solicitante_nombre: string
+          solicitante_persona_id?: string | null
+          solicitante_telefono?: string | null
+          solicitante_user_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          consejero_email?: string | null
+          consejero_nombre?: string | null
+          consejero_persona_id?: string
+          created_at?: string
+          created_by?: string | null
+          enlace_virtual?: string | null
+          estado?: string
+          fecha?: string
+          hora_fin?: string
+          hora_inicio?: string
+          id?: string
+          lugar?: string | null
+          modalidad?: string
+          motivo_cancelacion?: string | null
+          motivo_categoria?: string
+          motivo_descripcion?: string | null
+          notas_admin?: string | null
+          requiere_consolidacion?: boolean
+          requiere_intercesion?: boolean
+          solicitante_email?: string | null
+          solicitante_nombre?: string
+          solicitante_persona_id?: string | null
+          solicitante_telefono?: string | null
+          solicitante_user_id?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       conceptos_pago: {
         Row: {
           created_at: string
@@ -397,6 +481,51 @@ export type Database = {
           tesoreria_cdp_tolerancia_pct?: number
           updated_at?: string
           zona_horaria?: string | null
+        }
+        Relationships: []
+      }
+      consejeros_horarios: {
+        Row: {
+          activo: boolean
+          consejero_persona_id: string
+          created_at: string
+          dia_semana: number
+          duracion_minutos: number
+          enlace_virtual: string | null
+          hora_fin: string
+          hora_inicio: string
+          id: string
+          lugar: string | null
+          modalidad: string
+          updated_at: string
+        }
+        Insert: {
+          activo?: boolean
+          consejero_persona_id: string
+          created_at?: string
+          dia_semana: number
+          duracion_minutos?: number
+          enlace_virtual?: string | null
+          hora_fin: string
+          hora_inicio: string
+          id?: string
+          lugar?: string | null
+          modalidad?: string
+          updated_at?: string
+        }
+        Update: {
+          activo?: boolean
+          consejero_persona_id?: string
+          created_at?: string
+          dia_semana?: number
+          duracion_minutos?: number
+          enlace_virtual?: string | null
+          hora_fin?: string
+          hora_inicio?: string
+          id?: string
+          lugar?: string | null
+          modalidad?: string
+          updated_at?: string
         }
         Relationships: []
       }
@@ -1218,6 +1347,50 @@ export type Database = {
             columns: ["persona_id"]
             isOneToOne: false
             referencedRelation: "personas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      observaciones_consejeria: {
+        Row: {
+          cita_id: string
+          created_at: string
+          created_by: string | null
+          estado_caso: string
+          fecha_seguimiento: string | null
+          id: string
+          notas: string | null
+          proxima_accion: string | null
+          updated_at: string
+        }
+        Insert: {
+          cita_id: string
+          created_at?: string
+          created_by?: string | null
+          estado_caso?: string
+          fecha_seguimiento?: string | null
+          id?: string
+          notas?: string | null
+          proxima_accion?: string | null
+          updated_at?: string
+        }
+        Update: {
+          cita_id?: string
+          created_at?: string
+          created_by?: string | null
+          estado_caso?: string
+          fecha_seguimiento?: string | null
+          id?: string
+          notas?: string | null
+          proxima_accion?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "observaciones_consejeria_cita_id_fkey"
+            columns: ["cita_id"]
+            isOneToOne: false
+            referencedRelation: "citas_consejeria"
             referencedColumns: ["id"]
           },
         ]
