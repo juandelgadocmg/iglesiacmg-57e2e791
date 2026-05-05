@@ -6,7 +6,8 @@ import ServicioFormDialog from "@/components/forms/ServicioFormDialog";
 import DeleteConfirmDialog from "@/components/shared/DeleteConfirmDialog";
 import MetricCard from "@/components/shared/MetricCard";
 import QrAttendanceScanner from "@/components/attendance/QrAttendanceScanner";
-import { Church, Pencil, ClipboardCheck, Check, X, Save, Search, TrendingUp, Calendar, Eye, FileText, Users, MapPin, Clock as ClockIcon, QrCode, Share2 } from "lucide-react";
+import { Church, Pencil, ClipboardCheck, Check, X, Save, Search, TrendingUp, Calendar, Eye, FileText, Users, MapPin, Clock as ClockIcon, QrCode, Share2, Heart } from "lucide-react";
+import ConsejeriaTab from "@/components/consejeria/ConsejeriaTab";
 import { useServicios, useDeleteServicio, usePersonas, useAsistencia, useUpsertAsistencia } from "@/hooks/useDatabase";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,7 +24,7 @@ import { cn } from "@/lib/utils";
 import ExportDropdown from "@/components/shared/ExportDropdown";
 import AttendanceTrendChart from "@/components/charts/AttendanceTrendChart";
 
-type ActiveView = "reuniones" | "reportes" | "reporte-detalle";
+type ActiveView = "reuniones" | "reportes" | "reporte-detalle" | "consejeria";
 
 export default function ServiciosPage() {
   const { data: servicios, isLoading } = useServicios();
@@ -155,7 +156,13 @@ export default function ServiciosPage() {
           className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${activeView === "reportes" ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`}>
           <FileText className="h-4 w-4 inline mr-1.5" />Reportar reunión
         </button>
+        <button onClick={() => setActiveView("consejeria")}
+          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${activeView === "consejeria" ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`}>
+          <Heart className="h-4 w-4 inline mr-1.5" />Consejería
+        </button>
       </div>
+
+      {activeView === "consejeria" && <ConsejeriaTab />}
 
       {/* ===== REUNIONES LIST (Card Grid) ===== */}
       {activeView === "reuniones" && (
