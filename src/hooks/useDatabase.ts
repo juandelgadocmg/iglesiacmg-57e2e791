@@ -116,6 +116,7 @@ export function usePersonasParaExport(filtros: PersonaExportFiltros, enabled = t
       let hasMore = true;
 
       while (hasMore) {
+        const campo = filtros.campo || "created_at";
         let q = supabase
           .from("personas")
           .select(`
@@ -124,10 +125,8 @@ export function usePersonasParaExport(filtros: PersonaExportFiltros, enabled = t
             grupos!fk_personas_grupo(nombre),
             persona_procesos(proceso_id, estado, fecha_completado, observacion)
           `)
-          .order("created_at", { ascending: false })
+          .order(campo, { ascending: false, nullsFirst: false })
           .range(from, from + PAGE_SIZE - 1);
-
-        const campo = filtros.campo || "created_at";
         // created_at es timestamp; from/to son fechas (yyyy-mm-dd) interpretadas como inicio de día UTC
         if (filtros.from) q = q.gte(campo, filtros.from);
         if (filtros.to) q = q.lt(campo, filtros.to);
