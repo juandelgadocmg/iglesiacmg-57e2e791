@@ -1,43 +1,86 @@
+# Módulo de Consejería Pastoral
 
+Nueva pestaña **Consejería** dentro de `/servicios` (Reuniones) para agendar, gestionar y dar seguimiento a citas de consejería con Pastor / Pastora.
 
-## Filtro por fecha + envío por WhatsApp en Peticiones
+## 1. Base de datos (nuevas tablas)
 
-### 1. Filtro por fecha con exportación
+- **consejeros_horarios** — disponibilidad por consejero
+  - persona_id (FK personas, debe ser tipo "Pastor Principal")
+  - dia_semana (0–6), hora_inicio, hora_fin, duracion_minutos (default 60), modalidad permitida (presencial/virtual/ambas), activo
+- **citas_consejeria**
+  - solicitante_persona_id (FK personas), solicitante_user_id (nullable, si es usuario logueado), nombre/email/telefono de respaldo
+  - consejero_persona_id (FK personas)
+  - fecha, hora_inicio, hora_fin
+  - modalidad (presencial | virtual), enlace_virtual, lugar
+  - motivo_categoria (espiritual, familiar, emocional, liderazgo, matrimonial, otro), motivo_descripcion
+  - estado (pendiente, confirmada, completada, cancelada, no_asistio)
+  - requiere_intercesion (bool), requiere_consolidacion (bool)
+  - **Único parcial**: (consejero_persona_id, fecha, hora_inicio) donde estado != 'cancelada' → bloquea doble reserva
+- **observaciones_consejeria** — seguimiento post-cita
+  - cita_id, notas, estado_caso (en_proceso, cerrado, seguimiento), proxima_accion, fecha_seguimiento, created_by
 
-En `src/pages/PeticionesPage.tsx`:
+**RLS**:
+- Admin / pastor / super_admin: acceso completo a todas las citas y observaciones
+- Secretaria: lectura de citas, puede crear a nombre de personas
+- Usuario autenticado: ve sólo sus propias citas (donde solicitante_user_id = auth.uid())
+- Observaciones: solo admin / pastor las ven y editan
 
-- Dos selectores **Desde / Hasta** (Popover + Calendar shadcn) junto al buscador, con botón "Limpiar".
-- Presets rápidos: **Hoy**, **Esta semana**, **Este mes**, **Este año**.
-- Filtra por `created_at` de la petición; aplica también a contadores, gráfica y tabla.
-- El botón **Exportar** (PDF / Excel) usa el listado ya filtrado.
-- Cuando hay rango activo, el título y nombre del archivo incluyen el período: `Peticiones de Oración (01/04/2026 – 22/04/2026)` y `peticiones-oracion-20260401-20260422`.
-- Indicador visible: "Mostrando X peticiones del DD/MM/YYYY al DD/MM/YYYY".
+## 2. UI — Pestaña Consejería en `/servicios`
 
-### 2. Responder por WhatsApp
+Sub-tabs internas:
 
-Enfoque: **WhatsApp click-to-chat** (`https://wa.me/<numero>?text=<mensaje>`). No requiere API, ni keys, ni edge functions. Funciona con WhatsApp Web (en escritorio) o la app (en móvil) según el dispositivo del usuario, usando el WhatsApp del propio responsable.
+1. **Calendario** — vista tipo Google Calendar (mes/semana/día) con todas las citas. Filtros: consejero (Pastor/Pastora/Todos), modalidad. Click en cita → modal con detalle, edición, observaciones.
+2. **Agendar** — wizard de 4 pasos:
+   - Paso 1: Selecciona consejero (Pastor / Pastora — desde personas con tipo "Pastor Principal")
+   - Paso 2: Modalidad (presencial / virtual)
+   - Paso 3: Calendario de fechas + slots disponibles (calculados desde `consejeros_horarios` menos citas existentes)
+   - Paso 4: Motivo (categoría sugerida + texto libre), datos contacto, confirmar
+3. **Mis citas** (visible para usuarios no-staff) — lista de citas propias con estado
+4. **Horarios** (solo admin/pastor) — gestión CRUD de disponibilidad por consejero, día y franja horaria
+5. **Seguimiento** (admin/pastor) — listado de citas pasadas para añadir observaciones, marcar estado del caso, banderas de Intercesión / Consolidación
 
-En la tarjeta de cada petición (modo Gestionar) y en una nueva columna de acción (modo Panel):
+## 3. Notificaciones por correo
 
-- Botón **"Responder por WhatsApp"** (verde, ícono de WhatsApp).
-- Habilitado solo si la persona tiene `whatsapp` o `telefono` registrado; deshabilitado con tooltip "Sin número de WhatsApp" en caso contrario.
-- Al pulsar, abre `https://wa.me/<numero>?text=<plantilla>` en una nueva pestaña.
-- Plantilla de mensaje editable en un pequeño diálogo previo con texto sugerido, por ejemplo:
+Configurar dominio de email Lovable Cloud → infraestructura de emails → 3 plantillas transaccionales:
 
-  > Hola {nombre}, desde {iglesia} estamos orando por tu petición: "{titulo}". {mensaje_personalizado} Bendiciones.
+- `consejeria-confirmacion-solicitante` — al usuario que agendó (nombre, fecha/hora, modalidad, motivo, consejero)
+- `consejeria-aviso-consejero` — al pastor/pastora (datos del solicitante + cita)
+- `consejeria-cancelacion` — cuando se cancela
 
-  El usuario puede ajustar el mensaje y pulsar **Enviar por WhatsApp**.
-- Se normaliza el número (quita espacios, guiones, paréntesis y el "+"). Si el número no tiene código de país, se antepone el código por defecto (Colombia `57`, configurable más adelante).
-- Al enviar, se actualiza opcionalmente el estado de la petición a **"En oración"** si estaba en **"Pendiente"** y se agrega una línea a `notas_seguimiento` tipo `"[22/04/2026] Respondida por WhatsApp"` para dejar trazabilidad.
+Disparadores: tras INSERT/UPDATE de cita desde la UI se invoca `send-transactional-email` con la plantilla y `templateData` correspondientes (un envío por destinatario, idempotencyKey = `cita-{id}-{tipo}`).
 
-### Detalles técnicos
+## 4. Integración procesos iglesia
 
-- Sin cambios en base de datos, RLS ni edge functions.
-- Se reutilizan `Popover`, `Calendar`, `Dialog`, `Textarea`, `Button`, `date-fns`, `usePeticiones`, `useUpdatePeticion`, `useConfiguracion` (para tomar el nombre de la iglesia en la plantilla).
-- Nuevo helper `src/lib/whatsapp.ts` con `buildWhatsAppUrl(numero, mensaje, defaultCountryCode)` y `normalizePhone(numero)`.
-- Asegurar `pointer-events-auto` en `Calendar` dentro de `Popover`.
+Las banderas `requiere_intercesion` y `requiere_consolidacion` en la cita generan automáticamente:
+- Una entrada en `peticiones_oracion` (si intercesión) ligada a la persona
+- Notificación in-app al líder de consolidación (si consolidación)
 
-### Resultado
+## 5. Permisos (permissions.ts)
 
-El usuario podrá: (1) elegir un rango de fechas y descargar un informe PDF/Excel solo con las peticiones de ese período, y (2) abrir WhatsApp con un mensaje pre-redactado para responder directamente a cada persona, registrando automáticamente el contacto en el seguimiento de la petición.
+- Nueva acción: `consejeria:manage` (admin, super_admin, pastor)
+- Nueva acción: `consejeria:agendar` (todos los autenticados)
+- Nueva acción: `consejeria:ver_todas` (admin, super_admin, pastor, secretaria)
 
+## 6. Diseño
+
+- Reutiliza tokens del design system (azul/blanco/gris)
+- Calendario con `react-day-picker` + grilla custom de slots horarios
+- Mobile: la vista calendario colapsa a lista por día; wizard apilado verticalmente
+- Sigue el patrón de tabs ya usado en ServiciosPage
+
+## Detalles técnicos
+
+- **Tablas y triggers**: migración SQL con las 3 tablas, RLS, índice único parcial para evitar doble reserva, trigger que crea petición de oración cuando `requiere_intercesion = true`.
+- **Hooks**: `useCitasConsejeria`, `useHorariosConsejeria`, `useObservacionesConsejeria`, `useSlotsDisponibles(consejeroId, fecha)` — todos con invalidación cruzada en `useDatabase.ts`.
+- **Componentes nuevos**:
+  - `src/pages/consejeria/ConsejeriaCalendarView.tsx`
+  - `src/pages/consejeria/ConsejeriaAgendarWizard.tsx`
+  - `src/pages/consejeria/ConsejeriaMisCitas.tsx`
+  - `src/pages/consejeria/ConsejeriaHorariosAdmin.tsx`
+  - `src/pages/consejeria/ConsejeriaSeguimiento.tsx`
+  - `src/components/forms/CitaConsejeriaFormDialog.tsx`
+  - `src/components/forms/HorarioConsejeroFormDialog.tsx`
+  - `src/components/forms/ObservacionConsejeriaDialog.tsx`
+- **ServiciosPage.tsx**: añadir `"consejeria"` al tipo `ActiveView` y nueva pestaña en el `<Tabs>`.
+- **Edge functions**: 3 plantillas React Email en `supabase/functions/_shared/transactional-email-templates/` + registro en `registry.ts`.
+- **Prerrequisito email**: configurar dominio de email (paso obligatorio antes de habilitar correos automáticos).
