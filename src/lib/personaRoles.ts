@@ -30,3 +30,7 @@ export const isAcademiaMaestro = (persona: any) =>
 
 export const getAcademiaMaestroTipo = (persona: any) =>
   getPersonaTipos(persona).find((tipo) => ACADEMIA_MAESTRO_ROLE_KEYS.has(normalizeRole(tipo))) || persona?.tipo_persona || "Maestro";
+
+const PASTOR_PRINCIPAL_KEY = normalizeRole("Pastor Principal");
+export const isPastorPrincipal = (persona: any) =>
+  getPersonaTipos(persona).some((t) => normalizeRole(t) === PASTOR_PRINCIPAL_KEY);
