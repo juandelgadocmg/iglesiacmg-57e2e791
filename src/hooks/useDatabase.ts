@@ -88,7 +88,7 @@ export function useDeletePersona() {
 export interface PersonaExportFiltros {
   from?: string; // inclusive ISO date (yyyy-mm-dd)
   to?: string;   // exclusive ISO date (yyyy-mm-dd)
-  campo?: "created_at" | "fecha_ingreso"; // campo de fecha a filtrar (default: created_at)
+  campo?: "created_at" | "fecha_ingreso" | "ingreso_proceso"; // campo de fecha a filtrar (default: created_at)
 }
 
 export function useProcesosCrecimiento() {
