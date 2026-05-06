@@ -88,7 +88,7 @@ export function useDeletePersona() {
 export interface PersonaExportFiltros {
   from?: string; // inclusive ISO date (yyyy-mm-dd)
   to?: string;   // exclusive ISO date (yyyy-mm-dd)
-  campo?: "created_at" | "fecha_ingreso"; // campo de fecha a filtrar (default: created_at)
+  campo?: "created_at" | "fecha_ingreso" | "ingreso_proceso"; // campo de fecha a filtrar (default: created_at)
 }
 
 export function useProcesosCrecimiento() {
@@ -112,11 +112,47 @@ export function usePersonasParaExport(filtros: PersonaExportFiltros, enabled = t
     queryFn: async () => {
       const all: any[] = [];
       const PAGE_SIZE = 1000;
+      const campo = filtros.campo || "created_at";
+
+      // Filtro especial: por fecha del proceso "Ingreso a la Iglesia"
+      let idsIngreso: Set<string> | null = null;
+      if (campo === "ingreso_proceso" && (filtros.from || filtros.to)) {
+        // Buscar id del proceso "Ingreso a la Iglesia"
+        const { data: procs, error: procErr } = await supabase
+          .from("procesos_crecimiento")
+          .select("id, nombre")
+          .ilike("nombre", "%ingreso%iglesia%");
+        if (procErr) throw procErr;
+        const procIds = (procs || []).map((p: any) => p.id);
+        if (procIds.length === 0) return [];
+
+        idsIngreso = new Set<string>();
+        let pfrom = 0;
+        let phasMore = true;
+        while (phasMore) {
+          let pq = supabase
+            .from("persona_procesos")
+            .select("persona_id, fecha_completado")
+            .in("proceso_id", procIds)
+            .not("fecha_completado", "is", null)
+            .range(pfrom, pfrom + PAGE_SIZE - 1);
+          if (filtros.from) pq = pq.gte("fecha_completado", filtros.from);
+          if (filtros.to) pq = pq.lt("fecha_completado", filtros.to);
+          const { data: pdata, error: perr } = await pq;
+          if (perr) throw perr;
+          (pdata || []).forEach((r: any) => idsIngreso!.add(r.persona_id));
+          phasMore = (pdata?.length || 0) === PAGE_SIZE;
+          pfrom += PAGE_SIZE;
+        }
+        if (idsIngreso.size === 0) return [];
+      }
+
       let from = 0;
       let hasMore = true;
+      const orderField = campo === "ingreso_proceso" ? "created_at" : campo;
+      const idsArray = idsIngreso ? Array.from(idsIngreso) : null;
 
       while (hasMore) {
-        const campo = filtros.campo || "created_at";
         let q = supabase
           .from("personas")
           .select(`
@@ -125,11 +161,15 @@ export function usePersonasParaExport(filtros: PersonaExportFiltros, enabled = t
             grupos!fk_personas_grupo(nombre),
             persona_procesos(proceso_id, estado, fecha_completado, observacion)
           `)
-          .order(campo, { ascending: false, nullsFirst: false })
+          .order(orderField, { ascending: false, nullsFirst: false })
           .range(from, from + PAGE_SIZE - 1);
-        // created_at es timestamp; from/to son fechas (yyyy-mm-dd) interpretadas como inicio de día UTC
-        if (filtros.from) q = q.gte(campo, filtros.from);
-        if (filtros.to) q = q.lt(campo, filtros.to);
+
+        if (idsArray) {
+          q = q.in("id", idsArray);
+        } else {
+          if (filtros.from) q = q.gte(campo, filtros.from);
+          if (filtros.to) q = q.lt(campo, filtros.to);
+        }
 
         const { data, error } = await q;
         if (error) throw error;
