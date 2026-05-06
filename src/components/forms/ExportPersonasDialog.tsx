@@ -142,17 +142,20 @@ export default function ExportPersonasDialog({ trigger }: Props) {
         <div className="space-y-4">
           <div className="space-y-2">
             <Label>Filtrar por</Label>
-            <Select value={campoFecha} onValueChange={(v) => setCampoFecha(v as "fecha_ingreso" | "created_at")}>
+            <Select value={campoFecha} onValueChange={(v) => setCampoFecha(v as any)}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="created_at">Fecha de creación del registro (recomendado)</SelectItem>
-                <SelectItem value="fecha_ingreso">Fecha de ingreso a la iglesia</SelectItem>
+                <SelectItem value="fecha_ingreso">Fecha de ingreso a la iglesia (campo persona)</SelectItem>
+                <SelectItem value="ingreso_proceso">Fecha del proceso "Ingreso a la Iglesia"</SelectItem>
               </SelectContent>
             </Select>
             <p className="text-xs text-muted-foreground">
               {campoFecha === "created_at"
                 ? "Recomendado para seguimiento: filtra por la fecha en que se creó el registro en el sistema."
-                : "Filtra por la fecha real en que la persona ingresó a la iglesia (puede estar vacía en algunos registros)."}
+                : campoFecha === "fecha_ingreso"
+                ? "Filtra por el campo 'fecha de ingreso a la iglesia' del perfil (puede estar vacío en algunos registros)."
+                : "Filtra por la fecha registrada en el proceso de crecimiento 'Ingreso a la Iglesia'."}
             </p>
           </div>
 
