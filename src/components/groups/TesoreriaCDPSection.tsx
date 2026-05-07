@@ -88,7 +88,7 @@ export default function TesoreriaCDPSection() {
 
   const handleSave = async (
     fila: FilaTesoreriaCDP,
-    patch: { valor_entregado?: number; fecha_entrega?: string | null; observacion?: string | null }
+    patch: { valor_entregado?: number; fecha_entrega?: string | null; observacion?: string | null; valor_reportado_override?: number | null }
   ) => {
     if (cerrada) {
       toast.error("La consignación de la semana ya fue cerrada.");
@@ -102,6 +102,7 @@ export default function TesoreriaCDPSection() {
         valor_entregado: patch.valor_entregado ?? fila.valor_entregado,
         fecha_entrega: patch.fecha_entrega !== undefined ? patch.fecha_entrega : fila.fecha_entrega,
         observacion: patch.observacion !== undefined ? patch.observacion : fila.observacion,
+        valor_reportado_override: patch.valor_reportado_override !== undefined ? patch.valor_reportado_override : fila.valor_reportado_override,
       });
     } catch (e: any) {
       toast.error("No se pudo guardar: " + (e.message || ""));
