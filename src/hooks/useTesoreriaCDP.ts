@@ -192,6 +192,7 @@ export function useUpsertTesoreriaCDP() {
       valor_entregado?: number;
       fecha_entrega?: string | null;
       observacion?: string | null;
+      valor_reportado_override?: number | null;
     }) => {
       const { data: { user } } = await supabase.auth.getUser();
       const payload: any = {
@@ -203,6 +204,7 @@ export function useUpsertTesoreriaCDP() {
       if (input.valor_entregado !== undefined) payload.valor_entregado = input.valor_entregado;
       if (input.fecha_entrega !== undefined) payload.fecha_entrega = input.fecha_entrega;
       if (input.observacion !== undefined) payload.observacion = input.observacion;
+      if (input.valor_reportado_override !== undefined) payload.valor_reportado_override = input.valor_reportado_override;
 
       const { error } = await supabase
         .from("tesoreria_ofrendas_cdp")
