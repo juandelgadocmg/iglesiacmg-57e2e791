@@ -172,7 +172,7 @@ export function useTesoreriaSemana(semanaInicio: string, semanaFin: string) {
           valor_entregado: valorEntregado,
           fecha_entrega: fechaEntrega,
           observacion: reg?.observacion || null,
-          estado: calcularEstado(rep.total, rep.count, valorEntregado, fechaEntrega, semanaFin, diasMora),
+          estado: calcularEstado(valorReportado, rep.count, valorEntregado, fechaEntrega, semanaFin, diasMora),
           dias_mora: diasMora,
         };
       });
