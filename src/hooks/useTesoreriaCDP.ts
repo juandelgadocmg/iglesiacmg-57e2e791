@@ -145,14 +145,18 @@ export function useTesoreriaSemana(semanaInicio: string, semanaFin: string) {
         const reg = registrosPorGrupo[g.id];
         const valorEntregado = Number(reg?.valor_entregado || 0);
         const fechaEntrega = reg?.fecha_entrega || null;
+        const override = reg?.valor_reportado_override !== null && reg?.valor_reportado_override !== undefined
+          ? Number(reg.valor_reportado_override)
+          : null;
+        const valorReportado = override !== null ? override : rep.total;
         const lider = g.personas
           ? `${g.personas.nombres} ${g.personas.apellidos}`
           : null;
 
         // Mora: hay reporte pero entrega física pendiente o parcial
         const aplicaMora =
-          (rep.total > 0 || valorEntregado > 0) &&
-          valorEntregado < rep.total;
+          (valorReportado > 0 || valorEntregado > 0) &&
+          valorEntregado < valorReportado;
         const diasMora = aplicaMora ? diasMoraBase : 0;
 
         return {
@@ -160,7 +164,9 @@ export function useTesoreriaSemana(semanaInicio: string, semanaFin: string) {
           grupo_nombre: g.nombre,
           red: g.red || "Sin Red",
           lider_nombre: lider,
-          valor_reportado: rep.total,
+          valor_reportado: valorReportado,
+          valor_reportado_auto: rep.total,
+          valor_reportado_override: override,
           reportes_count: rep.count,
           registro_id: reg?.id || null,
           valor_entregado: valorEntregado,
