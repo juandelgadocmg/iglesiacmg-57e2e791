@@ -31,6 +31,8 @@ export interface FilaTesoreriaCDP {
   red: string;
   lider_nombre: string | null;
   valor_reportado: number;
+  valor_reportado_auto: number;
+  valor_reportado_override: number | null;
   reportes_count: number;
   registro_id: string | null;
   valor_entregado: number;
