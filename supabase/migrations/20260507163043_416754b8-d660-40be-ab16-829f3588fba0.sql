@@ -1,0 +1,1 @@
+ALTER TABLE public.tesoreria_ofrendas_cdp ADD COLUMN IF NOT EXISTS valor_reportado_override numeric;
