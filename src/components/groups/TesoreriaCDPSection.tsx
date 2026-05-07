@@ -279,7 +279,7 @@ export default function TesoreriaCDPSection() {
               <TableRow className="bg-muted/50">
                 <TableHead className="w-[110px]">Red</TableHead>
                 <TableHead>Casa de Paz</TableHead>
-                <TableHead className="text-right">Reportado</TableHead>
+                <TableHead className="w-[140px]">Reportado</TableHead>
                 <TableHead className="w-[140px]">Entregado</TableHead>
                 <TableHead className="w-[150px]">Fecha entrega</TableHead>
                 <TableHead className="min-w-[180px]">Observación</TableHead>
