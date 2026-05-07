@@ -279,7 +279,7 @@ export default function TesoreriaCDPSection() {
               <TableRow className="bg-muted/50">
                 <TableHead className="w-[110px]">Red</TableHead>
                 <TableHead>Casa de Paz</TableHead>
-                <TableHead className="text-right">Reportado</TableHead>
+                <TableHead className="w-[140px]">Reportado</TableHead>
                 <TableHead className="w-[140px]">Entregado</TableHead>
                 <TableHead className="w-[150px]">Fecha entrega</TableHead>
                 <TableHead className="min-w-[180px]">Observación</TableHead>
@@ -451,10 +451,12 @@ function FilaEditable({
   onSave: (f: FilaTesoreriaCDP, patch: any) => void;
 }) {
   const [entregado, setEntregado] = useState(String(fila.valor_entregado || ""));
+  const [reportado, setReportado] = useState(String(fila.valor_reportado || ""));
   const [fechaEntrega, setFechaEntrega] = useState(fila.fecha_entrega || "");
   const [obs, setObs] = useState(fila.observacion || "");
   const badge = estadoBadge[fila.estado];
   const enMora = fila.dias_mora > 0;
+  const reportadoEditado = fila.valor_reportado_override !== null;
 
   return (
     <TableRow className={cn(enMora && "bg-destructive/5")}>
@@ -470,8 +472,25 @@ function FilaEditable({
           </span>
         )}
       </TableCell>
-      <TableCell className="text-right text-sm font-medium">
-        {fmt(fila.valor_reportado)}
+      <TableCell>
+        <Input
+          type="number"
+          step="0.01"
+          value={reportado}
+          disabled={bloqueado}
+          onChange={(e) => setReportado(e.target.value)}
+          onBlur={() => {
+            const num = parseFloat(reportado) || 0;
+            if (num !== fila.valor_reportado) {
+              // Si coincide con el valor automático del reporte, limpiamos override
+              const override = num === fila.valor_reportado_auto ? null : num;
+              onSave(fila, { valor_reportado_override: override });
+            }
+          }}
+          className={cn("h-8 text-sm", reportadoEditado && "border-amber-500 bg-amber-50 dark:bg-amber-950/20")}
+          placeholder="0"
+          title={reportadoEditado ? `Editado manualmente. Reporte automático: ${fmt(fila.valor_reportado_auto)}` : undefined}
+        />
       </TableCell>
       <TableCell>
         <Input

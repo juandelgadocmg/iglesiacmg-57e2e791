@@ -2326,6 +2326,7 @@ export type Database = {
           updated_at: string
           valor_consignado: number
           valor_entregado: number
+          valor_reportado_override: number | null
         }
         Insert: {
           consignacion_completada?: boolean
@@ -2342,6 +2343,7 @@ export type Database = {
           updated_at?: string
           valor_consignado?: number
           valor_entregado?: number
+          valor_reportado_override?: number | null
         }
         Update: {
           consignacion_completada?: boolean
@@ -2358,6 +2360,7 @@ export type Database = {
           updated_at?: string
           valor_consignado?: number
           valor_entregado?: number
+          valor_reportado_override?: number | null
         }
         Relationships: [
           {

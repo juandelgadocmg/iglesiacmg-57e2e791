@@ -31,6 +31,8 @@ export interface FilaTesoreriaCDP {
   red: string;
   lider_nombre: string | null;
   valor_reportado: number;
+  valor_reportado_auto: number;
+  valor_reportado_override: number | null;
   reportes_count: number;
   registro_id: string | null;
   valor_entregado: number;
@@ -143,14 +145,18 @@ export function useTesoreriaSemana(semanaInicio: string, semanaFin: string) {
         const reg = registrosPorGrupo[g.id];
         const valorEntregado = Number(reg?.valor_entregado || 0);
         const fechaEntrega = reg?.fecha_entrega || null;
+        const override = reg?.valor_reportado_override !== null && reg?.valor_reportado_override !== undefined
+          ? Number(reg.valor_reportado_override)
+          : null;
+        const valorReportado = override !== null ? override : rep.total;
         const lider = g.personas
           ? `${g.personas.nombres} ${g.personas.apellidos}`
           : null;
 
         // Mora: hay reporte pero entrega física pendiente o parcial
         const aplicaMora =
-          (rep.total > 0 || valorEntregado > 0) &&
-          valorEntregado < rep.total;
+          (valorReportado > 0 || valorEntregado > 0) &&
+          valorEntregado < valorReportado;
         const diasMora = aplicaMora ? diasMoraBase : 0;
 
         return {
@@ -158,13 +164,15 @@ export function useTesoreriaSemana(semanaInicio: string, semanaFin: string) {
           grupo_nombre: g.nombre,
           red: g.red || "Sin Red",
           lider_nombre: lider,
-          valor_reportado: rep.total,
+          valor_reportado: valorReportado,
+          valor_reportado_auto: rep.total,
+          valor_reportado_override: override,
           reportes_count: rep.count,
           registro_id: reg?.id || null,
           valor_entregado: valorEntregado,
           fecha_entrega: fechaEntrega,
           observacion: reg?.observacion || null,
-          estado: calcularEstado(rep.total, rep.count, valorEntregado, fechaEntrega, semanaFin, diasMora),
+          estado: calcularEstado(valorReportado, rep.count, valorEntregado, fechaEntrega, semanaFin, diasMora),
           dias_mora: diasMora,
         };
       });
@@ -184,6 +192,7 @@ export function useUpsertTesoreriaCDP() {
       valor_entregado?: number;
       fecha_entrega?: string | null;
       observacion?: string | null;
+      valor_reportado_override?: number | null;
     }) => {
       const { data: { user } } = await supabase.auth.getUser();
       const payload: any = {
@@ -195,6 +204,7 @@ export function useUpsertTesoreriaCDP() {
       if (input.valor_entregado !== undefined) payload.valor_entregado = input.valor_entregado;
       if (input.fecha_entrega !== undefined) payload.fecha_entrega = input.fecha_entrega;
       if (input.observacion !== undefined) payload.observacion = input.observacion;
+      if (input.valor_reportado_override !== undefined) payload.valor_reportado_override = input.valor_reportado_override;
 
       const { error } = await supabase
         .from("tesoreria_ofrendas_cdp")
