@@ -176,6 +176,9 @@ export default function TesoreriaCDPSection() {
               </Badge>
             )}
           </Button>
+          <Button variant="outline" size="sm" onClick={() => setShowImport(true)} className="gap-1">
+            <Upload className="h-4 w-4" /> Importar Excel
+          </Button>
           <Button size="sm" onClick={handleDownloadPDF} className="gap-1">
             <FileDown className="h-4 w-4" /> Descargar PDF
           </Button>
