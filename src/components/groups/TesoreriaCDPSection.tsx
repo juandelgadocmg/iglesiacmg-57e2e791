@@ -381,6 +381,12 @@ export default function TesoreriaCDPSection() {
         onClose={() => setShowReabrir(false)}
       />
 
+      {/* Modal importar Excel histórico */}
+      <ImportTesoreriaCDPDialog
+        open={showImport}
+        onClose={() => setShowImport(false)}
+      />
+
       {/* Modal mora histórica */}
       <Dialog open={showMora} onOpenChange={setShowMora}>
         <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
