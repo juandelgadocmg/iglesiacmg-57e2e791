@@ -28,6 +28,7 @@ import { useConfiguracion } from "@/hooks/useConfiguracion";
 import { useAuth } from "@/hooks/useAuth";
 import { useUserRoles } from "@/hooks/useUserRoles";
 import { exportTesoreriaSemanalPDF, exportConsignacionSemanalPDF } from "@/lib/exportTesoreriaCDPPdf";
+import ImportTesoreriaCDPDialog from "./ImportTesoreriaCDPDialog";
 import { format, parseISO, addDays, subDays } from "date-fns";
 import { es } from "date-fns/locale";
 import { cn } from "@/lib/utils";
