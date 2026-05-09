@@ -28,6 +28,7 @@ import { useConfiguracion } from "@/hooks/useConfiguracion";
 import { useAuth } from "@/hooks/useAuth";
 import { useUserRoles } from "@/hooks/useUserRoles";
 import { exportTesoreriaSemanalPDF, exportConsignacionSemanalPDF } from "@/lib/exportTesoreriaCDPPdf";
+import ImportTesoreriaCDPDialog from "./ImportTesoreriaCDPDialog";
 import { format, parseISO, addDays, subDays } from "date-fns";
 import { es } from "date-fns/locale";
 import { cn } from "@/lib/utils";
@@ -52,6 +53,7 @@ export default function TesoreriaCDPSection() {
   const [showReemplazar, setShowReemplazar] = useState(false);
   const [showHistorial, setShowHistorial] = useState(false);
   const [showReabrir, setShowReabrir] = useState(false);
+  const [showImport, setShowImport] = useState(false);
   const semana = useMemo(() => getSemanaRange(fechaSemana), [fechaSemana]);
 
   const { data: filas, isLoading } = useTesoreriaSemana(semana.inicio, semana.fin);
@@ -173,6 +175,9 @@ export default function TesoreriaCDPSection() {
                 {morosos!.length}
               </Badge>
             )}
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => setShowImport(true)} className="gap-1">
+            <Upload className="h-4 w-4" /> Importar Excel
           </Button>
           <Button size="sm" onClick={handleDownloadPDF} className="gap-1">
             <FileDown className="h-4 w-4" /> Descargar PDF
@@ -374,6 +379,12 @@ export default function TesoreriaCDPSection() {
         consignacion={consignacion || null}
         semanaInicio={semana.inicio}
         onClose={() => setShowReabrir(false)}
+      />
+
+      {/* Modal importar Excel histórico */}
+      <ImportTesoreriaCDPDialog
+        open={showImport}
+        onClose={() => setShowImport(false)}
       />
 
       {/* Modal mora histórica */}
