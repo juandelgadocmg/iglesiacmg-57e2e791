@@ -148,6 +148,12 @@ function CalendarioView({ consejeros, isAdmin }: any) {
                 <SelectItem value="virtual">Virtual</SelectItem>
               </SelectContent>
             </Select>
+            <ExportDropdown
+              title="Citas de consejería"
+              filename={`consejeria-${format(weekStart, "yyyy-MM-dd")}`}
+              columns={CITAS_EXPORT_COLUMNS}
+              data={citas.map(mapCitaForExport)}
+            />
           </div>
         </div>
       </CardHeader>
