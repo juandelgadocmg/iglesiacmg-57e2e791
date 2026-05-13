@@ -496,25 +496,80 @@ function HorariosAdmin({ consejeros }: any) {
 // ============ SEGUIMIENTO ============
 function SeguimientoView({ consejeros }: any) {
   const { data: citas = [] } = useCitasConsejeria({});
+  const upd = useUpsertCita();
   const [selected, setSelected] = useState<any>(null);
-  const pendientes = citas.filter(c => c.estado === "completada" || c.estado === "confirmada");
+  const [filtroEstado, setFiltroEstado] = useState<string>("todos");
+  const [filtroConsejero, setFiltroConsejero] = useState<string>("todos");
+
+  const filtradas = citas.filter(c =>
+    (filtroEstado === "todos" || c.estado === filtroEstado) &&
+    (filtroConsejero === "todos" || c.consejero_persona_id === filtroConsejero)
+  );
+  // Más recientes primero
+  const ordenadas = [...filtradas].sort((a, b) =>
+    (b.fecha + (b.hora_inicio || "")).localeCompare(a.fecha + (a.hora_inicio || ""))
+  );
+
   return (
     <Card>
-      <CardHeader><CardTitle className="text-base">Seguimiento de casos</CardTitle></CardHeader>
+      <CardHeader>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <CardTitle className="text-base">Seguimiento de citas</CardTitle>
+          <div className="flex flex-wrap gap-2">
+            <Select value={filtroEstado} onValueChange={setFiltroEstado}>
+              <SelectTrigger className="w-[160px]"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todos">Todos los estados</SelectItem>
+                <SelectItem value="pendiente">Pendientes</SelectItem>
+                <SelectItem value="confirmada">Confirmadas</SelectItem>
+                <SelectItem value="completada">Asistió</SelectItem>
+                <SelectItem value="no_asistio">No asistió</SelectItem>
+                <SelectItem value="cancelada">Canceladas</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={filtroConsejero} onValueChange={setFiltroConsejero}>
+              <SelectTrigger className="w-[180px]"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todos">Todos los consejeros</SelectItem>
+                {consejeros.map((c: any) => <SelectItem key={c.id} value={c.id}>{c.nombres} {c.apellidos}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            <ExportDropdown
+              title="Citas de consejería"
+              filename={`consejeria-seguimiento-${new Date().toISOString().split("T")[0]}`}
+              columns={CITAS_EXPORT_COLUMNS}
+              data={ordenadas.map(mapCitaForExport)}
+            />
+          </div>
+        </div>
+      </CardHeader>
       <CardContent>
-        {pendientes.length === 0 ? <p className="text-sm text-muted-foreground">No hay citas para seguimiento.</p> : (
+        {ordenadas.length === 0 ? <p className="text-sm text-muted-foreground">No hay citas con los filtros actuales.</p> : (
           <div className="space-y-2">
-            {pendientes.map(c => (
+            {ordenadas.map(c => (
               <div key={c.id} className="border rounded p-3 flex items-center justify-between gap-2 flex-wrap">
-                <div className="flex-1 min-w-[200px]">
+                <div className="flex-1 min-w-[220px]">
                   <div className="font-semibold">{c.solicitante_nombre}</div>
                   <div className="text-xs text-muted-foreground">
-                    {c.consejero_nombre} · {format(parseISO(c.fecha), "d MMM yyyy", { locale: es })} · {c.motivo_categoria}
+                    {c.consejero_nombre} · {format(parseISO(c.fecha), "d MMM yyyy", { locale: es })} · {c.hora_inicio?.slice(0,5)} · {c.motivo_categoria}
                   </div>
                 </div>
+                <Badge className={cn(ESTADO_COLORS[c.estado])}>{c.estado}</Badge>
                 {c.requiere_intercesion && <Badge variant="outline" className="bg-purple-100 text-purple-700"><Heart className="h-3 w-3 mr-1" />Intercesión</Badge>}
                 {c.requiere_consolidacion && <Badge variant="outline" className="bg-blue-100 text-blue-700">Consolidación</Badge>}
-                <Button size="sm" onClick={() => setSelected(c)}>Observaciones</Button>
+                <div className="flex gap-1">
+                  <Button size="sm" variant="outline" className="text-success border-success/40 hover:bg-success/10"
+                    onClick={() => upd.mutate({ id: c.id, estado: "completada" })}
+                    title="Marcar como asistió">
+                    <Check className="h-4 w-4 mr-1" />Asistió
+                  </Button>
+                  <Button size="sm" variant="outline" className="text-destructive border-destructive/40 hover:bg-destructive/10"
+                    onClick={() => upd.mutate({ id: c.id, estado: "no_asistio" })}
+                    title="Marcar como no asistió">
+                    <X className="h-4 w-4 mr-1" />No asistió
+                  </Button>
+                  <Button size="sm" onClick={() => setSelected(c)}>Detalles</Button>
+                </div>
               </div>
             ))}
           </div>
