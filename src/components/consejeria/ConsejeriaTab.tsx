@@ -19,10 +19,41 @@ import { Calendar } from "@/components/ui/calendar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
-import { CalendarIcon, Clock, Heart, MapPin, Plus, Trash2, User, Video, MessageSquare } from "lucide-react";
+import { CalendarIcon, Clock, Heart, MapPin, Plus, Trash2, User, Video, MessageSquare, Check, X } from "lucide-react";
 import { format, parseISO, startOfWeek, addDays, isSameDay } from "date-fns";
 import { es } from "date-fns/locale";
 import { cn } from "@/lib/utils";
+import ExportDropdown from "@/components/shared/ExportDropdown";
+
+const CITAS_EXPORT_COLUMNS = [
+  { header: "Fecha", key: "fecha" },
+  { header: "Hora", key: "hora" },
+  { header: "Solicitante", key: "solicitante" },
+  { header: "Email", key: "email" },
+  { header: "Teléfono", key: "telefono" },
+  { header: "Consejero", key: "consejero" },
+  { header: "Modalidad", key: "modalidad" },
+  { header: "Categoría", key: "categoria" },
+  { header: "Motivo", key: "motivo" },
+  { header: "Estado", key: "estado" },
+  { header: "Intercesión", key: "intercesion" },
+  { header: "Consolidación", key: "consolidacion" },
+];
+
+const mapCitaForExport = (c: any) => ({
+  fecha: c.fecha,
+  hora: `${c.hora_inicio?.slice(0,5) || ""} - ${c.hora_fin?.slice(0,5) || ""}`,
+  solicitante: c.solicitante_nombre || "",
+  email: c.solicitante_email || "",
+  telefono: c.solicitante_telefono || "",
+  consejero: c.consejero_nombre || "",
+  modalidad: c.modalidad || "",
+  categoria: c.motivo_categoria || "",
+  motivo: c.motivo_descripcion || "",
+  estado: c.estado || "",
+  intercesion: c.requiere_intercesion ? "Sí" : "No",
+  consolidacion: c.requiere_consolidacion ? "Sí" : "No",
+});
 
 const DIAS = ["Domingo","Lunes","Martes","Miércoles","Jueves","Viernes","Sábado"];
 const MOTIVOS = [
