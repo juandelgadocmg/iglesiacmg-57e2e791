@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/sheet";
 import {
   LayoutDashboard, Users, UsersRound, Church,
-  DollarSign, CalendarDays, GraduationCap,
+  DollarSign, CalendarDays, GraduationCap, BookMarked,
   Award, BarChart3, Settings, UserCog, ChevronLeft, ChevronRight,
   LogOut, HandHeart, MessageCircle
 } from "lucide-react";
