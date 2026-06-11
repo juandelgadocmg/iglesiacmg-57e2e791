@@ -28,6 +28,7 @@ const menuItems = [
   { label: "Finanzas", icon: DollarSign, path: "/finanzas" },
   { label: "Eventos", icon: CalendarDays, path: "/eventos" },
   { label: "Academia", icon: GraduationCap, path: "/academia" },
+  { label: "Seminario", icon: BookMarked, path: "/seminario" },
   { label: "Certificados", icon: Award, path: "/certificados" },
   { label: "Peticiones", icon: HandHeart, path: "/peticiones" },
   { label: "Reportes", icon: BarChart3, path: "/reportes" },
