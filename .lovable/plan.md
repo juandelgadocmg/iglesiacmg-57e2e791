@@ -1,86 +1,113 @@
-# Módulo de Consejería Pastoral
+# Sistema de Gestión Académica — Seminario Bíblico CMG
 
-Nueva pestaña **Consejería** dentro de `/servicios` (Reuniones) para agendar, gestionar y dar seguimiento a citas de consejería con Pastor / Pastora.
+Expansión del módulo Academia conservando intacto lo existente (Discipulado/Escuelas). Se crea una **estructura paralela** dedicada al Seminario, accesible desde un nuevo sub-tab "Seminario" dentro de `/academia`. Mismo diseño visual (azul/blanco/gris, sidebar, tabs, cards).
 
-## 1. Base de datos (nuevas tablas)
+## Arquitectura
 
-- **consejeros_horarios** — disponibilidad por consejero
-  - persona_id (FK personas, debe ser tipo "Pastor Principal")
-  - dia_semana (0–6), hora_inicio, hora_fin, duracion_minutos (default 60), modalidad permitida (presencial/virtual/ambas), activo
-- **citas_consejeria**
-  - solicitante_persona_id (FK personas), solicitante_user_id (nullable, si es usuario logueado), nombre/email/telefono de respaldo
-  - consejero_persona_id (FK personas)
-  - fecha, hora_inicio, hora_fin
-  - modalidad (presencial | virtual), enlace_virtual, lugar
-  - motivo_categoria (espiritual, familiar, emocional, liderazgo, matrimonial, otro), motivo_descripcion
-  - estado (pendiente, confirmada, completada, cancelada, no_asistio)
-  - requiere_intercesion (bool), requiere_consolidacion (bool)
-  - **Único parcial**: (consejero_persona_id, fecha, hora_inicio) donde estado != 'cancelada' → bloquea doble reserva
-- **observaciones_consejeria** — seguimiento post-cita
-  - cita_id, notas, estado_caso (en_proceso, cerrado, seguimiento), proxima_accion, fecha_seguimiento, created_by
+Nueva tabla raíz `programas_academicos` → `pensum` (semestres) → `materias_pensum` (con créditos y prerrequisitos) → `inscripciones_semestre` → `cursadas` (instancia de materia por estudiante/periodo) → calificaciones/asistencia/recursos enlazados a `cursadas`.
 
-**RLS**:
-- Admin / pastor / super_admin: acceso completo a todas las citas y observaciones
-- Secretaria: lectura de citas, puede crear a nombre de personas
-- Usuario autenticado: ve sólo sus propias citas (donde solicitante_user_id = auth.uid())
-- Observaciones: solo admin / pastor las ven y editan
+Las tablas actuales (`cursos`, `materias`, `matriculas`, `calificaciones`, `asistencia_materias`, `recursos_academicos`) **no se tocan**. Discipulado sigue funcionando igual.
 
-## 2. UI — Pestaña Consejería en `/servicios`
+## Modelo de datos nuevo
 
-Sub-tabs internas:
+| Tabla | Propósito |
+|---|---|
+| `sem_programas` | Programa académico (Teología Bíblica y Ministerial, futuros) |
+| `sem_pensum_semestres` | 8 semestres por programa (orden, nombre, créditos totales) |
+| `sem_materias` | Catálogo de materias del programa con créditos, intensidad horaria |
+| `sem_materia_prerequisitos` | Relación N:N de prerrequisitos |
+| `sem_pensum_materias` | Asignación materia → semestre del pensum |
+| `sem_periodos` | Periodos lectivos del seminario (2026-1, 2026-2, …) |
+| `sem_ofertas` | Materias ofertadas en un periodo (docente, horario, aula, cupos, link Zoom manual, meeting_id Zoom API) |
+| `sem_inscripciones` | Inscripción del estudiante al periodo (estado: borrador/pagada/activa/cerrada) |
+| `sem_inscripcion_materias` | Materias inscritas en esa inscripción (cursada activa) |
+| `sem_calificaciones` | Notas por cursada (corte, definitiva, recuperación) |
+| `sem_asistencias` | Asistencia por cursada y fecha |
+| `sem_evaluaciones` | Quices, parciales, finales, trabajos (ítems calificables del seminario) |
+| `sem_recursos` | Biblioteca digital: libros PDF, lecturas, videos, links por materia/programa |
+| `sem_historial` | Vista materializada/función que arma el kárdex completo del estudiante |
+| `sem_zoom_sesiones` | Reuniones Zoom creadas vía API por oferta |
 
-1. **Calendario** — vista tipo Google Calendar (mes/semana/día) con todas las citas. Filtros: consejero (Pastor/Pastora/Todos), modalidad. Click en cita → modal con detalle, edición, observaciones.
-2. **Agendar** — wizard de 4 pasos:
-   - Paso 1: Selecciona consejero (Pastor / Pastora — desde personas con tipo "Pastor Principal")
-   - Paso 2: Modalidad (presencial / virtual)
-   - Paso 3: Calendario de fechas + slots disponibles (calculados desde `consejeros_horarios` menos citas existentes)
-   - Paso 4: Motivo (categoría sugerida + texto libre), datos contacto, confirmar
-3. **Mis citas** (visible para usuarios no-staff) — lista de citas propias con estado
-4. **Horarios** (solo admin/pastor) — gestión CRUD de disponibilidad por consejero, día y franja horaria
-5. **Seguimiento** (admin/pastor) — listado de citas pasadas para añadir observaciones, marcar estado del caso, banderas de Intercesión / Consolidación
+Todas con RLS estricto: admin/super_admin/pastor → completo; docente → sólo sus ofertas; estudiante autenticado → sólo lo suyo; tesorería → lectura de inscripciones y pagos.
 
-## 3. Notificaciones por correo
+## Integraciones
 
-Configurar dominio de email Lovable Cloud → infraestructura de emails → 3 plantillas transaccionales:
+- **Tesorería**: nueva tabla `sem_pagos_inscripcion` con concepto, valor, estado. Al activar una inscripción se valida que no exista `mora > 30 días` reutilizando la lógica de `pagos_matricula`. Función SQL `sem_estudiante_tiene_mora(persona_id)` consumida por el front antes de habilitar nueva inscripción.
+- **Usuarios**: nuevos roles `seminario_admin`, `seminario_docente`, `seminario_estudiante` agregados al enum `app_role`. Se mapean en `permissions.ts` y en `RoleGuard`.
+- **Zoom API**: edge function `zoom-create-meeting` que usa OAuth Server-to-Server. Requiere 3 secretos: `ZOOM_ACCOUNT_ID`, `ZOOM_CLIENT_ID`, `ZOOM_CLIENT_SECRET`. Al crear una `sem_oferta` con modalidad virtual, llama a la función y guarda `join_url`, `meeting_id`, `password` en `sem_zoom_sesiones`. Botón "Crear sala Zoom" en el form. Link manual sigue disponible como fallback.
+- **Certificados**: nueva plantilla `seminario-diploma` en el módulo Certificados existente. Trigger: cuando el estudiante completa los 8 semestres con todas las materias aprobadas (nota ≥ 3.0), un trigger SQL inserta en `certificados` y notifica al estudiante. Generación PDF reutiliza `jsPDF` con plantilla diploma horizontal.
 
-- `consejeria-confirmacion-solicitante` — al usuario que agendó (nombre, fecha/hora, modalidad, motivo, consejero)
-- `consejeria-aviso-consejero` — al pastor/pastora (datos del solicitante + cita)
-- `consejeria-cancelacion` — cuando se cancela
+## Submódulos (rutas dentro de `/academia/seminario`)
 
-Disparadores: tras INSERT/UPDATE de cita desde la UI se invoca `send-transactional-email` con la plantilla y `templateData` correspondientes (un envío por destinatario, idempotencyKey = `cita-{id}-{tipo}`).
+1. **Dashboard Académico** — KPIs (matriculados, retención, promedio general, mora), gráficos por semestre, próximas evaluaciones, alertas (inasistencia, mora, prerrequisitos)
+2. **Programas** — CRUD de programas (inicial: Teología Bíblica y Ministerial, 8 sem, créditos totales)
+3. **Pensum Académico** — Editor visual del pensum por programa, drag de materias por semestre, definición de prerrequisitos
+4. **Materias** — Catálogo del programa, créditos, intensidad horaria, descripción, docente sugerido
+5. **Aula Virtual** — Vista por materia: link Zoom, recursos, anuncios, lista de estudiantes, próxima clase
+6. **Evaluaciones** — Crear quices/parciales/finales por cursada, peso porcentual, fechas, publicación
+7. **Calificaciones** — Captura de notas por evaluación, cálculo automático de definitiva, vista estudiante (kárdex), reporte por materia
+8. **Asistencia** — Registro manual o QR (reutiliza `QrAttendanceScanner`), reporte por materia/estudiante, alertas de inasistencias
+9. **Biblioteca Digital** — Repositorio de PDFs, videos, links por materia o programa; bucket nuevo `seminario-biblioteca`
+10. **Certificados** — Vista de diplomas generados, descarga, verificación pública por QR (reutiliza módulo existente)
+11. **Docentes** — Gestión de docentes seminario, asignación a materias, carga horaria
+12. **Reportes** — Reportes consolidados: promedio acumulado por estudiante, retención por semestre, tasas de aprobación, mora académica, kárdex PDF descargable
 
-## 4. Integración procesos iglesia
+## Malla curricular visual
 
-Las banderas `requiere_intercesion` y `requiere_consolidacion` en la cita generan automáticamente:
-- Una entrada en `peticiones_oracion` (si intercesión) ligada a la persona
-- Notificación in-app al líder de consolidación (si consolidación)
+Componente `PensumGrid.tsx`: grilla 8 columnas × N filas, cada celda es una materia con código, nombre, créditos, color por área. Líneas conectoras (SVG) para prerrequisitos. Modo edición (admin) drag & drop, modo vista (estudiante) con check verde por materia aprobada, gris por cursando, rojo por reprobada/pendiente prerrequisito.
 
-## 5. Permisos (permissions.ts)
+## Promedio acumulado
 
-- Nueva acción: `consejeria:manage` (admin, super_admin, pastor)
-- Nueva acción: `consejeria:agendar` (todos los autenticados)
-- Nueva acción: `consejeria:ver_todas` (admin, super_admin, pastor, secretaria)
+Función SQL `sem_calcular_promedio(persona_id, programa_id)`:
+```text
+promedio = SUM(nota_final * creditos) / SUM(creditos)
+```
+Trigger al insertar/actualizar `sem_calificaciones` actualiza un campo cached `promedio_acumulado` en `sem_inscripciones` para evitar recalcular en cada query.
 
-## 6. Diseño
+## Control de prerrequisitos
 
-- Reutiliza tokens del design system (azul/blanco/gris)
-- Calendario con `react-day-picker` + grilla custom de slots horarios
-- Mobile: la vista calendario colapsa a lista por día; wizard apilado verticalmente
-- Sigue el patrón de tabs ya usado en ServiciosPage
+Antes de inscribir una materia, función `sem_puede_inscribir(persona_id, materia_id)` valida que todos los prerrequisitos estén aprobados (nota ≥ 3.0). Si falla, devuelve la lista de pendientes y el front bloquea el chip.
 
-## Detalles técnicos
+## Fases de entrega
 
-- **Tablas y triggers**: migración SQL con las 3 tablas, RLS, índice único parcial para evitar doble reserva, trigger que crea petición de oración cuando `requiere_intercesion = true`.
-- **Hooks**: `useCitasConsejeria`, `useHorariosConsejeria`, `useObservacionesConsejeria`, `useSlotsDisponibles(consejeroId, fecha)` — todos con invalidación cruzada en `useDatabase.ts`.
-- **Componentes nuevos**:
-  - `src/pages/consejeria/ConsejeriaCalendarView.tsx`
-  - `src/pages/consejeria/ConsejeriaAgendarWizard.tsx`
-  - `src/pages/consejeria/ConsejeriaMisCitas.tsx`
-  - `src/pages/consejeria/ConsejeriaHorariosAdmin.tsx`
-  - `src/pages/consejeria/ConsejeriaSeguimiento.tsx`
-  - `src/components/forms/CitaConsejeriaFormDialog.tsx`
-  - `src/components/forms/HorarioConsejeroFormDialog.tsx`
-  - `src/components/forms/ObservacionConsejeriaDialog.tsx`
-- **ServiciosPage.tsx**: añadir `"consejeria"` al tipo `ActiveView` y nueva pestaña en el `<Tabs>`.
-- **Edge functions**: 3 plantillas React Email en `supabase/functions/_shared/transactional-email-templates/` + registro en `registry.ts`.
-- **Prerrequisito email**: configurar dominio de email (paso obligatorio antes de habilitar correos automáticos).
+Por el tamaño real (≈15 tablas, ≈12 páginas nuevas, 1 edge function Zoom, integración tesorería + certificados), divido en **4 PRs encadenados**. Cada fase queda funcional y desplegable. Total estimado: 4 turnos de construcción.
+
+### Fase 1 — Cimientos (este turno)
+- Migración SQL con las 15 tablas + RLS + grants + roles nuevos
+- Hooks base (`useProgramas`, `usePensum`, `useMaterias`, `useOfertas`, `useInscripciones`)
+- Página `/academia/seminario` con sub-tabs vacíos
+- CRUD de **Programas**, **Pensum** (editor visual), **Materias** (con prerrequisitos)
+- Seed del programa "Teología Bíblica y Ministerial" con los 8 semestres vacíos
+- Carga del pensum real **cuando envíes el Excel/PDF**
+
+### Fase 2 — Operación lectiva
+- **Inscripción por semestre** (wizard con control prerrequisitos + check mora tesorería)
+- **Docentes** (gestión + asignación)
+- **Aula Virtual** + integración Zoom (link manual primero, API después)
+- **Asistencia**
+- Edge function `zoom-create-meeting` (necesita secretos al inicio de la fase)
+
+### Fase 3 — Evaluación
+- **Evaluaciones** (crear ítems calificables por cursada)
+- **Calificaciones** (captura + cálculo definitiva + promedio acumulado)
+- **Biblioteca Digital** (bucket + CRUD)
+
+### Fase 4 — Cierre académico
+- **Dashboard Académico** con todos los KPIs reales
+- **Reportes** completos (kárdex PDF, retención, aprobación, mora)
+- **Certificados automáticos** (trigger + plantilla diploma)
+- Verificación pública por QR
+
+## Prerrequisitos antes de Fase 2
+
+1. Subir el **pensum real en Excel o PDF** (materias por semestre con créditos y prerrequisitos) para cargarlo como seed en la migración de Fase 1.
+2. Para Zoom API real (Fase 2), necesito que crees una app **Server-to-Server OAuth** en marketplace.zoom.us y me suministres `ZOOM_ACCOUNT_ID`, `ZOOM_CLIENT_ID`, `ZOOM_CLIENT_SECRET` cuando empecemos Fase 2.
+
+## Lo que NO se hace
+
+- No se modifican `cursos`, `materias`, `matriculas` actuales
+- No se borra ni migra data existente de Discipulado
+- No se cambia el diseño visual ni la navegación principal
+- No se sube a producción cada fase sin que valides
+
+¿Apruebas el plan para arrancar con **Fase 1**? Adjunta el pensum si lo tienes a mano para incluirlo en el seed.
