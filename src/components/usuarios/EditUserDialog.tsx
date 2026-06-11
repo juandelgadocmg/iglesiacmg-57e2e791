@@ -47,6 +47,9 @@ const ROLE_DESCRIPTIONS: Record<AppRole, string> = {
   lider_red: "Ver personas y grupos de su red (solo lectura), crear reportes de su red",
   lider_casa_paz: "Ver personas de casas de paz (solo lectura), crear reporte de su CDP",
   consulta: "Solo lectura del dashboard",
+  seminario_admin: "Administra programas, pensum, materias y matrículas del Seminario",
+  seminario_docente: "Gestiona materias asignadas, calificaciones y asistencia",
+  seminario_estudiante: "Acceso a su kárdex, materias inscritas y biblioteca",
 };
 
 const ROLES_CON_GRUPO: AppRole[] = ["lider_casa_paz", "lider_red", "lider", "consolidador_lider", "consolidador"];
