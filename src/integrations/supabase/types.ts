@@ -2136,6 +2136,755 @@ export type Database = {
           },
         ]
       }
+      sem_asistencias: {
+        Row: {
+          created_at: string
+          estado: string
+          fecha: string
+          id: string
+          inscripcion_materia_id: string
+          observacion: string | null
+        }
+        Insert: {
+          created_at?: string
+          estado?: string
+          fecha: string
+          id?: string
+          inscripcion_materia_id: string
+          observacion?: string | null
+        }
+        Update: {
+          created_at?: string
+          estado?: string
+          fecha?: string
+          id?: string
+          inscripcion_materia_id?: string
+          observacion?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sem_asistencias_inscripcion_materia_id_fkey"
+            columns: ["inscripcion_materia_id"]
+            isOneToOne: false
+            referencedRelation: "sem_inscripcion_materias"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sem_calificaciones: {
+        Row: {
+          created_at: string
+          evaluacion_id: string
+          id: string
+          inscripcion_materia_id: string
+          nota: number
+          observacion: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          evaluacion_id: string
+          id?: string
+          inscripcion_materia_id: string
+          nota: number
+          observacion?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          evaluacion_id?: string
+          id?: string
+          inscripcion_materia_id?: string
+          nota?: number
+          observacion?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sem_calificaciones_evaluacion_id_fkey"
+            columns: ["evaluacion_id"]
+            isOneToOne: false
+            referencedRelation: "sem_evaluaciones"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sem_calificaciones_inscripcion_materia_id_fkey"
+            columns: ["inscripcion_materia_id"]
+            isOneToOne: false
+            referencedRelation: "sem_inscripcion_materias"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sem_evaluaciones: {
+        Row: {
+          created_at: string
+          descripcion: string | null
+          fecha: string | null
+          id: string
+          nombre: string
+          oferta_id: string
+          peso: number
+          publicada: boolean
+          tipo: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          descripcion?: string | null
+          fecha?: string | null
+          id?: string
+          nombre: string
+          oferta_id: string
+          peso?: number
+          publicada?: boolean
+          tipo?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          descripcion?: string | null
+          fecha?: string | null
+          id?: string
+          nombre?: string
+          oferta_id?: string
+          peso?: number
+          publicada?: boolean
+          tipo?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sem_evaluaciones_oferta_id_fkey"
+            columns: ["oferta_id"]
+            isOneToOne: false
+            referencedRelation: "sem_ofertas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sem_inscripcion_materias: {
+        Row: {
+          created_at: string
+          estado: string
+          id: string
+          inscripcion_id: string
+          materia_id: string
+          nota_final: number | null
+          oferta_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          estado?: string
+          id?: string
+          inscripcion_id: string
+          materia_id: string
+          nota_final?: number | null
+          oferta_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          estado?: string
+          id?: string
+          inscripcion_id?: string
+          materia_id?: string
+          nota_final?: number | null
+          oferta_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sem_inscripcion_materias_inscripcion_id_fkey"
+            columns: ["inscripcion_id"]
+            isOneToOne: false
+            referencedRelation: "sem_inscripciones"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sem_inscripcion_materias_materia_id_fkey"
+            columns: ["materia_id"]
+            isOneToOne: false
+            referencedRelation: "sem_materias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sem_inscripcion_materias_oferta_id_fkey"
+            columns: ["oferta_id"]
+            isOneToOne: false
+            referencedRelation: "sem_ofertas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sem_inscripciones: {
+        Row: {
+          created_at: string
+          estado: string
+          id: string
+          observaciones: string | null
+          periodo_id: string
+          persona_id: string
+          programa_id: string
+          promedio_acumulado: number | null
+          semestre_actual: number | null
+          total_creditos_aprobados: number | null
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          estado?: string
+          id?: string
+          observaciones?: string | null
+          periodo_id: string
+          persona_id: string
+          programa_id: string
+          promedio_acumulado?: number | null
+          semestre_actual?: number | null
+          total_creditos_aprobados?: number | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          estado?: string
+          id?: string
+          observaciones?: string | null
+          periodo_id?: string
+          persona_id?: string
+          programa_id?: string
+          promedio_acumulado?: number | null
+          semestre_actual?: number | null
+          total_creditos_aprobados?: number | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sem_inscripciones_periodo_id_fkey"
+            columns: ["periodo_id"]
+            isOneToOne: false
+            referencedRelation: "sem_periodos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sem_inscripciones_persona_id_fkey"
+            columns: ["persona_id"]
+            isOneToOne: false
+            referencedRelation: "personas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sem_inscripciones_programa_id_fkey"
+            columns: ["programa_id"]
+            isOneToOne: false
+            referencedRelation: "sem_programas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sem_materia_prerequisitos: {
+        Row: {
+          created_at: string
+          id: string
+          materia_id: string
+          prerequisito_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          materia_id: string
+          prerequisito_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          materia_id?: string
+          prerequisito_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sem_materia_prerequisitos_materia_id_fkey"
+            columns: ["materia_id"]
+            isOneToOne: false
+            referencedRelation: "sem_materias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sem_materia_prerequisitos_prerequisito_id_fkey"
+            columns: ["prerequisito_id"]
+            isOneToOne: false
+            referencedRelation: "sem_materias"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sem_materias: {
+        Row: {
+          activo: boolean
+          area: string | null
+          codigo: string
+          color: string | null
+          created_at: string
+          creditos: number
+          descripcion: string | null
+          id: string
+          intensidad_horaria: number | null
+          nombre: string
+          programa_id: string
+          updated_at: string
+        }
+        Insert: {
+          activo?: boolean
+          area?: string | null
+          codigo: string
+          color?: string | null
+          created_at?: string
+          creditos?: number
+          descripcion?: string | null
+          id?: string
+          intensidad_horaria?: number | null
+          nombre: string
+          programa_id: string
+          updated_at?: string
+        }
+        Update: {
+          activo?: boolean
+          area?: string | null
+          codigo?: string
+          color?: string | null
+          created_at?: string
+          creditos?: number
+          descripcion?: string | null
+          id?: string
+          intensidad_horaria?: number | null
+          nombre?: string
+          programa_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sem_materias_programa_id_fkey"
+            columns: ["programa_id"]
+            isOneToOne: false
+            referencedRelation: "sem_programas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sem_ofertas: {
+        Row: {
+          aula: string | null
+          created_at: string
+          cupos: number | null
+          docente_nombre: string | null
+          docente_persona_id: string | null
+          estado: string
+          horario: string | null
+          id: string
+          materia_id: string
+          modalidad: string | null
+          periodo_id: string
+          updated_at: string
+          zoom_link: string | null
+          zoom_meeting_id: string | null
+          zoom_password: string | null
+        }
+        Insert: {
+          aula?: string | null
+          created_at?: string
+          cupos?: number | null
+          docente_nombre?: string | null
+          docente_persona_id?: string | null
+          estado?: string
+          horario?: string | null
+          id?: string
+          materia_id: string
+          modalidad?: string | null
+          periodo_id: string
+          updated_at?: string
+          zoom_link?: string | null
+          zoom_meeting_id?: string | null
+          zoom_password?: string | null
+        }
+        Update: {
+          aula?: string | null
+          created_at?: string
+          cupos?: number | null
+          docente_nombre?: string | null
+          docente_persona_id?: string | null
+          estado?: string
+          horario?: string | null
+          id?: string
+          materia_id?: string
+          modalidad?: string | null
+          periodo_id?: string
+          updated_at?: string
+          zoom_link?: string | null
+          zoom_meeting_id?: string | null
+          zoom_password?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sem_ofertas_docente_persona_id_fkey"
+            columns: ["docente_persona_id"]
+            isOneToOne: false
+            referencedRelation: "personas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sem_ofertas_materia_id_fkey"
+            columns: ["materia_id"]
+            isOneToOne: false
+            referencedRelation: "sem_materias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sem_ofertas_periodo_id_fkey"
+            columns: ["periodo_id"]
+            isOneToOne: false
+            referencedRelation: "sem_periodos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sem_pagos_inscripcion: {
+        Row: {
+          comprobante_url: string | null
+          concepto: string
+          created_at: string
+          estado: string
+          fecha_pago: string | null
+          fecha_vencimiento: string | null
+          id: string
+          inscripcion_id: string
+          metodo_pago: string | null
+          updated_at: string
+          valor: number
+          valor_pagado: number | null
+        }
+        Insert: {
+          comprobante_url?: string | null
+          concepto: string
+          created_at?: string
+          estado?: string
+          fecha_pago?: string | null
+          fecha_vencimiento?: string | null
+          id?: string
+          inscripcion_id: string
+          metodo_pago?: string | null
+          updated_at?: string
+          valor: number
+          valor_pagado?: number | null
+        }
+        Update: {
+          comprobante_url?: string | null
+          concepto?: string
+          created_at?: string
+          estado?: string
+          fecha_pago?: string | null
+          fecha_vencimiento?: string | null
+          id?: string
+          inscripcion_id?: string
+          metodo_pago?: string | null
+          updated_at?: string
+          valor?: number
+          valor_pagado?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sem_pagos_inscripcion_inscripcion_id_fkey"
+            columns: ["inscripcion_id"]
+            isOneToOne: false
+            referencedRelation: "sem_inscripciones"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sem_pensum_materias: {
+        Row: {
+          created_at: string
+          id: string
+          materia_id: string
+          obligatoria: boolean
+          orden: number | null
+          semestre_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          materia_id: string
+          obligatoria?: boolean
+          orden?: number | null
+          semestre_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          materia_id?: string
+          obligatoria?: boolean
+          orden?: number | null
+          semestre_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sem_pensum_materias_materia_id_fkey"
+            columns: ["materia_id"]
+            isOneToOne: false
+            referencedRelation: "sem_materias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sem_pensum_materias_semestre_id_fkey"
+            columns: ["semestre_id"]
+            isOneToOne: false
+            referencedRelation: "sem_pensum_semestres"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sem_pensum_semestres: {
+        Row: {
+          created_at: string
+          creditos_totales: number | null
+          id: string
+          nombre: string
+          numero: number
+          programa_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          creditos_totales?: number | null
+          id?: string
+          nombre: string
+          numero: number
+          programa_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          creditos_totales?: number | null
+          id?: string
+          nombre?: string
+          numero?: number
+          programa_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sem_pensum_semestres_programa_id_fkey"
+            columns: ["programa_id"]
+            isOneToOne: false
+            referencedRelation: "sem_programas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sem_periodos: {
+        Row: {
+          activo: boolean
+          codigo: string
+          created_at: string
+          fecha_fin: string
+          fecha_fin_inscripcion: string | null
+          fecha_inicio: string
+          fecha_inicio_inscripcion: string | null
+          id: string
+          nombre: string
+          programa_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          activo?: boolean
+          codigo: string
+          created_at?: string
+          fecha_fin: string
+          fecha_fin_inscripcion?: string | null
+          fecha_inicio: string
+          fecha_inicio_inscripcion?: string | null
+          id?: string
+          nombre: string
+          programa_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          activo?: boolean
+          codigo?: string
+          created_at?: string
+          fecha_fin?: string
+          fecha_fin_inscripcion?: string | null
+          fecha_inicio?: string
+          fecha_inicio_inscripcion?: string | null
+          id?: string
+          nombre?: string
+          programa_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sem_periodos_programa_id_fkey"
+            columns: ["programa_id"]
+            isOneToOne: false
+            referencedRelation: "sem_programas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sem_programas: {
+        Row: {
+          activo: boolean
+          codigo: string
+          created_at: string
+          descripcion: string | null
+          duracion_anios: number | null
+          id: string
+          modalidad: string | null
+          nombre: string
+          total_creditos: number | null
+          total_semestres: number
+          updated_at: string
+        }
+        Insert: {
+          activo?: boolean
+          codigo: string
+          created_at?: string
+          descripcion?: string | null
+          duracion_anios?: number | null
+          id?: string
+          modalidad?: string | null
+          nombre: string
+          total_creditos?: number | null
+          total_semestres?: number
+          updated_at?: string
+        }
+        Update: {
+          activo?: boolean
+          codigo?: string
+          created_at?: string
+          descripcion?: string | null
+          duracion_anios?: number | null
+          id?: string
+          modalidad?: string | null
+          nombre?: string
+          total_creditos?: number | null
+          total_semestres?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      sem_recursos: {
+        Row: {
+          autor: string | null
+          created_at: string
+          descripcion: string | null
+          id: string
+          materia_id: string | null
+          programa_id: string | null
+          publicado: boolean
+          storage_path: string | null
+          tipo: string
+          titulo: string
+          updated_at: string
+          url: string | null
+        }
+        Insert: {
+          autor?: string | null
+          created_at?: string
+          descripcion?: string | null
+          id?: string
+          materia_id?: string | null
+          programa_id?: string | null
+          publicado?: boolean
+          storage_path?: string | null
+          tipo?: string
+          titulo: string
+          updated_at?: string
+          url?: string | null
+        }
+        Update: {
+          autor?: string | null
+          created_at?: string
+          descripcion?: string | null
+          id?: string
+          materia_id?: string | null
+          programa_id?: string | null
+          publicado?: boolean
+          storage_path?: string | null
+          tipo?: string
+          titulo?: string
+          updated_at?: string
+          url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sem_recursos_materia_id_fkey"
+            columns: ["materia_id"]
+            isOneToOne: false
+            referencedRelation: "sem_materias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sem_recursos_programa_id_fkey"
+            columns: ["programa_id"]
+            isOneToOne: false
+            referencedRelation: "sem_programas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sem_zoom_sesiones: {
+        Row: {
+          created_at: string
+          duration_minutes: number | null
+          id: string
+          join_url: string
+          meeting_id: string
+          oferta_id: string
+          password: string | null
+          raw: Json | null
+          start_time: string | null
+          start_url: string | null
+          topic: string | null
+        }
+        Insert: {
+          created_at?: string
+          duration_minutes?: number | null
+          id?: string
+          join_url: string
+          meeting_id: string
+          oferta_id: string
+          password?: string | null
+          raw?: Json | null
+          start_time?: string | null
+          start_url?: string | null
+          topic?: string | null
+        }
+        Update: {
+          created_at?: string
+          duration_minutes?: number | null
+          id?: string
+          join_url?: string
+          meeting_id?: string
+          oferta_id?: string
+          password?: string | null
+          raw?: Json | null
+          start_time?: string | null
+          start_url?: string | null
+          topic?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sem_zoom_sesiones_oferta_id_fkey"
+            columns: ["oferta_id"]
+            isOneToOne: false
+            referencedRelation: "sem_ofertas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       servicios: {
         Row: {
           aforo: number | null
@@ -2461,6 +3210,20 @@ export type Database = {
           msg_id: number
           read_ct: number
         }[]
+      }
+      sem_calcular_promedio: {
+        Args: { _persona_id: string; _programa_id: string }
+        Returns: number
+      }
+      sem_estudiante_tiene_mora: {
+        Args: { _persona_id: string }
+        Returns: boolean
+      }
+      sem_is_staff: { Args: { _uid: string }; Returns: boolean }
+      sem_is_tesoreria: { Args: { _uid: string }; Returns: boolean }
+      sem_puede_inscribir: {
+        Args: { _materia_id: string; _persona_id: string }
+        Returns: boolean
       }
     }
     Enums: {
