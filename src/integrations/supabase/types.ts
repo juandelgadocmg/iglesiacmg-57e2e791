@@ -2478,6 +2478,9 @@ export type Database = {
         | "lider_intercesion"
         | "lider_red"
         | "lider_casa_paz"
+        | "seminario_admin"
+        | "seminario_docente"
+        | "seminario_estudiante"
       estado_iglesia: "Activo" | "Inactivo" | "En proceso"
       tipo_finanza: "Ingreso" | "Gasto"
       tipo_grupo:
@@ -2656,6 +2659,9 @@ export const Constants = {
         "lider_intercesion",
         "lider_red",
         "lider_casa_paz",
+        "seminario_admin",
+        "seminario_docente",
+        "seminario_estudiante",
       ],
       estado_iglesia: ["Activo", "Inactivo", "En proceso"],
       tipo_finanza: ["Ingreso", "Gasto"],
