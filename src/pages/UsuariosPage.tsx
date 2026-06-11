@@ -53,6 +53,9 @@ const ROLE_COLORS: Record<AppRole, string> = {
   lider_red: "bg-chart-3/10 text-chart-3 border-chart-3/20",
   lider_casa_paz: "bg-chart-5/10 text-chart-5 border-chart-5/20",
   consulta: "bg-muted text-muted-foreground border-border",
+  seminario_admin: "bg-primary/10 text-primary border-primary/20",
+  seminario_docente: "bg-chart-5/10 text-chart-5 border-chart-5/20",
+  seminario_estudiante: "bg-chart-2/10 text-chart-2 border-chart-2/20",
 };
 
 export default function UsuariosPage() {
