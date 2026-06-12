@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { differenceInDays, parseISO, format } from "date-fns";
 import { es } from "date-fns/locale";
+import { useNotificationPreferences } from "@/hooks/useNotificationPreferences";
 
 export interface AppNotification {
   id: string;
@@ -16,6 +17,8 @@ export interface AppNotification {
 }
 
 export function useNotifications() {
+  const { data: prefs } = useNotificationPreferences();
+  const enabled = (k: string) => prefs?.[k] !== false;
   const { data: personas } = useQuery({
     queryKey: ["notif-personas"],
     queryFn: async () => {
@@ -107,7 +110,7 @@ export function useNotifications() {
     const currentYear = now.getFullYear();
 
     // Upcoming birthdays (within 7 days)
-    (personas || []).forEach((p) => {
+    if (enabled("birthdays")) (personas || []).forEach((p) => {
       if (!p.fecha_nacimiento) return;
       try {
         const bday = parseISO(p.fecha_nacimiento);
@@ -129,7 +132,7 @@ export function useNotifications() {
     });
 
     // Upcoming events (within 14 days)
-    (eventos || []).forEach((e) => {
+    if (enabled("events")) (eventos || []).forEach((e) => {
       try {
         const days = differenceInDays(parseISO(e.fecha_inicio), now);
         if (days >= 0 && days <= 14) {
@@ -147,7 +150,7 @@ export function useNotifications() {
     });
 
     // Upcoming services (within 7 days)
-    (servicios || []).forEach((s) => {
+    if (enabled("services")) (servicios || []).forEach((s) => {
       try {
         const days = differenceInDays(parseISO(s.fecha), now);
         if (days >= 0 && days <= 7) {
@@ -166,7 +169,7 @@ export function useNotifications() {
 
     // Overdue payments (pending for more than 30 days)
     const OVERDUE_DAYS = 30;
-    (pagosVencidos || []).forEach((p: any) => {
+    if (enabled("payments")) (pagosVencidos || []).forEach((p: any) => {
       try {
         const createdDate = parseISO(p.created_at);
         const daysSinceCreated = differenceInDays(now, createdDate);
@@ -189,7 +192,7 @@ export function useNotifications() {
     });
 
     // Seminario: semestres vencidos con materias sin aprobar
-    (semVencidos || []).forEach((s: any) => {
+    if (enabled("seminario.semestres_vencidos")) (semVencidos || []).forEach((s: any) => {
       const nom = s.persona ? `${s.persona.nombres} ${s.persona.apellidos}` : "Estudiante";
       items.push({
         id: `sem-${s.id}`,
@@ -204,7 +207,7 @@ export function useNotifications() {
     });
 
     return items.sort((a, b) => a.daysLeft - b.daysLeft);
-  }, [personas, eventos, servicios, pagosVencidos, semVencidos]);
+  }, [personas, eventos, servicios, pagosVencidos, semVencidos, prefs]);
 
   return { notifications, count: notifications.length };
 }

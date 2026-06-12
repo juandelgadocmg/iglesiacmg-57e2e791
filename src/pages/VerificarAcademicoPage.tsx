@@ -3,13 +3,15 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle2, XCircle, GraduationCap } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { CheckCircle2, XCircle, GraduationCap, Copy, ShieldCheck, ShieldAlert } from "lucide-react";
+import { toast } from "sonner";
 
 export default function VerificarAcademicoPage() {
   const { id } = useParams<{ id: string }>();
   const sb = supabase as any;
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError } = useQuery({
     queryKey: ["verificar-academico", id],
     queryFn: async () => {
       const { data: ins, error } = await sb.from("sem_inscripciones")
@@ -24,22 +26,66 @@ export default function VerificarAcademicoPage() {
     enabled: !!id,
   });
 
+  const verifyUrl = typeof window !== "undefined" ? window.location.href : "";
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(verifyUrl);
+      toast.success("Enlace copiado");
+    } catch { toast.error("No se pudo copiar"); }
+  };
+
   if (isLoading) return <div className="p-8 text-center text-sm text-muted-foreground">Verificando...</div>;
-  if (!data?.ins) return (
-    <div className="p-8 text-center">
-      <XCircle className="h-12 w-12 text-destructive mx-auto mb-2" />
-      <p className="font-semibold">Registro no encontrado</p>
+
+  const invalid = isError || !data?.ins;
+  if (invalid) return (
+    <div className="max-w-xl mx-auto p-6 md:p-10">
+      <Card className="border-destructive">
+        <CardContent className="p-8 text-center space-y-3">
+          <ShieldAlert className="h-14 w-14 text-destructive mx-auto" />
+          <Badge variant="destructive" className="text-sm"><XCircle className="h-3 w-3 mr-1" />Verificación inválida</Badge>
+          <p className="font-semibold">Registro académico no encontrado</p>
+          <p className="text-xs text-muted-foreground">El identificador proporcionado no corresponde a una inscripción válida del Seminario Bíblico CMG.</p>
+          <Button size="sm" variant="outline" onClick={handleCopy}><Copy className="h-3.5 w-3.5 mr-1" />Copiar enlace</Button>
+        </CardContent>
+      </Card>
     </div>
   );
 
-  const { ins, mats } = data;
+  const { ins, mats } = data!;
   const aprob = mats.filter((m: any) => m.estado === "aprobada");
   const credAprob = aprob.reduce((s: number, c: any) => s + (c.sem_materias?.creditos || 0), 0);
   const totalCred = (ins.sem_programas?.total_semestres || 8) * 20;
   const completo = aprob.length >= mats.length && mats.length > 0 && credAprob >= totalCred * 0.95;
+  const pct = totalCred > 0 ? Math.round((credAprob / totalCred) * 100) : 0;
 
   return (
     <div className="max-w-3xl mx-auto p-4 md:p-8 space-y-4">
+      {/* Status banner */}
+      <Card className={completo ? "border-green-600/40 bg-green-50/40 dark:bg-green-950/20" : "border-primary/30"}>
+        <CardContent className="p-5 flex flex-wrap items-center gap-4">
+          {completo ? (
+            <ShieldCheck className="h-12 w-12 text-green-600" />
+          ) : (
+            <ShieldCheck className="h-12 w-12 text-primary" />
+          )}
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 mb-1">
+              {completo
+                ? <Badge className="bg-green-600"><CheckCircle2 className="h-3 w-3 mr-1" />Certificado válido</Badge>
+                : <Badge variant="secondary"><CheckCircle2 className="h-3 w-3 mr-1" />Inscripción vigente</Badge>}
+              <Badge variant="outline" className="text-[10px]">ID {String(ins.id).slice(0, 8)}</Badge>
+            </div>
+            <p className="text-sm font-semibold">{ins.personas?.nombres} {ins.personas?.apellidos}</p>
+            <p className="text-xs text-muted-foreground">
+              {ins.sem_programas?.nombre} · {aprob.length}/{mats.length} materias · {credAprob}/{totalCred} créditos ({pct}%)
+            </p>
+          </div>
+          <Button size="sm" variant="outline" onClick={handleCopy}>
+            <Copy className="h-3.5 w-3.5 mr-1" />Copiar enlace
+          </Button>
+        </CardContent>
+      </Card>
+
       <Card>
         <CardContent className="p-6">
           <div className="flex items-center gap-3 mb-4">
@@ -81,6 +127,10 @@ export default function VerificarAcademicoPage() {
           </div>
         </CardContent>
       </Card>
+
+      <p className="text-[10px] text-center text-muted-foreground">
+        Verificación generada automáticamente · {new Date().toLocaleString("es-CO")}
+      </p>
     </div>
   );
 }

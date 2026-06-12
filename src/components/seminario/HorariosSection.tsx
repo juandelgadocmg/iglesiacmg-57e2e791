@@ -12,6 +12,7 @@ import { toast } from "sonner";
 import DeleteConfirmDialog from "@/components/shared/DeleteConfirmDialog";
 import { isZoomStale, generateZoomLink } from "@/lib/seminarioZoom";
 import { useCan } from "@/hooks/useCan";
+import { logSemAudit } from "@/lib/seminarioAudit";
 
 export default function HorariosSection() {
   const { data: programas } = useProgramas();
@@ -63,17 +64,27 @@ export default function HorariosSection() {
       };
       const expected = generateZoomLink(ctxZ);
       const stale = payload.zoom_meeting_id && payload.zoom_meeting_id !== expected.meetingId;
+      let regenerated = false;
       if (payload.modalidad !== "presencial" && (!payload.zoom_link || stale)) {
         payload.zoom_link = expected.url;
         payload.zoom_meeting_id = expected.meetingId;
         payload.zoom_password = expected.pwd;
+        regenerated = true;
         if (stale) toast.info("Link Zoom regenerado por cambio de docente/periodo");
       }
       if (payload.modalidad === "presencial") {
         payload.zoom_link = null; payload.zoom_meeting_id = null; payload.zoom_password = null;
       }
-      await upsertOferta.mutateAsync(payload);
+      const saved: any = await upsertOferta.mutateAsync(payload);
       toast.success("Horario guardado");
+      if (regenerated) {
+        await logSemAudit({
+          action: "zoom.regenerado",
+          oferta_id: saved?.id ?? payload.id ?? null,
+          materia_id: payload.materia_id,
+          details: { docente: payload.docente_nombre, periodo: periodoActivo?.codigo, meeting_id: expected.meetingId },
+        });
+      }
       setEditing(null);
     } catch (e: any) { toast.error(e.message); }
   };

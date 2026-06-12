@@ -9,13 +9,14 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Church, Globe, Clock, Save, BookOpen, ImageIcon, Video, Radio, DollarSign } from "lucide-react";
+import { Church, Globe, Clock, Save, BookOpen, ImageIcon, Video, Radio, DollarSign, Bell } from "lucide-react";
 import { toast } from "sonner";
 
 // Lazy-load sub-pages as tab content
 import BannersPage from "@/pages/BannersPage";
 import VideosPage from "@/pages/VideosPage";
 import SenalEnVivoPage from "@/pages/SenalEnVivoPage";
+import NotificacionesPreferencias from "@/components/configuracion/NotificacionesPreferencias";
 
 const MONEDAS = [
   { value: "USD", label: "USD - Dólar estadounidense" },
@@ -100,6 +101,7 @@ export default function ConfiguracionPage() {
           <TabsTrigger value="banners" className="gap-1.5"><ImageIcon className="h-3.5 w-3.5" /> Banners</TabsTrigger>
           <TabsTrigger value="videos" className="gap-1.5"><Video className="h-3.5 w-3.5" /> Videos</TabsTrigger>
           <TabsTrigger value="senal" className="gap-1.5"><Radio className="h-3.5 w-3.5" /> Señal en Vivo</TabsTrigger>
+          <TabsTrigger value="notificaciones" className="gap-1.5"><Bell className="h-3.5 w-3.5" /> Notificaciones</TabsTrigger>
         </TabsList>
 
         <TabsContent value="general">
@@ -285,6 +287,10 @@ export default function ConfiguracionPage() {
 
         <TabsContent value="senal">
           <SenalEnVivoPage />
+        </TabsContent>
+
+        <TabsContent value="notificaciones">
+          <NotificacionesPreferencias />
         </TabsContent>
       </Tabs>
     </div>

@@ -1438,6 +1438,60 @@ export type Database = {
           },
         ]
       }
+      notification_preferences: {
+        Row: {
+          created_at: string
+          enabled: boolean
+          id: string
+          pref_key: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          pref_key: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          pref_key?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      notification_role_preferences: {
+        Row: {
+          created_at: string
+          enabled: boolean
+          id: string
+          pref_key: string
+          role: Database["public"]["Enums"]["app_role"]
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          pref_key: string
+          role: Database["public"]["Enums"]["app_role"]
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          pref_key?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
       observaciones_consejeria: {
         Row: {
           cita_id: string
@@ -2167,6 +2221,74 @@ export type Database = {
             columns: ["inscripcion_materia_id"]
             isOneToOne: false
             referencedRelation: "sem_inscripcion_materias"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sem_audit_log: {
+        Row: {
+          action: string
+          actor_email: string | null
+          actor_user_id: string | null
+          created_at: string
+          details: Json | null
+          id: string
+          inscripcion_id: string | null
+          materia_id: string | null
+          oferta_id: string | null
+          persona_id: string | null
+        }
+        Insert: {
+          action: string
+          actor_email?: string | null
+          actor_user_id?: string | null
+          created_at?: string
+          details?: Json | null
+          id?: string
+          inscripcion_id?: string | null
+          materia_id?: string | null
+          oferta_id?: string | null
+          persona_id?: string | null
+        }
+        Update: {
+          action?: string
+          actor_email?: string | null
+          actor_user_id?: string | null
+          created_at?: string
+          details?: Json | null
+          id?: string
+          inscripcion_id?: string | null
+          materia_id?: string | null
+          oferta_id?: string | null
+          persona_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sem_audit_log_inscripcion_id_fkey"
+            columns: ["inscripcion_id"]
+            isOneToOne: false
+            referencedRelation: "sem_inscripciones"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sem_audit_log_materia_id_fkey"
+            columns: ["materia_id"]
+            isOneToOne: false
+            referencedRelation: "sem_materias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sem_audit_log_oferta_id_fkey"
+            columns: ["oferta_id"]
+            isOneToOne: false
+            referencedRelation: "sem_ofertas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sem_audit_log_persona_id_fkey"
+            columns: ["persona_id"]
+            isOneToOne: false
+            referencedRelation: "personas"
             referencedColumns: ["id"]
           },
         ]

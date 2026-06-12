@@ -16,7 +16,8 @@ import { exportKardexPdf, exportKardexBatch, type KardexRow } from "@/lib/semina
 import { supabase } from "@/integrations/supabase/client";
 import { useCan } from "@/hooks/useCan";
 import { Checkbox } from "@/components/ui/checkbox";
-import { FileDown as FileDownIcon } from "lucide-react";
+import { FileDown as FileDownIcon, Award as AwardIcon } from "lucide-react";
+import { logSemAudit } from "@/lib/seminarioAudit";
 
 export default function EstudiantesSection() {
   const { data: programas } = useProgramas();
@@ -47,11 +48,13 @@ export default function EstudiantesSection() {
     });
   };
 
-  const exportarLote = async () => {
+  const exportarLote = async (modo: "kardex" | "certificado" = "kardex") => {
     const ids = Array.from(seleccion);
     if (!ids.length) { toast.error("Selecciona al menos un estudiante"); return; }
-    toast.info(`Generando ${ids.length} kárdex...`);
+    if (modo === "certificado" && !canCertificar) { toast.error("No tienes permiso para emitir certificados."); return; }
+    toast.info(`Generando ${ids.length} ${modo === "certificado" ? "certificados" : "kárdex"}...`);
     const items: any[] = [];
+    const certificadosEmitidos: { insId: string; personaId: string | null; completo: boolean }[] = [];
     for (const insId of ids) {
       const ins = (inscripciones || []).find((x: any) => x.id === insId);
       if (!ins) continue;
@@ -62,7 +65,12 @@ export default function EstudiantesSection() {
         sb.from("sem_pensum_semestres").select("numero").eq("programa_id", ins.programa_id).order("numero"),
       ]);
       const cmap = new Map((cursando || []).map((c: any) => [c.materia_id, c]));
-      const credAprob = (cursando || []).filter((c: any) => c.estado === "aprobada").reduce((s: number, c: any) => s + (c.sem_materias?.creditos || 0), 0);
+      const aprob = (cursando || []).filter((c: any) => c.estado === "aprobada");
+      const credAprob = aprob.reduce((s: number, c: any) => s + (c.sem_materias?.creditos || 0), 0);
+      const totalPensum = (pensum || []).length;
+      const aprobIds = new Set(aprob.map((c: any) => c.materia_id));
+      const completo = totalPensum > 0 && (pensum || []).every((p: any) => aprobIds.has(p.materia_id));
+      if (modo === "certificado" && !completo) continue;
       const rows: KardexRow[] = [];
       (semestres || []).forEach((s: any) => {
         (pensum || []).filter((p: any) => p.sem_pensum_semestres.numero === s.numero).forEach((p: any) => {
@@ -74,18 +82,30 @@ export default function EstudiantesSection() {
         estudiante: `${ins.personas?.nombres} ${ins.personas?.apellidos}`,
         documento: ins.personas?.documento, programa: programa?.nombre || "—",
         promedio: ins.promedio_acumulado, creditosAprobados: credAprob, creditosTotales: (programa?.total_semestres || 8) * 20,
-        rows, inscripcionId: insId,
+        rows, inscripcionId: insId, certificado: modo === "certificado",
       });
+      certificadosEmitidos.push({ insId, personaId: ins.persona_id, completo });
     }
+    if (!items.length) { toast.error("Ningún estudiante seleccionado cumple los requisitos para certificarse."); return; }
     await exportKardexBatch(items);
-    toast.success("Kárdex descargados");
+    toast.success(`${items.length} ${modo === "certificado" ? "certificados" : "kárdex"} descargados`);
+    // Audit log
+    await Promise.all(certificadosEmitidos.map(c => logSemAudit({
+      action: modo === "certificado" ? "certificado.lote" : "kardex.descargado",
+      persona_id: c.personaId, inscripcion_id: c.insId,
+      details: { modo, programa: programa?.nombre, total_seleccionados: ids.length },
+    })));
   };
 
   const handleCreate = async (form: any) => {
     try {
-      await upsertIns.mutateAsync({ ...form, programa_id: effProg, periodo_id: effPer, estado: "activa" });
+      const res: any = await upsertIns.mutateAsync({ ...form, programa_id: effProg, periodo_id: effPer, estado: "activa" });
       toast.success("Estudiante inscrito");
       setCreating(false);
+      await logSemAudit({
+        action: "inscripcion.creada", persona_id: form.persona_id,
+        inscripcion_id: res?.id, details: { programa_id: effProg, periodo_id: effPer, semestre: form.semestre_actual },
+      });
     } catch (e: any) { toast.error(e.message); }
   };
 
@@ -110,9 +130,16 @@ export default function EstudiantesSection() {
             <SelectContent>{(periodos || []).map((p: any) => <SelectItem key={p.id} value={p.id}>{p.nombre}</SelectItem>)}</SelectContent>
           </Select>
           {seleccion.size > 0 && (
-            <Button size="sm" variant="outline" onClick={exportarLote}>
-              <FileDownIcon className="h-4 w-4 mr-1" />Exportar {seleccion.size} kárdex
-            </Button>
+            <>
+              <Button size="sm" variant="outline" onClick={() => exportarLote("kardex")}>
+                <FileDownIcon className="h-4 w-4 mr-1" />Exportar {seleccion.size} kárdex
+              </Button>
+              {canCertificar && (
+                <Button size="sm" className="bg-amber-600 hover:bg-amber-700" onClick={() => exportarLote("certificado")}>
+                  <AwardIcon className="h-4 w-4 mr-1" />Certificados ({seleccion.size})
+                </Button>
+              )}
+            </>
           )}
           {canMatricular && (
             <Dialog open={creating} onOpenChange={setCreating}>
@@ -159,7 +186,7 @@ export default function EstudiantesSection() {
                       </div>
                       <div className="flex items-center justify-between mt-1.5">
                         <span className="text-[10px] text-muted-foreground">Promedio: {i.promedio_acumulado ?? "—"}</span>
-                        <DeleteConfirmDialog onConfirm={async () => { await delIns.mutateAsync(i.id); toast.success("Eliminado"); }}
+                        <DeleteConfirmDialog onConfirm={async () => { await delIns.mutateAsync(i.id); await logSemAudit({ action: "inscripcion.eliminada", persona_id: i.persona_id, inscripcion_id: i.id }); toast.success("Eliminado"); }}
                           trigger={<Button size="icon" variant="ghost" className="h-6 w-6 text-destructive" onClick={(e) => e.stopPropagation()}><Trash2 className="h-3 w-3" /></Button>} />
                       </div>
                     </div>
@@ -251,6 +278,7 @@ function EstudianteDetalle({ ins, programa, onBack }: any) {
       if (!ok) { toast.error("No cumple prerrequisitos del pensum para esta materia."); return; }
       await enroll.mutateAsync({ inscripcion_id: ins.id, oferta_id: oferta.id, materia_id });
       toast.success("Matriculada");
+      await logSemAudit({ action: "matricula.creada", persona_id: ins.persona_id, inscripcion_id: ins.id, oferta_id: oferta.id, materia_id });
     } catch (e: any) { toast.error(e.message); }
   };
 
@@ -273,13 +301,18 @@ function EstudianteDetalle({ ins, programa, onBack }: any) {
     return rows;
   };
 
-  const handleKardex = (certificado: boolean) => {
+  const handleKardex = async (certificado: boolean) => {
     if (certificado && !canCertificar) { toast.error("No tienes permiso para emitir certificados."); return; }
-    exportKardexPdf({
+    await exportKardexPdf({
       estudiante: `${p?.nombres} ${p?.apellidos}`,
       documento: p?.documento, programa: programa?.nombre || "—",
       promedio: ins.promedio_acumulado, creditosAprobados: credAprob, creditosTotales: totalCreditos,
       rows: buildKardexRows(), certificado, inscripcionId: ins.id,
+    });
+    await logSemAudit({
+      action: certificado ? "certificado.generado" : "kardex.descargado",
+      persona_id: ins.persona_id, inscripcion_id: ins.id,
+      details: { programa: programa?.nombre, promedio: ins.promedio_acumulado, creditos_aprobados: credAprob },
     });
   };
 
