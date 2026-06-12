@@ -54,19 +54,23 @@ export default function HorariosSection() {
   const periodoActivo = (periodos || []).find((p: any) => p.id === effPer);
   const handleSaveOferta = async (form: any) => {
     try {
-      // Auto-generar link Zoom si modalidad no es presencial y no hay link
       let payload = { ...form, periodo_id: effPer };
-      if (payload.modalidad !== "presencial" && !payload.zoom_link) {
-        const { generateZoomLink } = await import("@/lib/seminarioZoom");
-        const z = generateZoomLink({
-          docente: payload.docente_nombre,
-          periodoCodigo: periodoActivo?.codigo,
-          materiaCodigo: editing?.materia?.codigo,
-          materiaId: payload.materia_id,
-        });
-        payload.zoom_link = z.url;
-        payload.zoom_meeting_id = z.meetingId;
-        payload.zoom_password = z.pwd;
+      const ctxZ = {
+        docente: payload.docente_nombre,
+        periodoCodigo: periodoActivo?.codigo,
+        materiaCodigo: editing?.materia?.codigo,
+        materiaId: payload.materia_id,
+      };
+      const expected = generateZoomLink(ctxZ);
+      const stale = payload.zoom_meeting_id && payload.zoom_meeting_id !== expected.meetingId;
+      if (payload.modalidad !== "presencial" && (!payload.zoom_link || stale)) {
+        payload.zoom_link = expected.url;
+        payload.zoom_meeting_id = expected.meetingId;
+        payload.zoom_password = expected.pwd;
+        if (stale) toast.info("Link Zoom regenerado por cambio de docente/periodo");
+      }
+      if (payload.modalidad === "presencial") {
+        payload.zoom_link = null; payload.zoom_meeting_id = null; payload.zoom_password = null;
       }
       await upsertOferta.mutateAsync(payload);
       toast.success("Horario guardado");
