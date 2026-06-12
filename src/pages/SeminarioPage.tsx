@@ -3,11 +3,12 @@ import { cn } from "@/lib/utils";
 import PageHeader from "@/components/shared/PageHeader";
 import {
   LayoutDashboard, BookOpen, Layers, FileText, Video, ClipboardCheck,
-  BarChart3, UserCheck, Library, Award, Users, FileBarChart2, CalendarClock, GraduationCap, ShieldCheck,
+  BarChart3, UserCheck, Library, Award, Users, FileBarChart2, CalendarClock, GraduationCap, ShieldCheck, Settings2,
 } from "lucide-react";
 import ProgramasSection from "@/components/seminario/ProgramasSection";
 import PensumSection from "@/components/seminario/PensumSection";
 import MateriasSection from "@/components/seminario/MateriasSection";
+import ZoomConfigSection from "@/components/seminario/ZoomConfigSection";
 import HorariosSection from "@/components/seminario/HorariosSection";
 import EstudiantesSection from "@/components/seminario/EstudiantesSection";
 import AuditoriaSection from "@/components/seminario/AuditoriaSection";
@@ -29,6 +30,7 @@ const SIDEBAR = [
   { id: "docentes", label: "Docentes", icon: Users },
   { id: "reportes", label: "Reportes", icon: FileBarChart2 },
   { id: "auditoria", label: "Auditoría", icon: ShieldCheck },
+  { id: "zoom-config", label: "Configuración Zoom", icon: Settings2 },
 ];
 
 export default function SeminarioPage() {
@@ -85,6 +87,7 @@ export default function SeminarioPage() {
           {section === "horarios" && <HorariosSection />}
           {section === "estudiantes" && <EstudiantesSection />}
           {section === "auditoria" && <AuditoriaSection />}
+          {section === "zoom-config" && <ZoomConfigSection />}
           {section === "dashboard" && (
             <PlaceholderSection title="Dashboard Académico" phase="Fase 4"
               description="KPIs de matriculados, retención, promedio general, mora, próximas evaluaciones y alertas." />
