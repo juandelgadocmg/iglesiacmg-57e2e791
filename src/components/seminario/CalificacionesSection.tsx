@@ -1,4 +1,6 @@
 import { useState, useMemo } from "react";
+import { useUrlParam, useUrlNumber } from "@/hooks/useUrlParam";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useProgramas, usePeriodos, useOfertas, useCalificacionesMatriz, useSaveCalificacion, useRecalcularNotaFinal } from "@/hooks/useSeminario";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -14,21 +16,22 @@ export default function CalificacionesSection() {
   const can = useCan();
   const canEdit = can("seminario:calificacion_edit");
   const { data: programas } = useProgramas();
-  const [programaId, setProgramaId] = useState("");
+  const [programaId, setProgramaId] = useUrlParam("cal_prog");
   const effProg = programaId || programas?.[0]?.id || "";
   const { data: periodos } = usePeriodos(effProg);
-  const [periodoId, setPeriodoId] = useState("");
+  const [periodoId, setPeriodoId] = useUrlParam("cal_per");
   const effPer = periodoId || periodos?.[0]?.id || "";
   const { data: ofertas } = useOfertas(effPer, effProg);
-  const [ofertaId, setOfertaId] = useState("");
+  const [ofertaId, setOfertaId] = useUrlParam("cal_of");
   const effOf = ofertaId || (ofertas as any[])?.[0]?.id || "";
   const { data, isLoading: loadingMatriz } = useCalificacionesMatriz(effOf);
   const save = useSaveCalificacion();
   const recalc = useRecalcularNotaFinal();
   const [dirty, setDirty] = useState<Record<string, string>>({});
-  const [q, setQ] = useState("");
-  const [filtroEstado, setFiltroEstado] = useState("_all");
-  const [page, setPage] = useState(1);
+  const [q, setQ] = useUrlParam("cal_q");
+  const [filtroEstado, setFiltroEstado] = useUrlParam("cal_est", "_all");
+  const [page, setPage] = useUrlNumber("cal_page", 1);
+  const [detalle, setDetalle] = useState<any>(null);
   const PAGE_SIZE = 15;
 
   const ofertaSel = (ofertas as any[] || []).find((o: any) => o.id === effOf);
