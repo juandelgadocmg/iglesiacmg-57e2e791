@@ -169,7 +169,7 @@ export function useNotifications() {
 
     // Overdue payments (pending for more than 30 days)
     const OVERDUE_DAYS = 30;
-    (pagosVencidos || []).forEach((p: any) => {
+    if (enabled("payments")) (pagosVencidos || []).forEach((p: any) => {
       try {
         const createdDate = parseISO(p.created_at);
         const daysSinceCreated = differenceInDays(now, createdDate);
