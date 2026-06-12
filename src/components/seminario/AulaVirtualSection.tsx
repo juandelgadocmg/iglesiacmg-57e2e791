@@ -39,11 +39,20 @@ export default function AulaVirtualSection() {
   const [previewStudent, setPreviewStudent] = useState(false);
 
   if (rolesLoading) {
-    return <div className="space-y-3"><div className="h-8 w-64 bg-muted animate-pulse rounded" /><div className="h-32 bg-muted animate-pulse rounded" /></div>;
+    return <div className="space-y-3" data-testid="aula-loading"><div className="h-8 w-64 bg-muted animate-pulse rounded" /><div className="h-32 bg-muted animate-pulse rounded" /></div>;
   }
-  if (!isStaff) return <MiAulaSection />;
+  if (!isStaff) {
+    return (
+      <AulaErrorBoundary label="la vista del estudiante">
+        <div className="space-y-3" data-testid="aula-student">
+          <AulaDiagnosticPanel />
+          <MiAulaSection />
+        </div>
+      </AulaErrorBoundary>
+    );
+  }
   return (
-    <div className="space-y-3">
+    <div className="space-y-3" data-testid="aula-staff">
       <div className="flex justify-end">
         <div className="inline-flex rounded-md border bg-card p-0.5">
           <Button size="sm" variant={previewStudent ? "ghost" : "default"} onClick={() => setPreviewStudent(false)}>
@@ -54,7 +63,16 @@ export default function AulaVirtualSection() {
           </Button>
         </div>
       </div>
-      {previewStudent ? <MiAulaSection /> : <AulaVirtualStaff />}
+      <AulaErrorBoundary label={previewStudent ? "la vista del estudiante" : "la vista docente"}>
+        {previewStudent ? (
+          <>
+            <AulaDiagnosticPanel />
+            <MiAulaSection />
+          </>
+        ) : (
+          <AulaVirtualStaff />
+        )}
+      </AulaErrorBoundary>
     </div>
   );
 }
