@@ -1,5 +1,9 @@
 import { useMemo, useState } from "react";
-import { useMiPersona, useMisOfertas, useMiCurso, useSubirEntrega, useForos, useCrearForo, useForoMensajes, useEnviarMensajeForo, useEliminarMensajeForo } from "@/hooks/useSeminarioStudent";
+import {
+  useMiPersona, useMisOfertas, useMiCurso, useSubirEntrega, useForos, useCrearForo,
+  useForoMensajes, useEnviarMensajeForo, useEliminarMensajeForo, useMarcarAnuncioLeido,
+  useIsSeminarioStaff, useToggleForoCerrado, useSignedUrl,
+} from "@/hooks/useSeminarioStudent";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,12 +12,26 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { ArrowLeft, BookOpen, Video, FileText, Megaphone, MessageSquare, Upload, Calendar, User, Clock, MapPin, CheckCircle2, AlertCircle, Download, Send, Trash2, Plus, GraduationCap } from "lucide-react";
+import {
+  ArrowLeft, BookOpen, Video, FileText, Megaphone, MessageSquare, Upload, Calendar, User, Clock,
+  MapPin, CheckCircle2, AlertCircle, Download, Send, Trash2, Plus, GraduationCap, Bell, Eye,
+  Lock, Unlock, Search, ChevronLeft, ChevronRight, History,
+} from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 
 function fmtDate(d?: string) { return d ? new Date(d).toLocaleDateString("es-CO", { day: "2-digit", month: "short", year: "numeric" }) : "—"; }
 function fmtDateTime(d?: string) { return d ? new Date(d).toLocaleString("es-CO") : "—"; }
+
+function previewableUrl(url?: string, tipo?: string) {
+  if (!url) return null;
+  const t = (tipo || "").toLowerCase();
+  const u = url.toLowerCase();
+  if (t.includes("image") || /\.(png|jpe?g|gif|webp|svg)$/.test(u)) return { kind: "image", url };
+  if (t.includes("pdf") || u.includes(".pdf")) return { kind: "pdf", url };
+  if (t.includes("video") || /\.(mp4|webm|ogg)$/.test(u)) return { kind: "video", url };
+  return { kind: "other", url };
+}
 
 export default function MiAulaSection() {
   const { user } = useAuth();
@@ -45,7 +63,6 @@ export default function MiAulaSection() {
 
   if (selected) return <CursoDetalle persona={persona} im={selected} onBack={() => setSelId(null)} />;
 
-  // Agrupado por periodo
   const grouped = useMemo(() => {
     const map: Record<string, any[]> = {};
     (ofertas as any[] || []).forEach((im: any) => {
@@ -124,7 +141,8 @@ export default function MiAulaSection() {
 function CursoDetalle({ persona, im, onBack }: { persona: any; im: any; onBack: () => void }) {
   const mat = im.sem_materias;
   const of = im.sem_ofertas;
-  const { data, isLoading } = useMiCurso(im.id, im.oferta_id, im.materia_id);
+  const periodoId = of?.periodo_id;
+  const { data, isLoading } = useMiCurso(im.id, im.oferta_id, im.materia_id, persona.id, periodoId);
 
   const totalPeso = (data?.evaluaciones || []).reduce((s: number, e: any) => s + Number(e.peso || 0), 0);
   const promedioParcial = useMemo(() => {
@@ -137,9 +155,29 @@ function CursoDetalle({ persona, im, onBack }: { persona: any; im: any; onBack: 
     return peso > 0 ? suma / peso : null;
   }, [data]);
 
+  // Notificaciones: anuncios sin leer, entregas recientes calificadas con retro
+  const notifs = useMemo(() => {
+    if (!data) return { anunNoLeidos: 0, calificadasRecientes: 0, retroNuevas: 0 };
+    const anunNoLeidos = (data.anuncios || []).filter((a: any) => !data.lecturas[a.id]).length;
+    let calificadasRecientes = 0, retroNuevas = 0;
+    Object.values(data.entregasPorEval || {}).forEach((arr: any[]) => {
+      const ultima = arr[0]; // ordenado desc
+      if (!ultima) return;
+      if (ultima.estado === "calificada") calificadasRecientes++;
+      if (ultima.retroalimentacion) retroNuevas++;
+    });
+    return { anunNoLeidos, calificadasRecientes, retroNuevas };
+  }, [data]);
+  const totalNotifs = notifs.anunNoLeidos + notifs.calificadasRecientes + notifs.retroNuevas;
+
   return (
     <div className="space-y-4">
-      <Button variant="ghost" size="sm" onClick={onBack}><ArrowLeft className="h-4 w-4 mr-1" />Mis materias</Button>
+      <div className="flex items-center justify-between">
+        <Button variant="ghost" size="sm" onClick={onBack}><ArrowLeft className="h-4 w-4 mr-1" />Mis materias</Button>
+        {totalNotifs > 0 && (
+          <Badge variant="default" className="gap-1"><Bell className="h-3 w-3" />{totalNotifs} novedad{totalNotifs > 1 ? "es" : ""}</Badge>
+        )}
+      </div>
 
       <Card>
         <div className="h-2" style={{ background: mat?.color || "#3b82f6" }} />
@@ -170,6 +208,16 @@ function CursoDetalle({ persona, im, onBack }: { persona: any; im: any; onBack: 
             <span className="flex items-center gap-1"><Clock className="h-3 w-3" />{of?.horario || "Sin horario"}</span>
             <span className="flex items-center gap-1"><MapPin className="h-3 w-3" />{of?.aula || "Sin aula"} · {of?.modalidad}</span>
           </div>
+
+          {/* Notificaciones */}
+          {totalNotifs > 0 && (
+            <div className="border rounded-md p-2 bg-primary/5 space-y-1">
+              {notifs.anunNoLeidos > 0 && <p className="text-xs flex items-center gap-2"><Megaphone className="h-3.5 w-3.5 text-primary" />Tienes {notifs.anunNoLeidos} anuncio(s) sin leer</p>}
+              {notifs.calificadasRecientes > 0 && <p className="text-xs flex items-center gap-2"><CheckCircle2 className="h-3.5 w-3.5 text-primary" />{notifs.calificadasRecientes} entrega(s) calificada(s)</p>}
+              {notifs.retroNuevas > 0 && <p className="text-xs flex items-center gap-2"><MessageSquare className="h-3.5 w-3.5 text-primary" />{notifs.retroNuevas} retroalimentación(es) del docente</p>}
+            </div>
+          )}
+
           {promedioParcial != null && (
             <div className="pt-2 border-t">
               <div className="flex justify-between text-xs mb-1">
@@ -184,7 +232,10 @@ function CursoDetalle({ persona, im, onBack }: { persona: any; im: any; onBack: 
 
       <Tabs defaultValue="anuncios">
         <TabsList className="w-full flex-wrap h-auto justify-start">
-          <TabsTrigger value="anuncios"><Megaphone className="h-3.5 w-3.5 mr-1" />Anuncios ({data?.anuncios?.length || 0})</TabsTrigger>
+          <TabsTrigger value="anuncios" className="relative">
+            <Megaphone className="h-3.5 w-3.5 mr-1" />Anuncios ({data?.anuncios?.length || 0})
+            {notifs.anunNoLeidos > 0 && <span className="ml-1 h-4 min-w-4 px-1 rounded-full bg-destructive text-destructive-foreground text-[10px] inline-flex items-center justify-center">{notifs.anunNoLeidos}</span>}
+          </TabsTrigger>
           <TabsTrigger value="evaluaciones"><GraduationCap className="h-3.5 w-3.5 mr-1" />Evaluaciones y entregas</TabsTrigger>
           <TabsTrigger value="notas"><CheckCircle2 className="h-3.5 w-3.5 mr-1" />Mis notas</TabsTrigger>
           <TabsTrigger value="recursos"><FileText className="h-3.5 w-3.5 mr-1" />Recursos ({data?.recursos?.length || 0})</TabsTrigger>
@@ -197,16 +248,7 @@ function CursoDetalle({ persona, im, onBack }: { persona: any; im: any; onBack: 
           {isLoading ? <Skeleton n={3} /> :
             !data?.anuncios?.length ? <Empty icon={Megaphone} text="Sin anuncios del docente" /> :
             data.anuncios.map((a: any) => (
-              <Card key={a.id}>
-                <CardContent className="p-3 space-y-1">
-                  <div className="flex items-center gap-2">
-                    <Megaphone className="h-4 w-4 text-primary" />
-                    <p className="font-semibold text-sm">{a.titulo}</p>
-                  </div>
-                  <p className="text-sm whitespace-pre-wrap">{a.mensaje}</p>
-                  <p className="text-[10px] text-muted-foreground">{fmtDateTime(a.created_at)}</p>
-                </CardContent>
-              </Card>
+              <AnuncioCard key={a.id} a={a} lectura={data.lecturas[a.id]} personaId={persona.id} />
             ))
           }
         </TabsContent>
@@ -216,7 +258,7 @@ function CursoDetalle({ persona, im, onBack }: { persona: any; im: any; onBack: 
           {isLoading ? <Skeleton n={4} /> :
             !data?.evaluaciones?.length ? <Empty icon={GraduationCap} text="Sin evaluaciones programadas" /> :
             data.evaluaciones.map((e: any) => (
-              <EvaluacionRow key={e.id} ev={e} entrega={data.entregas[e.id]} calificacion={data.calificaciones[e.id]}
+              <EvaluacionRow key={e.id} ev={e} entregas={data.entregasPorEval[e.id] || []} calificacion={data.calificaciones[e.id]}
                 inscripcionMateriaId={im.id} personaId={persona.id} />
             ))
           }
@@ -225,7 +267,7 @@ function CursoDetalle({ persona, im, onBack }: { persona: any; im: any; onBack: 
         {/* NOTAS */}
         <TabsContent value="notas" className="space-y-2">
           {isLoading ? <Skeleton n={3} /> : (
-            <Card><CardContent className="p-0">
+            <Card><CardContent className="p-0 overflow-x-auto">
               <table className="w-full text-sm">
                 <thead className="bg-muted text-xs uppercase">
                   <tr><th className="p-2 text-left">Evaluación</th><th className="p-2">Tipo</th><th className="p-2">Peso</th><th className="p-2">Nota</th><th className="p-2">Aporte</th></tr>
@@ -263,17 +305,8 @@ function CursoDetalle({ persona, im, onBack }: { persona: any; im: any; onBack: 
         {/* RECURSOS */}
         <TabsContent value="recursos" className="space-y-2">
           {isLoading ? <Skeleton n={3} /> :
-            !data?.recursos?.length ? <Empty icon={FileText} text="Sin recursos cargados" /> :
-            data.recursos.map((r: any) => (
-              <div key={r.id} className="flex items-center gap-2 p-2 border rounded bg-card">
-                <FileText className="h-4 w-4 text-primary" />
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium truncate">{r.titulo}</p>
-                  <p className="text-[10px] text-muted-foreground">{r.tipo}</p>
-                </div>
-                {r.url && <Button size="sm" variant="outline" asChild><a href={r.url} target="_blank" rel="noopener noreferrer"><Download className="h-3 w-3 mr-1" />Abrir</a></Button>}
-              </div>
-            ))
+            !data?.recursos?.length ? <Empty icon={FileText} text="Sin recursos disponibles para tu curso y periodo" /> :
+            data.recursos.map((r: any) => <RecursoRow key={r.id} r={r} />)
           }
         </TabsContent>
 
@@ -308,34 +341,120 @@ function CursoDetalle({ persona, im, onBack }: { persona: any; im: any; onBack: 
   );
 }
 
-// ────────── Evaluacion + entrega ──────────
-function EvaluacionRow({ ev, entrega, calificacion, inscripcionMateriaId, personaId }: any) {
+// ────────── Anuncio ──────────
+function AnuncioCard({ a, lectura, personaId }: { a: any; lectura?: any; personaId: string }) {
+  const marcar = useMarcarAnuncioLeido();
+  const leido = !!lectura;
+  return (
+    <Card className={leido ? "" : "border-primary/40"}>
+      <CardContent className="p-3 space-y-1">
+        <div className="flex items-center gap-2">
+          <Megaphone className="h-4 w-4 text-primary" />
+          <p className="font-semibold text-sm flex-1">{a.titulo}</p>
+          {leido
+            ? <Badge variant="outline" className="text-[10px] gap-1"><Eye className="h-3 w-3" />Leído</Badge>
+            : <Badge variant="default" className="text-[10px]">Nuevo</Badge>}
+        </div>
+        <p className="text-sm whitespace-pre-wrap">{a.mensaje}</p>
+        <div className="flex items-center justify-between pt-1 gap-2 flex-wrap">
+          <p className="text-[10px] text-muted-foreground">{fmtDateTime(a.created_at)}{leido && ` · Leído ${fmtDateTime(lectura.leido_at)}`}</p>
+          {!leido && (
+            <Button size="sm" variant="outline" onClick={async () => {
+              try { await marcar.mutateAsync({ anuncio_id: a.id, persona_id: personaId }); }
+              catch (e: any) { toast.error(e.message); }
+            }} disabled={marcar.isPending}>
+              <CheckCircle2 className="h-3 w-3 mr-1" />Marcar leído
+            </Button>
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+// ────────── Recursos ──────────
+function RecursoRow({ r }: { r: any }) {
   const [open, setOpen] = useState(false);
+  const sign = useSignedUrl();
+  const [signed, setSigned] = useState<string | null>(null);
+  const url = signed || r.url;
+  const prev = previewableUrl(url, r.tipo);
+
+  const handleOpen = async () => {
+    setOpen(true);
+    if (!r.url && r.storage_path && !signed) {
+      try {
+        const s = await sign.mutateAsync({ bucket: "recursos-academicos", path: r.storage_path });
+        if (s) setSigned(s);
+      } catch (e: any) { toast.error("No se pudo cargar la vista previa"); }
+    }
+  };
+
+  return (
+    <div className="flex items-center gap-2 p-2 border rounded bg-card">
+      <FileText className="h-4 w-4 text-primary shrink-0" />
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-medium truncate">{r.titulo}</p>
+        <p className="text-[10px] text-muted-foreground">{r.tipo}{r.descripcion ? ` · ${r.descripcion}` : ""}</p>
+      </div>
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogTrigger asChild>
+          <Button size="sm" variant="outline" onClick={handleOpen}><Eye className="h-3 w-3 mr-1" />Ver</Button>
+        </DialogTrigger>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader><DialogTitle>{r.titulo}</DialogTitle></DialogHeader>
+          {!url ? <p className="text-sm text-muted-foreground p-4">Recurso sin archivo asociado.</p> :
+            prev?.kind === "image" ? <img src={prev.url} alt={r.titulo} className="max-h-[70vh] mx-auto" /> :
+            prev?.kind === "pdf" ? <iframe src={prev.url} className="w-full h-[70vh]" title={r.titulo} /> :
+            prev?.kind === "video" ? <video src={prev.url} controls className="w-full max-h-[70vh]" /> :
+            <p className="text-sm text-muted-foreground p-4">No hay vista previa disponible para este tipo de archivo.</p>
+          }
+          {url && (
+            <div className="flex justify-end">
+              <Button size="sm" asChild><a href={url} target="_blank" rel="noopener noreferrer" download><Download className="h-3 w-3 mr-1" />Descargar</a></Button>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
+// ────────── Evaluacion + historial entregas ──────────
+function EvaluacionRow({ ev, entregas, calificacion, inscripcionMateriaId, personaId }: any) {
+  const [open, setOpen] = useState(false);
+  const [hist, setHist] = useState(false);
   const [file, setFile] = useState<File | null>(null);
   const [comentario, setComentario] = useState("");
   const subir = useSubirEntrega();
 
+  const ultima = entregas[0]; // ordenada desc
   const handleSubir = async () => {
     if (!file) { toast.error("Selecciona un archivo"); return; }
     if (file.size > 50 * 1024 * 1024) { toast.error("Máximo 50MB"); return; }
     try {
       await subir.mutateAsync({ file, evaluacion_id: ev.id, inscripcion_materia_id: inscripcionMateriaId, persona_id: personaId, comentario });
-      toast.success("Entrega enviada");
+      toast.success("Nueva entrega enviada");
       setOpen(false); setFile(null); setComentario("");
     } catch (e: any) { toast.error(e.message); }
   };
 
-  const vencida = ev.fecha && new Date(ev.fecha) < new Date() && !entrega;
+  const vencida = ev.fecha && new Date(ev.fecha) < new Date() && !ultima;
+  const estadoBadge = (estado: string) => {
+    const map: any = { enviada: "secondary", en_revision: "default", calificada: "default", rechazada: "destructive" };
+    return <Badge variant={map[estado] || "outline"} className="text-[10px]">{estado.replace("_", " ")}</Badge>;
+  };
 
   return (
     <Card>
       <CardContent className="p-3 space-y-2">
         <div className="flex items-start justify-between gap-2 flex-wrap">
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               <p className="font-medium text-sm">{ev.nombre}</p>
               <Badge variant="outline" className="text-[10px]">{ev.tipo}</Badge>
               <Badge variant="secondary" className="text-[10px]">{ev.peso}%</Badge>
+              {entregas.length > 0 && <Badge variant="outline" className="text-[10px]">v{ultima.version} · {entregas.length} intento(s)</Badge>}
             </div>
             {ev.descripcion && <p className="text-xs text-muted-foreground mt-1">{ev.descripcion}</p>}
             <p className="text-[10px] text-muted-foreground mt-1 flex items-center gap-1">
@@ -343,26 +462,29 @@ function EvaluacionRow({ ev, entrega, calificacion, inscripcionMateriaId, person
               {vencida && <span className="text-destructive ml-2">· Vencida</span>}
             </p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             {calificacion?.nota != null && (
               <Badge variant={Number(calificacion.nota) >= 3 ? "default" : "destructive"}>Nota: {Number(calificacion.nota).toFixed(2)}</Badge>
             )}
+            {entregas.length > 1 && (
+              <Button size="sm" variant="ghost" onClick={() => setHist(true)}><History className="h-3 w-3 mr-1" />Historial</Button>
+            )}
             <Dialog open={open} onOpenChange={setOpen}>
               <DialogTrigger asChild>
-                <Button size="sm" variant={entrega ? "outline" : "default"}>
-                  <Upload className="h-3 w-3 mr-1" />{entrega ? "Reemplazar" : "Subir trabajo"}
+                <Button size="sm" variant={ultima ? "outline" : "default"}>
+                  <Upload className="h-3 w-3 mr-1" />{ultima ? "Nueva versión" : "Subir trabajo"}
                 </Button>
               </DialogTrigger>
               <DialogContent>
                 <DialogHeader><DialogTitle>{ev.nombre}</DialogTitle></DialogHeader>
                 <div className="space-y-3">
-                  {entrega && (
+                  {ultima && (
                     <div className="p-2 bg-muted rounded text-xs space-y-1">
-                      <p className="font-medium">Entrega actual:</p>
-                      <a href={entrega.archivo_url} target="_blank" rel="noopener noreferrer" className="text-primary underline truncate block">{entrega.archivo_nombre}</a>
-                      <p className="text-muted-foreground">Enviada: {fmtDateTime(entrega.created_at)}</p>
-                      {entrega.retroalimentacion && (
-                        <p className="pt-1 border-t mt-1"><span className="font-medium">Retroalimentación: </span>{entrega.retroalimentacion}</p>
+                      <p className="font-medium flex items-center gap-2">Última entrega (v{ultima.version}) {estadoBadge(ultima.estado)}</p>
+                      <a href={ultima.archivo_url} target="_blank" rel="noopener noreferrer" className="text-primary underline truncate block">{ultima.archivo_nombre}</a>
+                      <p className="text-muted-foreground">Enviada: {fmtDateTime(ultima.created_at)}</p>
+                      {ultima.retroalimentacion && (
+                        <p className="pt-1 border-t mt-1"><span className="font-medium">Retroalimentación: </span>{ultima.retroalimentacion}</p>
                       )}
                     </div>
                   )}
@@ -382,13 +504,35 @@ function EvaluacionRow({ ev, entrega, calificacion, inscripcionMateriaId, person
             </Dialog>
           </div>
         </div>
-        {entrega && (
-          <div className="flex items-center gap-2 text-xs p-2 bg-primary/5 rounded">
+        {ultima && (
+          <div className="flex items-center gap-2 text-xs p-2 bg-primary/5 rounded flex-wrap">
             <CheckCircle2 className="h-3.5 w-3.5 text-primary" />
-            <span>Entregado {fmtDateTime(entrega.created_at)}</span>
-            <a href={entrega.archivo_url} target="_blank" rel="noopener noreferrer" className="text-primary underline ml-auto truncate">{entrega.archivo_nombre}</a>
+            <span>v{ultima.version} · {fmtDateTime(ultima.created_at)}</span>
+            {estadoBadge(ultima.estado)}
+            <a href={ultima.archivo_url} target="_blank" rel="noopener noreferrer" className="text-primary underline ml-auto truncate">{ultima.archivo_nombre}</a>
           </div>
         )}
+
+        {/* Historial */}
+        <Dialog open={hist} onOpenChange={setHist}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader><DialogTitle>Historial de entregas · {ev.nombre}</DialogTitle></DialogHeader>
+            <div className="space-y-2 max-h-[60vh] overflow-y-auto">
+              {entregas.map((e: any) => (
+                <div key={e.id} className="border rounded p-2 text-xs space-y-1">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <Badge variant="outline">v{e.version}</Badge>
+                    {estadoBadge(e.estado)}
+                    <span className="text-muted-foreground">{fmtDateTime(e.created_at)}</span>
+                  </div>
+                  <a href={e.archivo_url} target="_blank" rel="noopener noreferrer" className="text-primary underline truncate block">{e.archivo_nombre}</a>
+                  {e.comentario && <p><span className="font-medium">Comentario: </span>{e.comentario}</p>}
+                  {e.retroalimentacion && <p className="border-t pt-1"><span className="font-medium">Retroalimentación: </span>{e.retroalimentacion}</p>}
+                </div>
+              ))}
+            </div>
+          </DialogContent>
+        </Dialog>
       </CardContent>
     </Card>
   );
@@ -436,8 +580,9 @@ function ForosTab({ ofertaId, personaNombre, personaAvatar }: { ofertaId: string
           <button key={f.id} onClick={() => setForoId(f.id)} className="w-full text-left p-3 border rounded bg-card hover:bg-accent/50 transition">
             <div className="flex items-start justify-between gap-2">
               <div className="flex-1">
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
                   {f.fijado && <Badge variant="default" className="text-[10px]">Fijado</Badge>}
+                  {f.cerrado && <Badge variant="secondary" className="text-[10px] gap-1"><Lock className="h-3 w-3" />Cerrado</Badge>}
                   <p className="font-medium text-sm">{f.titulo}</p>
                 </div>
                 {f.descripcion && <p className="text-xs text-muted-foreground line-clamp-2 mt-0.5">{f.descripcion}</p>}
@@ -454,13 +599,25 @@ function ForosTab({ ofertaId, personaNombre, personaAvatar }: { ofertaId: string
 
 function ForoDetalle({ foro, onBack, personaNombre, personaAvatar }: any) {
   const { user } = useAuth();
-  const { data: mensajes, isLoading } = useForoMensajes(foro?.id);
+  const { data: staff } = useIsSeminarioStaff();
+  const isStaff = !!staff;
+  const [page, setPage] = useState(0);
+  const [search, setSearch] = useState("");
+  const [searchInput, setSearchInput] = useState("");
+  const pageSize = 10;
+  const { data: msgs, isLoading } = useForoMensajes(foro?.id, { page, pageSize, search });
+  const items = msgs?.items || [];
+  const total = msgs?.total || 0;
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+
   const enviar = useEnviarMensajeForo();
   const borrar = useEliminarMensajeForo();
+  const toggleCerrado = useToggleForoCerrado();
   const [texto, setTexto] = useState("");
 
   const handleEnviar = async () => {
     if (!texto.trim()) return;
+    if (foro.cerrado && !isStaff) { toast.error("Este foro está cerrado"); return; }
     try {
       await enviar.mutateAsync({ foro_id: foro.id, mensaje: texto, autor_nombre: personaNombre, autor_avatar: personaAvatar });
       setTexto("");
@@ -470,17 +627,40 @@ function ForoDetalle({ foro, onBack, personaNombre, personaAvatar }: any) {
   if (!foro) return null;
   return (
     <div className="space-y-3">
-      <Button variant="ghost" size="sm" onClick={onBack}><ArrowLeft className="h-4 w-4 mr-1" />Volver a foros</Button>
+      <div className="flex items-center justify-between">
+        <Button variant="ghost" size="sm" onClick={onBack}><ArrowLeft className="h-4 w-4 mr-1" />Volver a foros</Button>
+        {isStaff && (
+          <Button size="sm" variant="outline" onClick={async () => {
+            try { await toggleCerrado.mutateAsync({ id: foro.id, cerrado: !foro.cerrado }); toast.success(foro.cerrado ? "Foro abierto" : "Foro cerrado"); }
+            catch (e: any) { toast.error(e.message); }
+          }}>
+            {foro.cerrado ? <><Unlock className="h-3 w-3 mr-1" />Reabrir</> : <><Lock className="h-3 w-3 mr-1" />Cerrar foro</>}
+          </Button>
+        )}
+      </div>
       <Card><CardContent className="p-3">
-        <p className="font-semibold">{foro.titulo}</p>
+        <div className="flex items-center gap-2 flex-wrap">
+          <p className="font-semibold">{foro.titulo}</p>
+          {foro.cerrado && <Badge variant="secondary" className="text-[10px] gap-1"><Lock className="h-3 w-3" />Cerrado</Badge>}
+        </div>
         {foro.descripcion && <p className="text-sm text-muted-foreground mt-1">{foro.descripcion}</p>}
         <p className="text-[10px] text-muted-foreground mt-1">{foro.autor_nombre} · {fmtDateTime(foro.created_at)}</p>
       </CardContent></Card>
 
+      {/* Búsqueda */}
+      <form onSubmit={(e) => { e.preventDefault(); setSearch(searchInput); setPage(0); }} className="flex gap-2">
+        <div className="relative flex-1">
+          <Search className="h-3.5 w-3.5 absolute left-2 top-2.5 text-muted-foreground" />
+          <Input className="pl-7 h-9" placeholder="Buscar en el tema..." value={searchInput} onChange={(e) => setSearchInput(e.target.value)} />
+        </div>
+        <Button type="submit" size="sm" variant="outline">Buscar</Button>
+        {search && <Button type="button" size="sm" variant="ghost" onClick={() => { setSearch(""); setSearchInput(""); setPage(0); }}>Limpiar</Button>}
+      </form>
+
       <div className="space-y-2">
         {isLoading ? <Skeleton n={3} /> :
-          !mensajes?.length ? <p className="text-sm text-center text-muted-foreground py-4">Sé el primero en responder</p> :
-          mensajes.map((m: any) => (
+          !items.length ? <p className="text-sm text-center text-muted-foreground py-4">{search ? "Sin coincidencias" : "Sé el primero en responder"}</p> :
+          items.map((m: any) => (
             <div key={m.id} className="flex gap-2 p-2 border rounded bg-card">
               <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0 text-xs font-medium">
                 {m.autor_avatar ? <img src={m.autor_avatar} alt="" className="h-8 w-8 rounded-full object-cover" /> : (m.autor_nombre?.[0] || "?")}
@@ -489,7 +669,7 @@ function ForoDetalle({ foro, onBack, personaNombre, personaAvatar }: any) {
                 <div className="flex items-center gap-2">
                   <p className="text-xs font-medium">{m.autor_nombre || "Anónimo"}</p>
                   <p className="text-[10px] text-muted-foreground">{fmtDateTime(m.created_at)}</p>
-                  {m.autor_user_id === user?.id && (
+                  {(m.autor_user_id === user?.id || isStaff) && (
                     <Button size="icon" variant="ghost" className="h-5 w-5 ml-auto text-destructive"
                       onClick={async () => { try { await borrar.mutateAsync(m.id); } catch (e: any) { toast.error(e.message); } }}>
                       <Trash2 className="h-3 w-3" />
@@ -503,9 +683,21 @@ function ForoDetalle({ foro, onBack, personaNombre, personaAvatar }: any) {
         }
       </div>
 
+      {/* Paginación */}
+      {total > pageSize && (
+        <div className="flex items-center justify-between text-xs">
+          <span className="text-muted-foreground">{total} mensajes · página {page + 1} de {totalPages}</span>
+          <div className="flex gap-1">
+            <Button size="sm" variant="outline" disabled={page === 0} onClick={() => setPage(p => Math.max(0, p - 1))}><ChevronLeft className="h-3 w-3" /></Button>
+            <Button size="sm" variant="outline" disabled={page >= totalPages - 1} onClick={() => setPage(p => p + 1)}><ChevronRight className="h-3 w-3" /></Button>
+          </div>
+        </div>
+      )}
+
       <div className="flex gap-2 sticky bottom-0 bg-background pt-2 border-t">
-        <Textarea rows={2} placeholder="Escribe tu respuesta..." value={texto} onChange={(e) => setTexto(e.target.value)} />
-        <Button onClick={handleEnviar} disabled={!texto.trim() || enviar.isPending}><Send className="h-4 w-4" /></Button>
+        <Textarea rows={2} placeholder={foro.cerrado && !isStaff ? "Foro cerrado por el staff" : "Escribe tu respuesta..."}
+          value={texto} onChange={(e) => setTexto(e.target.value)} disabled={foro.cerrado && !isStaff} />
+        <Button onClick={handleEnviar} disabled={!texto.trim() || enviar.isPending || (foro.cerrado && !isStaff)}><Send className="h-4 w-4" /></Button>
       </div>
     </div>
   );

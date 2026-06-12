@@ -2228,6 +2228,45 @@ export type Database = {
           },
         ]
       }
+      sem_anuncios_lecturas: {
+        Row: {
+          anuncio_id: string
+          id: string
+          leido_at: string
+          persona_id: string
+          user_id: string | null
+        }
+        Insert: {
+          anuncio_id: string
+          id?: string
+          leido_at?: string
+          persona_id: string
+          user_id?: string | null
+        }
+        Update: {
+          anuncio_id?: string
+          id?: string
+          leido_at?: string
+          persona_id?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sem_anuncios_lecturas_anuncio_id_fkey"
+            columns: ["anuncio_id"]
+            isOneToOne: false
+            referencedRelation: "sem_anuncios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sem_anuncios_lecturas_persona_id_fkey"
+            columns: ["persona_id"]
+            isOneToOne: false
+            referencedRelation: "personas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sem_asistencias: {
         Row: {
           created_at: string
@@ -2394,6 +2433,7 @@ export type Database = {
           retroalimentacion: string | null
           updated_at: string
           user_id: string | null
+          version: number
         }
         Insert: {
           archivo_nombre?: string | null
@@ -2412,6 +2452,7 @@ export type Database = {
           retroalimentacion?: string | null
           updated_at?: string
           user_id?: string | null
+          version?: number
         }
         Update: {
           archivo_nombre?: string | null
@@ -2430,6 +2471,7 @@ export type Database = {
           retroalimentacion?: string | null
           updated_at?: string
           user_id?: string | null
+          version?: number
         }
         Relationships: [
           {
@@ -3119,6 +3161,7 @@ export type Database = {
           descripcion: string | null
           id: string
           materia_id: string | null
+          periodo_id: string | null
           programa_id: string | null
           publicado: boolean
           storage_path: string | null
@@ -3133,6 +3176,7 @@ export type Database = {
           descripcion?: string | null
           id?: string
           materia_id?: string | null
+          periodo_id?: string | null
           programa_id?: string | null
           publicado?: boolean
           storage_path?: string | null
@@ -3147,6 +3191,7 @@ export type Database = {
           descripcion?: string | null
           id?: string
           materia_id?: string | null
+          periodo_id?: string | null
           programa_id?: string | null
           publicado?: boolean
           storage_path?: string | null
@@ -3161,6 +3206,13 @@ export type Database = {
             columns: ["materia_id"]
             isOneToOne: false
             referencedRelation: "sem_materias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sem_recursos_periodo_id_fkey"
+            columns: ["periodo_id"]
+            isOneToOne: false
+            referencedRelation: "sem_periodos"
             referencedColumns: ["id"]
           },
           {

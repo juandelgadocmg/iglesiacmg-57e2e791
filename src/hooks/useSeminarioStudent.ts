@@ -24,7 +24,21 @@ export function useMiPersona() {
   });
 }
 
-// Mis ofertas (materias matriculadas en periodos activos)
+// Is current user staff (sees moderation tools)?
+export function useIsSeminarioStaff() {
+  const { user } = useAuth();
+  return useQuery({
+    queryKey: ["sem-is-staff", user?.id],
+    enabled: !!user?.id,
+    queryFn: async () => {
+      const { data, error } = await sb.rpc("sem_is_staff", { _uid: user!.id });
+      if (error) return false;
+      return !!data;
+    },
+  });
+}
+
+// Mis ofertas
 export function useMisOfertas(personaId?: string) {
   return useQuery({
     queryKey: ["mis-ofertas", personaId],
@@ -35,7 +49,7 @@ export function useMisOfertas(personaId?: string) {
         .select(`
           id, oferta_id, materia_id, nota_final, estado, inscripcion_id,
           sem_materias(id, codigo, nombre, creditos, color),
-          sem_ofertas(id, docente_nombre, docente_persona_id, horario, aula, modalidad, zoom_link, estado,
+          sem_ofertas(id, docente_nombre, docente_persona_id, horario, aula, modalidad, zoom_link, estado, periodo_id,
             sem_periodos(id, codigo, nombre, fecha_inicio, fecha_fin, activo)),
           sem_inscripciones!inner(id, persona_id, programa_id,
             sem_programas(id, nombre, codigo))
@@ -48,46 +62,64 @@ export function useMisOfertas(personaId?: string) {
   });
 }
 
-// Detalle de mi curso (oferta + evaluaciones + calificaciones del estudiante + recursos + anuncios + zoom + foros + entregas)
-export function useMiCurso(inscripcionMateriaId?: string, ofertaId?: string, materiaId?: string) {
+// Detalle curso
+export function useMiCurso(inscripcionMateriaId?: string, ofertaId?: string, materiaId?: string, personaId?: string, periodoId?: string) {
   return useQuery({
-    queryKey: ["mi-curso", inscripcionMateriaId, ofertaId],
+    queryKey: ["mi-curso", inscripcionMateriaId, ofertaId, periodoId],
     enabled: !!inscripcionMateriaId && !!ofertaId,
     queryFn: async () => {
+      // Recursos: filtra por materia + (sin periodo o periodo del curso) + publicado
+      let recQuery = sb.from("sem_recursos").select("*").eq("publicado", true).order("created_at", { ascending: false });
+      if (materiaId) recQuery = recQuery.eq("materia_id", materiaId);
+      if (periodoId) recQuery = recQuery.or(`periodo_id.is.null,periodo_id.eq.${periodoId}`);
+
       const [evRes, recRes, anRes, zoomRes] = await Promise.all([
         sb.from("sem_evaluaciones").select("*").eq("oferta_id", ofertaId).order("fecha"),
-        materiaId
-          ? sb.from("sem_recursos").select("*").eq("materia_id", materiaId).order("created_at", { ascending: false })
-          : Promise.resolve({ data: [], error: null }),
+        materiaId ? recQuery : Promise.resolve({ data: [], error: null }),
         sb.from("sem_anuncios").select("*").eq("oferta_id", ofertaId).order("created_at", { ascending: false }),
         sb.from("sem_zoom_sesiones").select("*").eq("oferta_id", ofertaId).order("start_time", { ascending: false }),
       ]);
       if (evRes.error) throw evRes.error;
       const evals = evRes.data || [];
       const evIds = evals.map((e: any) => e.id);
-      const [calRes, entRes] = await Promise.all([
+      const anIds = (anRes.data || []).map((a: any) => a.id);
+
+      const [calRes, entRes, lecRes] = await Promise.all([
         evIds.length
           ? sb.from("sem_calificaciones").select("*").in("evaluacion_id", evIds).eq("inscripcion_materia_id", inscripcionMateriaId)
           : Promise.resolve({ data: [], error: null }),
-        sb.from("sem_entregas").select("*").eq("inscripcion_materia_id", inscripcionMateriaId),
+        sb.from("sem_entregas").select("*").eq("inscripcion_materia_id", inscripcionMateriaId).order("created_at", { ascending: false }),
+        anIds.length && personaId
+          ? sb.from("sem_anuncios_lecturas").select("*").in("anuncio_id", anIds).eq("persona_id", personaId)
+          : Promise.resolve({ data: [], error: null }),
       ]);
+
       const calMap: Record<string, any> = {};
       (calRes.data || []).forEach((c: any) => { calMap[c.evaluacion_id] = c; });
-      const entMap: Record<string, any> = {};
-      (entRes.data || []).forEach((e: any) => { entMap[e.evaluacion_id] = e; });
+
+      // entregas agrupadas por evaluación con historial
+      const entregasPorEval: Record<string, any[]> = {};
+      (entRes.data || []).forEach((e: any) => {
+        (entregasPorEval[e.evaluacion_id] ||= []).push(e);
+      });
+
+      const lecMap: Record<string, any> = {};
+      (lecRes.data || []).forEach((l: any) => { lecMap[l.anuncio_id] = l; });
+
       return {
         evaluaciones: evals,
         calificaciones: calMap,
-        entregas: entMap,
+        entregasPorEval,
         recursos: recRes.data || [],
         anuncios: anRes.data || [],
         zoomSesiones: zoomRes.data || [],
+        lecturas: lecMap,
       };
     },
   });
 }
 
-// Upload + create/update entrega
+// Subir entrega -> crea NUEVA versión
 export function useSubirEntrega() {
   const qc = useQueryClient();
   return useMutation({
@@ -99,9 +131,16 @@ export function useSubirEntrega() {
       const { data: u } = await supabase.auth.getUser();
       const uid = u?.user?.id;
       if (!uid) throw new Error("Debes iniciar sesión");
+
+      // calcular siguiente versión
+      const { data: prev } = await sb.from("sem_entregas")
+        .select("version").eq("evaluacion_id", evaluacion_id).eq("inscripcion_materia_id", inscripcion_materia_id)
+        .order("version", { ascending: false }).limit(1).maybeSingle();
+      const version = (prev?.version || 0) + 1;
+
       const ext = file.name.split(".").pop() || "bin";
-      const path = `${uid}/${evaluacion_id}/${Date.now()}.${ext}`;
-      const up = await supabase.storage.from("sem-entregas").upload(path, file, { upsert: true, contentType: file.type });
+      const path = `${uid}/${evaluacion_id}/v${version}-${Date.now()}.${ext}`;
+      const up = await supabase.storage.from("sem-entregas").upload(path, file, { upsert: false, contentType: file.type });
       if (up.error) throw up.error;
       const { data: signed } = await supabase.storage.from("sem-entregas").createSignedUrl(path, 60 * 60 * 24 * 7);
       const payload: any = {
@@ -113,10 +152,26 @@ export function useSubirEntrega() {
         archivo_tamano: file.size,
         comentario: comentario || null,
         estado: "enviada",
+        version,
       };
-      const { data, error } = await sb
-        .from("sem_entregas")
-        .upsert(payload, { onConflict: "evaluacion_id,inscripcion_materia_id" })
+      const { data, error } = await sb.from("sem_entregas").insert(payload).select().single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["mi-curso"] }),
+  });
+}
+
+// Marcar anuncio como leído
+export function useMarcarAnuncioLeido() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ anuncio_id, persona_id }: { anuncio_id: string; persona_id: string }) => {
+      const { data: u } = await supabase.auth.getUser();
+      const uid = u?.user?.id;
+      if (!uid) throw new Error("Sesión requerida");
+      const { data, error } = await sb.from("sem_anuncios_lecturas")
+        .upsert({ anuncio_id, persona_id, user_id: uid }, { onConflict: "anuncio_id,persona_id" })
         .select().single();
       if (error) throw error;
       return data;
@@ -125,10 +180,11 @@ export function useSubirEntrega() {
   });
 }
 
-export function useRefreshEntregaUrl() {
+// Signed URL helper (preview/descarga de recursos privados)
+export function useSignedUrl() {
   return useMutation({
-    mutationFn: async (path: string) => {
-      const { data, error } = await supabase.storage.from("sem-entregas").createSignedUrl(path, 60 * 60);
+    mutationFn: async ({ bucket, path, expiresIn = 3600 }: { bucket: string; path: string; expiresIn?: number }) => {
+      const { data, error } = await supabase.storage.from(bucket).createSignedUrl(path, expiresIn);
       if (error) throw error;
       return data?.signedUrl;
     },
@@ -171,15 +227,35 @@ export function useCrearForo() {
   });
 }
 
-export function useForoMensajes(foroId?: string) {
+export function useToggleForoCerrado() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, cerrado }: { id: string; cerrado: boolean }) => {
+      const { error } = await sb.from("sem_foros").update({ cerrado }).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["sem-foros"] }),
+  });
+}
+
+// Mensajes paginados + búsqueda
+export function useForoMensajes(foroId?: string, opts?: { page?: number; pageSize?: number; search?: string }) {
+  const page = opts?.page ?? 0;
+  const pageSize = opts?.pageSize ?? 20;
+  const search = opts?.search?.trim() || "";
   return useQuery({
-    queryKey: ["sem-foro-mensajes", foroId],
+    queryKey: ["sem-foro-mensajes", foroId, page, pageSize, search],
     enabled: !!foroId,
     queryFn: async () => {
-      const { data, error } = await sb.from("sem_foro_mensajes")
-        .select("*").eq("foro_id", foroId).order("created_at", { ascending: true });
+      let q = sb.from("sem_foro_mensajes")
+        .select("*", { count: "exact" })
+        .eq("foro_id", foroId)
+        .order("created_at", { ascending: true });
+      if (search) q = q.ilike("mensaje", `%${search}%`);
+      q = q.range(page * pageSize, page * pageSize + pageSize - 1);
+      const { data, error, count } = await q;
       if (error) throw error;
-      return data || [];
+      return { items: data || [], total: count || 0, page, pageSize };
     },
   });
 }
