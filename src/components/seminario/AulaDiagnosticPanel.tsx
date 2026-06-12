@@ -31,12 +31,12 @@ export default function AulaDiagnosticPanel() {
     <Card className="border-dashed" data-testid="aula-diagnostic">
       <CardContent className="p-3 space-y-2">
         <div className="flex items-center justify-between">
-          <p className="text-xs font-medium flex items-center gap-1.5">
+          <div className="text-xs font-medium flex items-center gap-1.5">
             <Activity className="h-3.5 w-3.5 text-primary" />
-            Diagnóstico del Aula Virtual
+            <span>Diagnóstico del Aula Virtual</span>
             {!user && <Badge variant="destructive" className="text-[10px] ml-2">Sin sesión</Badge>}
             {user && !persona.data && !persona.isLoading && <Badge variant="destructive" className="text-[10px] ml-2">Sin ficha</Badge>}
-          </p>
+          </div>
           <Button size="sm" variant="ghost" onClick={() => setOpen(o => !o)}>
             {open ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
           </Button>
