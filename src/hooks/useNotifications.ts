@@ -188,8 +188,23 @@ export function useNotifications() {
       } catch {}
     });
 
+    // Seminario: semestres vencidos con materias sin aprobar
+    (semVencidos || []).forEach((s: any) => {
+      const nom = s.persona ? `${s.persona.nombres} ${s.persona.apellidos}` : "Estudiante";
+      items.push({
+        id: `sem-${s.id}`,
+        type: "seminario",
+        title: `⚠ ${nom}`,
+        description: `${s.pendientes} materia${s.pendientes > 1 ? "s" : ""} pendiente${s.pendientes > 1 ? "s" : ""} de semestres anteriores`,
+        date: "Seminario",
+        daysLeft: -1,
+        icon: "alert",
+        href: "/seminario",
+      });
+    });
+
     return items.sort((a, b) => a.daysLeft - b.daysLeft);
-  }, [personas, eventos, servicios, pagosVencidos]);
+  }, [personas, eventos, servicios, pagosVencidos, semVencidos]);
 
   return { notifications, count: notifications.length };
 }

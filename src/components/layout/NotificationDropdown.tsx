@@ -1,4 +1,4 @@
-import { Bell, CalendarDays, Cake, Church, DollarSign } from "lucide-react";
+import { Bell, CalendarDays, Cake, Church, DollarSign, AlertTriangle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import {
   Popover,
@@ -8,12 +8,14 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useNotifications, AppNotification } from "@/hooks/useNotifications";
 import { cn } from "@/lib/utils";
+import { Link } from "react-router-dom";
 
 const iconMap = {
   calendar: CalendarDays,
   cake: Cake,
   church: Church,
   dollar: DollarSign,
+  alert: AlertTriangle,
 };
 
 const colorMap = {
@@ -21,14 +23,10 @@ const colorMap = {
   birthday: "bg-warning/10 text-warning",
   service: "bg-info/10 text-info",
   payment: "bg-destructive/10 text-destructive",
+  seminario: "bg-destructive/10 text-destructive",
 };
 
-const badgeColorMap = {
-  event: "bg-accent/10 text-accent",
-  birthday: "bg-warning/10 text-warning",
-  service: "bg-info/10 text-info",
-  payment: "bg-destructive/10 text-destructive",
-};
+const badgeColorMap = colorMap;
 
 function NotificationItem({ notification }: { notification: AppNotification }) {
   const Icon = iconMap[notification.icon];
