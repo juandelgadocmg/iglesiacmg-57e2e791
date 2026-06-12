@@ -8,9 +8,12 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Plus, Trash2, UserPlus, BookOpen, ChevronLeft } from "lucide-react";
+import { Plus, Trash2, UserPlus, ChevronLeft, FileDown, Award, Video } from "lucide-react";
 import { toast } from "sonner";
 import DeleteConfirmDialog from "@/components/shared/DeleteConfirmDialog";
+import ProgresoPanel from "./ProgresoPanel";
+import { exportKardexPdf } from "@/lib/seminarioPdf";
+import { supabase } from "@/integrations/supabase/client";
 
 export default function EstudiantesSection() {
   const { data: programas } = useProgramas();
@@ -170,10 +173,21 @@ function EstudianteDetalle({ ins, programa, onBack }: any) {
   const credAprob = aprobadas.reduce((s: number, c: any) => s + (c.sem_materias?.creditos || 0), 0);
   const pct = Math.min(100, Math.round((credAprob / totalCreditos) * 100));
 
+  // Programa completo: todas las materias del pensum aprobadas
+  const totalPensum = (pensum || []).length;
+  const aprobadasIds = new Set(aprobadas.map((c: any) => c.materia_id));
+  const programaCompleto = totalPensum > 0 && (pensum || []).every((p: any) => aprobadasIds.has(p.materia_id));
+
   const handleEnroll = async (materia_id: string) => {
     const oferta = (ofertas || []).find((o: any) => o.materia_id === materia_id);
     if (!oferta) { toast.error("Esta materia no tiene oferta en el periodo. Crea horario primero."); return; }
+    // Validar prerrequisitos vía RPC
     try {
+      const { data: ok, error } = await (supabase as any).rpc("sem_puede_inscribir", {
+        _persona_id: ins.persona_id, _materia_id: materia_id,
+      });
+      if (error) throw error;
+      if (!ok) { toast.error("No cumple prerrequisitos del pensum para esta materia."); return; }
       await enroll.mutateAsync({ inscripcion_id: ins.id, oferta_id: oferta.id, materia_id });
       toast.success("Matriculada");
     } catch (e: any) { toast.error(e.message); }
@@ -184,12 +198,45 @@ function EstudianteDetalle({ ins, programa, onBack }: any) {
     catch (e: any) { toast.error(e.message); }
   };
 
+  const buildKardexRows = () => {
+    const rows: any[] = [];
+    (semestres || []).forEach((s: any) => {
+      (matsBySem[s.numero] || []).forEach((m: any) => {
+        const c: any = cursandoMap.get(m.id);
+        rows.push({
+          semestre: s.numero, codigo: m.codigo, nombre: m.nombre, creditos: m.creditos,
+          estado: c?.estado || "no inscrita", nota_final: c?.nota_final ?? null,
+        });
+      });
+    });
+    return rows;
+  };
+
+  const handleKardex = (certificado: boolean) => {
+    exportKardexPdf({
+      estudiante: `${p?.nombres} ${p?.apellidos}`,
+      documento: p?.documento, programa: programa?.nombre || "—",
+      promedio: ins.promedio_acumulado, creditosAprobados: credAprob, creditosTotales: totalCreditos,
+      rows: buildKardexRows(), certificado,
+    });
+  };
+
   const p = ins.personas;
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-2">
+      <div className="flex items-center justify-between gap-2">
         <Button size="sm" variant="ghost" onClick={onBack}><ChevronLeft className="h-4 w-4 mr-1" />Volver</Button>
+        <div className="flex gap-2">
+          <Button size="sm" variant="outline" onClick={() => handleKardex(false)}>
+            <FileDown className="h-4 w-4 mr-1" />Kárdex PDF
+          </Button>
+          {programaCompleto && (
+            <Button size="sm" onClick={() => handleKardex(true)} className="bg-amber-600 hover:bg-amber-700">
+              <Award className="h-4 w-4 mr-1" />Generar Certificado
+            </Button>
+          )}
+        </div>
       </div>
       <Card>
         <CardContent className="p-4">
@@ -204,6 +251,7 @@ function EstudianteDetalle({ ins, programa, onBack }: any) {
                 <Badge variant="outline">Semestre {ins.semestre_actual}</Badge>
                 <Badge variant="outline">Promedio {ins.promedio_acumulado ?? "—"}</Badge>
                 <Badge variant="outline">{credAprob}/{totalCreditos} créditos</Badge>
+                {programaCompleto && <Badge className="bg-amber-600">✓ Programa completo</Badge>}
               </div>
             </div>
             <div className="w-full md:w-48">
@@ -214,6 +262,8 @@ function EstudianteDetalle({ ins, programa, onBack }: any) {
           </div>
         </CardContent>
       </Card>
+
+      <ProgresoPanel semestres={semestres || []} pensum={pensum || []} cursando={cursando || []} semestreActual={ins.semestre_actual || 1} />
 
       <div className="space-y-3">
         {(semestres || []).map((s: any) => {
@@ -264,6 +314,12 @@ function EstudianteDetalle({ ins, programa, onBack }: any) {
                               }}
                               className="h-7 w-20 text-[10px]" />
                           </div>
+                        )}
+                        {c?.sem_ofertas?.zoom_link && (
+                          <a href={c.sem_ofertas.zoom_link} target="_blank" rel="noopener noreferrer"
+                            className="mt-1.5 flex items-center gap-1 text-[10px] text-primary hover:underline">
+                            <Video className="h-3 w-3" />Aula virtual Zoom
+                          </a>
                         )}
                       </div>
                     );

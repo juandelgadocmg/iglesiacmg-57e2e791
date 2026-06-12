@@ -300,7 +300,7 @@ export function useInscripcionMaterias(inscripcionId?: string) {
     queryFn: async () => {
       if (!inscripcionId) return [];
       const { data, error } = await sb.from("sem_inscripcion_materias")
-        .select("*, sem_materias(id,codigo,nombre,creditos,color), sem_ofertas(id,docente_nombre,aula,horario)")
+        .select("*, sem_materias(id,codigo,nombre,creditos,color), sem_ofertas(id,docente_nombre,aula,horario,zoom_link,modalidad)")
         .eq("inscripcion_id", inscripcionId);
       if (error) throw error;
       return data || [];

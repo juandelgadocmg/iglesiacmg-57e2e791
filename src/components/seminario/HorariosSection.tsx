@@ -49,9 +49,24 @@ export default function HorariosSection() {
     } catch (e: any) { toast.error(e.message); }
   };
 
+  const periodoActivo = (periodos || []).find((p: any) => p.id === effPer);
   const handleSaveOferta = async (form: any) => {
     try {
-      await upsertOferta.mutateAsync({ ...form, periodo_id: effPer });
+      // Auto-generar link Zoom si modalidad no es presencial y no hay link
+      let payload = { ...form, periodo_id: effPer };
+      if (payload.modalidad !== "presencial" && !payload.zoom_link) {
+        const { generateZoomLink } = await import("@/lib/seminarioZoom");
+        const z = generateZoomLink({
+          docente: payload.docente_nombre,
+          periodoCodigo: periodoActivo?.codigo,
+          materiaCodigo: editing?.materia?.codigo,
+          materiaId: payload.materia_id,
+        });
+        payload.zoom_link = z.url;
+        payload.zoom_meeting_id = z.meetingId;
+        payload.zoom_password = z.pwd;
+      }
+      await upsertOferta.mutateAsync(payload);
       toast.success("Horario guardado");
       setEditing(null);
     } catch (e: any) { toast.error(e.message); }
@@ -208,7 +223,17 @@ function OfertaDialog({ ctx, personas, onSave, pending }: any) {
           </div>
         </div>
         {f.modalidad !== "presencial" && (
-          <div><Label>Link Zoom</Label><Input value={f.zoom_link} onChange={e => setF({ ...f, zoom_link: e.target.value })} placeholder="https://zoom.us/..." /></div>
+          <div>
+            <Label>Link Zoom <span className="text-[10px] text-muted-foreground">(se genera automático si lo dejas vacío)</span></Label>
+            <div className="flex gap-1">
+              <Input value={f.zoom_link} onChange={e => setF({ ...f, zoom_link: e.target.value })} placeholder="Se generará al guardar" />
+              <Button type="button" size="sm" variant="outline" onClick={async () => {
+                const { generateZoomLink } = await import("@/lib/seminarioZoom");
+                const z = generateZoomLink({ docente: f.docente_nombre, materiaCodigo: ctx.materia.codigo, materiaId: ctx.materia.id });
+                setF({ ...f, zoom_link: z.url });
+              }}>Regenerar</Button>
+            </div>
+          </div>
         )}
         <Button disabled={pending} onClick={() => onSave(f)} className="w-full">{pending ? "Guardando..." : "Guardar"}</Button>
       </div>
