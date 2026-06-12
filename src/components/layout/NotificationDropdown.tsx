@@ -30,7 +30,7 @@ const badgeColorMap = colorMap;
 
 function NotificationItem({ notification }: { notification: AppNotification }) {
   const Icon = iconMap[notification.icon];
-  return (
+  const inner = (
     <div className="flex items-start gap-3 p-3 hover:bg-muted/50 rounded-lg transition-colors">
       <div className={cn("p-2 rounded-lg shrink-0", colorMap[notification.type])}>
         <Icon className="h-4 w-4" />
@@ -46,6 +46,7 @@ function NotificationItem({ notification }: { notification: AppNotification }) {
       )}
     </div>
   );
+  return notification.href ? <Link to={notification.href}>{inner}</Link> : inner;
 }
 
 export default function NotificationDropdown() {
