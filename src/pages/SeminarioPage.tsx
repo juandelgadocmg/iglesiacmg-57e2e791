@@ -3,13 +3,14 @@ import { cn } from "@/lib/utils";
 import PageHeader from "@/components/shared/PageHeader";
 import {
   LayoutDashboard, BookOpen, Layers, FileText, Video, ClipboardCheck,
-  BarChart3, UserCheck, Library, Award, Users, FileBarChart2, CalendarClock, GraduationCap,
+  BarChart3, UserCheck, Library, Award, Users, FileBarChart2, CalendarClock, GraduationCap, ShieldCheck,
 } from "lucide-react";
 import ProgramasSection from "@/components/seminario/ProgramasSection";
 import PensumSection from "@/components/seminario/PensumSection";
 import MateriasSection from "@/components/seminario/MateriasSection";
 import HorariosSection from "@/components/seminario/HorariosSection";
 import EstudiantesSection from "@/components/seminario/EstudiantesSection";
+import AuditoriaSection from "@/components/seminario/AuditoriaSection";
 import PlaceholderSection from "@/components/seminario/PlaceholderSection";
 
 const SIDEBAR = [
@@ -27,6 +28,7 @@ const SIDEBAR = [
   { id: "certificados", label: "Certificados", icon: Award },
   { id: "docentes", label: "Docentes", icon: Users },
   { id: "reportes", label: "Reportes", icon: FileBarChart2 },
+  { id: "auditoria", label: "Auditoría", icon: ShieldCheck },
 ];
 
 export default function SeminarioPage() {
@@ -82,6 +84,7 @@ export default function SeminarioPage() {
           {section === "materias" && <MateriasSection />}
           {section === "horarios" && <HorariosSection />}
           {section === "estudiantes" && <EstudiantesSection />}
+          {section === "auditoria" && <AuditoriaSection />}
           {section === "dashboard" && (
             <PlaceholderSection title="Dashboard Académico" phase="Fase 4"
               description="KPIs de matriculados, retención, promedio general, mora, próximas evaluaciones y alertas." />

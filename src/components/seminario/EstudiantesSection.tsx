@@ -38,6 +38,13 @@ export default function EstudiantesSection() {
   const canMatricular = can("seminario:matricular");
   const canCertificar = can("seminario:certificar");
 
+  // Estado de exportación masiva
+  type BatchItem = { insId: string; nombre: string; status: "pendiente" | "procesando" | "ok" | "error" | "omitido"; error?: string };
+  const [batchOpen, setBatchOpen] = useState(false);
+  const [batchModo, setBatchModo] = useState<"kardex" | "certificado">("kardex");
+  const [batchItems, setBatchItems] = useState<BatchItem[]>([]);
+  const [batchRunning, setBatchRunning] = useState(false);
+
   const yaInscritos = new Set((inscripciones || []).map((i: any) => i.persona_id));
 
   const toggleSel = (id: string) => {
@@ -48,53 +55,76 @@ export default function EstudiantesSection() {
     });
   };
 
+  const procesarItem = async (insId: string, modo: "kardex" | "certificado") => {
+    const ins = (inscripciones || []).find((x: any) => x.id === insId);
+    if (!ins) throw new Error("Inscripción no encontrada");
+    const sb = supabase as any;
+    const [{ data: pensum }, { data: cursando }, { data: semestres }] = await Promise.all([
+      sb.from("sem_pensum_materias").select("materia_id, sem_pensum_semestres!inner(numero,programa_id), sem_materias(*)").eq("sem_pensum_semestres.programa_id", ins.programa_id),
+      sb.from("sem_inscripcion_materias").select("materia_id, estado, nota_final, sem_materias(creditos)").eq("inscripcion_id", insId),
+      sb.from("sem_pensum_semestres").select("numero").eq("programa_id", ins.programa_id).order("numero"),
+    ]);
+    const cmap = new Map((cursando || []).map((c: any) => [c.materia_id, c]));
+    const aprob = (cursando || []).filter((c: any) => c.estado === "aprobada");
+    const credAprob = aprob.reduce((s: number, c: any) => s + (c.sem_materias?.creditos || 0), 0);
+    const totalPensum = (pensum || []).length;
+    const aprobIds = new Set(aprob.map((c: any) => c.materia_id));
+    const completo = totalPensum > 0 && (pensum || []).every((p: any) => aprobIds.has(p.materia_id));
+    if (modo === "certificado" && !completo) {
+      const err: any = new Error("No completa el pensum"); err.omitido = true; throw err;
+    }
+    const rows: KardexRow[] = [];
+    (semestres || []).forEach((s: any) => {
+      (pensum || []).filter((p: any) => p.sem_pensum_semestres.numero === s.numero).forEach((p: any) => {
+        const c: any = cmap.get(p.materia_id);
+        rows.push({ semestre: s.numero, codigo: p.sem_materias.codigo, nombre: p.sem_materias.nombre, creditos: p.sem_materias.creditos, estado: c?.estado || "no inscrita", nota_final: c?.nota_final ?? null });
+      });
+    });
+    await exportKardexPdf({
+      estudiante: `${ins.personas?.nombres} ${ins.personas?.apellidos}`,
+      documento: ins.personas?.documento, programa: programa?.nombre || "—",
+      promedio: ins.promedio_acumulado, creditosAprobados: credAprob, creditosTotales: (programa?.total_semestres || 8) * 20,
+      rows, inscripcionId: insId, certificado: modo === "certificado",
+    });
+    await logSemAudit({
+      action: modo === "certificado" ? "certificado.lote" : "kardex.descargado",
+      persona_id: ins.persona_id, inscripcion_id: insId,
+      details: { modo, programa: programa?.nombre, bulk: true },
+    });
+  };
+
+  const ejecutarBatch = async (items: BatchItem[]) => {
+    setBatchRunning(true);
+    for (let i = 0; i < items.length; i++) {
+      if (items[i].status === "ok") continue; // ya completado
+      setBatchItems(prev => prev.map((b, idx) => idx === i ? { ...b, status: "procesando", error: undefined } : b));
+      try {
+        await procesarItem(items[i].insId, batchModo);
+        setBatchItems(prev => prev.map((b, idx) => idx === i ? { ...b, status: "ok" } : b));
+      } catch (e: any) {
+        setBatchItems(prev => prev.map((b, idx) => idx === i ? { ...b, status: e.omitido ? "omitido" : "error", error: e.message } : b));
+      }
+      await new Promise(r => setTimeout(r, 200));
+    }
+    setBatchRunning(false);
+  };
+
   const exportarLote = async (modo: "kardex" | "certificado" = "kardex") => {
     const ids = Array.from(seleccion);
     if (!ids.length) { toast.error("Selecciona al menos un estudiante"); return; }
     if (modo === "certificado" && !canCertificar) { toast.error("No tienes permiso para emitir certificados."); return; }
-    toast.info(`Generando ${ids.length} ${modo === "certificado" ? "certificados" : "kárdex"}...`);
-    const items: any[] = [];
-    const certificadosEmitidos: { insId: string; personaId: string | null; completo: boolean }[] = [];
-    for (const insId of ids) {
-      const ins = (inscripciones || []).find((x: any) => x.id === insId);
-      if (!ins) continue;
-      const sb = supabase as any;
-      const [{ data: pensum }, { data: cursando }, { data: semestres }] = await Promise.all([
-        sb.from("sem_pensum_materias").select("materia_id, sem_pensum_semestres!inner(numero,programa_id), sem_materias(*)").eq("sem_pensum_semestres.programa_id", ins.programa_id),
-        sb.from("sem_inscripcion_materias").select("materia_id, estado, nota_final, sem_materias(creditos)").eq("inscripcion_id", insId),
-        sb.from("sem_pensum_semestres").select("numero").eq("programa_id", ins.programa_id).order("numero"),
-      ]);
-      const cmap = new Map((cursando || []).map((c: any) => [c.materia_id, c]));
-      const aprob = (cursando || []).filter((c: any) => c.estado === "aprobada");
-      const credAprob = aprob.reduce((s: number, c: any) => s + (c.sem_materias?.creditos || 0), 0);
-      const totalPensum = (pensum || []).length;
-      const aprobIds = new Set(aprob.map((c: any) => c.materia_id));
-      const completo = totalPensum > 0 && (pensum || []).every((p: any) => aprobIds.has(p.materia_id));
-      if (modo === "certificado" && !completo) continue;
-      const rows: KardexRow[] = [];
-      (semestres || []).forEach((s: any) => {
-        (pensum || []).filter((p: any) => p.sem_pensum_semestres.numero === s.numero).forEach((p: any) => {
-          const c: any = cmap.get(p.materia_id);
-          rows.push({ semestre: s.numero, codigo: p.sem_materias.codigo, nombre: p.sem_materias.nombre, creditos: p.sem_materias.creditos, estado: c?.estado || "no inscrita", nota_final: c?.nota_final ?? null });
-        });
-      });
-      items.push({
-        estudiante: `${ins.personas?.nombres} ${ins.personas?.apellidos}`,
-        documento: ins.personas?.documento, programa: programa?.nombre || "—",
-        promedio: ins.promedio_acumulado, creditosAprobados: credAprob, creditosTotales: (programa?.total_semestres || 8) * 20,
-        rows, inscripcionId: insId, certificado: modo === "certificado",
-      });
-      certificadosEmitidos.push({ insId, personaId: ins.persona_id, completo });
-    }
-    if (!items.length) { toast.error("Ningún estudiante seleccionado cumple los requisitos para certificarse."); return; }
-    await exportKardexBatch(items);
-    toast.success(`${items.length} ${modo === "certificado" ? "certificados" : "kárdex"} descargados`);
-    // Audit log
-    await Promise.all(certificadosEmitidos.map(c => logSemAudit({
-      action: modo === "certificado" ? "certificado.lote" : "kardex.descargado",
-      persona_id: c.personaId, inscripcion_id: c.insId,
-      details: { modo, programa: programa?.nombre, total_seleccionados: ids.length },
-    })));
+    const initial: BatchItem[] = ids.map(id => {
+      const ins = (inscripciones || []).find((x: any) => x.id === id);
+      return { insId: id, nombre: ins ? `${ins.personas?.nombres} ${ins.personas?.apellidos}` : id, status: "pendiente" };
+    });
+    setBatchModo(modo); setBatchItems(initial); setBatchOpen(true);
+    await ejecutarBatch(initial);
+  };
+
+  const reintentarFallidos = async () => {
+    const items = batchItems.map(b => b.status === "error" ? { ...b, status: "pendiente" as const, error: undefined } : b);
+    setBatchItems(items);
+    await ejecutarBatch(items);
   };
 
   const handleCreate = async (form: any) => {
@@ -197,6 +227,64 @@ export default function EstudiantesSection() {
           })}
         </div>
       )}
+
+      {/* Diálogo de progreso de exportación masiva */}
+      <Dialog open={batchOpen} onOpenChange={(o) => { if (!batchRunning) setBatchOpen(o); }}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>{batchModo === "certificado" ? "Generando certificados" : "Generando kárdex"}</DialogTitle>
+          </DialogHeader>
+          {(() => {
+            const total = batchItems.length;
+            const done = batchItems.filter(b => b.status === "ok").length;
+            const err = batchItems.filter(b => b.status === "error").length;
+            const skip = batchItems.filter(b => b.status === "omitido").length;
+            const pct = total ? Math.round(((done + err + skip) / total) * 100) : 0;
+            return (
+              <div className="space-y-3">
+                <Progress value={pct} className="h-2" />
+                <div className="flex justify-between text-xs">
+                  <span>{done + err + skip} / {total}</span>
+                  <div className="flex gap-2">
+                    <Badge variant="outline" className="text-green-700 border-green-600">{done} ok</Badge>
+                    {skip > 0 && <Badge variant="outline" className="text-amber-700 border-amber-600">{skip} omitidos</Badge>}
+                    {err > 0 && <Badge variant="destructive">{err} errores</Badge>}
+                  </div>
+                </div>
+                <div className="max-h-64 overflow-y-auto border rounded text-xs divide-y">
+                  {batchItems.map(b => (
+                    <div key={b.insId} className="flex items-center justify-between gap-2 px-2 py-1.5">
+                      <span className="truncate">{b.nombre}</span>
+                      <span className={
+                        b.status === "ok" ? "text-green-600" :
+                        b.status === "error" ? "text-destructive" :
+                        b.status === "omitido" ? "text-amber-600" :
+                        b.status === "procesando" ? "text-primary" : "text-muted-foreground"
+                      }>
+                        {b.status === "ok" && "✓ Generado"}
+                        {b.status === "error" && `✗ ${b.error || "Error"}`}
+                        {b.status === "omitido" && `⊘ ${b.error || "Omitido"}`}
+                        {b.status === "procesando" && "Procesando…"}
+                        {b.status === "pendiente" && "Pendiente"}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+                <div className="flex justify-end gap-2">
+                  {err > 0 && !batchRunning && (
+                    <Button size="sm" variant="outline" onClick={reintentarFallidos}>
+                      Reintentar {err} fallidos
+                    </Button>
+                  )}
+                  <Button size="sm" variant="ghost" disabled={batchRunning} onClick={() => setBatchOpen(false)}>
+                    {batchRunning ? "Procesando…" : "Cerrar"}
+                  </Button>
+                </div>
+              </div>
+            );
+          })()}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
