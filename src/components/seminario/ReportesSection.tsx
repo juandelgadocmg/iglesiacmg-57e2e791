@@ -39,10 +39,20 @@ export default function ReportesSection() {
   }, [registros]);
 
   const exportar = () => {
-    exportToExcel(
-      byMateria.map(r => ({ Código: r.codigo, Materia: r.nombre, Inscritos: r.total, Aprobadas: r.aprobadas, Reprobadas: r.reprobadas, "% Aprobación": r.tasaApr, Promedio: r.promedio.toFixed(2) })),
-      "reporte-academico-seminario"
-    );
+    exportToExcel({
+      title: "Reporte Académico Seminario",
+      filename: "reporte-academico-seminario",
+      columns: [
+        { header: "Código", key: "codigo" },
+        { header: "Materia", key: "nombre" },
+        { header: "Inscritos", key: "total" },
+        { header: "Aprobadas", key: "aprobadas" },
+        { header: "Reprobadas", key: "reprobadas" },
+        { header: "% Aprobación", key: "tasaApr" },
+        { header: "Promedio", key: "promedio" },
+      ],
+      data: byMateria.map(r => ({ ...r, promedio: r.promedio.toFixed(2) })),
+    });
   };
 
   return (

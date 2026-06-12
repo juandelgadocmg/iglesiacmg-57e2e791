@@ -12,7 +12,15 @@ import ZoomConfigSection from "@/components/seminario/ZoomConfigSection";
 import HorariosSection from "@/components/seminario/HorariosSection";
 import EstudiantesSection from "@/components/seminario/EstudiantesSection";
 import AuditoriaSection from "@/components/seminario/AuditoriaSection";
-import PlaceholderSection from "@/components/seminario/PlaceholderSection";
+import DashboardSection from "@/components/seminario/DashboardSection";
+import DocentesSection from "@/components/seminario/DocentesSection";
+import EvaluacionesSection from "@/components/seminario/EvaluacionesSection";
+import CalificacionesSection from "@/components/seminario/CalificacionesSection";
+import AsistenciaSection from "@/components/seminario/AsistenciaSection";
+import AulaVirtualSection from "@/components/seminario/AulaVirtualSection";
+import BibliotecaSection from "@/components/seminario/BibliotecaSection";
+import CertificadosSection from "@/components/seminario/CertificadosSection";
+import ReportesSection from "@/components/seminario/ReportesSection";
 
 const SIDEBAR = [
   { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -88,42 +96,15 @@ export default function SeminarioPage() {
           {section === "estudiantes" && <EstudiantesSection />}
           {section === "auditoria" && <AuditoriaSection />}
           {section === "zoom-config" && <ZoomConfigSection />}
-          {section === "dashboard" && (
-            <PlaceholderSection title="Dashboard Académico" phase="Fase 4"
-              description="KPIs de matriculados, retención, promedio general, mora, próximas evaluaciones y alertas." />
-          )}
-          {section === "aula-virtual" && (
-            <PlaceholderSection title="Aula Virtual" phase="Fase 2"
-              description="Vista por materia con link Zoom (manual + API), recursos, anuncios y lista de estudiantes." />
-          )}
-          {section === "evaluaciones" && (
-            <PlaceholderSection title="Evaluaciones" phase="Fase 3"
-              description="Crear quices, parciales, finales y trabajos con peso porcentual y fechas." />
-          )}
-          {section === "calificaciones" && (
-            <PlaceholderSection title="Calificaciones" phase="Fase 3"
-              description="Captura de notas, cálculo automático de definitiva, kárdex del estudiante." />
-          )}
-          {section === "asistencia" && (
-            <PlaceholderSection title="Asistencia" phase="Fase 2"
-              description="Registro manual o por QR, reporte por materia/estudiante, alertas de inasistencias." />
-          )}
-          {section === "biblioteca" && (
-            <PlaceholderSection title="Biblioteca Digital" phase="Fase 3"
-              description="Repositorio de PDFs, videos y enlaces por programa o materia." />
-          )}
-          {section === "certificados" && (
-            <PlaceholderSection title="Certificados Automáticos" phase="Fase 4"
-              description="Diploma generado al completar los 8 semestres con todas las materias aprobadas." />
-          )}
-          {section === "docentes" && (
-            <PlaceholderSection title="Docentes" phase="Fase 2"
-              description="Gestión de docentes del Seminario y asignación a materias y horarios." />
-          )}
-          {section === "reportes" && (
-            <PlaceholderSection title="Reportes" phase="Fase 4"
-              description="Promedio acumulado, retención por semestre, tasas de aprobación, mora y kárdex PDF." />
-          )}
+          {section === "dashboard" && <DashboardSection />}
+          {section === "aula-virtual" && <AulaVirtualSection />}
+          {section === "evaluaciones" && <EvaluacionesSection />}
+          {section === "calificaciones" && <CalificacionesSection />}
+          {section === "asistencia" && <AsistenciaSection />}
+          {section === "biblioteca" && <BibliotecaSection />}
+          {section === "certificados" && <CertificadosSection />}
+          {section === "docentes" && <DocentesSection />}
+          {section === "reportes" && <ReportesSection />}
         </div>
       </div>
     </div>
