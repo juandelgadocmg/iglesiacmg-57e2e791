@@ -32,11 +32,11 @@ const sb = supabase as any;
 function fmtDateTime(d?: string) { return d ? new Date(d).toLocaleString("es-CO") : "—"; }
 
 export default function AulaVirtualSection() {
-  const { roles, loading } = useUserRoles() as any;
+  const { roles, isLoading: rolesLoading } = useUserRoles() as any;
   const isStaff = (roles || []).some((r: string) => ["admin", "super_admin", "pastor", "seminario_admin", "maestro"].includes(r));
   const [previewStudent, setPreviewStudent] = useState(false);
 
-  if (loading) {
+  if (rolesLoading) {
     return <div className="space-y-3"><div className="h-8 w-64 bg-muted animate-pulse rounded" /><div className="h-32 bg-muted animate-pulse rounded" /></div>;
   }
   if (!isStaff) return <MiAulaSection />;
