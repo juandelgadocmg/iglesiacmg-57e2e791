@@ -8,9 +8,12 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Plus, Trash2, UserPlus, BookOpen, ChevronLeft } from "lucide-react";
+import { Plus, Trash2, UserPlus, ChevronLeft, FileDown, Award, Video } from "lucide-react";
 import { toast } from "sonner";
 import DeleteConfirmDialog from "@/components/shared/DeleteConfirmDialog";
+import ProgresoPanel from "./ProgresoPanel";
+import { exportKardexPdf } from "@/lib/seminarioPdf";
+import { supabase } from "@/integrations/supabase/client";
 
 export default function EstudiantesSection() {
   const { data: programas } = useProgramas();
