@@ -168,7 +168,7 @@ export default function EvaluacionesSection() {
                       <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => setEditing(e)}>
                         <Pencil className="h-3.5 w-3.5" />
                       </Button>
-                      <DeleteConfirmDialog onConfirm={async () => { await del.mutateAsync(e.id); toast.success("Eliminada"); }}
+                      <DeleteConfirmDialog onConfirm={async () => { await del.mutateAsync(e.id); logSemAudit({ action: "evaluacion.eliminada", oferta_id: effOf, details: { evaluacion_id: e.id, nombre: e.nombre } }); toast.success("Eliminada"); }}
                         trigger={<Button size="icon" variant="ghost" className="h-7 w-7 text-destructive"><Trash2 className="h-3.5 w-3.5" /></Button>} />
                     </>
                   )}
