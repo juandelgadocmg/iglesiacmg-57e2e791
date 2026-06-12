@@ -101,6 +101,7 @@ export default function ConfiguracionPage() {
           <TabsTrigger value="banners" className="gap-1.5"><ImageIcon className="h-3.5 w-3.5" /> Banners</TabsTrigger>
           <TabsTrigger value="videos" className="gap-1.5"><Video className="h-3.5 w-3.5" /> Videos</TabsTrigger>
           <TabsTrigger value="senal" className="gap-1.5"><Radio className="h-3.5 w-3.5" /> Señal en Vivo</TabsTrigger>
+          <TabsTrigger value="notificaciones" className="gap-1.5"><Bell className="h-3.5 w-3.5" /> Notificaciones</TabsTrigger>
         </TabsList>
 
         <TabsContent value="general">
