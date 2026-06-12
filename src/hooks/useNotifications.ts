@@ -17,6 +17,8 @@ export interface AppNotification {
 }
 
 export function useNotifications() {
+  const { data: prefs } = useNotificationPreferences();
+  const enabled = (k: string) => prefs?.[k] !== false;
   const { data: personas } = useQuery({
     queryKey: ["notif-personas"],
     queryFn: async () => {
