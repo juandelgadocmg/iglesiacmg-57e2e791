@@ -278,6 +278,7 @@ function EstudianteDetalle({ ins, programa, onBack }: any) {
       if (!ok) { toast.error("No cumple prerrequisitos del pensum para esta materia."); return; }
       await enroll.mutateAsync({ inscripcion_id: ins.id, oferta_id: oferta.id, materia_id });
       toast.success("Matriculada");
+      await logSemAudit({ action: "matricula.creada", persona_id: ins.persona_id, inscripcion_id: ins.id, oferta_id: oferta.id, materia_id });
     } catch (e: any) { toast.error(e.message); }
   };
 
