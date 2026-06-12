@@ -70,23 +70,10 @@ export async function exportKardexPdf(ctx: KardexCtx) {
   doc.save(`${ctx.certificado ? "Certificado" : "Kardex"}_${ctx.estudiante.replace(/\s+/g, "_")}.pdf`);
 }
 
-/** Exporta varios kárdex en un solo PDF concatenado (modo lote). */
+/** Exporta varios kárdex (uno por estudiante) descargándolos en serie. */
 export async function exportKardexBatch(items: KardexCtx[]) {
-  if (!items.length) return;
-  let combined: jsPDF | null = null;
   for (const it of items) {
-    const doc = await buildKardexPdf(it);
-    if (!combined) { combined = doc; continue; }
-    const pageCount = doc.getNumberOfPages();
-    for (let i = 1; i <= pageCount; i++) {
-      combined.addPage();
-      const data = doc.internal.pages[i];
-      // pasar contenido vía importar páginas no es trivial en jsPDF; alternativa: redibujar usando autoTable.
-      // Simplificación: añadimos cada estudiante en una página nueva del combined.
-      combined.setFontSize(14);
-      combined.text(`Kárdex — ${it.estudiante}`, 14, 16);
-      // re-render mediante buildKardexPdf en el combined directamente es complejo; usamos addPage + dataURL.
-    }
+    await exportKardexPdf(it);
+    await new Promise(r => setTimeout(r, 250));
   }
-  combined!.save(`Kardex_Lote_${new Date().toISOString().slice(0,10)}.pdf`);
 }
