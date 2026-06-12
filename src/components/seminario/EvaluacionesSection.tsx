@@ -11,6 +11,7 @@ import { Plus, Pencil, Trash2, Eye, EyeOff, AlertTriangle, Search, ChevronLeft, 
 import { toast } from "sonner";
 import DeleteConfirmDialog from "@/components/shared/DeleteConfirmDialog";
 import { useCan } from "@/hooks/useCan";
+import { logSemAudit } from "@/lib/seminarioAudit";
 
 const TIPOS = [
   { v: "quiz", l: "Quiz" },
@@ -58,7 +59,13 @@ export default function EvaluacionesSection() {
 
   const handleSave = async (f: any) => {
     try {
-      await upsert.mutateAsync({ ...f, oferta_id: effOf });
+      const isEdit = !!f.id;
+      const saved = await upsert.mutateAsync({ ...f, oferta_id: effOf });
+      logSemAudit({
+        action: isEdit ? "evaluacion.editada" : "evaluacion.creada",
+        oferta_id: effOf,
+        details: { evaluacion_id: (saved as any)?.id, nombre: f.nombre, tipo: f.tipo, peso: f.peso },
+      });
       toast.success("Evaluación guardada");
       setEditing(null);
     } catch (e: any) { toast.error(e.message); }
