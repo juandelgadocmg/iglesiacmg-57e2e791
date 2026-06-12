@@ -33,7 +33,7 @@ export default function EvaluacionesSection() {
   const { data: ofertas } = useOfertas(effPer, effProg);
   const [ofertaId, setOfertaId] = useState("");
   const effOf = ofertaId || (ofertas as any[])?.[0]?.id || "";
-  const { data: evaluaciones } = useEvaluaciones(effOf);
+  const { data: evaluaciones, isLoading: loadingEvals } = useEvaluaciones(effOf);
   const upsert = useUpsertEvaluacion();
   const del = useDeleteEvaluacion();
   const [editing, setEditing] = useState<any>(null);
