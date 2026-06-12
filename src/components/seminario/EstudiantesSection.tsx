@@ -130,9 +130,16 @@ export default function EstudiantesSection() {
             <SelectContent>{(periodos || []).map((p: any) => <SelectItem key={p.id} value={p.id}>{p.nombre}</SelectItem>)}</SelectContent>
           </Select>
           {seleccion.size > 0 && (
-            <Button size="sm" variant="outline" onClick={exportarLote}>
-              <FileDownIcon className="h-4 w-4 mr-1" />Exportar {seleccion.size} kárdex
-            </Button>
+            <>
+              <Button size="sm" variant="outline" onClick={() => exportarLote("kardex")}>
+                <FileDownIcon className="h-4 w-4 mr-1" />Exportar {seleccion.size} kárdex
+              </Button>
+              {canCertificar && (
+                <Button size="sm" className="bg-amber-600 hover:bg-amber-700" onClick={() => exportarLote("certificado")}>
+                  <AwardIcon className="h-4 w-4 mr-1" />Certificados ({seleccion.size})
+                </Button>
+              )}
+            </>
           )}
           {canMatricular && (
             <Dialog open={creating} onOpenChange={setCreating}>
