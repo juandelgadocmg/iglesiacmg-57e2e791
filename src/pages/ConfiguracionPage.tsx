@@ -288,6 +288,10 @@ export default function ConfiguracionPage() {
         <TabsContent value="senal">
           <SenalEnVivoPage />
         </TabsContent>
+
+        <TabsContent value="notificaciones">
+          <NotificacionesPreferencias />
+        </TabsContent>
       </Tabs>
     </div>
   );
