@@ -9,7 +9,12 @@ export type SemAuditAction =
   | "inscripcion.eliminada"
   | "matricula.creada"
   | "matricula.eliminada"
-  | "matricula.actualizada";
+  | "matricula.actualizada"
+  | "evaluacion.creada"
+  | "evaluacion.editada"
+  | "evaluacion.eliminada"
+  | "calificacion.guardada"
+  | "asistencia.guardada";
 
 interface AuditPayload {
   action: SemAuditAction;
