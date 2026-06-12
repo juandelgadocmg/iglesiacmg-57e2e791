@@ -12,8 +12,11 @@ import { Plus, Trash2, UserPlus, ChevronLeft, FileDown, Award, Video } from "luc
 import { toast } from "sonner";
 import DeleteConfirmDialog from "@/components/shared/DeleteConfirmDialog";
 import ProgresoPanel from "./ProgresoPanel";
-import { exportKardexPdf } from "@/lib/seminarioPdf";
+import { exportKardexPdf, exportKardexBatch, type KardexRow } from "@/lib/seminarioPdf";
 import { supabase } from "@/integrations/supabase/client";
+import { useCan } from "@/hooks/useCan";
+import { Checkbox } from "@/components/ui/checkbox";
+import { FileDown as FileDownIcon } from "lucide-react";
 
 export default function EstudiantesSection() {
   const { data: programas } = useProgramas();
@@ -29,8 +32,54 @@ export default function EstudiantesSection() {
   const { data: personas } = usePersonasLite();
   const [creating, setCreating] = useState(false);
   const [selectedIns, setSelectedIns] = useState<any>(null);
+  const [seleccion, setSeleccion] = useState<Set<string>>(new Set());
+  const can = useCan();
+  const canMatricular = can("seminario:matricular");
+  const canCertificar = can("seminario:certificar");
 
   const yaInscritos = new Set((inscripciones || []).map((i: any) => i.persona_id));
+
+  const toggleSel = (id: string) => {
+    setSeleccion(s => {
+      const n = new Set(s);
+      n.has(id) ? n.delete(id) : n.add(id);
+      return n;
+    });
+  };
+
+  const exportarLote = async () => {
+    const ids = Array.from(seleccion);
+    if (!ids.length) { toast.error("Selecciona al menos un estudiante"); return; }
+    toast.info(`Generando ${ids.length} kárdex...`);
+    const items: any[] = [];
+    for (const insId of ids) {
+      const ins = (inscripciones || []).find((x: any) => x.id === insId);
+      if (!ins) continue;
+      const sb = supabase as any;
+      const [{ data: pensum }, { data: cursando }, { data: semestres }] = await Promise.all([
+        sb.from("sem_pensum_materias").select("materia_id, sem_pensum_semestres!inner(numero,programa_id), sem_materias(*)").eq("sem_pensum_semestres.programa_id", ins.programa_id),
+        sb.from("sem_inscripcion_materias").select("materia_id, estado, nota_final, sem_materias(creditos)").eq("inscripcion_id", insId),
+        sb.from("sem_pensum_semestres").select("numero").eq("programa_id", ins.programa_id).order("numero"),
+      ]);
+      const cmap = new Map((cursando || []).map((c: any) => [c.materia_id, c]));
+      const credAprob = (cursando || []).filter((c: any) => c.estado === "aprobada").reduce((s: number, c: any) => s + (c.sem_materias?.creditos || 0), 0);
+      const rows: KardexRow[] = [];
+      (semestres || []).forEach((s: any) => {
+        (pensum || []).filter((p: any) => p.sem_pensum_semestres.numero === s.numero).forEach((p: any) => {
+          const c: any = cmap.get(p.materia_id);
+          rows.push({ semestre: s.numero, codigo: p.sem_materias.codigo, nombre: p.sem_materias.nombre, creditos: p.sem_materias.creditos, estado: c?.estado || "no inscrita", nota_final: c?.nota_final ?? null });
+        });
+      });
+      items.push({
+        estudiante: `${ins.personas?.nombres} ${ins.personas?.apellidos}`,
+        documento: ins.personas?.documento, programa: programa?.nombre || "—",
+        promedio: ins.promedio_acumulado, creditosAprobados: credAprob, creditosTotales: (programa?.total_semestres || 8) * 20,
+        rows, inscripcionId: insId,
+      });
+    }
+    await exportKardexBatch(items);
+    toast.success("Kárdex descargados");
+  };
 
   const handleCreate = async (form: any) => {
     try {
