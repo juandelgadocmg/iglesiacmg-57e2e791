@@ -72,6 +72,35 @@ export function useNotifications() {
     staleTime: 5 * 60 * 1000,
   });
 
+  const { data: semVencidos } = useQuery({
+    queryKey: ["notif-seminario-vencidos"],
+    queryFn: async () => {
+      const sb = supabase as any;
+      const { data: ins } = await sb.from("sem_inscripciones")
+        .select("id, semestre_actual, programa_id, personas:persona_id(nombres,apellidos)")
+        .eq("estado", "activa");
+      if (!ins?.length) return [];
+      const items: any[] = [];
+      for (const i of ins) {
+        const { data: pensum } = await sb.from("sem_pensum_materias")
+          .select("materia_id, sem_pensum_semestres!inner(numero, programa_id)")
+          .eq("sem_pensum_semestres.programa_id", i.programa_id)
+          .lt("sem_pensum_semestres.numero", i.semestre_actual || 1);
+        const ids = (pensum || []).map((p: any) => p.materia_id);
+        if (!ids.length) continue;
+        const { data: cursadas } = await sb.from("sem_inscripcion_materias")
+          .select("materia_id, estado")
+          .eq("inscripcion_id", i.id)
+          .in("materia_id", ids);
+        const aprob = new Set((cursadas || []).filter((c: any) => c.estado === "aprobada").map((c: any) => c.materia_id));
+        const pendientes = ids.filter((id: string) => !aprob.has(id));
+        if (pendientes.length) items.push({ id: i.id, persona: i.personas, pendientes: pendientes.length });
+      }
+      return items;
+    },
+    staleTime: 10 * 60 * 1000,
+  });
+
   const notifications = useMemo<AppNotification[]>(() => {
     const items: AppNotification[] = [];
     const now = new Date();
