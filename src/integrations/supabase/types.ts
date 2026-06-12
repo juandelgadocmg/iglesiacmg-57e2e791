@@ -2190,6 +2190,44 @@ export type Database = {
           },
         ]
       }
+      sem_anuncios: {
+        Row: {
+          autor_user_id: string | null
+          created_at: string
+          id: string
+          mensaje: string
+          oferta_id: string
+          titulo: string
+          updated_at: string
+        }
+        Insert: {
+          autor_user_id?: string | null
+          created_at?: string
+          id?: string
+          mensaje: string
+          oferta_id: string
+          titulo: string
+          updated_at?: string
+        }
+        Update: {
+          autor_user_id?: string | null
+          created_at?: string
+          id?: string
+          mensaje?: string
+          oferta_id?: string
+          titulo?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sem_anuncios_oferta_id_fkey"
+            columns: ["oferta_id"]
+            isOneToOne: false
+            referencedRelation: "sem_ofertas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sem_asistencias: {
         Row: {
           created_at: string
@@ -3391,6 +3429,10 @@ export type Database = {
       sem_puede_inscribir: {
         Args: { _materia_id: string; _persona_id: string }
         Returns: boolean
+      }
+      sem_recalcular_inscripcion: {
+        Args: { _persona_id: string; _programa_id: string }
+        Returns: Json
       }
     }
     Enums: {
