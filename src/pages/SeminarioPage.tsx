@@ -3,11 +3,13 @@ import { cn } from "@/lib/utils";
 import PageHeader from "@/components/shared/PageHeader";
 import {
   LayoutDashboard, BookOpen, Layers, FileText, Video, ClipboardCheck,
-  BarChart3, UserCheck, Library, Award, Users, FileBarChart2,
+  BarChart3, UserCheck, Library, Award, Users, FileBarChart2, CalendarClock, GraduationCap,
 } from "lucide-react";
 import ProgramasSection from "@/components/seminario/ProgramasSection";
 import PensumSection from "@/components/seminario/PensumSection";
 import MateriasSection from "@/components/seminario/MateriasSection";
+import HorariosSection from "@/components/seminario/HorariosSection";
+import EstudiantesSection from "@/components/seminario/EstudiantesSection";
 import PlaceholderSection from "@/components/seminario/PlaceholderSection";
 
 const SIDEBAR = [
@@ -15,6 +17,8 @@ const SIDEBAR = [
   { id: "programas", label: "Programas", icon: BookOpen },
   { id: "pensum", label: "Pensum Académico", icon: Layers },
   { id: "materias", label: "Materias", icon: FileText },
+  { id: "horarios", label: "Horarios", icon: CalendarClock },
+  { id: "estudiantes", label: "Estudiantes", icon: GraduationCap },
   { id: "aula-virtual", label: "Aula Virtual", icon: Video },
   { id: "evaluaciones", label: "Evaluaciones", icon: ClipboardCheck },
   { id: "calificaciones", label: "Calificaciones", icon: BarChart3 },
@@ -76,6 +80,8 @@ export default function SeminarioPage() {
           {section === "programas" && <ProgramasSection />}
           {section === "pensum" && <PensumSection />}
           {section === "materias" && <MateriasSection />}
+          {section === "horarios" && <HorariosSection />}
+          {section === "estudiantes" && <EstudiantesSection />}
           {section === "dashboard" && (
             <PlaceholderSection title="Dashboard Académico" phase="Fase 4"
               description="KPIs de matriculados, retención, promedio general, mora, próximas evaluaciones y alertas." />

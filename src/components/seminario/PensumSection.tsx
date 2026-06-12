@@ -1,11 +1,13 @@
 import { useState } from "react";
-import { useProgramas, useSemestres, useMateriasSem, usePensumMaterias, useAssignMateriaToSemestre, useUnassignMateriaFromSemestre } from "@/hooks/useSeminario";
+import { useProgramas, useSemestres, useMateriasSem, usePensumMaterias, useAssignMateriaToSemestre, useUnassignMateriaFromSemestre, useUpsertMateria } from "@/hooks/useSeminario";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Plus, X } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Plus, X, Pencil } from "lucide-react";
 import { toast } from "sonner";
 
 export default function PensumSection() {
@@ -17,18 +19,35 @@ export default function PensumSection() {
   const { data: pensum } = usePensumMaterias(effectiveId);
   const assign = useAssignMateriaToSemestre();
   const unassign = useUnassignMateriaFromSemestre();
+  const upsertMateria = useUpsertMateria();
   const [addingFor, setAddingFor] = useState<any>(null);
+  const [editing, setEditing] = useState<any>(null);
 
   const matsBySem = (semId: string) => (pensum || []).filter((p: any) => p.semestre_id === semId);
   const assignedIds = new Set((pensum || []).map((p: any) => p.materia_id));
   const unassigned = (materias || []).filter((m: any) => !assignedIds.has(m.id));
+
+  const handleSaveEdit = async (form: any) => {
+    try {
+      await upsertMateria.mutateAsync({ ...form, programa_id: effectiveId });
+      toast.success("Materia actualizada");
+      setEditing(null);
+    } catch (e: any) { toast.error(e.message); }
+  };
+
+  // Validar que cada materia esté en exactamente un semestre (unique constraint en BD ya lo asegura)
+  const duplicadas = (pensum || []).reduce((acc: any, p: any) => {
+    acc[p.materia_id] = (acc[p.materia_id] || 0) + 1;
+    return acc;
+  }, {});
+  const hayDuplicadas = Object.values(duplicadas).some((c: any) => c > 1);
 
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
           <h2 className="text-lg font-semibold">Malla Curricular</h2>
-          <p className="text-xs text-muted-foreground">Asigna materias a cada semestre del programa</p>
+          <p className="text-xs text-muted-foreground">Edita materias y créditos directamente, o asígnalas a un semestre</p>
         </div>
         <Select value={effectiveId} onValueChange={setProgramaId}>
           <SelectTrigger className="w-56"><SelectValue placeholder="Programa" /></SelectTrigger>
@@ -37,6 +56,12 @@ export default function PensumSection() {
           </SelectContent>
         </Select>
       </div>
+
+      {hayDuplicadas && (
+        <div className="text-xs p-2 rounded border border-destructive/40 bg-destructive/5 text-destructive">
+          ⚠ Hay materias asignadas a más de un semestre. Verifique la malla.
+        </div>
+      )}
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {(semestres || []).map((s: any) => {
@@ -57,7 +82,10 @@ export default function PensumSection() {
                         <p className="font-medium truncate">{it.sem_materias?.nombre}</p>
                         <p className="text-[9px] text-muted-foreground">{it.sem_materias?.codigo} · {it.sem_materias?.creditos}cr</p>
                       </div>
-                      <button onClick={() => unassign.mutateAsync(it.id)} className="opacity-0 group-hover:opacity-100 text-destructive">
+                      <button onClick={() => setEditing(it.sem_materias)} className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-foreground" title="Editar">
+                        <Pencil className="h-3 w-3" />
+                      </button>
+                      <button onClick={() => unassign.mutateAsync(it.id).then(() => toast.success("Quitada"))} className="opacity-0 group-hover:opacity-100 text-destructive" title="Quitar de semestre">
                         <X className="h-3 w-3" />
                       </button>
                     </div>
@@ -87,6 +115,35 @@ export default function PensumSection() {
           )}
         </DialogContent>
       </Dialog>
+
+      <Dialog open={!!editing} onOpenChange={(v) => !v && setEditing(null)}>
+        {editing && <MateriaQuickEdit initial={editing} onSave={handleSaveEdit} pending={upsertMateria.isPending} />}
+      </Dialog>
     </div>
+  );
+}
+
+function MateriaQuickEdit({ initial, onSave, pending }: any) {
+  const [f, setF] = useState({
+    id: initial.id, codigo: initial.codigo, nombre: initial.nombre,
+    creditos: initial.creditos, color: initial.color || "#3B82F6",
+    intensidad_horaria: initial.intensidad_horaria || 48,
+  });
+  return (
+    <DialogContent>
+      <DialogHeader><DialogTitle>Editar materia</DialogTitle></DialogHeader>
+      <div className="space-y-3">
+        <div className="grid grid-cols-3 gap-2">
+          <div><Label>Código *</Label><Input value={f.codigo} onChange={e => setF({ ...f, codigo: e.target.value })} /></div>
+          <div><Label>Créditos *</Label><Input type="number" min={1} max={10} value={f.creditos} onChange={e => setF({ ...f, creditos: +e.target.value })} /></div>
+          <div><Label>Horas</Label><Input type="number" value={f.intensidad_horaria} onChange={e => setF({ ...f, intensidad_horaria: +e.target.value })} /></div>
+        </div>
+        <div><Label>Nombre *</Label><Input value={f.nombre} onChange={e => setF({ ...f, nombre: e.target.value })} /></div>
+        <div><Label>Color</Label><Input type="color" value={f.color} onChange={e => setF({ ...f, color: e.target.value })} className="h-9 w-20" /></div>
+        <Button onClick={() => onSave(f)} disabled={pending || !f.codigo || !f.nombre || !f.creditos} className="w-full">
+          {pending ? "Guardando..." : "Guardar cambios"}
+        </Button>
+      </div>
+    </DialogContent>
   );
 }

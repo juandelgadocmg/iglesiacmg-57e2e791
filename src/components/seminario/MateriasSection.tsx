@@ -82,9 +82,7 @@ export default function MateriasSection() {
                       <div className="flex gap-1 mt-2">
                         <Button size="sm" variant="ghost" className="h-6 px-2 text-[10px]" onClick={() => { setEditing(m); setOpen(true); }}><Pencil className="h-3 w-3" /></Button>
                         <Button size="sm" variant="ghost" className="h-6 px-2 text-[10px]" onClick={() => setPrereqFor(m)}><Link2 className="h-3 w-3" /> Prerreq</Button>
-                        <DeleteConfirmDialog onConfirm={async () => { await del.mutateAsync(m.id); toast.success("Eliminada"); }}>
-                          <Button size="sm" variant="ghost" className="h-6 px-2 text-destructive"><Trash2 className="h-3 w-3" /></Button>
-                        </DeleteConfirmDialog>
+                        <DeleteConfirmDialog onConfirm={async () => { await del.mutateAsync(m.id); toast.success("Eliminada"); }} trigger={<Button size="sm" variant="ghost" className="h-6 px-2 text-destructive"><Trash2 className="h-3 w-3" /></Button>} />
                       </div>
                     </div>
                   </div>
