@@ -1,0 +1,155 @@
+import { useState } from "react";
+import { useRecursos, useUpsertRecurso, useDeleteRecurso, useProgramas, useMateriasSem } from "@/hooks/useSeminario";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Library, Plus, Pencil, Trash2, Search, FileText, Video, Link as LinkIcon, Music } from "lucide-react";
+import { toast } from "sonner";
+import DeleteConfirmDialog from "@/components/shared/DeleteConfirmDialog";
+import { useCan } from "@/hooks/useCan";
+
+const TIPOS = [
+  { v: "pdf", l: "PDF", icon: FileText },
+  { v: "video", l: "Video", icon: Video },
+  { v: "link", l: "Enlace", icon: LinkIcon },
+  { v: "audio", l: "Audio", icon: Music },
+];
+
+export default function BibliotecaSection() {
+  const can = useCan();
+  const canEdit = can("seminario:biblioteca_crud");
+  const { data: programas } = useProgramas();
+  const [programaId, setProgramaId] = useState("");
+  const effProg = programaId || programas?.[0]?.id || "";
+  const { data: materias } = useMateriasSem(effProg);
+  const [materiaId, setMateriaId] = useState("");
+  const [q, setQ] = useState("");
+  const { data: recursos } = useRecursos({ programa_id: effProg || undefined, materia_id: materiaId || undefined });
+  const upsert = useUpsertRecurso();
+  const del = useDeleteRecurso();
+  const [editing, setEditing] = useState<any>(null);
+
+  const filtered = (recursos || []).filter((r: any) => !q || r.titulo?.toLowerCase().includes(q.toLowerCase()));
+
+  const handleSave = async (f: any) => {
+    try {
+      await upsert.mutateAsync({ ...f, programa_id: effProg });
+      toast.success("Recurso guardado");
+      setEditing(null);
+    } catch (e: any) { toast.error(e.message); }
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div>
+          <h2 className="text-lg font-semibold flex items-center gap-2"><Library className="h-5 w-5" />Biblioteca Digital</h2>
+          <p className="text-xs text-muted-foreground">PDFs, videos, audios y enlaces por materia</p>
+        </div>
+        <div className="flex gap-2 flex-wrap">
+          <div className="relative">
+            <Search className="absolute left-2 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
+            <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Buscar..." className="pl-8 w-44" />
+          </div>
+          <Select value={effProg} onValueChange={setProgramaId}>
+            <SelectTrigger className="w-44"><SelectValue placeholder="Programa" /></SelectTrigger>
+            <SelectContent>{(programas || []).map((p: any) => <SelectItem key={p.id} value={p.id}>{p.nombre}</SelectItem>)}</SelectContent>
+          </Select>
+          <Select value={materiaId || "_all"} onValueChange={(v) => setMateriaId(v === "_all" ? "" : v)}>
+            <SelectTrigger className="w-52"><SelectValue placeholder="Materia" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="_all">Todas las materias</SelectItem>
+              {(materias || []).map((m: any) => <SelectItem key={m.id} value={m.id}>{m.codigo} · {m.nombre}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          {canEdit && (
+            <Dialog open={!!editing} onOpenChange={(v) => !v && setEditing(null)}>
+              <DialogTrigger asChild>
+                <Button size="sm" onClick={() => setEditing({ titulo: "", tipo: "pdf", url: "", descripcion: "", materia_id: null })}>
+                  <Plus className="h-4 w-4 mr-1" />Nuevo
+                </Button>
+              </DialogTrigger>
+              {editing && <RecursoDialog data={editing} materias={materias || []} onSave={handleSave} pending={upsert.isPending} />}
+            </Dialog>
+          )}
+        </div>
+      </div>
+
+      {filtered.length === 0 ? (
+        <Card><CardContent className="p-6 text-center text-sm text-muted-foreground">Sin recursos</CardContent></Card>
+      ) : (
+        <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+          {filtered.map((r: any) => {
+            const Icon = TIPOS.find(t => t.v === r.tipo)?.icon || FileText;
+            return (
+              <Card key={r.id}>
+                <CardContent className="p-4 space-y-2">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex items-center gap-2 min-w-0 flex-1">
+                      <Icon className="h-5 w-5 text-primary shrink-0" />
+                      <div className="min-w-0">
+                        <p className="font-medium text-sm truncate">{r.titulo}</p>
+                        <p className="text-[10px] text-muted-foreground">{r.sem_materias?.nombre || "General"}</p>
+                      </div>
+                    </div>
+                    <Badge variant="outline" className="text-[10px]">{r.tipo}</Badge>
+                  </div>
+                  {r.descripcion && <p className="text-xs text-muted-foreground line-clamp-2">{r.descripcion}</p>}
+                  <div className="flex gap-1 pt-1">
+                    {r.url && <Button size="sm" variant="outline" asChild className="flex-1"><a href={r.url} target="_blank" rel="noopener noreferrer">Abrir</a></Button>}
+                    {canEdit && (
+                      <>
+                        <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => setEditing(r)}><Pencil className="h-3.5 w-3.5" /></Button>
+                        <DeleteConfirmDialog onConfirm={async () => { await del.mutateAsync(r.id); toast.success("Eliminado"); }}
+                          trigger={<Button size="icon" variant="ghost" className="h-8 w-8 text-destructive"><Trash2 className="h-3.5 w-3.5" /></Button>} />
+                      </>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function RecursoDialog({ data, materias, onSave, pending }: any) {
+  const [f, setF] = useState(data);
+  return (
+    <DialogContent>
+      <DialogHeader><DialogTitle>{f.id ? "Editar" : "Nuevo"} recurso</DialogTitle></DialogHeader>
+      <div className="space-y-3">
+        <div><Label>Título *</Label><Input value={f.titulo} onChange={(e) => setF({ ...f, titulo: e.target.value })} /></div>
+        <div className="grid grid-cols-2 gap-2">
+          <div>
+            <Label>Tipo</Label>
+            <Select value={f.tipo} onValueChange={(v) => setF({ ...f, tipo: v })}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>{TIPOS.map(t => <SelectItem key={t.v} value={t.v}>{t.l}</SelectItem>)}</SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label>Materia</Label>
+            <Select value={f.materia_id || "_none"} onValueChange={(v) => setF({ ...f, materia_id: v === "_none" ? null : v })}>
+              <SelectTrigger><SelectValue placeholder="General" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="_none">General</SelectItem>
+                {materias.map((m: any) => <SelectItem key={m.id} value={m.id}>{m.codigo} · {m.nombre}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+        <div><Label>URL *</Label><Input value={f.url} onChange={(e) => setF({ ...f, url: e.target.value })} placeholder="https://..." /></div>
+        <div><Label>Descripción</Label><Textarea value={f.descripcion || ""} onChange={(e) => setF({ ...f, descripcion: e.target.value })} rows={2} /></div>
+        <Button disabled={pending || !f.titulo || !f.url} onClick={() => onSave(f)} className="w-full">Guardar</Button>
+      </div>
+    </DialogContent>
+  );
+}
