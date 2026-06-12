@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Video, Megaphone, Plus, Trash2, FileText, Calendar, User, Clock, MapPin } from "lucide-react";
+import { Video, Megaphone, Plus, Trash2, FileText, Calendar, User, Clock, MapPin, Eye, Settings } from "lucide-react";
 import { toast } from "sonner";
 import DeleteConfirmDialog from "@/components/shared/DeleteConfirmDialog";
 import { useCan } from "@/hooks/useCan";
@@ -19,8 +19,23 @@ import MiAulaSection from "./MiAulaSection";
 export default function AulaVirtualSection() {
   const { roles } = useUserRoles();
   const isStaff = (roles || []).some((r: string) => ["admin", "super_admin", "pastor", "seminario_admin", "maestro"].includes(r));
+  const [previewStudent, setPreviewStudent] = useState(false);
   if (!isStaff) return <MiAulaSection />;
-  return <AulaVirtualStaff />;
+  return (
+    <div className="space-y-3">
+      <div className="flex justify-end">
+        <div className="inline-flex rounded-md border bg-card p-0.5">
+          <Button size="sm" variant={previewStudent ? "ghost" : "default"} onClick={() => setPreviewStudent(false)}>
+            <Settings className="h-3.5 w-3.5 mr-1" />Vista docente
+          </Button>
+          <Button size="sm" variant={previewStudent ? "default" : "ghost"} onClick={() => setPreviewStudent(true)}>
+            <Eye className="h-3.5 w-3.5 mr-1" />Vista estudiante
+          </Button>
+        </div>
+      </div>
+      {previewStudent ? <MiAulaSection /> : <AulaVirtualStaff />}
+    </div>
+  );
 }
 
 function AulaVirtualStaff() {
