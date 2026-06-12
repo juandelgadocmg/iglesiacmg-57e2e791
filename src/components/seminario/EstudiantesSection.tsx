@@ -301,13 +301,18 @@ function EstudianteDetalle({ ins, programa, onBack }: any) {
     return rows;
   };
 
-  const handleKardex = (certificado: boolean) => {
+  const handleKardex = async (certificado: boolean) => {
     if (certificado && !canCertificar) { toast.error("No tienes permiso para emitir certificados."); return; }
-    exportKardexPdf({
+    await exportKardexPdf({
       estudiante: `${p?.nombres} ${p?.apellidos}`,
       documento: p?.documento, programa: programa?.nombre || "—",
       promedio: ins.promedio_acumulado, creditosAprobados: credAprob, creditosTotales: totalCreditos,
       rows: buildKardexRows(), certificado, inscripcionId: ins.id,
+    });
+    await logSemAudit({
+      action: certificado ? "certificado.generado" : "kardex.descargado",
+      persona_id: ins.persona_id, inscripcion_id: ins.id,
+      details: { programa: programa?.nombre, promedio: ins.promedio_acumulado, creditos_aprobados: credAprob },
     });
   };
 
