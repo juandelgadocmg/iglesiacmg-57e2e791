@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Save, Calculator } from "lucide-react";
+import { Save, Calculator, Search, ChevronLeft, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
 import { useCan } from "@/hooks/useCan";
 
@@ -25,6 +25,10 @@ export default function CalificacionesSection() {
   const save = useSaveCalificacion();
   const recalc = useRecalcularNotaFinal();
   const [dirty, setDirty] = useState<Record<string, string>>({});
+  const [q, setQ] = useState("");
+  const [filtroEstado, setFiltroEstado] = useState("_all");
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 15;
 
   const ofertaSel = (ofertas as any[] || []).find((o: any) => o.id === effOf);
   const totalPeso = useMemo(() => (data?.evaluaciones || []).reduce((a: number, e: any) => a + Number(e.peso || 0), 0), [data]);
