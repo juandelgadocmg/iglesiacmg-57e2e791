@@ -40,6 +40,17 @@ export default function MiAulaSection() {
   const [selId, setSelId] = useState<string | null>(null);
   const selected = (ofertas as any[] || []).find((o: any) => o.id === selId);
 
+  // ⚠ Hooks deben ir antes de cualquier return condicional
+  const grouped = useMemo(() => {
+    const map: Record<string, any[]> = {};
+    (ofertas as any[] || []).forEach((im: any) => {
+      const per = im.sem_ofertas?.sem_periodos;
+      const key = per?.nombre || "Sin periodo";
+      (map[key] ||= []).push(im);
+    });
+    return map;
+  }, [ofertas]);
+
   if (loadingPersona || isLoading) {
     return (
       <div className="space-y-3">
@@ -63,15 +74,7 @@ export default function MiAulaSection() {
 
   if (selected) return <CursoDetalle persona={persona} im={selected} onBack={() => setSelId(null)} />;
 
-  const grouped = useMemo(() => {
-    const map: Record<string, any[]> = {};
-    (ofertas as any[] || []).forEach((im: any) => {
-      const per = im.sem_ofertas?.sem_periodos;
-      const key = per?.nombre || "Sin periodo";
-      (map[key] ||= []).push(im);
-    });
-    return map;
-  }, [ofertas]);
+
 
   return (
     <div className="space-y-5">
