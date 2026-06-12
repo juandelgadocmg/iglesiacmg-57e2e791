@@ -349,9 +349,11 @@ function EstudianteDetalle({ ins, programa, onBack }: any) {
                             <p className="text-[10px] text-muted-foreground">{m.codigo} · {m.creditos}cr</p>
                           </div>
                           {!c ? (
-                            <Button size="sm" variant="outline" className="h-6 px-2 text-[10px]" onClick={() => handleEnroll(m.id)}>
-                              <Plus className="h-3 w-3 mr-0.5" />Matricular
-                            </Button>
+                            canMatricular ? (
+                              <Button size="sm" variant="outline" className="h-6 px-2 text-[10px]" onClick={() => handleEnroll(m.id)}>
+                                <Plus className="h-3 w-3 mr-0.5" />Matricular
+                              </Button>
+                            ) : null
                           ) : (
                             <DeleteConfirmDialog onConfirm={async () => { await unenroll.mutateAsync(c.id); toast.success("Retirada"); }}
                               trigger={<Button size="icon" variant="ghost" className="h-6 w-6 text-destructive"><Trash2 className="h-3 w-3" /></Button>} />
