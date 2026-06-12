@@ -62,11 +62,7 @@ export default function ProgramasSection() {
                     <Button size="icon" variant="ghost" onClick={() => { setEditing(p); setOpen(true); }}>
                       <Pencil className="h-3.5 w-3.5" />
                     </Button>
-                    <DeleteConfirmDialog onConfirm={async () => { await del.mutateAsync(p.id); toast.success("Eliminado"); }}>
-                      <Button size="icon" variant="ghost" className="text-destructive">
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </Button>
-                    </DeleteConfirmDialog>
+                    <DeleteConfirmDialog onConfirm={async () => { await del.mutateAsync(p.id); toast.success("Eliminado"); }} trigger={<Button size="icon" variant="ghost" className="text-destructive"><Trash2 className="h-3.5 w-3.5" /></Button>} />
                   </div>
                 </div>
               </CardContent>
