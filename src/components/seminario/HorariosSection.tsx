@@ -7,9 +7,11 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Plus, Pencil, Trash2, Clock, MapPin, User } from "lucide-react";
+import { Plus, Pencil, Trash2, Clock, MapPin, User, AlertTriangle, Video } from "lucide-react";
 import { toast } from "sonner";
 import DeleteConfirmDialog from "@/components/shared/DeleteConfirmDialog";
+import { isZoomStale, generateZoomLink } from "@/lib/seminarioZoom";
+import { useCan } from "@/hooks/useCan";
 
 export default function HorariosSection() {
   const { data: programas } = useProgramas();
@@ -52,19 +54,23 @@ export default function HorariosSection() {
   const periodoActivo = (periodos || []).find((p: any) => p.id === effPer);
   const handleSaveOferta = async (form: any) => {
     try {
-      // Auto-generar link Zoom si modalidad no es presencial y no hay link
       let payload = { ...form, periodo_id: effPer };
-      if (payload.modalidad !== "presencial" && !payload.zoom_link) {
-        const { generateZoomLink } = await import("@/lib/seminarioZoom");
-        const z = generateZoomLink({
-          docente: payload.docente_nombre,
-          periodoCodigo: periodoActivo?.codigo,
-          materiaCodigo: editing?.materia?.codigo,
-          materiaId: payload.materia_id,
-        });
-        payload.zoom_link = z.url;
-        payload.zoom_meeting_id = z.meetingId;
-        payload.zoom_password = z.pwd;
+      const ctxZ = {
+        docente: payload.docente_nombre,
+        periodoCodigo: periodoActivo?.codigo,
+        materiaCodigo: editing?.materia?.codigo,
+        materiaId: payload.materia_id,
+      };
+      const expected = generateZoomLink(ctxZ);
+      const stale = payload.zoom_meeting_id && payload.zoom_meeting_id !== expected.meetingId;
+      if (payload.modalidad !== "presencial" && (!payload.zoom_link || stale)) {
+        payload.zoom_link = expected.url;
+        payload.zoom_meeting_id = expected.meetingId;
+        payload.zoom_password = expected.pwd;
+        if (stale) toast.info("Link Zoom regenerado por cambio de docente/periodo");
+      }
+      if (payload.modalidad === "presencial") {
+        payload.zoom_link = null; payload.zoom_meeting_id = null; payload.zoom_password = null;
       }
       await upsertOferta.mutateAsync(payload);
       toast.success("Horario guardado");
@@ -131,6 +137,20 @@ export default function HorariosSection() {
                               <p className="flex items-center gap-1.5"><User className="h-3 w-3 text-muted-foreground" />{of.docente_nombre || "Sin docente"}</p>
                               <p className="flex items-center gap-1.5"><Clock className="h-3 w-3 text-muted-foreground" />{of.horario || "Sin horario"}</p>
                               <p className="flex items-center gap-1.5"><MapPin className="h-3 w-3 text-muted-foreground" />{of.aula || "Sin aula"} {of.modalidad && <Badge variant="outline" className="ml-1 text-[9px]">{of.modalidad}</Badge>}</p>
+                              {(() => {
+                                const stale = isZoomStale(of, { docente: of.docente_nombre, periodoCodigo: periodoActivo?.codigo, materiaCodigo: m.codigo });
+                                if (of.zoom_link && of.modalidad !== "presencial" && !stale) {
+                                  return <p className="flex items-center gap-1.5"><Video className="h-3 w-3 text-primary" /><a href={of.zoom_link} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline truncate">Zoom</a></p>;
+                                }
+                                if (stale) {
+                                  return (
+                                    <p className="flex items-center gap-1.5 text-destructive">
+                                      <AlertTriangle className="h-3 w-3" />Link Zoom desactualizado (cambió docente/periodo). Regenera al guardar.
+                                    </p>
+                                  );
+                                }
+                                return null;
+                              })()}
                             </div>
                           ) : (
                             <p className="text-[11px] text-muted-foreground italic">Sin programación</p>
@@ -176,6 +196,7 @@ function PeriodoDialog({ onSave, pending }: any) {
 }
 
 function OfertaDialog({ ctx, personas, onSave, pending }: any) {
+  const canZoom = useCan()("seminario:zoom");
   const o = ctx.oferta || {};
   const [f, setF] = useState({
     id: o.id, materia_id: ctx.materia.id,
@@ -227,11 +248,12 @@ function OfertaDialog({ ctx, personas, onSave, pending }: any) {
             <Label>Link Zoom <span className="text-[10px] text-muted-foreground">(se genera automático si lo dejas vacío)</span></Label>
             <div className="flex gap-1">
               <Input value={f.zoom_link} onChange={e => setF({ ...f, zoom_link: e.target.value })} placeholder="Se generará al guardar" />
-              <Button type="button" size="sm" variant="outline" onClick={async () => {
-                const { generateZoomLink } = await import("@/lib/seminarioZoom");
-                const z = generateZoomLink({ docente: f.docente_nombre, materiaCodigo: ctx.materia.codigo, materiaId: ctx.materia.id });
-                setF({ ...f, zoom_link: z.url });
-              }}>Regenerar</Button>
+              {canZoom && (
+                <Button type="button" size="sm" variant="outline" onClick={() => {
+                  const z = generateZoomLink({ docente: f.docente_nombre, materiaCodigo: ctx.materia.codigo, materiaId: ctx.materia.id });
+                  setF({ ...f, zoom_link: z.url });
+                }}>Regenerar</Button>
+              )}
             </div>
           </div>
         )}

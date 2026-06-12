@@ -12,8 +12,11 @@ import { Plus, Trash2, UserPlus, ChevronLeft, FileDown, Award, Video } from "luc
 import { toast } from "sonner";
 import DeleteConfirmDialog from "@/components/shared/DeleteConfirmDialog";
 import ProgresoPanel from "./ProgresoPanel";
-import { exportKardexPdf } from "@/lib/seminarioPdf";
+import { exportKardexPdf, exportKardexBatch, type KardexRow } from "@/lib/seminarioPdf";
 import { supabase } from "@/integrations/supabase/client";
+import { useCan } from "@/hooks/useCan";
+import { Checkbox } from "@/components/ui/checkbox";
+import { FileDown as FileDownIcon } from "lucide-react";
 
 export default function EstudiantesSection() {
   const { data: programas } = useProgramas();
@@ -29,8 +32,54 @@ export default function EstudiantesSection() {
   const { data: personas } = usePersonasLite();
   const [creating, setCreating] = useState(false);
   const [selectedIns, setSelectedIns] = useState<any>(null);
+  const [seleccion, setSeleccion] = useState<Set<string>>(new Set());
+  const can = useCan();
+  const canMatricular = can("seminario:matricular");
+  const canCertificar = can("seminario:certificar");
 
   const yaInscritos = new Set((inscripciones || []).map((i: any) => i.persona_id));
+
+  const toggleSel = (id: string) => {
+    setSeleccion(s => {
+      const n = new Set(s);
+      n.has(id) ? n.delete(id) : n.add(id);
+      return n;
+    });
+  };
+
+  const exportarLote = async () => {
+    const ids = Array.from(seleccion);
+    if (!ids.length) { toast.error("Selecciona al menos un estudiante"); return; }
+    toast.info(`Generando ${ids.length} kárdex...`);
+    const items: any[] = [];
+    for (const insId of ids) {
+      const ins = (inscripciones || []).find((x: any) => x.id === insId);
+      if (!ins) continue;
+      const sb = supabase as any;
+      const [{ data: pensum }, { data: cursando }, { data: semestres }] = await Promise.all([
+        sb.from("sem_pensum_materias").select("materia_id, sem_pensum_semestres!inner(numero,programa_id), sem_materias(*)").eq("sem_pensum_semestres.programa_id", ins.programa_id),
+        sb.from("sem_inscripcion_materias").select("materia_id, estado, nota_final, sem_materias(creditos)").eq("inscripcion_id", insId),
+        sb.from("sem_pensum_semestres").select("numero").eq("programa_id", ins.programa_id).order("numero"),
+      ]);
+      const cmap = new Map((cursando || []).map((c: any) => [c.materia_id, c]));
+      const credAprob = (cursando || []).filter((c: any) => c.estado === "aprobada").reduce((s: number, c: any) => s + (c.sem_materias?.creditos || 0), 0);
+      const rows: KardexRow[] = [];
+      (semestres || []).forEach((s: any) => {
+        (pensum || []).filter((p: any) => p.sem_pensum_semestres.numero === s.numero).forEach((p: any) => {
+          const c: any = cmap.get(p.materia_id);
+          rows.push({ semestre: s.numero, codigo: p.sem_materias.codigo, nombre: p.sem_materias.nombre, creditos: p.sem_materias.creditos, estado: c?.estado || "no inscrita", nota_final: c?.nota_final ?? null });
+        });
+      });
+      items.push({
+        estudiante: `${ins.personas?.nombres} ${ins.personas?.apellidos}`,
+        documento: ins.personas?.documento, programa: programa?.nombre || "—",
+        promedio: ins.promedio_acumulado, creditosAprobados: credAprob, creditosTotales: (programa?.total_semestres || 8) * 20,
+        rows, inscripcionId: insId,
+      });
+    }
+    await exportKardexBatch(items);
+    toast.success("Kárdex descargados");
+  };
 
   const handleCreate = async (form: any) => {
     try {
@@ -60,14 +109,21 @@ export default function EstudiantesSection() {
             <SelectTrigger className="w-48"><SelectValue placeholder="Periodo" /></SelectTrigger>
             <SelectContent>{(periodos || []).map((p: any) => <SelectItem key={p.id} value={p.id}>{p.nombre}</SelectItem>)}</SelectContent>
           </Select>
-          <Dialog open={creating} onOpenChange={setCreating}>
-            <DialogTrigger asChild>
-              <Button size="sm" disabled={!effPer}><UserPlus className="h-4 w-4 mr-1" />Inscribir</Button>
-            </DialogTrigger>
-            <InscripcionDialog personas={(personas || []).filter((p: any) => !yaInscritos.has(p.id))}
-              totalSem={programa?.total_semestres || 8}
-              onSave={handleCreate} pending={upsertIns.isPending} />
-          </Dialog>
+          {seleccion.size > 0 && (
+            <Button size="sm" variant="outline" onClick={exportarLote}>
+              <FileDownIcon className="h-4 w-4 mr-1" />Exportar {seleccion.size} kárdex
+            </Button>
+          )}
+          {canMatricular && (
+            <Dialog open={creating} onOpenChange={setCreating}>
+              <DialogTrigger asChild>
+                <Button size="sm" disabled={!effPer}><UserPlus className="h-4 w-4 mr-1" />Inscribir</Button>
+              </DialogTrigger>
+              <InscripcionDialog personas={(personas || []).filter((p: any) => !yaInscritos.has(p.id))}
+                totalSem={programa?.total_semestres || 8}
+                onSave={handleCreate} pending={upsertIns.isPending} />
+            </Dialog>
+          )}
         </div>
       </div>
 
@@ -83,13 +139,15 @@ export default function EstudiantesSection() {
             const totalProg = (programa?.total_semestres || 8) * 20;
             const pct = Math.min(100, Math.round((credAprob / totalProg) * 100));
             return (
-              <Card key={i.id} className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => setSelectedIns(i)}>
+              <Card key={i.id} className="hover:shadow-md transition-shadow">
                 <CardContent className="p-3">
                   <div className="flex items-start gap-3">
-                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-semibold">
+                    <Checkbox checked={seleccion.has(i.id)} onCheckedChange={() => toggleSel(i.id)}
+                      onClick={(e) => e.stopPropagation()} className="mt-1" />
+                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-semibold cursor-pointer" onClick={() => setSelectedIns(i)}>
                       {p?.nombres?.[0]}{p?.apellidos?.[0]}
                     </div>
-                    <div className="flex-1 min-w-0">
+                    <div className="flex-1 min-w-0 cursor-pointer" onClick={() => setSelectedIns(i)}>
                       <div className="flex items-center justify-between gap-2">
                         <p className="font-semibold text-sm truncate">{p?.nombres} {p?.apellidos}</p>
                         <Badge variant="outline" className="text-[10px]">Sem {i.semestre_actual || "—"}</Badge>
@@ -156,6 +214,9 @@ function EstudianteDetalle({ ins, programa, onBack }: any) {
   const enroll = useEnrollMateria();
   const unenroll = useUnenrollMateria();
   const updateIns = useUpdateInscripcionMateria();
+  const can = useCan();
+  const canMatricular = can("seminario:matricular");
+  const canCertificar = can("seminario:certificar");
 
   const matsBySem = useMemo(() => {
     const map: Record<number, any[]> = {};
@@ -179,9 +240,9 @@ function EstudianteDetalle({ ins, programa, onBack }: any) {
   const programaCompleto = totalPensum > 0 && (pensum || []).every((p: any) => aprobadasIds.has(p.materia_id));
 
   const handleEnroll = async (materia_id: string) => {
+    if (!canMatricular) { toast.error("No tienes permiso para matricular materias."); return; }
     const oferta = (ofertas || []).find((o: any) => o.materia_id === materia_id);
     if (!oferta) { toast.error("Esta materia no tiene oferta en el periodo. Crea horario primero."); return; }
-    // Validar prerrequisitos vía RPC
     try {
       const { data: ok, error } = await (supabase as any).rpc("sem_puede_inscribir", {
         _persona_id: ins.persona_id, _materia_id: materia_id,
@@ -213,11 +274,12 @@ function EstudianteDetalle({ ins, programa, onBack }: any) {
   };
 
   const handleKardex = (certificado: boolean) => {
+    if (certificado && !canCertificar) { toast.error("No tienes permiso para emitir certificados."); return; }
     exportKardexPdf({
       estudiante: `${p?.nombres} ${p?.apellidos}`,
       documento: p?.documento, programa: programa?.nombre || "—",
       promedio: ins.promedio_acumulado, creditosAprobados: credAprob, creditosTotales: totalCreditos,
-      rows: buildKardexRows(), certificado,
+      rows: buildKardexRows(), certificado, inscripcionId: ins.id,
     });
   };
 
@@ -231,7 +293,7 @@ function EstudianteDetalle({ ins, programa, onBack }: any) {
           <Button size="sm" variant="outline" onClick={() => handleKardex(false)}>
             <FileDown className="h-4 w-4 mr-1" />Kárdex PDF
           </Button>
-          {programaCompleto && (
+          {programaCompleto && canCertificar && (
             <Button size="sm" onClick={() => handleKardex(true)} className="bg-amber-600 hover:bg-amber-700">
               <Award className="h-4 w-4 mr-1" />Generar Certificado
             </Button>
@@ -287,9 +349,11 @@ function EstudianteDetalle({ ins, programa, onBack }: any) {
                             <p className="text-[10px] text-muted-foreground">{m.codigo} · {m.creditos}cr</p>
                           </div>
                           {!c ? (
-                            <Button size="sm" variant="outline" className="h-6 px-2 text-[10px]" onClick={() => handleEnroll(m.id)}>
-                              <Plus className="h-3 w-3 mr-0.5" />Matricular
-                            </Button>
+                            canMatricular ? (
+                              <Button size="sm" variant="outline" className="h-6 px-2 text-[10px]" onClick={() => handleEnroll(m.id)}>
+                                <Plus className="h-3 w-3 mr-0.5" />Matricular
+                              </Button>
+                            ) : null
                           ) : (
                             <DeleteConfirmDialog onConfirm={async () => { await unenroll.mutateAsync(c.id); toast.success("Retirada"); }}
                               trigger={<Button size="icon" variant="ghost" className="h-6 w-6 text-destructive"><Trash2 className="h-3 w-3" /></Button>} />
