@@ -98,18 +98,45 @@ export default function EstudiantesSection() {
 
   const ejecutarBatch = async (items: BatchItem[]) => {
     setBatchRunning(true);
+    setBatchFinalizado(false);
     for (let i = 0; i < items.length; i++) {
-      if (items[i].status === "ok") continue; // ya completado
+      if (batchItems[i]?.status === "ok" || items[i].status === "ok" || items[i].status === "omitido") continue;
       setBatchItems(prev => prev.map((b, idx) => idx === i ? { ...b, status: "procesando", error: undefined } : b));
       try {
         await procesarItem(items[i].insId, batchModo);
-        setBatchItems(prev => prev.map((b, idx) => idx === i ? { ...b, status: "ok" } : b));
+        setBatchItems(prev => prev.map((b, idx) => idx === i ? { ...b, status: "ok", intentos: (b.intentos || 0) + 1 } : b));
       } catch (e: any) {
-        setBatchItems(prev => prev.map((b, idx) => idx === i ? { ...b, status: e.omitido ? "omitido" : "error", error: e.message } : b));
+        setBatchItems(prev => prev.map((b, idx) => idx === i ? { ...b, status: e.omitido ? "omitido" : "error", error: e.message, intentos: (b.intentos || 0) + 1 } : b));
       }
       await new Promise(r => setTimeout(r, 200));
     }
+
+    // Reintento automático con backoff exponencial
+    if (autoRetry) {
+      for (let intento = 2; intento <= maxIntentos; intento++) {
+        const fallidos = await new Promise<BatchItem[]>(resolve => {
+          setBatchItems(prev => { resolve(prev.filter(b => b.status === "error")); return prev; });
+        });
+        if (fallidos.length === 0) break;
+        const delay = Math.min(30000, 1000 * Math.pow(2, intento - 1));
+        toast.info(`Reintento ${intento}/${maxIntentos} en ${delay / 1000}s (${fallidos.length} fallidos)`);
+        await new Promise(r => setTimeout(r, delay));
+        const snapshot = await new Promise<BatchItem[]>(resolve => setBatchItems(prev => { resolve(prev); return prev; }));
+        for (let i = 0; i < snapshot.length; i++) {
+          if (snapshot[i].status !== "error") continue;
+          setBatchItems(prev => prev.map((b, idx) => idx === i ? { ...b, status: "procesando" } : b));
+          try {
+            await procesarItem(snapshot[i].insId, batchModo);
+            setBatchItems(prev => prev.map((b, idx) => idx === i ? { ...b, status: "ok", intentos: (b.intentos || 1) + 1 } : b));
+          } catch (e: any) {
+            setBatchItems(prev => prev.map((b, idx) => idx === i ? { ...b, status: e.omitido ? "omitido" : "error", error: e.message, intentos: (b.intentos || 1) + 1 } : b));
+          }
+          await new Promise(r => setTimeout(r, 200));
+        }
+      }
+    }
     setBatchRunning(false);
+    setBatchFinalizado(true);
   };
 
   const exportarLote = async (modo: "kardex" | "certificado" = "kardex") => {
@@ -118,9 +145,9 @@ export default function EstudiantesSection() {
     if (modo === "certificado" && !canCertificar) { toast.error("No tienes permiso para emitir certificados."); return; }
     const initial: BatchItem[] = ids.map(id => {
       const ins = (inscripciones || []).find((x: any) => x.id === id);
-      return { insId: id, nombre: ins ? `${ins.personas?.nombres} ${ins.personas?.apellidos}` : id, status: "pendiente" };
+      return { insId: id, nombre: ins ? `${ins.personas?.nombres} ${ins.personas?.apellidos}` : id, status: "pendiente", intentos: 0 };
     });
-    setBatchModo(modo); setBatchItems(initial); setBatchOpen(true);
+    setBatchModo(modo); setBatchItems(initial); setBatchOpen(true); setBatchFinalizado(false);
     await ejecutarBatch(initial);
   };
 
@@ -128,6 +155,30 @@ export default function EstudiantesSection() {
     const items = batchItems.map(b => b.status === "error" ? { ...b, status: "pendiente" as const, error: undefined } : b);
     setBatchItems(items);
     await ejecutarBatch(items);
+  };
+
+  const descargarReporte = () => {
+    const total = batchItems.length;
+    const ok = batchItems.filter(b => b.status === "ok").length;
+    const err = batchItems.filter(b => b.status === "error").length;
+    const skip = batchItems.filter(b => b.status === "omitido").length;
+    const headers = ["Estudiante", "Estado", "Intentos", "Error"];
+    const lines = [headers.join(",")];
+    lines.push(`"RESUMEN","Total: ${total} · OK: ${ok} · Errores: ${err} · Omitidos: ${skip}","",""`);
+    lines.push("");
+    batchItems.forEach(b => {
+      const row = [b.nombre, b.status, String(b.intentos || 0), (b.error || "").replace(/"/g, '""')]
+        .map(v => `"${String(v).replace(/"/g, '""')}"`).join(",");
+      lines.push(row);
+    });
+    const blob = new Blob(["\ufeff" + lines.join("\n")], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `reporte_${batchModo}_${Date.now()}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success("Reporte descargado");
   };
 
   const handleCreate = async (form: any) => {
