@@ -173,10 +173,21 @@ function EstudianteDetalle({ ins, programa, onBack }: any) {
   const credAprob = aprobadas.reduce((s: number, c: any) => s + (c.sem_materias?.creditos || 0), 0);
   const pct = Math.min(100, Math.round((credAprob / totalCreditos) * 100));
 
+  // Programa completo: todas las materias del pensum aprobadas
+  const totalPensum = (pensum || []).length;
+  const aprobadasIds = new Set(aprobadas.map((c: any) => c.materia_id));
+  const programaCompleto = totalPensum > 0 && (pensum || []).every((p: any) => aprobadasIds.has(p.materia_id));
+
   const handleEnroll = async (materia_id: string) => {
     const oferta = (ofertas || []).find((o: any) => o.materia_id === materia_id);
     if (!oferta) { toast.error("Esta materia no tiene oferta en el periodo. Crea horario primero."); return; }
+    // Validar prerrequisitos vía RPC
     try {
+      const { data: ok, error } = await (supabase as any).rpc("sem_puede_inscribir", {
+        _persona_id: ins.persona_id, _materia_id: materia_id,
+      });
+      if (error) throw error;
+      if (!ok) { toast.error("No cumple prerrequisitos del pensum para esta materia."); return; }
       await enroll.mutateAsync({ inscripcion_id: ins.id, oferta_id: oferta.id, materia_id });
       toast.success("Matriculada");
     } catch (e: any) { toast.error(e.message); }
@@ -185,6 +196,29 @@ function EstudianteDetalle({ ins, programa, onBack }: any) {
   const handleUpdate = async (id: string, patch: any) => {
     try { await updateIns.mutateAsync({ id, ...patch }); toast.success("Actualizado"); }
     catch (e: any) { toast.error(e.message); }
+  };
+
+  const buildKardexRows = () => {
+    const rows: any[] = [];
+    (semestres || []).forEach((s: any) => {
+      (matsBySem[s.numero] || []).forEach((m: any) => {
+        const c: any = cursandoMap.get(m.id);
+        rows.push({
+          semestre: s.numero, codigo: m.codigo, nombre: m.nombre, creditos: m.creditos,
+          estado: c?.estado || "no inscrita", nota_final: c?.nota_final ?? null,
+        });
+      });
+    });
+    return rows;
+  };
+
+  const handleKardex = (certificado: boolean) => {
+    exportKardexPdf({
+      estudiante: `${p?.nombres} ${p?.apellidos}`,
+      documento: p?.documento, programa: programa?.nombre || "—",
+      promedio: ins.promedio_acumulado, creditosAprobados: credAprob, creditosTotales: totalCreditos,
+      rows: buildKardexRows(), certificado,
+    });
   };
 
   const p = ins.personas;
