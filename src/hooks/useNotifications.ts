@@ -150,7 +150,7 @@ export function useNotifications() {
     });
 
     // Upcoming services (within 7 days)
-    (servicios || []).forEach((s) => {
+    if (enabled("services")) (servicios || []).forEach((s) => {
       try {
         const days = differenceInDays(parseISO(s.fecha), now);
         if (days >= 0 && days <= 7) {
