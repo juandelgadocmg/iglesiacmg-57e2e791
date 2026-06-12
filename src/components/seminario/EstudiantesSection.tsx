@@ -16,7 +16,8 @@ import { exportKardexPdf, exportKardexBatch, type KardexRow } from "@/lib/semina
 import { supabase } from "@/integrations/supabase/client";
 import { useCan } from "@/hooks/useCan";
 import { Checkbox } from "@/components/ui/checkbox";
-import { FileDown as FileDownIcon } from "lucide-react";
+import { FileDown as FileDownIcon, Award as AwardIcon } from "lucide-react";
+import { logSemAudit } from "@/lib/seminarioAudit";
 
 export default function EstudiantesSection() {
   const { data: programas } = useProgramas();
