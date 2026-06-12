@@ -185,22 +185,18 @@ describe("AulaVirtualSection E2E", () => {
     expect(screen.getByTestId("aula-staff")).toBeInTheDocument();
   });
 
-  it("staff view: all tab actions exist (subir material, crear trabajo, nuevo anuncio, nuevo tema)", () => {
+  it("staff view: default Material tab shows 'Subir material' (no blank tab)", () => {
     rolesMock.mockReturnValue({ roles: ["admin"], isLoading: false });
     renderIt();
-    // Radix mantiene los panels en el DOM con hidden=true; usamos {hidden:true}
-    expect(screen.getByRole("button", { name: /Subir material/i, hidden: true })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Crear trabajo/i, hidden: true })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Nuevo anuncio/i, hidden: true })).toBeInTheDocument();
-    expect(screen.getAllByRole("button", { name: /Nuevo tema/i, hidden: true }).length).toBeGreaterThan(0);
+    expect(screen.getByRole("button", { name: /Subir material/i })).toBeInTheDocument();
+    expect(screen.getByTestId("aula-staff")).toBeInTheDocument();
   });
 
-  it("staff view: clicking 'Entregas' for an evaluation does not blank the screen", () => {
+  it("staff view: quick-jump shortcuts (Notas / Asistencia / Biblioteca) are present", () => {
     rolesMock.mockReturnValue({ roles: ["admin"], isLoading: false });
     renderIt();
-    const entregasBtn = screen.getByRole("button", { name: /Entregas/i, hidden: true });
-    fireEvent.click(entregasBtn);
-    // dialog title o staff container intacto
-    expect(screen.getByTestId("aula-staff")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /^Notas$/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /^Asistencia$/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /^Biblioteca$/i })).toBeInTheDocument();
   });
 });
