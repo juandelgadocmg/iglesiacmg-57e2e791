@@ -2376,6 +2376,85 @@ export type Database = {
           },
         ]
       }
+      sem_entregas: {
+        Row: {
+          archivo_nombre: string | null
+          archivo_path: string | null
+          archivo_tamano: number | null
+          archivo_tipo: string | null
+          archivo_url: string | null
+          calificado_por: string | null
+          comentario: string | null
+          created_at: string
+          estado: string
+          evaluacion_id: string
+          id: string
+          inscripcion_materia_id: string
+          persona_id: string
+          retroalimentacion: string | null
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          archivo_nombre?: string | null
+          archivo_path?: string | null
+          archivo_tamano?: number | null
+          archivo_tipo?: string | null
+          archivo_url?: string | null
+          calificado_por?: string | null
+          comentario?: string | null
+          created_at?: string
+          estado?: string
+          evaluacion_id: string
+          id?: string
+          inscripcion_materia_id: string
+          persona_id: string
+          retroalimentacion?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          archivo_nombre?: string | null
+          archivo_path?: string | null
+          archivo_tamano?: number | null
+          archivo_tipo?: string | null
+          archivo_url?: string | null
+          calificado_por?: string | null
+          comentario?: string | null
+          created_at?: string
+          estado?: string
+          evaluacion_id?: string
+          id?: string
+          inscripcion_materia_id?: string
+          persona_id?: string
+          retroalimentacion?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sem_entregas_evaluacion_id_fkey"
+            columns: ["evaluacion_id"]
+            isOneToOne: false
+            referencedRelation: "sem_evaluaciones"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sem_entregas_inscripcion_materia_id_fkey"
+            columns: ["inscripcion_materia_id"]
+            isOneToOne: false
+            referencedRelation: "sem_inscripcion_materias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sem_entregas_persona_id_fkey"
+            columns: ["persona_id"]
+            isOneToOne: false
+            referencedRelation: "personas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sem_evaluaciones: {
         Row: {
           created_at: string
@@ -2416,6 +2495,104 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "sem_evaluaciones_oferta_id_fkey"
+            columns: ["oferta_id"]
+            isOneToOne: false
+            referencedRelation: "sem_ofertas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sem_foro_mensajes: {
+        Row: {
+          autor_avatar: string | null
+          autor_nombre: string | null
+          autor_user_id: string | null
+          created_at: string
+          foro_id: string
+          id: string
+          mensaje: string
+          parent_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          autor_avatar?: string | null
+          autor_nombre?: string | null
+          autor_user_id?: string | null
+          created_at?: string
+          foro_id: string
+          id?: string
+          mensaje: string
+          parent_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          autor_avatar?: string | null
+          autor_nombre?: string | null
+          autor_user_id?: string | null
+          created_at?: string
+          foro_id?: string
+          id?: string
+          mensaje?: string
+          parent_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sem_foro_mensajes_foro_id_fkey"
+            columns: ["foro_id"]
+            isOneToOne: false
+            referencedRelation: "sem_foros"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sem_foro_mensajes_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "sem_foro_mensajes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sem_foros: {
+        Row: {
+          autor_nombre: string | null
+          autor_user_id: string | null
+          cerrado: boolean
+          created_at: string
+          descripcion: string | null
+          fijado: boolean
+          id: string
+          oferta_id: string
+          titulo: string
+          updated_at: string
+        }
+        Insert: {
+          autor_nombre?: string | null
+          autor_user_id?: string | null
+          cerrado?: boolean
+          created_at?: string
+          descripcion?: string | null
+          fijado?: boolean
+          id?: string
+          oferta_id: string
+          titulo: string
+          updated_at?: string
+        }
+        Update: {
+          autor_nombre?: string | null
+          autor_user_id?: string | null
+          cerrado?: boolean
+          created_at?: string
+          descripcion?: string | null
+          fijado?: boolean
+          id?: string
+          oferta_id?: string
+          titulo?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sem_foros_oferta_id_fkey"
             columns: ["oferta_id"]
             isOneToOne: false
             referencedRelation: "sem_ofertas"
@@ -3044,12 +3221,14 @@ export type Database = {
         Row: {
           created_at: string
           duration_minutes: number | null
+          grabacion_url: string | null
           id: string
           join_url: string
           meeting_id: string
           oferta_id: string
           password: string | null
           raw: Json | null
+          realizada: boolean
           start_time: string | null
           start_url: string | null
           topic: string | null
@@ -3057,12 +3236,14 @@ export type Database = {
         Insert: {
           created_at?: string
           duration_minutes?: number | null
+          grabacion_url?: string | null
           id?: string
           join_url: string
           meeting_id: string
           oferta_id: string
           password?: string | null
           raw?: Json | null
+          realizada?: boolean
           start_time?: string | null
           start_url?: string | null
           topic?: string | null
@@ -3070,12 +3251,14 @@ export type Database = {
         Update: {
           created_at?: string
           duration_minutes?: number | null
+          grabacion_url?: string | null
           id?: string
           join_url?: string
           meeting_id?: string
           oferta_id?: string
           password?: string | null
           raw?: Json | null
+          realizada?: boolean
           start_time?: string | null
           start_url?: string | null
           topic?: string | null
