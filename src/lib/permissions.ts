@@ -62,7 +62,13 @@ export type ActionPermission =
   | "tesoreria_cdp:manage"
   | "seminario:matricular"
   | "seminario:certificar"
-  | "seminario:zoom";
+  | "seminario:zoom"
+  | "seminario:evaluacion_crud"
+  | "seminario:calificacion_edit"
+  | "seminario:asistencia_edit"
+  | "seminario:biblioteca_crud"
+  | "seminario:anuncios_crud"
+  | "seminario:reportes";
 
 const ACTION_PERMISSIONS: Record<ActionPermission, AppRole[]> = {
   "personas:create": ["admin", "super_admin", "pastor", "lider", "secretaria", "consolidador_lider"],
@@ -78,9 +84,15 @@ const ACTION_PERMISSIONS: Record<ActionPermission, AppRole[]> = {
   "reportes_grupos:create": ["admin", "super_admin", "pastor", "lider", "lider_red", "lider_casa_paz"],
   "reportes_grupos:edit":   ["admin", "super_admin", "pastor", "lider", "lider_red"],
   "tesoreria_cdp:manage":   ["admin", "super_admin", "pastor", "tesoreria"],
-  "seminario:matricular":   ["admin", "super_admin", "pastor", "maestro", "seminario_admin"],
-  "seminario:certificar":   ["admin", "super_admin", "pastor", "seminario_admin"],
-  "seminario:zoom":         ["admin", "super_admin", "pastor", "maestro", "seminario_admin", "seminario_docente"],
+  "seminario:matricular":          ["admin", "super_admin", "pastor", "maestro", "seminario_admin"],
+  "seminario:certificar":          ["admin", "super_admin", "pastor", "seminario_admin"],
+  "seminario:zoom":                ["admin", "super_admin", "pastor", "maestro", "seminario_admin", "seminario_docente"],
+  "seminario:evaluacion_crud":     ["admin", "super_admin", "pastor", "maestro", "seminario_admin", "seminario_docente"],
+  "seminario:calificacion_edit":   ["admin", "super_admin", "pastor", "maestro", "seminario_admin", "seminario_docente"],
+  "seminario:asistencia_edit":     ["admin", "super_admin", "pastor", "maestro", "seminario_admin", "seminario_docente"],
+  "seminario:biblioteca_crud":     ["admin", "super_admin", "pastor", "maestro", "seminario_admin", "seminario_docente"],
+  "seminario:anuncios_crud":       ["admin", "super_admin", "pastor", "maestro", "seminario_admin", "seminario_docente"],
+  "seminario:reportes":            ["admin", "super_admin", "pastor", "seminario_admin"],
 };
 
 export function canAccess(userRoles: AppRole[], path: string): boolean {
