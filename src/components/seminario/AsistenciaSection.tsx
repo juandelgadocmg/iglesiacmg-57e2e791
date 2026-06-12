@@ -1,0 +1,145 @@
+import { useState, useEffect } from "react";
+import { useProgramas, usePeriodos, useOfertas, useAsistenciaOferta, useSaveAsistencia } from "@/hooks/useSeminario";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Save, UserCheck } from "lucide-react";
+import { toast } from "sonner";
+import { useCan } from "@/hooks/useCan";
+
+const ESTADOS = [
+  { v: "presente", l: "Presente", color: "default" },
+  { v: "tarde", l: "Tarde", color: "secondary" },
+  { v: "ausente", l: "Ausente", color: "destructive" },
+  { v: "justificado", l: "Justificado", color: "outline" },
+];
+
+export default function AsistenciaSection() {
+  const can = useCan();
+  const canEdit = can("seminario:asistencia_edit");
+  const { data: programas } = useProgramas();
+  const [programaId, setProgramaId] = useState("");
+  const effProg = programaId || programas?.[0]?.id || "";
+  const { data: periodos } = usePeriodos(effProg);
+  const [periodoId, setPeriodoId] = useState("");
+  const effPer = periodoId || periodos?.[0]?.id || "";
+  const { data: ofertas } = useOfertas(effPer, effProg);
+  const [ofertaId, setOfertaId] = useState("");
+  const effOf = ofertaId || (ofertas as any[])?.[0]?.id || "";
+  const [fecha, setFecha] = useState(new Date().toISOString().slice(0, 10));
+  const { data } = useAsistenciaOferta(effOf, fecha);
+  const save = useSaveAsistencia();
+  const [local, setLocal] = useState<Record<string, { estado: string; observacion?: string }>>({});
+
+  useEffect(() => {
+    const init: Record<string, any> = {};
+    (data?.estudiantes || []).forEach((e: any) => {
+      const a = data?.asistencias?.[e.id];
+      init[e.id] = { estado: a?.estado || "presente", observacion: a?.observacion || "" };
+    });
+    setLocal(init);
+  }, [data?.estudiantes, data?.asistencias, fecha]);
+
+  const handleSave = async () => {
+    const rows = Object.entries(local).map(([imId, v]) => ({
+      id: data?.asistencias?.[imId]?.id,
+      inscripcion_materia_id: imId,
+      fecha,
+      estado: v.estado,
+      observacion: v.observacion,
+    }));
+    try {
+      await save.mutateAsync(rows as any);
+      toast.success("Asistencia guardada");
+    } catch (e: any) { toast.error(e.message); }
+  };
+
+  const marcarTodos = (estado: string) => {
+    const upd: any = {};
+    Object.keys(local).forEach((k) => { upd[k] = { ...local[k], estado }; });
+    setLocal(upd);
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div>
+          <h2 className="text-lg font-semibold">Asistencia</h2>
+          <p className="text-xs text-muted-foreground">Registra asistencia por materia y fecha</p>
+        </div>
+        <div className="flex gap-2 flex-wrap">
+          <Select value={effProg} onValueChange={setProgramaId}>
+            <SelectTrigger className="w-40"><SelectValue placeholder="Programa" /></SelectTrigger>
+            <SelectContent>{(programas || []).map((p: any) => <SelectItem key={p.id} value={p.id}>{p.nombre}</SelectItem>)}</SelectContent>
+          </Select>
+          <Select value={effPer} onValueChange={setPeriodoId}>
+            <SelectTrigger className="w-36"><SelectValue placeholder="Periodo" /></SelectTrigger>
+            <SelectContent>{(periodos || []).map((p: any) => <SelectItem key={p.id} value={p.id}>{p.nombre}</SelectItem>)}</SelectContent>
+          </Select>
+          <Select value={effOf} onValueChange={setOfertaId}>
+            <SelectTrigger className="w-52"><SelectValue placeholder="Materia" /></SelectTrigger>
+            <SelectContent>
+              {(ofertas as any[] || []).map((o: any) => (
+                <SelectItem key={o.id} value={o.id}>{o.sem_materias?.codigo} · {o.sem_materias?.nombre}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Input type="date" value={fecha} onChange={(e) => setFecha(e.target.value)} className="w-40" />
+        </div>
+      </div>
+
+      {!effOf ? (
+        <Card><CardContent className="p-6 text-center text-sm text-muted-foreground">Selecciona una materia.</CardContent></Card>
+      ) : !data?.estudiantes?.length ? (
+        <Card><CardContent className="p-6 text-center text-sm text-muted-foreground">Sin estudiantes matriculados.</CardContent></Card>
+      ) : (
+        <>
+          {canEdit && (
+            <div className="flex gap-1 flex-wrap text-xs">
+              <span className="text-muted-foreground self-center mr-1">Marcar todos:</span>
+              {ESTADOS.map((e) => (
+                <Button key={e.v} size="sm" variant="outline" onClick={() => marcarTodos(e.v)}>{e.l}</Button>
+              ))}
+              <Button size="sm" onClick={handleSave} disabled={save.isPending} className="ml-auto">
+                <Save className="h-4 w-4 mr-1" />Guardar
+              </Button>
+            </div>
+          )}
+
+          <Card>
+            <CardContent className="p-0">
+              <div className="divide-y">
+                {data.estudiantes.map((im: any) => {
+                  const p = im.sem_inscripciones?.personas;
+                  const cur = local[im.id] || { estado: "presente", observacion: "" };
+                  return (
+                    <div key={im.id} className="p-3 flex items-center gap-3 flex-wrap">
+                      <UserCheck className="h-4 w-4 text-muted-foreground" />
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-medium">{p?.nombres} {p?.apellidos}</p>
+                        <p className="text-[10px] text-muted-foreground">{p?.documento}</p>
+                      </div>
+                      <Select value={cur.estado} disabled={!canEdit}
+                        onValueChange={(v) => setLocal({ ...local, [im.id]: { ...cur, estado: v } })}>
+                        <SelectTrigger className="w-32 h-8 text-xs"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          {ESTADOS.map(e => <SelectItem key={e.v} value={e.v}>{e.l}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                      <Input placeholder="Observación" disabled={!canEdit}
+                        value={cur.observacion || ""}
+                        onChange={(e) => setLocal({ ...local, [im.id]: { ...cur, observacion: e.target.value } })}
+                        className="h-8 w-48 text-xs" />
+                    </div>
+                  );
+                })}
+              </div>
+            </CardContent>
+          </Card>
+        </>
+      )}
+    </div>
+  );
+}
