@@ -28,6 +28,7 @@ const SIDEBAR = [
   { id: "certificados", label: "Certificados", icon: Award },
   { id: "docentes", label: "Docentes", icon: Users },
   { id: "reportes", label: "Reportes", icon: FileBarChart2 },
+  { id: "auditoria", label: "Auditoría", icon: ShieldCheck },
 ];
 
 export default function SeminarioPage() {
