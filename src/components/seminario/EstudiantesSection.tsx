@@ -39,11 +39,14 @@ export default function EstudiantesSection() {
   const canCertificar = can("seminario:certificar");
 
   // Estado de exportación masiva
-  type BatchItem = { insId: string; nombre: string; status: "pendiente" | "procesando" | "ok" | "error" | "omitido"; error?: string };
+  type BatchItem = { insId: string; nombre: string; status: "pendiente" | "procesando" | "ok" | "error" | "omitido"; error?: string; intentos?: number };
   const [batchOpen, setBatchOpen] = useState(false);
   const [batchModo, setBatchModo] = useState<"kardex" | "certificado">("kardex");
   const [batchItems, setBatchItems] = useState<BatchItem[]>([]);
   const [batchRunning, setBatchRunning] = useState(false);
+  const [maxIntentos, setMaxIntentos] = useState(3);
+  const [autoRetry, setAutoRetry] = useState(true);
+  const [batchFinalizado, setBatchFinalizado] = useState(false);
 
   const yaInscritos = new Set((inscripciones || []).map((i: any) => i.persona_id));
 
