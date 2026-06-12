@@ -80,6 +80,8 @@ export default function SeminarioPage() {
           {section === "programas" && <ProgramasSection />}
           {section === "pensum" && <PensumSection />}
           {section === "materias" && <MateriasSection />}
+          {section === "horarios" && <HorariosSection />}
+          {section === "estudiantes" && <EstudiantesSection />}
           {section === "dashboard" && (
             <PlaceholderSection title="Dashboard Académico" phase="Fase 4"
               description="KPIs de matriculados, retención, promedio general, mora, próximas evaluaciones y alertas." />
