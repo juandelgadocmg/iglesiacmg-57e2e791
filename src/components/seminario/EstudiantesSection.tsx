@@ -305,10 +305,22 @@ export default function EstudiantesSection() {
                     {err > 0 && <Badge variant="destructive">{err} errores</Badge>}
                   </div>
                 </div>
+                <div className="flex items-center justify-between gap-3 text-xs border rounded p-2 bg-muted/30">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input type="checkbox" checked={autoRetry} onChange={e => setAutoRetry(e.target.checked)} disabled={batchRunning} />
+                    Reintento automático con backoff
+                  </label>
+                  <label className="flex items-center gap-2">
+                    Máx intentos:
+                    <input type="number" min={1} max={10} value={maxIntentos}
+                      onChange={e => setMaxIntentos(Math.max(1, Math.min(10, +e.target.value || 1)))}
+                      disabled={batchRunning} className="w-14 h-7 border rounded px-2" />
+                  </label>
+                </div>
                 <div className="max-h-64 overflow-y-auto border rounded text-xs divide-y">
                   {batchItems.map(b => (
                     <div key={b.insId} className="flex items-center justify-between gap-2 px-2 py-1.5">
-                      <span className="truncate">{b.nombre}</span>
+                      <span className="truncate">{b.nombre} {b.intentos && b.intentos > 1 ? <span className="text-muted-foreground">·{b.intentos}x</span> : null}</span>
                       <span className={
                         b.status === "ok" ? "text-green-600" :
                         b.status === "error" ? "text-destructive" :
@@ -324,7 +336,12 @@ export default function EstudiantesSection() {
                     </div>
                   ))}
                 </div>
-                <div className="flex justify-end gap-2">
+                <div className="flex justify-end gap-2 flex-wrap">
+                  {batchFinalizado && batchItems.length > 0 && (
+                    <Button size="sm" variant="outline" onClick={descargarReporte}>
+                      <FileDownIcon className="h-3.5 w-3.5 mr-1" />Descargar reporte
+                    </Button>
+                  )}
                   {err > 0 && !batchRunning && (
                     <Button size="sm" variant="outline" onClick={reintentarFallidos}>
                       Reintentar {err} fallidos
