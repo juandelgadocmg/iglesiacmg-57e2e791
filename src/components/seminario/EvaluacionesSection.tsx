@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Plus, Pencil, Trash2, Eye, EyeOff, AlertTriangle } from "lucide-react";
+import { Plus, Pencil, Trash2, Eye, EyeOff, AlertTriangle, Search, ChevronLeft, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
 import DeleteConfirmDialog from "@/components/shared/DeleteConfirmDialog";
 import { useCan } from "@/hooks/useCan";
@@ -36,9 +36,25 @@ export default function EvaluacionesSection() {
   const upsert = useUpsertEvaluacion();
   const del = useDeleteEvaluacion();
   const [editing, setEditing] = useState<any>(null);
+  const [q, setQ] = useState("");
+  const [tipoFiltro, setTipoFiltro] = useState<string>("_all");
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 8;
 
   const totalPeso = useMemo(() => (evaluaciones || []).reduce((a: number, e: any) => a + Number(e.peso || 0), 0), [evaluaciones]);
   const ofertaSel = (ofertas as any[] || []).find((o: any) => o.id === effOf);
+
+  const filtradas = useMemo(() => {
+    const term = q.trim().toLowerCase();
+    return (evaluaciones || []).filter((e: any) => {
+      if (tipoFiltro !== "_all" && e.tipo !== tipoFiltro) return false;
+      if (term && !e.nombre?.toLowerCase().includes(term)) return false;
+      return true;
+    });
+  }, [evaluaciones, q, tipoFiltro]);
+  const totalPages = Math.max(1, Math.ceil(filtradas.length / PAGE_SIZE));
+  const pageRows = filtradas.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  useMemo(() => { if (page > totalPages) setPage(1); }, [totalPages, page]);
 
   const handleSave = async (f: any) => {
     try {
@@ -102,13 +118,31 @@ export default function EvaluacionesSection() {
         </Card>
       )}
 
+      {effOf && (
+        <div className="flex flex-wrap gap-2 items-center">
+          <div className="relative flex-1 min-w-[200px]">
+            <Search className="absolute left-2 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
+            <Input value={q} onChange={(e) => { setQ(e.target.value); setPage(1); }} placeholder="Buscar evaluación por nombre…" className="pl-8 h-9" />
+          </div>
+          <Select value={tipoFiltro} onValueChange={(v) => { setTipoFiltro(v); setPage(1); }}>
+            <SelectTrigger className="w-40 h-9"><SelectValue placeholder="Tipo" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="_all">Todos los tipos</SelectItem>
+              {TIPOS.map(t => <SelectItem key={t.v} value={t.v}>{t.l}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          <span className="text-xs text-muted-foreground">{filtradas.length} resultados</span>
+        </div>
+      )}
+
       {!effOf ? (
         <Card><CardContent className="p-6 text-center text-sm text-muted-foreground">Selecciona una materia para gestionar sus evaluaciones.</CardContent></Card>
-      ) : (evaluaciones || []).length === 0 ? (
-        <Card><CardContent className="p-6 text-center text-sm text-muted-foreground">Sin evaluaciones aún.</CardContent></Card>
+      ) : filtradas.length === 0 ? (
+        <Card><CardContent className="p-6 text-center text-sm text-muted-foreground">Sin evaluaciones que coincidan con los filtros.</CardContent></Card>
       ) : (
+        <>
         <div className="grid gap-2 md:grid-cols-2">
-          {(evaluaciones || []).map((e: any) => (
+          {pageRows.map((e: any) => (
             <Card key={e.id}>
               <CardContent className="p-3 flex items-start justify-between gap-2">
                 <div className="min-w-0">
@@ -136,6 +170,14 @@ export default function EvaluacionesSection() {
             </Card>
           ))}
         </div>
+        {totalPages > 1 && (
+          <div className="flex items-center justify-center gap-2 pt-2">
+            <Button size="sm" variant="outline" onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}><ChevronLeft className="h-3.5 w-3.5" /></Button>
+            <span className="text-xs">Página {page} de {totalPages}</span>
+            <Button size="sm" variant="outline" onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages}><ChevronRight className="h-3.5 w-3.5" /></Button>
+          </div>
+        )}
+        </>
       )}
     </div>
   );

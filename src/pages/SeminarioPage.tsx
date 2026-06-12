@@ -42,7 +42,7 @@ const SIDEBAR = [
 ];
 
 export default function SeminarioPage() {
-  const [section, setSection] = useState("programas");
+  const [section, setSection] = useState("dashboard");
 
   return (
     <div className="flex flex-col h-full">

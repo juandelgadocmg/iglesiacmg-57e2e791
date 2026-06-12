@@ -679,19 +679,24 @@ export function useDashboardKpis() {
   return useQuery({
     queryKey: ["sem-dashboard-kpis"],
     queryFn: async () => {
-      const [insc, ofertas, evals, mora, certs] = await Promise.all([
+      const today = new Date().toISOString().slice(0, 10);
+      const [insc, ofertas, evalsProx, mora, certs, ims, asist] = await Promise.all([
         sb.from("sem_inscripciones").select("id, estado, promedio_acumulado, total_creditos_aprobados, programa_id"),
-        sb.from("sem_ofertas").select("id, estado"),
-        sb.from("sem_evaluaciones").select("id, fecha, publicada").gte("fecha", new Date().toISOString().slice(0, 10)).order("fecha").limit(20),
+        sb.from("sem_ofertas").select("id, estado, docente_nombre, materia_id, sem_materias(codigo,nombre)"),
+        sb.from("sem_evaluaciones").select("id, nombre, tipo, fecha, publicada, oferta_id, sem_ofertas(sem_materias(codigo,nombre))").gte("fecha", today).order("fecha").limit(10),
         sb.from("sem_pagos_inscripcion").select("id, estado, fecha_vencimiento, monto").neq("estado", "pagado"),
-        sb.from("certificados").select("id, fecha_emision, persona_id, tipo_certificado").eq("tipo_certificado", "seminario_diploma").order("fecha_emision", { ascending: false }).limit(5),
+        sb.from("certificados").select("id, fecha_emision, persona_id, tipo_certificado, personas(nombres,apellidos)").eq("tipo_certificado", "seminario_diploma").order("fecha_emision", { ascending: false }).limit(5),
+        sb.from("sem_inscripcion_materias").select("id, nota_final, estado, oferta_id"),
+        sb.from("sem_asistencias").select("estado"),
       ]);
       return {
         inscripciones: insc.data || [],
         ofertas: ofertas.data || [],
-        proxEvaluaciones: evals.data || [],
+        proxEvaluaciones: evalsProx.data || [],
         moraPendientes: mora.data || [],
         ultimosCertificados: certs.data || [],
+        inscripcionMaterias: ims.data || [],
+        asistencias: asist.data || [],
       };
     },
   });

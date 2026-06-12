@@ -3,11 +3,13 @@ import { useReportesAcademicos, useProgramas, usePeriodos } from "@/hooks/useSem
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
-import { Download, TrendingUp, BookOpen } from "lucide-react";
-import { exportToExcel } from "@/lib/exportUtils";
+import { Download, TrendingUp, BookOpen, FileText, Search, ChevronLeft, ChevronRight } from "lucide-react";
+import { exportToExcel, exportToPDF } from "@/lib/exportUtils";
+import { toast } from "sonner";
 
 export default function ReportesSection() {
   const { data: programas } = useProgramas();
@@ -16,6 +18,9 @@ export default function ReportesSection() {
   const { data: periodos } = usePeriodos(effProg);
   const [periodoId, setPeriodoId] = useState("");
   const { data: registros = [] } = useReportesAcademicos(effProg || undefined, periodoId || undefined);
+  const [q, setQ] = useState("");
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 10;
 
   const byMateria = useMemo(() => {
     const map: Record<string, { nombre: string; codigo: string; total: number; aprobadas: number; reprobadas: number; promedio: number; sumaNotas: number; countNotas: number }> = {};
@@ -38,7 +43,17 @@ export default function ReportesSection() {
     return notas.reduce((a, b) => a + b, 0) / notas.length;
   }, [registros]);
 
+  const filtradas = useMemo(() => {
+    const term = q.trim().toLowerCase();
+    if (!term) return byMateria;
+    return byMateria.filter(m => m.nombre.toLowerCase().includes(term) || m.codigo.toLowerCase().includes(term));
+  }, [byMateria, q]);
+  const totalPages = Math.max(1, Math.ceil(filtradas.length / PAGE_SIZE));
+  const safePage = Math.min(page, totalPages);
+  const rows = filtradas.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
+
   const exportar = () => {
+    if (!filtradas.length) { toast.error("No hay datos para exportar"); return; }
     exportToExcel({
       title: "Reporte Académico Seminario",
       filename: "reporte-academico-seminario",
@@ -51,8 +66,28 @@ export default function ReportesSection() {
         { header: "% Aprobación", key: "tasaApr" },
         { header: "Promedio", key: "promedio" },
       ],
-      data: byMateria.map(r => ({ ...r, promedio: r.promedio.toFixed(2) })),
+      data: filtradas.map(r => ({ ...r, promedio: r.promedio.toFixed(2) })),
     });
+    toast.success(`Exportadas ${filtradas.length} materias a Excel`);
+  };
+
+  const exportarPdf = () => {
+    if (!filtradas.length) { toast.error("No hay datos para exportar"); return; }
+    exportToPDF({
+      title: "Reporte Académico Seminario",
+      filename: "reporte-academico-seminario",
+      columns: [
+        { header: "Código", key: "codigo" },
+        { header: "Materia", key: "nombre" },
+        { header: "Inscritos", key: "total" },
+        { header: "Aprob.", key: "aprobadas" },
+        { header: "Reprob.", key: "reprobadas" },
+        { header: "% Aprob.", key: "tasaApr" },
+        { header: "Promedio", key: "promedio" },
+      ],
+      data: filtradas.map(r => ({ ...r, promedio: r.promedio.toFixed(2) })),
+    });
+    toast.success("PDF generado");
   };
 
   return (
@@ -74,8 +109,14 @@ export default function ReportesSection() {
               {(periodos || []).map((p: any) => <SelectItem key={p.id} value={p.id}>{p.nombre}</SelectItem>)}
             </SelectContent>
           </Select>
-          <Button size="sm" variant="outline" onClick={exportar}><Download className="h-4 w-4 mr-1" />Excel</Button>
+          <Button size="sm" variant="outline" onClick={exportar} disabled={!filtradas.length}><Download className="h-4 w-4 mr-1" />Excel</Button>
+          <Button size="sm" variant="outline" onClick={exportarPdf} disabled={!filtradas.length}><FileText className="h-4 w-4 mr-1" />PDF</Button>
         </div>
+      </div>
+
+      <div className="relative max-w-md">
+        <Search className="absolute left-2 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
+        <Input value={q} onChange={(e) => { setQ(e.target.value); setPage(1); }} placeholder="Buscar materia por código o nombre…" className="pl-8 h-9" />
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -137,7 +178,7 @@ export default function ReportesSection() {
                 </tr>
               </thead>
               <tbody>
-                {byMateria.map((m, i) => (
+                {rows.map((m, i) => (
                   <tr key={i} className="border-b hover:bg-muted/20">
                     <td className="p-2"><div className="font-medium">{m.nombre}</div><div className="text-[10px] text-muted-foreground">{m.codigo}</div></td>
                     <td className="p-2 text-center">{m.total}</td>
@@ -147,9 +188,19 @@ export default function ReportesSection() {
                     <td className="p-2 text-center">{m.promedio.toFixed(2)}</td>
                   </tr>
                 ))}
+                {rows.length === 0 && (
+                  <tr><td colSpan={6} className="p-6 text-center text-muted-foreground">Sin resultados</td></tr>
+                )}
               </tbody>
             </table>
           </CardContent></Card>
+          {totalPages > 1 && (
+            <div className="flex items-center justify-center gap-2 pt-2">
+              <Button size="sm" variant="outline" onClick={() => setPage(p => Math.max(1, p - 1))} disabled={safePage === 1}><ChevronLeft className="h-3.5 w-3.5" /></Button>
+              <span className="text-xs">Página {safePage} de {totalPages} ({filtradas.length} materias)</span>
+              <Button size="sm" variant="outline" onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={safePage === totalPages}><ChevronRight className="h-3.5 w-3.5" /></Button>
+            </div>
+          )}
         </TabsContent>
       </Tabs>
     </div>
