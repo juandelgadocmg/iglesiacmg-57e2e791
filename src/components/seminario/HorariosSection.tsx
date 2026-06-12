@@ -12,6 +12,7 @@ import { toast } from "sonner";
 import DeleteConfirmDialog from "@/components/shared/DeleteConfirmDialog";
 import { isZoomStale, generateZoomLink } from "@/lib/seminarioZoom";
 import { useCan } from "@/hooks/useCan";
+import { logSemAudit } from "@/lib/seminarioAudit";
 
 export default function HorariosSection() {
   const { data: programas } = useProgramas();
