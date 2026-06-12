@@ -225,8 +225,18 @@ function EstudianteDetalle({ ins, programa, onBack }: any) {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-2">
+      <div className="flex items-center justify-between gap-2">
         <Button size="sm" variant="ghost" onClick={onBack}><ChevronLeft className="h-4 w-4 mr-1" />Volver</Button>
+        <div className="flex gap-2">
+          <Button size="sm" variant="outline" onClick={() => handleKardex(false)}>
+            <FileDown className="h-4 w-4 mr-1" />Kárdex PDF
+          </Button>
+          {programaCompleto && (
+            <Button size="sm" onClick={() => handleKardex(true)} className="bg-amber-600 hover:bg-amber-700">
+              <Award className="h-4 w-4 mr-1" />Generar Certificado
+            </Button>
+          )}
+        </div>
       </div>
       <Card>
         <CardContent className="p-4">
