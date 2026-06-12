@@ -9,13 +9,14 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Church, Globe, Clock, Save, BookOpen, ImageIcon, Video, Radio, DollarSign } from "lucide-react";
+import { Church, Globe, Clock, Save, BookOpen, ImageIcon, Video, Radio, DollarSign, Bell } from "lucide-react";
 import { toast } from "sonner";
 
 // Lazy-load sub-pages as tab content
 import BannersPage from "@/pages/BannersPage";
 import VideosPage from "@/pages/VideosPage";
 import SenalEnVivoPage from "@/pages/SenalEnVivoPage";
+import NotificacionesPreferencias from "@/components/configuracion/NotificacionesPreferencias";
 
 const MONEDAS = [
   { value: "USD", label: "USD - Dólar estadounidense" },
