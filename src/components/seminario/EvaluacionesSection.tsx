@@ -158,7 +158,7 @@ export default function EvaluacionesSection() {
         <>
         <div className="grid gap-2 md:grid-cols-2">
           {pageRows.map((e: any) => (
-            <Card key={e.id}>
+            <Card key={e.id} className="cursor-pointer hover:bg-muted/30 transition-colors" onClick={() => setDetalle(e)}>
               <CardContent className="p-3 flex items-start justify-between gap-2">
                 <div className="min-w-0">
                   <p className="font-medium text-sm">{e.nombre}</p>
@@ -167,7 +167,7 @@ export default function EvaluacionesSection() {
                     {e.peso}% · {e.fecha || "sin fecha"}
                   </p>
                 </div>
-                <div className="flex gap-1">
+                <div className="flex gap-1" onClick={(ev) => ev.stopPropagation()}>
                   <Badge variant={e.publicada ? "default" : "outline"} className="text-[10px]">
                     {e.publicada ? <><Eye className="h-3 w-3 mr-1" />Publicada</> : <><EyeOff className="h-3 w-3 mr-1" />Borrador</>}
                   </Badge>
@@ -194,6 +194,24 @@ export default function EvaluacionesSection() {
         )}
         </>
       )}
+
+      <Dialog open={!!detalle} onOpenChange={(v) => !v && setDetalle(null)}>
+        {detalle && (
+          <DialogContent>
+            <DialogHeader><DialogTitle>Detalle de evaluación</DialogTitle></DialogHeader>
+            <div className="space-y-2 text-sm">
+              <div><span className="text-muted-foreground">Nombre:</span> <span className="font-medium">{detalle.nombre}</span></div>
+              <div><span className="text-muted-foreground">Tipo:</span> <Badge variant="outline">{TIPOS.find(t => t.v === detalle.tipo)?.l || detalle.tipo}</Badge></div>
+              <div><span className="text-muted-foreground">Peso:</span> {detalle.peso}%</div>
+              <div><span className="text-muted-foreground">Fecha:</span> {detalle.fecha || "Sin fecha"}</div>
+              <div><span className="text-muted-foreground">Estado:</span> {detalle.publicada ? "Publicada (visible para estudiantes)" : "Borrador"}</div>
+              <div><span className="text-muted-foreground">Materia:</span> {ofertaSel?.sem_materias?.nombre || "—"}</div>
+              <div><span className="text-muted-foreground">Docente:</span> {ofertaSel?.docente_nombre || "Sin docente"}</div>
+              <div><span className="text-muted-foreground">ID:</span> <span className="font-mono text-xs">{detalle.id}</span></div>
+            </div>
+          </DialogContent>
+        )}
+      </Dialog>
     </div>
   );
 }
