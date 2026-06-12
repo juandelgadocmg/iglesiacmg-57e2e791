@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { useUrlParam, useUrlNumber } from "@/hooks/useUrlParam";
 import { useProgramas, usePeriodos, useOfertas, useEvaluaciones, useUpsertEvaluacion, useDeleteEvaluacion } from "@/hooks/useSeminario";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -25,21 +26,22 @@ export default function EvaluacionesSection() {
   const can = useCan();
   const canEdit = can("seminario:evaluacion_crud");
   const { data: programas } = useProgramas();
-  const [programaId, setProgramaId] = useState("");
+  const [programaId, setProgramaId] = useUrlParam("ev_prog");
   const effProg = programaId || programas?.[0]?.id || "";
   const { data: periodos } = usePeriodos(effProg);
-  const [periodoId, setPeriodoId] = useState("");
+  const [periodoId, setPeriodoId] = useUrlParam("ev_per");
   const effPer = periodoId || periodos?.[0]?.id || "";
   const { data: ofertas } = useOfertas(effPer, effProg);
-  const [ofertaId, setOfertaId] = useState("");
+  const [ofertaId, setOfertaId] = useUrlParam("ev_of");
   const effOf = ofertaId || (ofertas as any[])?.[0]?.id || "";
   const { data: evaluaciones, isLoading: loadingEvals } = useEvaluaciones(effOf);
   const upsert = useUpsertEvaluacion();
   const del = useDeleteEvaluacion();
   const [editing, setEditing] = useState<any>(null);
-  const [q, setQ] = useState("");
-  const [tipoFiltro, setTipoFiltro] = useState<string>("_all");
-  const [page, setPage] = useState(1);
+  const [detalle, setDetalle] = useState<any>(null);
+  const [q, setQ] = useUrlParam("ev_q");
+  const [tipoFiltro, setTipoFiltro] = useUrlParam("ev_tipo", "_all");
+  const [page, setPage] = useUrlNumber("ev_page", 1);
   const PAGE_SIZE = 8;
 
   const totalPeso = useMemo(() => (evaluaciones || []).reduce((a: number, e: any) => a + Number(e.peso || 0), 0), [evaluaciones]);
