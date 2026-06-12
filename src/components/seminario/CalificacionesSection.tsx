@@ -250,6 +250,43 @@ export default function CalificacionesSection() {
           <Calculator className="h-3 w-3" />Tienes {Object.keys(dirty).length} cambios sin guardar
         </p>
       )}
+
+      <Dialog open={!!detalle} onOpenChange={(v) => !v && setDetalle(null)}>
+        {detalle && (
+          <DialogContent>
+            <DialogHeader><DialogTitle>Calificaciones de {detalle.persona?.nombres} {detalle.persona?.apellidos}</DialogTitle></DialogHeader>
+            <div className="space-y-2 text-sm">
+              <div className="grid grid-cols-2 gap-2 text-xs">
+                <div><span className="text-muted-foreground">Documento:</span> {detalle.persona?.documento || "—"}</div>
+                <div><span className="text-muted-foreground">Materia:</span> {ofertaSel?.sem_materias?.nombre}</div>
+              </div>
+              <div className="border rounded divide-y">
+                {(data?.evaluaciones || []).map((e: any) => {
+                  const v = getNotaActual(detalle.im.id, e.id);
+                  const num = v === "" ? null : Number(v);
+                  return (
+                    <div key={e.id} className="p-2 flex items-center justify-between text-xs">
+                      <div>
+                        <div className="font-medium">{e.nombre}</div>
+                        <div className="text-[10px] text-muted-foreground">{e.tipo} · {e.peso}% · {e.fecha || "sin fecha"}</div>
+                      </div>
+                      <Badge variant={num != null && num >= 3 ? "default" : num != null ? "destructive" : "outline"}>
+                        {num != null ? num.toFixed(2) : "—"}
+                      </Badge>
+                    </div>
+                  );
+                })}
+              </div>
+              <div className="flex items-center justify-between pt-2 border-t">
+                <span className="text-xs text-muted-foreground">Nota definitiva</span>
+                {detalle.def != null
+                  ? <Badge variant={detalle.def >= 3 ? "default" : "destructive"} className="text-base">{detalle.def.toFixed(2)}</Badge>
+                  : <span className="text-xs text-muted-foreground">Incompleta</span>}
+              </div>
+            </div>
+          </DialogContent>
+        )}
+      </Dialog>
     </div>
   );
 }
