@@ -251,6 +251,7 @@ function EstudianteDetalle({ ins, programa, onBack }: any) {
                 <Badge variant="outline">Semestre {ins.semestre_actual}</Badge>
                 <Badge variant="outline">Promedio {ins.promedio_acumulado ?? "—"}</Badge>
                 <Badge variant="outline">{credAprob}/{totalCreditos} créditos</Badge>
+                {programaCompleto && <Badge className="bg-amber-600">✓ Programa completo</Badge>}
               </div>
             </div>
             <div className="w-full md:w-48">
@@ -261,6 +262,8 @@ function EstudianteDetalle({ ins, programa, onBack }: any) {
           </div>
         </CardContent>
       </Card>
+
+      <ProgresoPanel semestres={semestres || []} pensum={pensum || []} cursando={cursando || []} semestreActual={ins.semestre_actual || 1} />
 
       <div className="space-y-3">
         {(semestres || []).map((s: any) => {
