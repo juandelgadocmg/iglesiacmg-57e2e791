@@ -132,7 +132,7 @@ export function useNotifications() {
     });
 
     // Upcoming events (within 14 days)
-    (eventos || []).forEach((e) => {
+    if (enabled("events")) (eventos || []).forEach((e) => {
       try {
         const days = differenceInDays(parseISO(e.fecha_inicio), now);
         if (days >= 0 && days <= 14) {
