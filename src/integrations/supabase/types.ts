@@ -2957,6 +2957,51 @@ export type Database = {
           },
         ]
       }
+      sem_zoom_config: {
+        Row: {
+          account_id_masked: string | null
+          created_at: string
+          default_duration_minutes: number
+          host_email: string | null
+          id: string
+          last_validation_at: string | null
+          last_validation_message: string | null
+          last_validation_status: string | null
+          mode: string
+          singleton: boolean
+          updated_at: string
+          validated_by: string | null
+        }
+        Insert: {
+          account_id_masked?: string | null
+          created_at?: string
+          default_duration_minutes?: number
+          host_email?: string | null
+          id?: string
+          last_validation_at?: string | null
+          last_validation_message?: string | null
+          last_validation_status?: string | null
+          mode?: string
+          singleton?: boolean
+          updated_at?: string
+          validated_by?: string | null
+        }
+        Update: {
+          account_id_masked?: string | null
+          created_at?: string
+          default_duration_minutes?: number
+          host_email?: string | null
+          id?: string
+          last_validation_at?: string | null
+          last_validation_message?: string | null
+          last_validation_status?: string | null
+          mode?: string
+          singleton?: boolean
+          updated_at?: string
+          validated_by?: string | null
+        }
+        Relationships: []
+      }
       sem_zoom_sesiones: {
         Row: {
           created_at: string
