@@ -214,6 +214,9 @@ function EstudianteDetalle({ ins, programa, onBack }: any) {
   const enroll = useEnrollMateria();
   const unenroll = useUnenrollMateria();
   const updateIns = useUpdateInscripcionMateria();
+  const can = useCan();
+  const canMatricular = can("seminario:matricular");
+  const canCertificar = can("seminario:certificar");
 
   const matsBySem = useMemo(() => {
     const map: Record<number, any[]> = {};
@@ -237,9 +240,9 @@ function EstudianteDetalle({ ins, programa, onBack }: any) {
   const programaCompleto = totalPensum > 0 && (pensum || []).every((p: any) => aprobadasIds.has(p.materia_id));
 
   const handleEnroll = async (materia_id: string) => {
+    if (!canMatricular) { toast.error("No tienes permiso para matricular materias."); return; }
     const oferta = (ofertas || []).find((o: any) => o.materia_id === materia_id);
     if (!oferta) { toast.error("Esta materia no tiene oferta en el periodo. Crea horario primero."); return; }
-    // Validar prerrequisitos vía RPC
     try {
       const { data: ok, error } = await (supabase as any).rpc("sem_puede_inscribir", {
         _persona_id: ins.persona_id, _materia_id: materia_id,
@@ -271,11 +274,12 @@ function EstudianteDetalle({ ins, programa, onBack }: any) {
   };
 
   const handleKardex = (certificado: boolean) => {
+    if (certificado && !canCertificar) { toast.error("No tienes permiso para emitir certificados."); return; }
     exportKardexPdf({
       estudiante: `${p?.nombres} ${p?.apellidos}`,
       documento: p?.documento, programa: programa?.nombre || "—",
       promedio: ins.promedio_acumulado, creditosAprobados: credAprob, creditosTotales: totalCreditos,
-      rows: buildKardexRows(), certificado,
+      rows: buildKardexRows(), certificado, inscripcionId: ins.id,
     });
   };
 
@@ -289,7 +293,7 @@ function EstudianteDetalle({ ins, programa, onBack }: any) {
           <Button size="sm" variant="outline" onClick={() => handleKardex(false)}>
             <FileDown className="h-4 w-4 mr-1" />Kárdex PDF
           </Button>
-          {programaCompleto && (
+          {programaCompleto && canCertificar && (
             <Button size="sm" onClick={() => handleKardex(true)} className="bg-amber-600 hover:bg-amber-700">
               <Award className="h-4 w-4 mr-1" />Generar Certificado
             </Button>
