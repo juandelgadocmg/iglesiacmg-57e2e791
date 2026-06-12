@@ -187,9 +187,9 @@ export default function EvaluacionesSection() {
         </div>
         {totalPages > 1 && (
           <div className="flex items-center justify-center gap-2 pt-2">
-            <Button size="sm" variant="outline" onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}><ChevronLeft className="h-3.5 w-3.5" /></Button>
+            <Button size="sm" variant="outline" onClick={() => setPage(Math.max(1, page - 1))} disabled={page === 1}><ChevronLeft className="h-3.5 w-3.5" /></Button>
             <span className="text-xs">Página {page} de {totalPages}</span>
-            <Button size="sm" variant="outline" onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages}><ChevronRight className="h-3.5 w-3.5" /></Button>
+            <Button size="sm" variant="outline" onClick={() => setPage(Math.min(totalPages, page + 1))} disabled={page === totalPages}><ChevronRight className="h-3.5 w-3.5" /></Button>
           </div>
         )}
         </>
