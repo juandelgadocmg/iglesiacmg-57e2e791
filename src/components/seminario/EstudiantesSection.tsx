@@ -39,11 +39,14 @@ export default function EstudiantesSection() {
   const canCertificar = can("seminario:certificar");
 
   // Estado de exportación masiva
-  type BatchItem = { insId: string; nombre: string; status: "pendiente" | "procesando" | "ok" | "error" | "omitido"; error?: string };
+  type BatchItem = { insId: string; nombre: string; status: "pendiente" | "procesando" | "ok" | "error" | "omitido"; error?: string; intentos?: number };
   const [batchOpen, setBatchOpen] = useState(false);
   const [batchModo, setBatchModo] = useState<"kardex" | "certificado">("kardex");
   const [batchItems, setBatchItems] = useState<BatchItem[]>([]);
   const [batchRunning, setBatchRunning] = useState(false);
+  const [maxIntentos, setMaxIntentos] = useState(3);
+  const [autoRetry, setAutoRetry] = useState(true);
+  const [batchFinalizado, setBatchFinalizado] = useState(false);
 
   const yaInscritos = new Set((inscripciones || []).map((i: any) => i.persona_id));
 
@@ -95,18 +98,45 @@ export default function EstudiantesSection() {
 
   const ejecutarBatch = async (items: BatchItem[]) => {
     setBatchRunning(true);
+    setBatchFinalizado(false);
     for (let i = 0; i < items.length; i++) {
-      if (items[i].status === "ok") continue; // ya completado
+      if (batchItems[i]?.status === "ok" || items[i].status === "ok" || items[i].status === "omitido") continue;
       setBatchItems(prev => prev.map((b, idx) => idx === i ? { ...b, status: "procesando", error: undefined } : b));
       try {
         await procesarItem(items[i].insId, batchModo);
-        setBatchItems(prev => prev.map((b, idx) => idx === i ? { ...b, status: "ok" } : b));
+        setBatchItems(prev => prev.map((b, idx) => idx === i ? { ...b, status: "ok", intentos: (b.intentos || 0) + 1 } : b));
       } catch (e: any) {
-        setBatchItems(prev => prev.map((b, idx) => idx === i ? { ...b, status: e.omitido ? "omitido" : "error", error: e.message } : b));
+        setBatchItems(prev => prev.map((b, idx) => idx === i ? { ...b, status: e.omitido ? "omitido" : "error", error: e.message, intentos: (b.intentos || 0) + 1 } : b));
       }
       await new Promise(r => setTimeout(r, 200));
     }
+
+    // Reintento automático con backoff exponencial
+    if (autoRetry) {
+      for (let intento = 2; intento <= maxIntentos; intento++) {
+        const fallidos = await new Promise<BatchItem[]>(resolve => {
+          setBatchItems(prev => { resolve(prev.filter(b => b.status === "error")); return prev; });
+        });
+        if (fallidos.length === 0) break;
+        const delay = Math.min(30000, 1000 * Math.pow(2, intento - 1));
+        toast.info(`Reintento ${intento}/${maxIntentos} en ${delay / 1000}s (${fallidos.length} fallidos)`);
+        await new Promise(r => setTimeout(r, delay));
+        const snapshot = await new Promise<BatchItem[]>(resolve => setBatchItems(prev => { resolve(prev); return prev; }));
+        for (let i = 0; i < snapshot.length; i++) {
+          if (snapshot[i].status !== "error") continue;
+          setBatchItems(prev => prev.map((b, idx) => idx === i ? { ...b, status: "procesando" } : b));
+          try {
+            await procesarItem(snapshot[i].insId, batchModo);
+            setBatchItems(prev => prev.map((b, idx) => idx === i ? { ...b, status: "ok", intentos: (b.intentos || 1) + 1 } : b));
+          } catch (e: any) {
+            setBatchItems(prev => prev.map((b, idx) => idx === i ? { ...b, status: e.omitido ? "omitido" : "error", error: e.message, intentos: (b.intentos || 1) + 1 } : b));
+          }
+          await new Promise(r => setTimeout(r, 200));
+        }
+      }
+    }
     setBatchRunning(false);
+    setBatchFinalizado(true);
   };
 
   const exportarLote = async (modo: "kardex" | "certificado" = "kardex") => {
@@ -115,9 +145,9 @@ export default function EstudiantesSection() {
     if (modo === "certificado" && !canCertificar) { toast.error("No tienes permiso para emitir certificados."); return; }
     const initial: BatchItem[] = ids.map(id => {
       const ins = (inscripciones || []).find((x: any) => x.id === id);
-      return { insId: id, nombre: ins ? `${ins.personas?.nombres} ${ins.personas?.apellidos}` : id, status: "pendiente" };
+      return { insId: id, nombre: ins ? `${ins.personas?.nombres} ${ins.personas?.apellidos}` : id, status: "pendiente", intentos: 0 };
     });
-    setBatchModo(modo); setBatchItems(initial); setBatchOpen(true);
+    setBatchModo(modo); setBatchItems(initial); setBatchOpen(true); setBatchFinalizado(false);
     await ejecutarBatch(initial);
   };
 
@@ -125,6 +155,30 @@ export default function EstudiantesSection() {
     const items = batchItems.map(b => b.status === "error" ? { ...b, status: "pendiente" as const, error: undefined } : b);
     setBatchItems(items);
     await ejecutarBatch(items);
+  };
+
+  const descargarReporte = () => {
+    const total = batchItems.length;
+    const ok = batchItems.filter(b => b.status === "ok").length;
+    const err = batchItems.filter(b => b.status === "error").length;
+    const skip = batchItems.filter(b => b.status === "omitido").length;
+    const headers = ["Estudiante", "Estado", "Intentos", "Error"];
+    const lines = [headers.join(",")];
+    lines.push(`"RESUMEN","Total: ${total} · OK: ${ok} · Errores: ${err} · Omitidos: ${skip}","",""`);
+    lines.push("");
+    batchItems.forEach(b => {
+      const row = [b.nombre, b.status, String(b.intentos || 0), (b.error || "").replace(/"/g, '""')]
+        .map(v => `"${String(v).replace(/"/g, '""')}"`).join(",");
+      lines.push(row);
+    });
+    const blob = new Blob(["\ufeff" + lines.join("\n")], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `reporte_${batchModo}_${Date.now()}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success("Reporte descargado");
   };
 
   const handleCreate = async (form: any) => {
@@ -251,10 +305,22 @@ export default function EstudiantesSection() {
                     {err > 0 && <Badge variant="destructive">{err} errores</Badge>}
                   </div>
                 </div>
+                <div className="flex items-center justify-between gap-3 text-xs border rounded p-2 bg-muted/30">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input type="checkbox" checked={autoRetry} onChange={e => setAutoRetry(e.target.checked)} disabled={batchRunning} />
+                    Reintento automático con backoff
+                  </label>
+                  <label className="flex items-center gap-2">
+                    Máx intentos:
+                    <input type="number" min={1} max={10} value={maxIntentos}
+                      onChange={e => setMaxIntentos(Math.max(1, Math.min(10, +e.target.value || 1)))}
+                      disabled={batchRunning} className="w-14 h-7 border rounded px-2" />
+                  </label>
+                </div>
                 <div className="max-h-64 overflow-y-auto border rounded text-xs divide-y">
                   {batchItems.map(b => (
                     <div key={b.insId} className="flex items-center justify-between gap-2 px-2 py-1.5">
-                      <span className="truncate">{b.nombre}</span>
+                      <span className="truncate">{b.nombre} {b.intentos && b.intentos > 1 ? <span className="text-muted-foreground">·{b.intentos}x</span> : null}</span>
                       <span className={
                         b.status === "ok" ? "text-green-600" :
                         b.status === "error" ? "text-destructive" :
@@ -270,7 +336,12 @@ export default function EstudiantesSection() {
                     </div>
                   ))}
                 </div>
-                <div className="flex justify-end gap-2">
+                <div className="flex justify-end gap-2 flex-wrap">
+                  {batchFinalizado && batchItems.length > 0 && (
+                    <Button size="sm" variant="outline" onClick={descargarReporte}>
+                      <FileDownIcon className="h-3.5 w-3.5 mr-1" />Descargar reporte
+                    </Button>
+                  )}
                   {err > 0 && !batchRunning && (
                     <Button size="sm" variant="outline" onClick={reintentarFallidos}>
                       Reintentar {err} fallidos
