@@ -30,6 +30,7 @@ import VerificarAcademicoPage from "@/pages/VerificarAcademicoPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
+if (typeof window !== "undefined") (window as any).__lovableQueryClient = queryClient;
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
