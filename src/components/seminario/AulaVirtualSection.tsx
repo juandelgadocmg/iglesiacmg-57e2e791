@@ -33,14 +33,33 @@ import AulaDiagnosticPanel from "./AulaDiagnosticPanel";
 const sb = supabase as any;
 function fmtDateTime(d?: string) { return d ? new Date(d).toLocaleString("es-CO") : "—"; }
 
+const STAFF_ROLES = ["admin", "super_admin", "pastor", "seminario_admin", "maestro"];
+
 export default function AulaVirtualSection() {
+  const { user, loading: authLoading } = useAuth() as any;
   const { roles, isLoading: rolesLoading } = useUserRoles() as any;
-  const isStaff = (roles || []).some((r: string) => ["admin", "super_admin", "pastor", "seminario_admin", "maestro"].includes(r));
   const [previewStudent, setPreviewStudent] = useState(false);
 
+  // Guard 1: aún no sabemos si hay sesión
+  if (authLoading) {
+    return <div className="space-y-3" data-testid="aula-loading"><div className="h-8 w-64 bg-muted animate-pulse rounded" /><div className="h-32 bg-muted animate-pulse rounded" /></div>;
+  }
+  // Guard 2: sin sesión nunca renderizamos vistas a medias
+  if (!user) {
+    return (
+      <Card><CardContent className="p-6 text-center space-y-2" data-testid="aula-no-session">
+        <p className="font-medium">Debes iniciar sesión para acceder al Aula Virtual</p>
+        <Button size="sm" onClick={() => (window.location.href = "/login")}>Ir a iniciar sesión</Button>
+      </CardContent></Card>
+    );
+  }
+  // Guard 3: roles aún cargando
   if (rolesLoading) {
     return <div className="space-y-3" data-testid="aula-loading"><div className="h-8 w-64 bg-muted animate-pulse rounded" /><div className="h-32 bg-muted animate-pulse rounded" /></div>;
   }
+
+  const isStaff = (roles || []).some((r: string) => STAFF_ROLES.includes(r));
+
   if (!isStaff) {
     return (
       <AulaErrorBoundary label="la vista del estudiante">
