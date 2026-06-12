@@ -17,7 +17,7 @@ export default function ReportesSection() {
   const effProg = programaId || (programas as any[])?.[0]?.id || "";
   const { data: periodos } = usePeriodos(effProg);
   const [periodoId, setPeriodoId] = useState("");
-  const { data: registros = [] } = useReportesAcademicos(effProg || undefined, periodoId || undefined);
+  const { data: registros = [], isLoading: loadingRep } = useReportesAcademicos(effProg || undefined, periodoId || undefined);
   const [q, setQ] = useState("");
   const [page, setPage] = useState(1);
   const PAGE_SIZE = 10;
