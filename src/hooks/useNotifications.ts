@@ -6,12 +6,13 @@ import { es } from "date-fns/locale";
 
 export interface AppNotification {
   id: string;
-  type: "event" | "birthday" | "service" | "payment";
+  type: "event" | "birthday" | "service" | "payment" | "seminario";
   title: string;
   description: string;
   date: string;
   daysLeft: number;
-  icon: "calendar" | "cake" | "church" | "dollar";
+  icon: "calendar" | "cake" | "church" | "dollar" | "alert";
+  href?: string;
 }
 
 export function useNotifications() {
