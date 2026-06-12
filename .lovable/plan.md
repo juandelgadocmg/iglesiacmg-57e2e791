@@ -1,113 +1,125 @@
-# Sistema de Gestión Académica — Seminario Bíblico CMG
+## Alcance
 
-Expansión del módulo Academia conservando intacto lo existente (Discipulado/Escuelas). Se crea una **estructura paralela** dedicada al Seminario, accesible desde un nuevo sub-tab "Seminario" dentro de `/academia`. Mismo diseño visual (azul/blanco/gris, sidebar, tabs, cards).
+Reemplazar todos los `PlaceholderSection` del Seminario por módulos funcionales completos, reutilizando las tablas que ya existen (`sem_evaluaciones`, `sem_calificaciones`, `sem_asistencias`, `sem_recursos`, `sem_ofertas`, `sem_inscripciones`, `sem_inscripcion_materias`, `certificados`). No se inventan tablas nuevas salvo las 2 mínimas indicadas en "Cambios de BD".
 
-## Arquitectura
+## Módulos a entregar (orden de implementación)
 
-Nueva tabla raíz `programas_academicos` → `pensum` (semestres) → `materias_pensum` (con créditos y prerrequisitos) → `inscripciones_semestre` → `cursadas` (instancia de materia por estudiante/periodo) → calificaciones/asistencia/recursos enlazados a `cursadas`.
+### 1. Docentes
+Pantalla con la lista de docentes (derivada de `sem_ofertas.docente_persona_id` + `personas` con rol docente). Métricas por docente: nº de materias asignadas, periodo activo, total estudiantes, promedio de notas finales. Detalle: lista de materias, link a su programación.
 
-Las tablas actuales (`cursos`, `materias`, `matriculas`, `calificaciones`, `asistencia_materias`, `recursos_academicos`) **no se tocan**. Discipulado sigue funcionando igual.
+### 2. Aula Virtual
+Vista por **oferta activa**: cabecera de la materia (docente, horario, aula, modalidad, link Zoom si aplica), tabs:
+- **Estudiantes** matriculados (foto, nombre, estado, nota acumulada)
+- **Recursos** de la materia (lectura de `sem_recursos`, leer-solo aquí)
+- **Anuncios** (texto plano persistido en `sem_anuncios`, ver "Cambios de BD")
+- **Próximas evaluaciones**
 
-## Modelo de datos nuevo
+Filtros por periodo y materia. Acceso: staff Seminario + docente asignado + estudiante matriculado (cada uno con scope distinto).
 
-| Tabla | Propósito |
-|---|---|
-| `sem_programas` | Programa académico (Teología Bíblica y Ministerial, futuros) |
-| `sem_pensum_semestres` | 8 semestres por programa (orden, nombre, créditos totales) |
-| `sem_materias` | Catálogo de materias del programa con créditos, intensidad horaria |
-| `sem_materia_prerequisitos` | Relación N:N de prerrequisitos |
-| `sem_pensum_materias` | Asignación materia → semestre del pensum |
-| `sem_periodos` | Periodos lectivos del seminario (2026-1, 2026-2, …) |
-| `sem_ofertas` | Materias ofertadas en un periodo (docente, horario, aula, cupos, link Zoom manual, meeting_id Zoom API) |
-| `sem_inscripciones` | Inscripción del estudiante al periodo (estado: borrador/pagada/activa/cerrada) |
-| `sem_inscripcion_materias` | Materias inscritas en esa inscripción (cursada activa) |
-| `sem_calificaciones` | Notas por cursada (corte, definitiva, recuperación) |
-| `sem_asistencias` | Asistencia por cursada y fecha |
-| `sem_evaluaciones` | Quices, parciales, finales, trabajos (ítems calificables del seminario) |
-| `sem_recursos` | Biblioteca digital: libros PDF, lecturas, videos, links por materia/programa |
-| `sem_historial` | Vista materializada/función que arma el kárdex completo del estudiante |
-| `sem_zoom_sesiones` | Reuniones Zoom creadas vía API por oferta |
+### 3. Evaluaciones
+CRUD sobre `sem_evaluaciones` por oferta: nombre, tipo (quiz, parcial, final, taller, asistencia), peso %, fecha, publicada sí/no, descripción. Validación: suma de pesos por oferta debe poder llegar a 100% (warning si no). Botón "Publicar/Despublicar" para mostrar/ocultar al estudiante.
 
-Todas con RLS estricto: admin/super_admin/pastor → completo; docente → sólo sus ofertas; estudiante autenticado → sólo lo suyo; tesorería → lectura de inscripciones y pagos.
+### 4. Calificaciones (Libreta del docente)
+Matriz por oferta: filas = estudiantes matriculados, columnas = evaluaciones, celdas = nota editable (0–5). Cálculo automático de **definitiva ponderada**. Al guardar:
+- Upsert en `sem_calificaciones`
+- Recalcular `sem_inscripcion_materias.nota_final` y `estado` (aprobada ≥3.0, reprobada <3.0, en_curso si faltan notas)
+- Si todas las materias del programa quedan aprobadas → trigger del módulo Certificados (paso 7)
+Acciones: cerrar período (bloquea edición y dispara recálculo de `sem_inscripciones.promedio_acumulado` y `total_creditos_aprobados`).
 
-## Integraciones
+### 5. Asistencia
+Por oferta + fecha:
+- Lista de estudiantes con select (Presente/Tarde/Ausente/Justificado) + observación
+- Upsert masivo en `sem_asistencias`
+- Importar Excel y registro por QR (reusando `QrAttendanceScanner`)
+- Reporte por estudiante: % asistencia por materia y alerta si < 80%
+- Tipo de evaluación "asistencia" en `sem_evaluaciones` puede tomar la nota directo del % asistencia del periodo
 
-- **Tesorería**: nueva tabla `sem_pagos_inscripcion` con concepto, valor, estado. Al activar una inscripción se valida que no exista `mora > 30 días` reutilizando la lógica de `pagos_matricula`. Función SQL `sem_estudiante_tiene_mora(persona_id)` consumida por el front antes de habilitar nueva inscripción.
-- **Usuarios**: nuevos roles `seminario_admin`, `seminario_docente`, `seminario_estudiante` agregados al enum `app_role`. Se mapean en `permissions.ts` y en `RoleGuard`.
-- **Zoom API**: edge function `zoom-create-meeting` que usa OAuth Server-to-Server. Requiere 3 secretos: `ZOOM_ACCOUNT_ID`, `ZOOM_CLIENT_ID`, `ZOOM_CLIENT_SECRET`. Al crear una `sem_oferta` con modalidad virtual, llama a la función y guarda `join_url`, `meeting_id`, `password` en `sem_zoom_sesiones`. Botón "Crear sala Zoom" en el form. Link manual sigue disponible como fallback.
-- **Certificados**: nueva plantilla `seminario-diploma` en el módulo Certificados existente. Trigger: cuando el estudiante completa los 8 semestres con todas las materias aprobadas (nota ≥ 3.0), un trigger SQL inserta en `certificados` y notifica al estudiante. Generación PDF reutiliza `jsPDF` con plantilla diploma horizontal.
+### 6. Biblioteca Digital
+CRUD sobre `sem_recursos` por programa/materia: tipo (PDF, video, link, audio), título, descripción, URL/archivo (bucket `recursos-academicos` existente), restricción (público a estudiantes activos / solo staff / solo docente). Filtros + búsqueda + tarjetas.
 
-## Submódulos (rutas dentro de `/academia/seminario`)
+### 7. Certificados (Seminario)
+Plantilla nueva en `certificados` con `tipo_certificado='seminario_diploma'`. Generación:
+- **Manual** desde lista de inscripciones aprobadas (botón "Emitir diploma")
+- **Automática** vía edge function `sem-emitir-diploma` invocada cuando se cierra el último semestre con todas las materias aprobadas (la chequea `sem_calificaciones` al guardar nota final)
+- PDF con jsPDF: nombre, programa, total créditos, promedio, fecha, QR a `/verificar-academico/:id` (ya existe)
+- Lista por estudiante con descarga individual + lote (ya implementado en EstudiantesSection — se enlazará desde aquí)
 
-1. **Dashboard Académico** — KPIs (matriculados, retención, promedio general, mora), gráficos por semestre, próximas evaluaciones, alertas (inasistencia, mora, prerrequisitos)
-2. **Programas** — CRUD de programas (inicial: Teología Bíblica y Ministerial, 8 sem, créditos totales)
-3. **Pensum Académico** — Editor visual del pensum por programa, drag de materias por semestre, definición de prerrequisitos
-4. **Materias** — Catálogo del programa, créditos, intensidad horaria, descripción, docente sugerido
-5. **Aula Virtual** — Vista por materia: link Zoom, recursos, anuncios, lista de estudiantes, próxima clase
-6. **Evaluaciones** — Crear quices/parciales/finales por cursada, peso porcentual, fechas, publicación
-7. **Calificaciones** — Captura de notas por evaluación, cálculo automático de definitiva, vista estudiante (kárdex), reporte por materia
-8. **Asistencia** — Registro manual o QR (reutiliza `QrAttendanceScanner`), reporte por materia/estudiante, alertas de inasistencias
-9. **Biblioteca Digital** — Repositorio de PDFs, videos, links por materia o programa; bucket nuevo `seminario-biblioteca`
-10. **Certificados** — Vista de diplomas generados, descarga, verificación pública por QR (reutiliza módulo existente)
-11. **Docentes** — Gestión de docentes seminario, asignación a materias, carga horaria
-12. **Reportes** — Reportes consolidados: promedio acumulado por estudiante, retención por semestre, tasas de aprobación, mora académica, kárdex PDF descargable
+### 8. Reportes
+Pestañas:
+- **Académico**: promedio por programa/periodo, tasa de aprobación por materia, materias con mayor reprobación
+- **Retención**: estudiantes activos vs retirados por semestre (cohortes)
+- **Asistencia**: promedio de asistencia por materia, top materias con inasistencia
+- **Financiero (mora)**: pendientes de pago > 30 días, monto total por concepto (lee `sem_pagos_inscripcion`)
+- **Kárdex masivo**: selector multi y exporta PDFs (reusa `seminarioPdf.ts`)
 
-## Malla curricular visual
+Filtros globales por programa, periodo, sede. Exportable a Excel/PDF con `exportUtils.ts`.
 
-Componente `PensumGrid.tsx`: grilla 8 columnas × N filas, cada celda es una materia con código, nombre, créditos, color por área. Líneas conectoras (SVG) para prerrequisitos. Modo edición (admin) drag & drop, modo vista (estudiante) con check verde por materia aprobada, gris por cursando, rojo por reprobada/pendiente prerrequisito.
+### 9. Dashboard
+KPIs en cards + gráficos (recharts):
+- Estudiantes activos por programa
+- Promedio general acumulado
+- % mora
+- Próximas evaluaciones (próximos 7 días)
+- Materias con asistencia baja
+- Últimos certificados emitidos
 
-## Promedio acumulado
+## Cambios de BD (mínimos)
 
-Función SQL `sem_calcular_promedio(persona_id, programa_id)`:
-```text
-promedio = SUM(nota_final * creditos) / SUM(creditos)
-```
-Trigger al insertar/actualizar `sem_calificaciones` actualiza un campo cached `promedio_acumulado` en `sem_inscripciones` para evitar recalcular en cada query.
+Migración única con 2 tablas nuevas y 1 función:
+- `sem_anuncios` (oferta_id, autor_user_id, titulo, mensaje, created_at) + RLS staff+docente escribe / matriculados leen
+- `sem_kardex_cache` opcional (vista materializada para reportes pesados) — solo si Reportes resulta lento
+- Función `sem_recalcular_inscripcion(persona_id, programa_id)` que recalcula promedio/créditos/estado de la inscripción y retorna si completó el programa
 
-## Control de prerrequisitos
+GRANTs + RLS en el bloque estándar.
 
-Antes de inscribir una materia, función `sem_puede_inscribir(persona_id, materia_id)` valida que todos los prerrequisitos estén aprobados (nota ≥ 3.0). Si falla, devuelve la lista de pendientes y el front bloquea el chip.
+## Permisos (extender `permissions.ts`)
 
-## Fases de entrega
+Nuevas acciones:
+- `seminario:evaluacion_crud` — staff + docente asignado
+- `seminario:calificacion_edit` — staff + docente asignado
+- `seminario:asistencia_edit` — staff + docente asignado
+- `seminario:biblioteca_crud` — staff + docente
+- `seminario:certificar` — ya existe
+- `seminario:reportes` — staff
+- `seminario:anuncios_crud` — staff + docente
 
-Por el tamaño real (≈15 tablas, ≈12 páginas nuevas, 1 edge function Zoom, integración tesorería + certificados), divido en **4 PRs encadenados**. Cada fase queda funcional y desplegable. Total estimado: 4 turnos de construcción.
+## Arquitectura técnica
 
-### Fase 1 — Cimientos (este turno)
-- Migración SQL con las 15 tablas + RLS + grants + roles nuevos
-- Hooks base (`useProgramas`, `usePensum`, `useMaterias`, `useOfertas`, `useInscripciones`)
-- Página `/academia/seminario` con sub-tabs vacíos
-- CRUD de **Programas**, **Pensum** (editor visual), **Materias** (con prerrequisitos)
-- Seed del programa "Teología Bíblica y Ministerial" con los 8 semestres vacíos
-- Carga del pensum real **cuando envíes el Excel/PDF**
+- Hooks nuevos en `useSeminario.ts` (mismas convenciones: react-query + invalidate al editar). Hooks: `useDocentes`, `useOfertaDetalle`, `useEvaluaciones`, `useCalificacionesMatriz`, `useAsistenciaOferta`, `useRecursos`, `useDiplomaSeminario`, `useReportesAcademicos`, `useDashboardKpis`.
+- Componentes:
+  - `src/components/seminario/DocentesSection.tsx`
+  - `src/components/seminario/AulaVirtualSection.tsx`
+  - `src/components/seminario/EvaluacionesSection.tsx`
+  - `src/components/seminario/CalificacionesSection.tsx`
+  - `src/components/seminario/AsistenciaSection.tsx`
+  - `src/components/seminario/BibliotecaSection.tsx`
+  - `src/components/seminario/CertificadosSection.tsx`
+  - `src/components/seminario/ReportesSection.tsx`
+  - `src/components/seminario/DashboardSection.tsx`
+- Edge function: `sem-emitir-diploma` (opcional, server-side genera código único + audit log + dispara correo).
+- Auditoría: log en `sem_audit_log` para `evaluacion.crud`, `calificacion.guardada`, `asistencia.guardada`, `recurso.crud`, `diploma.emitido`, `anuncio.crud`.
+- Exportación: reusa `exportUtils.ts`, `seminarioPdf.ts`, `jsPDF + autoTable`.
 
-### Fase 2 — Operación lectiva
-- **Inscripción por semestre** (wizard con control prerrequisitos + check mora tesorería)
-- **Docentes** (gestión + asignación)
-- **Aula Virtual** + integración Zoom (link manual primero, API después)
-- **Asistencia**
-- Edge function `zoom-create-meeting` (necesita secretos al inicio de la fase)
+## Entrega por fases (para no romper nada)
 
-### Fase 3 — Evaluación
-- **Evaluaciones** (crear ítems calificables por cursada)
-- **Calificaciones** (captura + cálculo definitiva + promedio acumulado)
-- **Biblioteca Digital** (bucket + CRUD)
+| Fase | Módulos | Riesgo |
+|------|---------|--------|
+| 2A | Docentes + Evaluaciones + Calificaciones + función de recálculo | Medio (toca cálculo de promedio) |
+| 2B | Asistencia + Aula Virtual + Anuncios | Bajo |
+| 2C | Biblioteca + Certificados (auto) + edge fn diploma | Bajo |
+| 2D | Reportes + Dashboard | Bajo |
 
-### Fase 4 — Cierre académico
-- **Dashboard Académico** con todos los KPIs reales
-- **Reportes** completos (kárdex PDF, retención, aprobación, mora)
-- **Certificados automáticos** (trigger + plantilla diploma)
-- Verificación pública por QR
+Cada fase queda navegable y testeable al terminar. Ningún placeholder restante después de 2D.
 
-## Prerrequisitos antes de Fase 2
+## Fuera de alcance
 
-1. Subir el **pensum real en Excel o PDF** (materias por semestre con créditos y prerrequisitos) para cargarlo como seed en la migración de Fase 1.
-2. Para Zoom API real (Fase 2), necesito que crees una app **Server-to-Server OAuth** en marketplace.zoom.us y me suministres `ZOOM_ACCOUNT_ID`, `ZOOM_CLIENT_ID`, `ZOOM_CLIENT_SECRET` cuando empecemos Fase 2.
+- Integración Zoom API real (depende de los 3 secretos, ya hay UI de configuración).
+- Pagos con pasarela (solo registro manual, ya existe).
+- App móvil dedicada (todo responsive web).
 
-## Lo que NO se hace
+## Preguntas antes de empezar
 
-- No se modifican `cursos`, `materias`, `matriculas` actuales
-- No se borra ni migra data existente de Discipulado
-- No se cambia el diseño visual ni la navegación principal
-- No se sube a producción cada fase sin que valides
+Si confirmas, arranco con **Fase 2A**. Pero antes necesito 2 definiciones:
 
-¿Apruebas el plan para arrancar con **Fase 1**? Adjunta el pensum si lo tienes a mano para incluirlo en el seed.
+1. **Escala de notas**: ¿0–5 (estándar Colombia, aprobado ≥3.0) o 0–100? Tengo asumido 0–5.
+2. **Plantilla del diploma**: ¿usamos el diseño del módulo Certificados que ya existe (jsPDF con escudo CMG) o quieres uno específico para Seminario con campos extra (promedio, créditos, código de verificación)?
