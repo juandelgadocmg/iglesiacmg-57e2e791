@@ -26,6 +26,7 @@ import ConfiguracionPage from "@/pages/ConfiguracionPage";
 import ChatPage from "@/pages/ChatPage";
 import ResetPasswordPage from "@/pages/ResetPasswordPage";
 import CheckInPage from "@/pages/CheckInPage";
+import VerificarAcademicoPage from "@/pages/VerificarAcademicoPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -59,6 +60,7 @@ const App = () => (
               <Route path="/usuarios" element={<RoleGuard><UsuariosPage /></RoleGuard>} />
               <Route path="/configuracion" element={<RoleGuard><ConfiguracionPage /></RoleGuard>} />
               <Route path="/chat" element={<ChatPage />} />
+              <Route path="/verificar-academico/:id" element={<VerificarAcademicoPage />} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>
