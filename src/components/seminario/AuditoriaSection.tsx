@@ -250,6 +250,7 @@ export default function AuditoriaSection() {
                   <SelectItem value="zoom">Zoom</SelectItem>
                   <SelectItem value="matricula">Matrícula / Inscripción</SelectItem>
                   <SelectItem value="kardex">Kárdex</SelectItem>
+                  <SelectItem value="academico">Académico (evaluación/notas/asistencia)</SelectItem>
                 </SelectContent>
               </Select>
             </div>
