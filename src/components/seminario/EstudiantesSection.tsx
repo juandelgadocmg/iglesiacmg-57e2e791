@@ -227,6 +227,64 @@ export default function EstudiantesSection() {
           })}
         </div>
       )}
+
+      {/* Diálogo de progreso de exportación masiva */}
+      <Dialog open={batchOpen} onOpenChange={(o) => { if (!batchRunning) setBatchOpen(o); }}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>{batchModo === "certificado" ? "Generando certificados" : "Generando kárdex"}</DialogTitle>
+          </DialogHeader>
+          {(() => {
+            const total = batchItems.length;
+            const done = batchItems.filter(b => b.status === "ok").length;
+            const err = batchItems.filter(b => b.status === "error").length;
+            const skip = batchItems.filter(b => b.status === "omitido").length;
+            const pct = total ? Math.round(((done + err + skip) / total) * 100) : 0;
+            return (
+              <div className="space-y-3">
+                <Progress value={pct} className="h-2" />
+                <div className="flex justify-between text-xs">
+                  <span>{done + err + skip} / {total}</span>
+                  <div className="flex gap-2">
+                    <Badge variant="outline" className="text-green-700 border-green-600">{done} ok</Badge>
+                    {skip > 0 && <Badge variant="outline" className="text-amber-700 border-amber-600">{skip} omitidos</Badge>}
+                    {err > 0 && <Badge variant="destructive">{err} errores</Badge>}
+                  </div>
+                </div>
+                <div className="max-h-64 overflow-y-auto border rounded text-xs divide-y">
+                  {batchItems.map(b => (
+                    <div key={b.insId} className="flex items-center justify-between gap-2 px-2 py-1.5">
+                      <span className="truncate">{b.nombre}</span>
+                      <span className={
+                        b.status === "ok" ? "text-green-600" :
+                        b.status === "error" ? "text-destructive" :
+                        b.status === "omitido" ? "text-amber-600" :
+                        b.status === "procesando" ? "text-primary" : "text-muted-foreground"
+                      }>
+                        {b.status === "ok" && "✓ Generado"}
+                        {b.status === "error" && `✗ ${b.error || "Error"}`}
+                        {b.status === "omitido" && `⊘ ${b.error || "Omitido"}`}
+                        {b.status === "procesando" && "Procesando…"}
+                        {b.status === "pendiente" && "Pendiente"}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+                <div className="flex justify-end gap-2">
+                  {err > 0 && !batchRunning && (
+                    <Button size="sm" variant="outline" onClick={reintentarFallidos}>
+                      Reintentar {err} fallidos
+                    </Button>
+                  )}
+                  <Button size="sm" variant="ghost" disabled={batchRunning} onClick={() => setBatchOpen(false)}>
+                    {batchRunning ? "Procesando…" : "Cerrar"}
+                  </Button>
+                </div>
+              </div>
+            );
+          })()}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
