@@ -26,6 +26,11 @@ const ACTIONS = [
   { value: "matricula.creada", label: "Matrícula creada" },
   { value: "matricula.eliminada", label: "Matrícula eliminada" },
   { value: "matricula.actualizada", label: "Matrícula actualizada" },
+  { value: "evaluacion.creada", label: "Evaluación creada" },
+  { value: "evaluacion.editada", label: "Evaluación editada" },
+  { value: "evaluacion.eliminada", label: "Evaluación eliminada" },
+  { value: "calificacion.guardada", label: "Calificaciones guardadas" },
+  { value: "asistencia.guardada", label: "Asistencia guardada" },
 ];
 
 const ACTION_GROUPS: Record<string, string[]> = {
@@ -33,6 +38,7 @@ const ACTION_GROUPS: Record<string, string[]> = {
   zoom: ["zoom.regenerado"],
   matricula: ["matricula.creada", "matricula.eliminada", "matricula.actualizada", "inscripcion.creada", "inscripcion.eliminada"],
   kardex: ["kardex.descargado"],
+  academico: ["evaluacion.creada", "evaluacion.editada", "evaluacion.eliminada", "calificacion.guardada", "asistencia.guardada"],
 };
 
 const PAGE_SIZE = 25;
@@ -244,6 +250,7 @@ export default function AuditoriaSection() {
                   <SelectItem value="zoom">Zoom</SelectItem>
                   <SelectItem value="matricula">Matrícula / Inscripción</SelectItem>
                   <SelectItem value="kardex">Kárdex</SelectItem>
+                  <SelectItem value="academico">Académico (evaluación/notas/asistencia)</SelectItem>
                 </SelectContent>
               </Select>
             </div>

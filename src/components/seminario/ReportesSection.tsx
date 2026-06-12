@@ -17,7 +17,7 @@ export default function ReportesSection() {
   const effProg = programaId || (programas as any[])?.[0]?.id || "";
   const { data: periodos } = usePeriodos(effProg);
   const [periodoId, setPeriodoId] = useState("");
-  const { data: registros = [] } = useReportesAcademicos(effProg || undefined, periodoId || undefined);
+  const { data: registros = [], isLoading: loadingRep } = useReportesAcademicos(effProg || undefined, periodoId || undefined);
   const [q, setQ] = useState("");
   const [page, setPage] = useState(1);
   const PAGE_SIZE = 10;
@@ -126,6 +126,15 @@ export default function ReportesSection() {
         <Card><CardContent className="p-3"><p className="text-xs text-muted-foreground">% Aprobación gral</p><p className="text-2xl font-bold">{byMateria.length ? Math.round(byMateria.reduce((a, b) => a + b.tasaApr, 0) / byMateria.length) : 0}%</p></CardContent></Card>
       </div>
 
+      {loadingRep ? (
+        <Card><CardContent className="p-4 space-y-2">
+          {Array.from({ length: 6 }).map((_, i) => <div key={i} className="h-10 bg-muted rounded animate-pulse" />)}
+        </CardContent></Card>
+      ) : !registros.length ? (
+        <Card><CardContent className="p-8 text-center text-sm text-muted-foreground">
+          No hay registros académicos para los filtros seleccionados. Ajusta programa o periodo para ver datos.
+        </CardContent></Card>
+      ) : (
       <Tabs defaultValue="aprobacion">
         <TabsList>
           <TabsTrigger value="aprobacion"><TrendingUp className="h-3.5 w-3.5 mr-1" />Aprobación por materia</TabsTrigger>
@@ -203,6 +212,7 @@ export default function ReportesSection() {
           )}
         </TabsContent>
       </Tabs>
+      )}
     </div>
   );
 }

@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Save, Calculator, Search, ChevronLeft, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
 import { useCan } from "@/hooks/useCan";
+import { logSemAudit } from "@/lib/seminarioAudit";
 
 export default function CalificacionesSection() {
   const can = useCan();
@@ -21,7 +22,7 @@ export default function CalificacionesSection() {
   const { data: ofertas } = useOfertas(effPer, effProg);
   const [ofertaId, setOfertaId] = useState("");
   const effOf = ofertaId || (ofertas as any[])?.[0]?.id || "";
-  const { data } = useCalificacionesMatriz(effOf);
+  const { data, isLoading: loadingMatriz } = useCalificacionesMatriz(effOf);
   const save = useSaveCalificacion();
   const recalc = useRecalcularNotaFinal();
   const [dirty, setDirty] = useState<Record<string, string>>({});
@@ -79,6 +80,11 @@ export default function CalificacionesSection() {
         await recalc.mutateAsync({ inscripcion_materia_id: imId });
       }
       setDirty({});
+      logSemAudit({
+        action: "calificacion.guardada",
+        oferta_id: effOf,
+        details: { cambios: entries.length, estudiantes_afectados: imIdsAfectadas.size, materia: ofertaSel?.sem_materias?.codigo },
+      });
       toast.success("Notas guardadas y recalculadas");
     } catch (e: any) { toast.error(e.message); }
   };
@@ -126,6 +132,10 @@ export default function CalificacionesSection() {
 
       {!effOf ? (
         <Card><CardContent className="p-6 text-center text-sm text-muted-foreground">Selecciona una materia.</CardContent></Card>
+      ) : loadingMatriz ? (
+        <Card><CardContent className="p-4 space-y-2">
+          {Array.from({ length: 6 }).map((_, i) => <div key={i} className="h-8 bg-muted rounded animate-pulse" />)}
+        </CardContent></Card>
       ) : !data?.estudiantes?.length ? (
         <Card><CardContent className="p-6 text-center text-sm text-muted-foreground">Sin estudiantes matriculados en esta oferta.</CardContent></Card>
       ) : !data.evaluaciones.length ? (

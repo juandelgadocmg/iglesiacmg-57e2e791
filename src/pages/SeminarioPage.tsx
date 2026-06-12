@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import PageHeader from "@/components/shared/PageHeader";
 import {
@@ -42,7 +43,23 @@ const SIDEBAR = [
 ];
 
 export default function SeminarioPage() {
-  const [section, setSection] = useState("dashboard");
+  const [params, setParams] = useSearchParams();
+  const validIds = SIDEBAR.map(s => s.id);
+  const urlTab = params.get("tab");
+  const section = urlTab && validIds.includes(urlTab) ? urlTab : "dashboard";
+  const setSection = (id: string) => {
+    const next = new URLSearchParams(params);
+    next.set("tab", id);
+    setParams(next, { replace: false });
+  };
+  useEffect(() => {
+    if (!urlTab) {
+      const next = new URLSearchParams(params);
+      next.set("tab", "dashboard");
+      setParams(next, { replace: true });
+    }
+  }, []); // eslint-disable-line
+
 
   return (
     <div className="flex flex-col h-full">

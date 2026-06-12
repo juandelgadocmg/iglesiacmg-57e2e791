@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Save, UserCheck } from "lucide-react";
 import { toast } from "sonner";
 import { useCan } from "@/hooks/useCan";
+import { logSemAudit } from "@/lib/seminarioAudit";
 
 const ESTADOS = [
   { v: "presente", l: "Presente", color: "default" },
@@ -29,7 +30,7 @@ export default function AsistenciaSection() {
   const [ofertaId, setOfertaId] = useState("");
   const effOf = ofertaId || (ofertas as any[])?.[0]?.id || "";
   const [fecha, setFecha] = useState(new Date().toISOString().slice(0, 10));
-  const { data } = useAsistenciaOferta(effOf, fecha);
+  const { data, isLoading: loadingAsist } = useAsistenciaOferta(effOf, fecha);
   const save = useSaveAsistencia();
   const [local, setLocal] = useState<Record<string, { estado: string; observacion?: string }>>({});
 
@@ -52,6 +53,8 @@ export default function AsistenciaSection() {
     }));
     try {
       await save.mutateAsync(rows as any);
+      const counts = rows.reduce<Record<string, number>>((acc, r) => { acc[r.estado] = (acc[r.estado] || 0) + 1; return acc; }, {});
+      logSemAudit({ action: "asistencia.guardada", oferta_id: effOf, details: { fecha, total: rows.length, conteos: counts } });
       toast.success("Asistencia guardada");
     } catch (e: any) { toast.error(e.message); }
   };
@@ -92,6 +95,10 @@ export default function AsistenciaSection() {
 
       {!effOf ? (
         <Card><CardContent className="p-6 text-center text-sm text-muted-foreground">Selecciona una materia.</CardContent></Card>
+      ) : loadingAsist ? (
+        <Card><CardContent className="p-4 space-y-2">
+          {Array.from({ length: 5 }).map((_, i) => <div key={i} className="h-10 bg-muted rounded animate-pulse" />)}
+        </CardContent></Card>
       ) : !data?.estudiantes?.length ? (
         <Card><CardContent className="p-6 text-center text-sm text-muted-foreground">Sin estudiantes matriculados.</CardContent></Card>
       ) : (

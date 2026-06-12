@@ -11,6 +11,7 @@ import { Plus, Pencil, Trash2, Eye, EyeOff, AlertTriangle, Search, ChevronLeft, 
 import { toast } from "sonner";
 import DeleteConfirmDialog from "@/components/shared/DeleteConfirmDialog";
 import { useCan } from "@/hooks/useCan";
+import { logSemAudit } from "@/lib/seminarioAudit";
 
 const TIPOS = [
   { v: "quiz", l: "Quiz" },
@@ -32,7 +33,7 @@ export default function EvaluacionesSection() {
   const { data: ofertas } = useOfertas(effPer, effProg);
   const [ofertaId, setOfertaId] = useState("");
   const effOf = ofertaId || (ofertas as any[])?.[0]?.id || "";
-  const { data: evaluaciones } = useEvaluaciones(effOf);
+  const { data: evaluaciones, isLoading: loadingEvals } = useEvaluaciones(effOf);
   const upsert = useUpsertEvaluacion();
   const del = useDeleteEvaluacion();
   const [editing, setEditing] = useState<any>(null);
@@ -58,7 +59,13 @@ export default function EvaluacionesSection() {
 
   const handleSave = async (f: any) => {
     try {
-      await upsert.mutateAsync({ ...f, oferta_id: effOf });
+      const isEdit = !!f.id;
+      const saved = await upsert.mutateAsync({ ...f, oferta_id: effOf });
+      logSemAudit({
+        action: isEdit ? "evaluacion.editada" : "evaluacion.creada",
+        oferta_id: effOf,
+        details: { evaluacion_id: (saved as any)?.id, nombre: f.nombre, tipo: f.tipo, peso: f.peso },
+      });
       toast.success("Evaluación guardada");
       setEditing(null);
     } catch (e: any) { toast.error(e.message); }
@@ -137,8 +144,14 @@ export default function EvaluacionesSection() {
 
       {!effOf ? (
         <Card><CardContent className="p-6 text-center text-sm text-muted-foreground">Selecciona una materia para gestionar sus evaluaciones.</CardContent></Card>
+      ) : loadingEvals ? (
+        <div className="grid gap-2 md:grid-cols-2">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <Card key={i}><CardContent className="p-3"><div className="h-4 w-1/2 bg-muted rounded animate-pulse mb-2" /><div className="h-3 w-1/3 bg-muted rounded animate-pulse" /></CardContent></Card>
+          ))}
+        </div>
       ) : filtradas.length === 0 ? (
-        <Card><CardContent className="p-6 text-center text-sm text-muted-foreground">Sin evaluaciones que coincidan con los filtros.</CardContent></Card>
+        <Card><CardContent className="p-6 text-center text-sm text-muted-foreground">{(evaluaciones || []).length === 0 ? "Aún no hay evaluaciones para esta materia. Crea la primera con el botón \"Nueva\"." : "Sin evaluaciones que coincidan con los filtros."}</CardContent></Card>
       ) : (
         <>
         <div className="grid gap-2 md:grid-cols-2">
@@ -161,7 +174,7 @@ export default function EvaluacionesSection() {
                       <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => setEditing(e)}>
                         <Pencil className="h-3.5 w-3.5" />
                       </Button>
-                      <DeleteConfirmDialog onConfirm={async () => { await del.mutateAsync(e.id); toast.success("Eliminada"); }}
+                      <DeleteConfirmDialog onConfirm={async () => { await del.mutateAsync(e.id); logSemAudit({ action: "evaluacion.eliminada", oferta_id: effOf, details: { evaluacion_id: e.id, nombre: e.nombre } }); toast.success("Eliminada"); }}
                         trigger={<Button size="icon" variant="ghost" className="h-7 w-7 text-destructive"><Trash2 className="h-3.5 w-3.5" /></Button>} />
                     </>
                   )}
