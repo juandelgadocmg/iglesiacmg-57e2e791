@@ -4,7 +4,6 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { NOTIF_PREF_KEYS, useNotificationPreferences, useSetNotificationPreference, useRoleNotificationPreferences, useSetRoleNotificationPreference } from "@/hooks/useNotificationPreferences";
-import { useCan } from "@/hooks/useCan";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -16,8 +15,6 @@ export default function NotificacionesPreferencias() {
   const setPref = useSetNotificationPreference();
   const { data: rolePrefs } = useRoleNotificationPreferences();
   const setRolePref = useSetRoleNotificationPreference();
-  const can = useCan();
-  const isAdmin = can("usuarios:gestionar") || can("configuracion:editar");
 
   const { data: roleList } = useQuery({
     queryKey: ["my-roles"],
