@@ -1,4 +1,6 @@
 import { useState, useEffect } from "react";
+import { useUrlParam } from "@/hooks/useUrlParam";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useProgramas, usePeriodos, useOfertas, useAsistenciaOferta, useSaveAsistencia } from "@/hooks/useSeminario";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -21,18 +23,20 @@ export default function AsistenciaSection() {
   const can = useCan();
   const canEdit = can("seminario:asistencia_edit");
   const { data: programas } = useProgramas();
-  const [programaId, setProgramaId] = useState("");
+  const [programaId, setProgramaId] = useUrlParam("as_prog");
   const effProg = programaId || programas?.[0]?.id || "";
   const { data: periodos } = usePeriodos(effProg);
-  const [periodoId, setPeriodoId] = useState("");
+  const [periodoId, setPeriodoId] = useUrlParam("as_per");
   const effPer = periodoId || periodos?.[0]?.id || "";
   const { data: ofertas } = useOfertas(effPer, effProg);
-  const [ofertaId, setOfertaId] = useState("");
+  const [ofertaId, setOfertaId] = useUrlParam("as_of");
   const effOf = ofertaId || (ofertas as any[])?.[0]?.id || "";
-  const [fecha, setFecha] = useState(new Date().toISOString().slice(0, 10));
+  const today = new Date().toISOString().slice(0, 10);
+  const [fecha, setFecha] = useUrlParam("as_fecha", today);
   const { data, isLoading: loadingAsist } = useAsistenciaOferta(effOf, fecha);
   const save = useSaveAsistencia();
   const [local, setLocal] = useState<Record<string, { estado: string; observacion?: string }>>({});
+  const [detalle, setDetalle] = useState<any>(null);
 
   useEffect(() => {
     const init: Record<string, any> = {};
