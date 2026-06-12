@@ -1,4 +1,5 @@
-import { useState, useMemo } from "react";
+import { useMemo } from "react";
+import { useUrlParam, useUrlNumber } from "@/hooks/useUrlParam";
 import { useReportesAcademicos, useProgramas, usePeriodos } from "@/hooks/useSeminario";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -13,13 +14,13 @@ import { toast } from "sonner";
 
 export default function ReportesSection() {
   const { data: programas } = useProgramas();
-  const [programaId, setProgramaId] = useState("");
+  const [programaId, setProgramaId] = useUrlParam("rep_prog");
   const effProg = programaId || (programas as any[])?.[0]?.id || "";
   const { data: periodos } = usePeriodos(effProg);
-  const [periodoId, setPeriodoId] = useState("");
+  const [periodoId, setPeriodoId] = useUrlParam("rep_per");
   const { data: registros = [], isLoading: loadingRep } = useReportesAcademicos(effProg || undefined, periodoId || undefined);
-  const [q, setQ] = useState("");
-  const [page, setPage] = useState(1);
+  const [q, setQ] = useUrlParam("rep_q");
+  const [page, setPage] = useUrlNumber("rep_page", 1);
   const PAGE_SIZE = 10;
 
   const byMateria = useMemo(() => {
@@ -205,9 +206,9 @@ export default function ReportesSection() {
           </CardContent></Card>
           {totalPages > 1 && (
             <div className="flex items-center justify-center gap-2 pt-2">
-              <Button size="sm" variant="outline" onClick={() => setPage(p => Math.max(1, p - 1))} disabled={safePage === 1}><ChevronLeft className="h-3.5 w-3.5" /></Button>
+              <Button size="sm" variant="outline" onClick={() => setPage(Math.max(1, safePage - 1))} disabled={safePage === 1}><ChevronLeft className="h-3.5 w-3.5" /></Button>
               <span className="text-xs">Página {safePage} de {totalPages} ({filtradas.length} materias)</span>
-              <Button size="sm" variant="outline" onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={safePage === totalPages}><ChevronRight className="h-3.5 w-3.5" /></Button>
+              <Button size="sm" variant="outline" onClick={() => setPage(Math.min(totalPages, safePage + 1))} disabled={safePage === totalPages}><ChevronRight className="h-3.5 w-3.5" /></Button>
             </div>
           )}
         </TabsContent>

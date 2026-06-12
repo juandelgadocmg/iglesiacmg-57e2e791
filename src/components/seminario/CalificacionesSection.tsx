@@ -1,4 +1,6 @@
 import { useState, useMemo } from "react";
+import { useUrlParam, useUrlNumber } from "@/hooks/useUrlParam";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useProgramas, usePeriodos, useOfertas, useCalificacionesMatriz, useSaveCalificacion, useRecalcularNotaFinal } from "@/hooks/useSeminario";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -14,21 +16,22 @@ export default function CalificacionesSection() {
   const can = useCan();
   const canEdit = can("seminario:calificacion_edit");
   const { data: programas } = useProgramas();
-  const [programaId, setProgramaId] = useState("");
+  const [programaId, setProgramaId] = useUrlParam("cal_prog");
   const effProg = programaId || programas?.[0]?.id || "";
   const { data: periodos } = usePeriodos(effProg);
-  const [periodoId, setPeriodoId] = useState("");
+  const [periodoId, setPeriodoId] = useUrlParam("cal_per");
   const effPer = periodoId || periodos?.[0]?.id || "";
   const { data: ofertas } = useOfertas(effPer, effProg);
-  const [ofertaId, setOfertaId] = useState("");
+  const [ofertaId, setOfertaId] = useUrlParam("cal_of");
   const effOf = ofertaId || (ofertas as any[])?.[0]?.id || "";
   const { data, isLoading: loadingMatriz } = useCalificacionesMatriz(effOf);
   const save = useSaveCalificacion();
   const recalc = useRecalcularNotaFinal();
   const [dirty, setDirty] = useState<Record<string, string>>({});
-  const [q, setQ] = useState("");
-  const [filtroEstado, setFiltroEstado] = useState("_all");
-  const [page, setPage] = useState(1);
+  const [q, setQ] = useUrlParam("cal_q");
+  const [filtroEstado, setFiltroEstado] = useUrlParam("cal_est", "_all");
+  const [page, setPage] = useUrlNumber("cal_page", 1);
+  const [detalle, setDetalle] = useState<any>(null);
   const PAGE_SIZE = 15;
 
   const ofertaSel = (ofertas as any[] || []).find((o: any) => o.id === effOf);
@@ -196,7 +199,7 @@ export default function CalificacionesSection() {
                     const def = calcDefinitiva(im.id);
                     return (
                       <tr key={im.id} className="border-b hover:bg-muted/20">
-                        <td className="p-2 sticky left-0 bg-card font-medium">
+                        <td className="p-2 sticky left-0 bg-card font-medium cursor-pointer hover:underline" onClick={() => setDetalle({ im, persona: p, def: calcDefinitiva(im.id) })}>
                           {p?.nombres} {p?.apellidos}
                           <div className="text-[10px] text-muted-foreground font-normal">{p?.documento}</div>
                         </td>
@@ -233,9 +236,9 @@ export default function CalificacionesSection() {
           </Card>
           {tp > 1 && (
             <div className="flex items-center justify-center gap-2 pt-2">
-              <Button size="sm" variant="outline" onClick={() => setPage(p => Math.max(1, p - 1))} disabled={safePage === 1}><ChevronLeft className="h-3.5 w-3.5" /></Button>
+              <Button size="sm" variant="outline" onClick={() => setPage(Math.max(1, safePage - 1))} disabled={safePage === 1}><ChevronLeft className="h-3.5 w-3.5" /></Button>
               <span className="text-xs">Página {safePage} de {tp}</span>
-              <Button size="sm" variant="outline" onClick={() => setPage(p => Math.min(tp, p + 1))} disabled={safePage === tp}><ChevronRight className="h-3.5 w-3.5" /></Button>
+              <Button size="sm" variant="outline" onClick={() => setPage(Math.min(tp, safePage + 1))} disabled={safePage === tp}><ChevronRight className="h-3.5 w-3.5" /></Button>
             </div>
           )}
           </>
@@ -247,6 +250,43 @@ export default function CalificacionesSection() {
           <Calculator className="h-3 w-3" />Tienes {Object.keys(dirty).length} cambios sin guardar
         </p>
       )}
+
+      <Dialog open={!!detalle} onOpenChange={(v) => !v && setDetalle(null)}>
+        {detalle && (
+          <DialogContent>
+            <DialogHeader><DialogTitle>Calificaciones de {detalle.persona?.nombres} {detalle.persona?.apellidos}</DialogTitle></DialogHeader>
+            <div className="space-y-2 text-sm">
+              <div className="grid grid-cols-2 gap-2 text-xs">
+                <div><span className="text-muted-foreground">Documento:</span> {detalle.persona?.documento || "—"}</div>
+                <div><span className="text-muted-foreground">Materia:</span> {ofertaSel?.sem_materias?.nombre}</div>
+              </div>
+              <div className="border rounded divide-y">
+                {(data?.evaluaciones || []).map((e: any) => {
+                  const v = getNotaActual(detalle.im.id, e.id);
+                  const num = v === "" ? null : Number(v);
+                  return (
+                    <div key={e.id} className="p-2 flex items-center justify-between text-xs">
+                      <div>
+                        <div className="font-medium">{e.nombre}</div>
+                        <div className="text-[10px] text-muted-foreground">{e.tipo} · {e.peso}% · {e.fecha || "sin fecha"}</div>
+                      </div>
+                      <Badge variant={num != null && num >= 3 ? "default" : num != null ? "destructive" : "outline"}>
+                        {num != null ? num.toFixed(2) : "—"}
+                      </Badge>
+                    </div>
+                  );
+                })}
+              </div>
+              <div className="flex items-center justify-between pt-2 border-t">
+                <span className="text-xs text-muted-foreground">Nota definitiva</span>
+                {detalle.def != null
+                  ? <Badge variant={detalle.def >= 3 ? "default" : "destructive"} className="text-base">{detalle.def.toFixed(2)}</Badge>
+                  : <span className="text-xs text-muted-foreground">Incompleta</span>}
+              </div>
+            </div>
+          </DialogContent>
+        )}
+      </Dialog>
     </div>
   );
 }

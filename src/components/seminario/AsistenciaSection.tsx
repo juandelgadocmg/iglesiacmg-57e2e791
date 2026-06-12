@@ -1,4 +1,6 @@
 import { useState, useEffect } from "react";
+import { useUrlParam } from "@/hooks/useUrlParam";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useProgramas, usePeriodos, useOfertas, useAsistenciaOferta, useSaveAsistencia } from "@/hooks/useSeminario";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -21,18 +23,20 @@ export default function AsistenciaSection() {
   const can = useCan();
   const canEdit = can("seminario:asistencia_edit");
   const { data: programas } = useProgramas();
-  const [programaId, setProgramaId] = useState("");
+  const [programaId, setProgramaId] = useUrlParam("as_prog");
   const effProg = programaId || programas?.[0]?.id || "";
   const { data: periodos } = usePeriodos(effProg);
-  const [periodoId, setPeriodoId] = useState("");
+  const [periodoId, setPeriodoId] = useUrlParam("as_per");
   const effPer = periodoId || periodos?.[0]?.id || "";
   const { data: ofertas } = useOfertas(effPer, effProg);
-  const [ofertaId, setOfertaId] = useState("");
+  const [ofertaId, setOfertaId] = useUrlParam("as_of");
   const effOf = ofertaId || (ofertas as any[])?.[0]?.id || "";
-  const [fecha, setFecha] = useState(new Date().toISOString().slice(0, 10));
+  const today = new Date().toISOString().slice(0, 10);
+  const [fecha, setFecha] = useUrlParam("as_fecha", today);
   const { data, isLoading: loadingAsist } = useAsistenciaOferta(effOf, fecha);
   const save = useSaveAsistencia();
   const [local, setLocal] = useState<Record<string, { estado: string; observacion?: string }>>({});
+  const [detalle, setDetalle] = useState<any>(null);
 
   useEffect(() => {
     const init: Record<string, any> = {};
@@ -124,7 +128,7 @@ export default function AsistenciaSection() {
                   return (
                     <div key={im.id} className="p-3 flex items-center gap-3 flex-wrap">
                       <UserCheck className="h-4 w-4 text-muted-foreground" />
-                      <div className="min-w-0 flex-1">
+                      <div className="min-w-0 flex-1 cursor-pointer hover:underline" onClick={() => setDetalle({ im, persona: p, registro: data?.asistencias?.[im.id], current: cur })}>
                         <p className="text-sm font-medium">{p?.nombres} {p?.apellidos}</p>
                         <p className="text-[10px] text-muted-foreground">{p?.documento}</p>
                       </div>
@@ -147,6 +151,27 @@ export default function AsistenciaSection() {
           </Card>
         </>
       )}
+
+      <Dialog open={!!detalle} onOpenChange={(v) => !v && setDetalle(null)}>
+        {detalle && (
+          <DialogContent>
+            <DialogHeader><DialogTitle>Asistencia · {detalle.persona?.nombres} {detalle.persona?.apellidos}</DialogTitle></DialogHeader>
+            <div className="space-y-2 text-sm">
+              <div><span className="text-muted-foreground">Documento:</span> {detalle.persona?.documento || "—"}</div>
+              <div><span className="text-muted-foreground">Fecha:</span> {fecha}</div>
+              <div className="flex items-center gap-2">
+                <span className="text-muted-foreground">Estado:</span>
+                <Badge>{ESTADOS.find(e => e.v === detalle.current.estado)?.l || detalle.current.estado}</Badge>
+              </div>
+              <div><span className="text-muted-foreground">Observación:</span> {detalle.current.observacion || <span className="italic text-xs">Sin observación</span>}</div>
+              {detalle.registro?.created_at && (
+                <div className="text-xs text-muted-foreground border-t pt-2">Registro guardado: {new Date(detalle.registro.created_at).toLocaleString("es-CO")}</div>
+              )}
+              {!detalle.registro && <div className="text-xs text-amber-600 border-t pt-2">⚠ Aún no guardado en base de datos</div>}
+            </div>
+          </DialogContent>
+        )}
+      </Dialog>
     </div>
   );
 }

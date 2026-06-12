@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { useUrlParam, useUrlNumber } from "@/hooks/useUrlParam";
 import { useProgramas, usePeriodos, useOfertas, useEvaluaciones, useUpsertEvaluacion, useDeleteEvaluacion } from "@/hooks/useSeminario";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -25,21 +26,22 @@ export default function EvaluacionesSection() {
   const can = useCan();
   const canEdit = can("seminario:evaluacion_crud");
   const { data: programas } = useProgramas();
-  const [programaId, setProgramaId] = useState("");
+  const [programaId, setProgramaId] = useUrlParam("ev_prog");
   const effProg = programaId || programas?.[0]?.id || "";
   const { data: periodos } = usePeriodos(effProg);
-  const [periodoId, setPeriodoId] = useState("");
+  const [periodoId, setPeriodoId] = useUrlParam("ev_per");
   const effPer = periodoId || periodos?.[0]?.id || "";
   const { data: ofertas } = useOfertas(effPer, effProg);
-  const [ofertaId, setOfertaId] = useState("");
+  const [ofertaId, setOfertaId] = useUrlParam("ev_of");
   const effOf = ofertaId || (ofertas as any[])?.[0]?.id || "";
   const { data: evaluaciones, isLoading: loadingEvals } = useEvaluaciones(effOf);
   const upsert = useUpsertEvaluacion();
   const del = useDeleteEvaluacion();
   const [editing, setEditing] = useState<any>(null);
-  const [q, setQ] = useState("");
-  const [tipoFiltro, setTipoFiltro] = useState<string>("_all");
-  const [page, setPage] = useState(1);
+  const [detalle, setDetalle] = useState<any>(null);
+  const [q, setQ] = useUrlParam("ev_q");
+  const [tipoFiltro, setTipoFiltro] = useUrlParam("ev_tipo", "_all");
+  const [page, setPage] = useUrlNumber("ev_page", 1);
   const PAGE_SIZE = 8;
 
   const totalPeso = useMemo(() => (evaluaciones || []).reduce((a: number, e: any) => a + Number(e.peso || 0), 0), [evaluaciones]);
@@ -156,7 +158,7 @@ export default function EvaluacionesSection() {
         <>
         <div className="grid gap-2 md:grid-cols-2">
           {pageRows.map((e: any) => (
-            <Card key={e.id}>
+            <Card key={e.id} className="cursor-pointer hover:bg-muted/30 transition-colors" onClick={() => setDetalle(e)}>
               <CardContent className="p-3 flex items-start justify-between gap-2">
                 <div className="min-w-0">
                   <p className="font-medium text-sm">{e.nombre}</p>
@@ -165,7 +167,7 @@ export default function EvaluacionesSection() {
                     {e.peso}% · {e.fecha || "sin fecha"}
                   </p>
                 </div>
-                <div className="flex gap-1">
+                <div className="flex gap-1" onClick={(ev) => ev.stopPropagation()}>
                   <Badge variant={e.publicada ? "default" : "outline"} className="text-[10px]">
                     {e.publicada ? <><Eye className="h-3 w-3 mr-1" />Publicada</> : <><EyeOff className="h-3 w-3 mr-1" />Borrador</>}
                   </Badge>
@@ -185,13 +187,31 @@ export default function EvaluacionesSection() {
         </div>
         {totalPages > 1 && (
           <div className="flex items-center justify-center gap-2 pt-2">
-            <Button size="sm" variant="outline" onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}><ChevronLeft className="h-3.5 w-3.5" /></Button>
+            <Button size="sm" variant="outline" onClick={() => setPage(Math.max(1, page - 1))} disabled={page === 1}><ChevronLeft className="h-3.5 w-3.5" /></Button>
             <span className="text-xs">Página {page} de {totalPages}</span>
-            <Button size="sm" variant="outline" onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages}><ChevronRight className="h-3.5 w-3.5" /></Button>
+            <Button size="sm" variant="outline" onClick={() => setPage(Math.min(totalPages, page + 1))} disabled={page === totalPages}><ChevronRight className="h-3.5 w-3.5" /></Button>
           </div>
         )}
         </>
       )}
+
+      <Dialog open={!!detalle} onOpenChange={(v) => !v && setDetalle(null)}>
+        {detalle && (
+          <DialogContent>
+            <DialogHeader><DialogTitle>Detalle de evaluación</DialogTitle></DialogHeader>
+            <div className="space-y-2 text-sm">
+              <div><span className="text-muted-foreground">Nombre:</span> <span className="font-medium">{detalle.nombre}</span></div>
+              <div><span className="text-muted-foreground">Tipo:</span> <Badge variant="outline">{TIPOS.find(t => t.v === detalle.tipo)?.l || detalle.tipo}</Badge></div>
+              <div><span className="text-muted-foreground">Peso:</span> {detalle.peso}%</div>
+              <div><span className="text-muted-foreground">Fecha:</span> {detalle.fecha || "Sin fecha"}</div>
+              <div><span className="text-muted-foreground">Estado:</span> {detalle.publicada ? "Publicada (visible para estudiantes)" : "Borrador"}</div>
+              <div><span className="text-muted-foreground">Materia:</span> {ofertaSel?.sem_materias?.nombre || "—"}</div>
+              <div><span className="text-muted-foreground">Docente:</span> {ofertaSel?.docente_nombre || "Sin docente"}</div>
+              <div><span className="text-muted-foreground">ID:</span> <span className="font-mono text-xs">{detalle.id}</span></div>
+            </div>
+          </DialogContent>
+        )}
+      </Dialog>
     </div>
   );
 }
