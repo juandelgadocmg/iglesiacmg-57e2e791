@@ -169,6 +169,76 @@ export default function NotificacionesPreferencias() {
           </CardContent>
         </Card>
       )}
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Probar envío de notificaciones</CardTitle>
+          <CardDescription>Verifica si una alerta concreta llegaría a los usuarios de un rol o a un usuario específico, según sus preferencias actuales.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="grid gap-3 md:grid-cols-4">
+            <div>
+              <Label className="text-xs">Modo</Label>
+              <Select value={testMode} onValueChange={(v: any) => setTestMode(v)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="rol">Por rol</SelectItem>
+                  <SelectItem value="usuario">Por usuario</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label className="text-xs">Alerta</Label>
+              <Select value={testKey} onValueChange={setTestKey}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {NOTIF_PREF_KEYS.map(k => <SelectItem key={k.key} value={k.key}>{k.label}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            {testMode === "rol" ? (
+              <div>
+                <Label className="text-xs">Rol</Label>
+                <Select value={testRole} onValueChange={setTestRole}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {ROLES.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+            ) : (
+              <div className="md:col-span-1">
+                <Label className="text-xs">Nombre / email</Label>
+                <Input value={testEmail} onChange={e => setTestEmail(e.target.value)} placeholder="Buscar usuario..." />
+              </div>
+            )}
+            <div className="flex items-end">
+              <Button size="sm" onClick={runTest} disabled={testing} className="w-full">
+                <Send className="h-4 w-4 mr-1" />{testing ? "Probando..." : "Probar"}
+              </Button>
+            </div>
+          </div>
+
+          {testResults.length > 0 && (
+            <div className="border rounded p-2 max-h-72 overflow-y-auto">
+              <p className="text-xs font-semibold mb-2">
+                Resultado: {testResults.filter(r => r.ok).length} de {testResults.length} recibirían "{NOTIF_PREF_KEYS.find(k => k.key === testKey)?.label}"
+              </p>
+              <div className="space-y-1">
+                {testResults.map((r, idx) => (
+                  <div key={idx} className="flex items-center justify-between text-xs border-b last:border-0 py-1">
+                    <span className="font-medium">{r.target}</span>
+                    <span className={r.ok ? "text-green-600 flex items-center gap-1" : "text-destructive flex items-center gap-1"}>
+                      {r.ok ? <CheckCircle2 className="h-3.5 w-3.5" /> : <XCircle className="h-3.5 w-3.5" />}
+                      {r.reason}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }
