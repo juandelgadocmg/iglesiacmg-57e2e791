@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Award, Download, Search, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { useCan } from "@/hooks/useCan";
-import { generarKardexOCertificadoPDF } from "@/lib/seminarioPdf";
+import { exportKardexPdf } from "@/lib/seminarioPdf";
 import { logSemAudit } from "@/lib/seminarioAudit";
 
 const sb = supabase as any;
@@ -56,7 +56,29 @@ export default function CertificadosSection() {
 
   const handleDescargar = async (c: any) => {
     try {
-      await generarKardexOCertificadoPDF({ tipo: "certificado", persona_id: c.persona_id, codigo: c.codigo });
+      const { data: insc } = await sb.from("sem_inscripciones")
+        .select("id, promedio_acumulado, total_creditos_aprobados, programa_id, sem_programas(nombre)")
+        .eq("persona_id", c.persona_id).order("created_at", { ascending: false }).limit(1).maybeSingle();
+      const { data: ims } = await sb.from("sem_inscripcion_materias")
+        .select("estado, nota_final, sem_materias(codigo, nombre, creditos, semestre)")
+        .eq("inscripcion_id", insc?.id);
+      const rows = (ims || []).map((x: any) => ({
+        semestre: x.sem_materias?.semestre ?? 0,
+        codigo: x.sem_materias?.codigo ?? "",
+        nombre: x.sem_materias?.nombre ?? "",
+        creditos: x.sem_materias?.creditos ?? 0,
+        estado: x.estado, nota_final: x.nota_final,
+      }));
+      const totalCred = rows.reduce((a: number, r: any) => a + (r.creditos || 0), 0);
+      await exportKardexPdf({
+        estudiante: `${c.personas?.nombres || ""} ${c.personas?.apellidos || ""}`.trim(),
+        documento: c.personas?.documento,
+        programa: insc?.sem_programas?.nombre || "Seminario",
+        promedio: Number(insc?.promedio_acumulado || 0).toFixed(2),
+        creditosAprobados: insc?.total_creditos_aprobados || 0,
+        creditosTotales: totalCred,
+        rows, certificado: true, inscripcionId: insc?.id,
+      });
     } catch (e: any) { toast.error(e.message); }
   };
 
