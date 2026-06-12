@@ -315,6 +315,12 @@ function EstudianteDetalle({ ins, programa, onBack }: any) {
                               className="h-7 w-20 text-[10px]" />
                           </div>
                         )}
+                        {c?.sem_ofertas?.zoom_link && (
+                          <a href={c.sem_ofertas.zoom_link} target="_blank" rel="noopener noreferrer"
+                            className="mt-1.5 flex items-center gap-1 text-[10px] text-primary hover:underline">
+                            <Video className="h-3 w-3" />Aula virtual Zoom
+                          </a>
+                        )}
                       </div>
                     );
                   })}
