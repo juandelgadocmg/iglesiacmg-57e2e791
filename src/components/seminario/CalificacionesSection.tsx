@@ -236,9 +236,9 @@ export default function CalificacionesSection() {
           </Card>
           {tp > 1 && (
             <div className="flex items-center justify-center gap-2 pt-2">
-              <Button size="sm" variant="outline" onClick={() => setPage(p => Math.max(1, p - 1))} disabled={safePage === 1}><ChevronLeft className="h-3.5 w-3.5" /></Button>
+              <Button size="sm" variant="outline" onClick={() => setPage(Math.max(1, safePage - 1))} disabled={safePage === 1}><ChevronLeft className="h-3.5 w-3.5" /></Button>
               <span className="text-xs">Página {safePage} de {tp}</span>
-              <Button size="sm" variant="outline" onClick={() => setPage(p => Math.min(tp, p + 1))} disabled={safePage === tp}><ChevronRight className="h-3.5 w-3.5" /></Button>
+              <Button size="sm" variant="outline" onClick={() => setPage(Math.min(tp, safePage + 1))} disabled={safePage === tp}><ChevronRight className="h-3.5 w-3.5" /></Button>
             </div>
           )}
           </>
