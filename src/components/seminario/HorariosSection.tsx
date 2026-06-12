@@ -196,6 +196,7 @@ function PeriodoDialog({ onSave, pending }: any) {
 }
 
 function OfertaDialog({ ctx, personas, onSave, pending }: any) {
+  const canZoom = useCan()("seminario:zoom");
   const o = ctx.oferta || {};
   const [f, setF] = useState({
     id: o.id, materia_id: ctx.materia.id,
@@ -247,11 +248,12 @@ function OfertaDialog({ ctx, personas, onSave, pending }: any) {
             <Label>Link Zoom <span className="text-[10px] text-muted-foreground">(se genera automático si lo dejas vacío)</span></Label>
             <div className="flex gap-1">
               <Input value={f.zoom_link} onChange={e => setF({ ...f, zoom_link: e.target.value })} placeholder="Se generará al guardar" />
-              <Button type="button" size="sm" variant="outline" onClick={async () => {
-                const { generateZoomLink } = await import("@/lib/seminarioZoom");
-                const z = generateZoomLink({ docente: f.docente_nombre, materiaCodigo: ctx.materia.codigo, materiaId: ctx.materia.id });
-                setF({ ...f, zoom_link: z.url });
-              }}>Regenerar</Button>
+              {canZoom && (
+                <Button type="button" size="sm" variant="outline" onClick={() => {
+                  const z = generateZoomLink({ docente: f.docente_nombre, materiaCodigo: ctx.materia.codigo, materiaId: ctx.materia.id });
+                  setF({ ...f, zoom_link: z.url });
+                }}>Regenerar</Button>
+              )}
             </div>
           </div>
         )}
