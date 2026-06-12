@@ -206,9 +206,9 @@ export default function ReportesSection() {
           </CardContent></Card>
           {totalPages > 1 && (
             <div className="flex items-center justify-center gap-2 pt-2">
-              <Button size="sm" variant="outline" onClick={() => setPage(p => Math.max(1, p - 1))} disabled={safePage === 1}><ChevronLeft className="h-3.5 w-3.5" /></Button>
+              <Button size="sm" variant="outline" onClick={() => setPage(Math.max(1, safePage - 1))} disabled={safePage === 1}><ChevronLeft className="h-3.5 w-3.5" /></Button>
               <span className="text-xs">Página {safePage} de {totalPages} ({filtradas.length} materias)</span>
-              <Button size="sm" variant="outline" onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={safePage === totalPages}><ChevronRight className="h-3.5 w-3.5" /></Button>
+              <Button size="sm" variant="outline" onClick={() => setPage(Math.min(totalPages, safePage + 1))} disabled={safePage === totalPages}><ChevronRight className="h-3.5 w-3.5" /></Button>
             </div>
           )}
         </TabsContent>
