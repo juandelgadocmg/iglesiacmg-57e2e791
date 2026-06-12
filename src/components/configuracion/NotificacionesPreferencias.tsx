@@ -25,6 +25,7 @@ export default function NotificacionesPreferencias() {
       return (data || []).map((r: any) => r.role) as string[];
     },
   });
+  const isAdmin = (roleList || []).some(r => r === "admin" || r === "super_admin");
 
   const isRoleEnabled = (role: string, key: string) => {
     const r = (rolePrefs || []).find(p => p.role === role && p.pref_key === key);
