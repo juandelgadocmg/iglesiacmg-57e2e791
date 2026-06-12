@@ -13,8 +13,17 @@ import { Video, Megaphone, Plus, Trash2, FileText, Calendar, User, Clock, MapPin
 import { toast } from "sonner";
 import DeleteConfirmDialog from "@/components/shared/DeleteConfirmDialog";
 import { useCan } from "@/hooks/useCan";
+import { useUserRoles } from "@/hooks/useUserRoles";
+import MiAulaSection from "./MiAulaSection";
 
 export default function AulaVirtualSection() {
+  const { roles } = useUserRoles();
+  const isStaff = (roles || []).some((r: string) => ["admin", "super_admin", "pastor", "seminario_admin", "maestro"].includes(r));
+  if (!isStaff) return <MiAulaSection />;
+  return <AulaVirtualStaff />;
+}
+
+function AulaVirtualStaff() {
   const can = useCan();
   const canAnuncio = can("seminario:anuncios_crud");
   const { data: programas } = useProgramas();
