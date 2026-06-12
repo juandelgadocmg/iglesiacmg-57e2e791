@@ -144,8 +144,14 @@ export default function EvaluacionesSection() {
 
       {!effOf ? (
         <Card><CardContent className="p-6 text-center text-sm text-muted-foreground">Selecciona una materia para gestionar sus evaluaciones.</CardContent></Card>
+      ) : loadingEvals ? (
+        <div className="grid gap-2 md:grid-cols-2">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <Card key={i}><CardContent className="p-3"><div className="h-4 w-1/2 bg-muted rounded animate-pulse mb-2" /><div className="h-3 w-1/3 bg-muted rounded animate-pulse" /></CardContent></Card>
+          ))}
+        </div>
       ) : filtradas.length === 0 ? (
-        <Card><CardContent className="p-6 text-center text-sm text-muted-foreground">Sin evaluaciones que coincidan con los filtros.</CardContent></Card>
+        <Card><CardContent className="p-6 text-center text-sm text-muted-foreground">{(evaluaciones || []).length === 0 ? "Aún no hay evaluaciones para esta materia. Crea la primera con el botón \"Nueva\"." : "Sin evaluaciones que coincidan con los filtros."}</CardContent></Card>
       ) : (
         <>
         <div className="grid gap-2 md:grid-cols-2">
