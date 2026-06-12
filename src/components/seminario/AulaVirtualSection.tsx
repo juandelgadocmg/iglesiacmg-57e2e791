@@ -27,6 +27,8 @@ import { useCan } from "@/hooks/useCan";
 import { useUserRoles } from "@/hooks/useUserRoles";
 import { useAuth } from "@/hooks/useAuth";
 import MiAulaSection from "./MiAulaSection";
+import AulaErrorBoundary from "./AulaErrorBoundary";
+import AulaDiagnosticPanel from "./AulaDiagnosticPanel";
 
 const sb = supabase as any;
 function fmtDateTime(d?: string) { return d ? new Date(d).toLocaleString("es-CO") : "—"; }
