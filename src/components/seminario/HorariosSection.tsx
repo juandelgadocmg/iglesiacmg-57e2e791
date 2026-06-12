@@ -7,9 +7,11 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Plus, Pencil, Trash2, Clock, MapPin, User } from "lucide-react";
+import { Plus, Pencil, Trash2, Clock, MapPin, User, AlertTriangle, Video } from "lucide-react";
 import { toast } from "sonner";
 import DeleteConfirmDialog from "@/components/shared/DeleteConfirmDialog";
+import { isZoomStale, generateZoomLink } from "@/lib/seminarioZoom";
+import { useCan } from "@/hooks/useCan";
 
 export default function HorariosSection() {
   const { data: programas } = useProgramas();
@@ -131,6 +133,20 @@ export default function HorariosSection() {
                               <p className="flex items-center gap-1.5"><User className="h-3 w-3 text-muted-foreground" />{of.docente_nombre || "Sin docente"}</p>
                               <p className="flex items-center gap-1.5"><Clock className="h-3 w-3 text-muted-foreground" />{of.horario || "Sin horario"}</p>
                               <p className="flex items-center gap-1.5"><MapPin className="h-3 w-3 text-muted-foreground" />{of.aula || "Sin aula"} {of.modalidad && <Badge variant="outline" className="ml-1 text-[9px]">{of.modalidad}</Badge>}</p>
+                              {(() => {
+                                const stale = isZoomStale(of, { docente: of.docente_nombre, periodoCodigo: periodoActivo?.codigo, materiaCodigo: m.codigo });
+                                if (of.zoom_link && of.modalidad !== "presencial" && !stale) {
+                                  return <p className="flex items-center gap-1.5"><Video className="h-3 w-3 text-primary" /><a href={of.zoom_link} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline truncate">Zoom</a></p>;
+                                }
+                                if (stale) {
+                                  return (
+                                    <p className="flex items-center gap-1.5 text-destructive">
+                                      <AlertTriangle className="h-3 w-3" />Link Zoom desactualizado (cambió docente/periodo). Regenera al guardar.
+                                    </p>
+                                  );
+                                }
+                                return null;
+                              })()}
                             </div>
                           ) : (
                             <p className="text-[11px] text-muted-foreground italic">Sin programación</p>
