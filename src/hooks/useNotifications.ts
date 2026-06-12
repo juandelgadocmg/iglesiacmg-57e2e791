@@ -192,7 +192,7 @@ export function useNotifications() {
     });
 
     // Seminario: semestres vencidos con materias sin aprobar
-    (semVencidos || []).forEach((s: any) => {
+    if (enabled("seminario.semestres_vencidos")) (semVencidos || []).forEach((s: any) => {
       const nom = s.persona ? `${s.persona.nombres} ${s.persona.apellidos}` : "Estudiante";
       items.push({
         id: `sem-${s.id}`,
@@ -207,7 +207,7 @@ export function useNotifications() {
     });
 
     return items.sort((a, b) => a.daysLeft - b.daysLeft);
-  }, [personas, eventos, servicios, pagosVencidos, semVencidos]);
+  }, [personas, eventos, servicios, pagosVencidos, semVencidos, prefs]);
 
   return { notifications, count: notifications.length };
 }
