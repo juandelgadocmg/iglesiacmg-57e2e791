@@ -192,3 +192,168 @@ export function useRemovePrerequisito() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["sem-prereq"] }),
   });
 }
+
+// ─────────────────────────── PERIODOS ───────────────────────────
+export function usePeriodos(programaId?: string) {
+  return useQuery({
+    queryKey: ["sem-periodos", programaId],
+    queryFn: async () => {
+      let q = sb.from("sem_periodos").select("*").order("fecha_inicio", { ascending: false });
+      if (programaId) q = q.or(`programa_id.eq.${programaId},programa_id.is.null`);
+      const { data, error } = await q;
+      if (error) throw error;
+      return data || [];
+    },
+  });
+}
+export function useUpsertPeriodo() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (p: any) => {
+      const { data, error } = await sb.from("sem_periodos").upsert(p).select().single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["sem-periodos"] }),
+  });
+}
+
+// ─────────────────────────── OFERTAS (horarios) ───────────────────────────
+export function useOfertas(periodoId?: string, programaId?: string) {
+  return useQuery({
+    queryKey: ["sem-ofertas", periodoId, programaId],
+    queryFn: async () => {
+      if (!periodoId) return [];
+      const { data, error } = await sb.from("sem_ofertas")
+        .select("*, sem_materias!inner(id,codigo,nombre,creditos,color,programa_id)")
+        .eq("periodo_id", periodoId);
+      if (error) throw error;
+      return (data || []).filter((o: any) => !programaId || o.sem_materias?.programa_id === programaId);
+    },
+    enabled: !!periodoId,
+  });
+}
+export function useUpsertOferta() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (p: any) => {
+      const { data, error } = await sb.from("sem_ofertas").upsert(p).select().single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["sem-ofertas"] }),
+  });
+}
+export function useDeleteOferta() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await sb.from("sem_ofertas").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["sem-ofertas"] }),
+  });
+}
+
+// ─────────────────────────── INSCRIPCIONES (estudiantes) ───────────────────────────
+export function useInscripciones(programaId?: string, periodoId?: string) {
+  return useQuery({
+    queryKey: ["sem-inscripciones", programaId, periodoId],
+    queryFn: async () => {
+      let q = sb.from("sem_inscripciones")
+        .select("*, personas:persona_id(id,nombres,apellidos,documento,foto_url), sem_periodos:periodo_id(codigo,nombre)")
+        .order("created_at", { ascending: false });
+      if (programaId) q = q.eq("programa_id", programaId);
+      if (periodoId) q = q.eq("periodo_id", periodoId);
+      const { data, error } = await q;
+      if (error) throw error;
+      return data || [];
+    },
+  });
+}
+export function useUpsertInscripcion() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (p: any) => {
+      const { data, error } = await sb.from("sem_inscripciones").upsert(p).select().single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["sem-inscripciones"] }),
+  });
+}
+export function useDeleteInscripcion() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await sb.from("sem_inscripciones").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["sem-inscripciones"] }),
+  });
+}
+
+// ─────────────────────────── INSCRIPCION MATERIAS ───────────────────────────
+export function useInscripcionMaterias(inscripcionId?: string) {
+  return useQuery({
+    queryKey: ["sem-insc-materias", inscripcionId],
+    queryFn: async () => {
+      if (!inscripcionId) return [];
+      const { data, error } = await sb.from("sem_inscripcion_materias")
+        .select("*, sem_materias(id,codigo,nombre,creditos,color), sem_ofertas(id,docente_nombre,aula,horario)")
+        .eq("inscripcion_id", inscripcionId);
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!inscripcionId,
+  });
+}
+export function useEnrollMateria() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ inscripcion_id, oferta_id, materia_id }: any) => {
+      const { data, error } = await sb.from("sem_inscripcion_materias")
+        .insert({ inscripcion_id, oferta_id, materia_id, estado: "cursando" })
+        .select().single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (_d, v) => {
+      qc.invalidateQueries({ queryKey: ["sem-insc-materias", v.inscripcion_id] });
+    },
+  });
+}
+export function useUpdateInscripcionMateria() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, ...rest }: any) => {
+      const { data, error } = await sb.from("sem_inscripcion_materias").update(rest).eq("id", id).select().single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["sem-insc-materias"] }),
+  });
+}
+export function useUnenrollMateria() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await sb.from("sem_inscripcion_materias").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["sem-insc-materias"] }),
+  });
+}
+
+// ─────────────────────────── PERSONAS LITE ───────────────────────────
+export function usePersonasLite() {
+  return useQuery({
+    queryKey: ["sem-personas-lite"],
+    queryFn: async () => {
+      const { data, error } = await sb.from("personas")
+        .select("id,nombres,apellidos,documento,foto_url").order("nombres").limit(2000);
+      if (error) throw error;
+      return data || [];
+    },
+  });
+}
