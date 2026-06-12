@@ -110,7 +110,7 @@ export function useNotifications() {
     const currentYear = now.getFullYear();
 
     // Upcoming birthdays (within 7 days)
-    (personas || []).forEach((p) => {
+    if (enabled("birthdays")) (personas || []).forEach((p) => {
       if (!p.fecha_nacimiento) return;
       try {
         const bday = parseISO(p.fecha_nacimiento);
