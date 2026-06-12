@@ -109,8 +109,14 @@ export default function ReportesSection() {
               {(periodos || []).map((p: any) => <SelectItem key={p.id} value={p.id}>{p.nombre}</SelectItem>)}
             </SelectContent>
           </Select>
-          <Button size="sm" variant="outline" onClick={exportar}><Download className="h-4 w-4 mr-1" />Excel</Button>
+          <Button size="sm" variant="outline" onClick={exportar} disabled={!filtradas.length}><Download className="h-4 w-4 mr-1" />Excel</Button>
+          <Button size="sm" variant="outline" onClick={exportarPdf} disabled={!filtradas.length}><FileText className="h-4 w-4 mr-1" />PDF</Button>
         </div>
+      </div>
+
+      <div className="relative max-w-md">
+        <Search className="absolute left-2 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
+        <Input value={q} onChange={(e) => { setQ(e.target.value); setPage(1); }} placeholder="Buscar materia por código o nombre…" className="pl-8 h-9" />
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -172,7 +178,7 @@ export default function ReportesSection() {
                 </tr>
               </thead>
               <tbody>
-                {byMateria.map((m, i) => (
+                {rows.map((m, i) => (
                   <tr key={i} className="border-b hover:bg-muted/20">
                     <td className="p-2"><div className="font-medium">{m.nombre}</div><div className="text-[10px] text-muted-foreground">{m.codigo}</div></td>
                     <td className="p-2 text-center">{m.total}</td>
@@ -182,9 +188,19 @@ export default function ReportesSection() {
                     <td className="p-2 text-center">{m.promedio.toFixed(2)}</td>
                   </tr>
                 ))}
+                {rows.length === 0 && (
+                  <tr><td colSpan={6} className="p-6 text-center text-muted-foreground">Sin resultados</td></tr>
+                )}
               </tbody>
             </table>
           </CardContent></Card>
+          {totalPages > 1 && (
+            <div className="flex items-center justify-center gap-2 pt-2">
+              <Button size="sm" variant="outline" onClick={() => setPage(p => Math.max(1, p - 1))} disabled={safePage === 1}><ChevronLeft className="h-3.5 w-3.5" /></Button>
+              <span className="text-xs">Página {safePage} de {totalPages} ({filtradas.length} materias)</span>
+              <Button size="sm" variant="outline" onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={safePage === totalPages}><ChevronRight className="h-3.5 w-3.5" /></Button>
+            </div>
+          )}
         </TabsContent>
       </Tabs>
     </div>
