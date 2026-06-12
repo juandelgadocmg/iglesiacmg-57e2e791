@@ -199,7 +199,7 @@ export default function CalificacionesSection() {
                     const def = calcDefinitiva(im.id);
                     return (
                       <tr key={im.id} className="border-b hover:bg-muted/20">
-                        <td className="p-2 sticky left-0 bg-card font-medium">
+                        <td className="p-2 sticky left-0 bg-card font-medium cursor-pointer hover:underline" onClick={() => setDetalle({ im, persona: p, def: calcDefinitiva(im.id) })}>
                           {p?.nombres} {p?.apellidos}
                           <div className="text-[10px] text-muted-foreground font-normal">{p?.documento}</div>
                         </td>
