@@ -109,14 +109,21 @@ export default function EstudiantesSection() {
             <SelectTrigger className="w-48"><SelectValue placeholder="Periodo" /></SelectTrigger>
             <SelectContent>{(periodos || []).map((p: any) => <SelectItem key={p.id} value={p.id}>{p.nombre}</SelectItem>)}</SelectContent>
           </Select>
-          <Dialog open={creating} onOpenChange={setCreating}>
-            <DialogTrigger asChild>
-              <Button size="sm" disabled={!effPer}><UserPlus className="h-4 w-4 mr-1" />Inscribir</Button>
-            </DialogTrigger>
-            <InscripcionDialog personas={(personas || []).filter((p: any) => !yaInscritos.has(p.id))}
-              totalSem={programa?.total_semestres || 8}
-              onSave={handleCreate} pending={upsertIns.isPending} />
-          </Dialog>
+          {seleccion.size > 0 && (
+            <Button size="sm" variant="outline" onClick={exportarLote}>
+              <FileDownIcon className="h-4 w-4 mr-1" />Exportar {seleccion.size} kárdex
+            </Button>
+          )}
+          {canMatricular && (
+            <Dialog open={creating} onOpenChange={setCreating}>
+              <DialogTrigger asChild>
+                <Button size="sm" disabled={!effPer}><UserPlus className="h-4 w-4 mr-1" />Inscribir</Button>
+              </DialogTrigger>
+              <InscripcionDialog personas={(personas || []).filter((p: any) => !yaInscritos.has(p.id))}
+                totalSem={programa?.total_semestres || 8}
+                onSave={handleCreate} pending={upsertIns.isPending} />
+            </Dialog>
+          )}
         </div>
       </div>
 
@@ -132,13 +139,15 @@ export default function EstudiantesSection() {
             const totalProg = (programa?.total_semestres || 8) * 20;
             const pct = Math.min(100, Math.round((credAprob / totalProg) * 100));
             return (
-              <Card key={i.id} className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => setSelectedIns(i)}>
+              <Card key={i.id} className="hover:shadow-md transition-shadow">
                 <CardContent className="p-3">
                   <div className="flex items-start gap-3">
-                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-semibold">
+                    <Checkbox checked={seleccion.has(i.id)} onCheckedChange={() => toggleSel(i.id)}
+                      onClick={(e) => e.stopPropagation()} className="mt-1" />
+                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-semibold cursor-pointer" onClick={() => setSelectedIns(i)}>
                       {p?.nombres?.[0]}{p?.apellidos?.[0]}
                     </div>
-                    <div className="flex-1 min-w-0">
+                    <div className="flex-1 min-w-0 cursor-pointer" onClick={() => setSelectedIns(i)}>
                       <div className="flex items-center justify-between gap-2">
                         <p className="font-semibold text-sm truncate">{p?.nombres} {p?.apellidos}</p>
                         <Badge variant="outline" className="text-[10px]">Sem {i.semestre_actual || "—"}</Badge>
