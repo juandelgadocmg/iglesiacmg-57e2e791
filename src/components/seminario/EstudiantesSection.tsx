@@ -48,11 +48,13 @@ export default function EstudiantesSection() {
     });
   };
 
-  const exportarLote = async () => {
+  const exportarLote = async (modo: "kardex" | "certificado" = "kardex") => {
     const ids = Array.from(seleccion);
     if (!ids.length) { toast.error("Selecciona al menos un estudiante"); return; }
-    toast.info(`Generando ${ids.length} kárdex...`);
+    if (modo === "certificado" && !canCertificar) { toast.error("No tienes permiso para emitir certificados."); return; }
+    toast.info(`Generando ${ids.length} ${modo === "certificado" ? "certificados" : "kárdex"}...`);
     const items: any[] = [];
+    const certificadosEmitidos: { insId: string; personaId: string | null; completo: boolean }[] = [];
     for (const insId of ids) {
       const ins = (inscripciones || []).find((x: any) => x.id === insId);
       if (!ins) continue;
@@ -63,7 +65,12 @@ export default function EstudiantesSection() {
         sb.from("sem_pensum_semestres").select("numero").eq("programa_id", ins.programa_id).order("numero"),
       ]);
       const cmap = new Map((cursando || []).map((c: any) => [c.materia_id, c]));
-      const credAprob = (cursando || []).filter((c: any) => c.estado === "aprobada").reduce((s: number, c: any) => s + (c.sem_materias?.creditos || 0), 0);
+      const aprob = (cursando || []).filter((c: any) => c.estado === "aprobada");
+      const credAprob = aprob.reduce((s: number, c: any) => s + (c.sem_materias?.creditos || 0), 0);
+      const totalPensum = (pensum || []).length;
+      const aprobIds = new Set(aprob.map((c: any) => c.materia_id));
+      const completo = totalPensum > 0 && (pensum || []).every((p: any) => aprobIds.has(p.materia_id));
+      if (modo === "certificado" && !completo) continue;
       const rows: KardexRow[] = [];
       (semestres || []).forEach((s: any) => {
         (pensum || []).filter((p: any) => p.sem_pensum_semestres.numero === s.numero).forEach((p: any) => {
@@ -75,18 +82,30 @@ export default function EstudiantesSection() {
         estudiante: `${ins.personas?.nombres} ${ins.personas?.apellidos}`,
         documento: ins.personas?.documento, programa: programa?.nombre || "—",
         promedio: ins.promedio_acumulado, creditosAprobados: credAprob, creditosTotales: (programa?.total_semestres || 8) * 20,
-        rows, inscripcionId: insId,
+        rows, inscripcionId: insId, certificado: modo === "certificado",
       });
+      certificadosEmitidos.push({ insId, personaId: ins.persona_id, completo });
     }
+    if (!items.length) { toast.error("Ningún estudiante seleccionado cumple los requisitos para certificarse."); return; }
     await exportKardexBatch(items);
-    toast.success("Kárdex descargados");
+    toast.success(`${items.length} ${modo === "certificado" ? "certificados" : "kárdex"} descargados`);
+    // Audit log
+    await Promise.all(certificadosEmitidos.map(c => logSemAudit({
+      action: modo === "certificado" ? "certificado.lote" : "kardex.descargado",
+      persona_id: c.personaId, inscripcion_id: c.insId,
+      details: { modo, programa: programa?.nombre, total_seleccionados: ids.length },
+    })));
   };
 
   const handleCreate = async (form: any) => {
     try {
-      await upsertIns.mutateAsync({ ...form, programa_id: effProg, periodo_id: effPer, estado: "activa" });
+      const res: any = await upsertIns.mutateAsync({ ...form, programa_id: effProg, periodo_id: effPer, estado: "activa" });
       toast.success("Estudiante inscrito");
       setCreating(false);
+      await logSemAudit({
+        action: "inscripcion.creada", persona_id: form.persona_id,
+        inscripcion_id: res?.id, details: { programa_id: effProg, periodo_id: effPer, semestre: form.semestre_actual },
+      });
     } catch (e: any) { toast.error(e.message); }
   };
 
