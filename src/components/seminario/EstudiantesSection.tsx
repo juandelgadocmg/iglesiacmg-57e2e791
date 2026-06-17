@@ -35,9 +35,25 @@ export default function EstudiantesSection() {
   const [creating, setCreating] = useState(false);
   const [selectedIns, setSelectedIns] = useState<any>(null);
   const [seleccion, setSeleccion] = useState<Set<string>>(new Set());
+  const [busqueda, setBusqueda] = useState("");
   const can = useCan();
   const canMatricular = can("seminario:matricular");
   const canCertificar = can("seminario:certificar");
+
+  // Normaliza texto (sin acentos, minúsculas) para búsqueda consistente
+  const norm = (s: any) =>
+    String(s ?? "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+
+  // Cambiar de programa resetea periodo, selección y búsqueda para evitar estado inconsistente
+  const handleProgramaChange = (v: string) => {
+    setProgramaId(v);
+    setPeriodoId("");
+    setSeleccion(new Set());
+  };
+  const handlePeriodoChange = (v: string) => {
+    setPeriodoId(v);
+    setSeleccion(new Set());
+  };
 
   // Estado de exportación masiva
   type BatchItem = { insId: string; nombre: string; status: "pendiente" | "procesando" | "ok" | "error" | "omitido"; error?: string; intentos?: number };
@@ -50,6 +66,18 @@ export default function EstudiantesSection() {
   const [batchFinalizado, setBatchFinalizado] = useState(false);
 
   const yaInscritos = new Set((inscripciones || []).map((i: any) => i.persona_id));
+
+  // Inscripciones filtradas por nombre o documento (CC) sobre el resultado ya filtrado por programa+periodo
+  const inscripcionesFiltradas = useMemo(() => {
+    const q = norm(busqueda);
+    if (!q) return inscripciones || [];
+    return (inscripciones || []).filter((i: any) => {
+      const p = i.personas || {};
+      const full = norm(`${p.nombres || ""} ${p.apellidos || ""}`);
+      const doc = norm(p.documento);
+      return full.includes(q) || doc.includes(q);
+    });
+  }, [inscripciones, busqueda]);
 
   const toggleSel = (id: string) => {
     setSeleccion(s => {
