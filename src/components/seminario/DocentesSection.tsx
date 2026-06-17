@@ -69,7 +69,7 @@ export default function DocentesSection() {
                   </div>
                   <div className="min-w-0 flex-1">
                     <p className="font-medium text-sm truncate">{d.nombre}</p>
-                    <p className="text-xs text-muted-foreground">{d.persona_id ? "Persona vinculada" : "Solo nombre"}</p>
+                    <p className="text-xs text-muted-foreground truncate">{d.documento ? `CC ${d.documento}` : (d.persona_id ? "Persona vinculada" : "Solo nombre")}</p>
                   </div>
                   <Badge variant="secondary">{d.materias} materias</Badge>
                 </div>
