@@ -259,7 +259,7 @@ export default function EstudiantesSection() {
               <DialogTrigger asChild>
                 <Button size="sm" disabled={!effPer}><UserPlus className="h-4 w-4 mr-1" />Inscribir</Button>
               </DialogTrigger>
-              <InscripcionDialog personas={(personas || []).filter((p: any) => !yaInscritos.has(p.id))}
+              <InscripcionDialog personas={personas || []} yaInscritos={yaInscritos}
                 totalSem={programa?.total_semestres || 8}
                 onSave={handleCreate} pending={upsertIns.isPending} />
             </Dialog>
@@ -391,7 +391,7 @@ export default function EstudiantesSection() {
   );
 }
 
-function InscripcionDialog({ personas, totalSem, onSave, pending }: any) {
+function InscripcionDialog({ personas, yaInscritos, totalSem, onSave, pending }: any) {
   const [f, setF] = useState({ persona_id: "", semestre_actual: 1 });
   return (
     <DialogContent>
@@ -405,11 +405,16 @@ function InscripcionDialog({ personas, totalSem, onSave, pending }: any) {
             onChange={(v) => setF({ ...f, persona_id: v })}
             placeholder="Buscar persona por nombre o documento…"
             emptyLabel="No hay personas disponibles"
-            items={personas.map((p: any) => ({
-              id: p.id,
-              label: `${p.nombres} ${p.apellidos}`.trim(),
-              sub: p.documento || undefined,
-            }))}
+            items={personas.map((p: any) => {
+              const inscrita = yaInscritos?.has?.(p.id);
+              return {
+                id: p.id,
+                label: `${p.nombres} ${p.apellidos}`.trim(),
+                sub: p.documento || undefined,
+                disabled: inscrita,
+                badge: inscrita ? "Ya inscrito" : undefined,
+              };
+            })}
           />
         </div>
         <div>
