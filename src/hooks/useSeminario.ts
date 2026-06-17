@@ -381,7 +381,8 @@ export function useDocentes(periodoId?: string) {
     queryFn: async () => {
       let q = sb.from("sem_ofertas").select(`
         id, docente_persona_id, docente_nombre, materia_id, periodo_id,
-        sem_materias(id, nombre, codigo, creditos)
+        sem_materias(id, nombre, codigo, creditos),
+        personas:docente_persona_id(id, nombres, apellidos, documento, foto_url)
       `);
       if (periodoId) q = q.eq("periodo_id", periodoId);
       const { data, error } = await q;
@@ -389,7 +390,18 @@ export function useDocentes(periodoId?: string) {
       const map: Record<string, any> = {};
       (data || []).forEach((o: any) => {
         const key = o.docente_persona_id || `nombre:${o.docente_nombre || "sin"}`;
-        if (!map[key]) map[key] = { id: key, persona_id: o.docente_persona_id, nombre: o.docente_nombre || "Sin asignar", ofertas: [], materias: 0 };
+        const nombre = o.personas
+          ? `${o.personas.nombres || ""} ${o.personas.apellidos || ""}`.trim()
+          : (o.docente_nombre || "Sin asignar");
+        if (!map[key]) map[key] = {
+          id: key,
+          persona_id: o.docente_persona_id,
+          nombre,
+          documento: o.personas?.documento || null,
+          foto_url: o.personas?.foto_url || null,
+          ofertas: [],
+          materias: 0,
+        };
         map[key].ofertas.push(o);
         map[key].materias += 1;
       });

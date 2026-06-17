@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Plus, Trash2, UserPlus, ChevronLeft, FileDown, Award, Video } from "lucide-react";
+import { Plus, Trash2, UserPlus, ChevronLeft, FileDown, Award, Video, Search } from "lucide-react";
 import { toast } from "sonner";
 import DeleteConfirmDialog from "@/components/shared/DeleteConfirmDialog";
 import ProgresoPanel from "./ProgresoPanel";
@@ -35,9 +35,25 @@ export default function EstudiantesSection() {
   const [creating, setCreating] = useState(false);
   const [selectedIns, setSelectedIns] = useState<any>(null);
   const [seleccion, setSeleccion] = useState<Set<string>>(new Set());
+  const [busqueda, setBusqueda] = useState("");
   const can = useCan();
   const canMatricular = can("seminario:matricular");
   const canCertificar = can("seminario:certificar");
+
+  // Normaliza texto (sin acentos, minúsculas) para búsqueda consistente
+  const norm = (s: any) =>
+    String(s ?? "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+
+  // Cambiar de programa resetea periodo, selección y búsqueda para evitar estado inconsistente
+  const handleProgramaChange = (v: string) => {
+    setProgramaId(v);
+    setPeriodoId("");
+    setSeleccion(new Set());
+  };
+  const handlePeriodoChange = (v: string) => {
+    setPeriodoId(v);
+    setSeleccion(new Set());
+  };
 
   // Estado de exportación masiva
   type BatchItem = { insId: string; nombre: string; status: "pendiente" | "procesando" | "ok" | "error" | "omitido"; error?: string; intentos?: number };
@@ -50,6 +66,18 @@ export default function EstudiantesSection() {
   const [batchFinalizado, setBatchFinalizado] = useState(false);
 
   const yaInscritos = new Set((inscripciones || []).map((i: any) => i.persona_id));
+
+  // Inscripciones filtradas por nombre o documento (CC) sobre el resultado ya filtrado por programa+periodo
+  const inscripcionesFiltradas = useMemo(() => {
+    const q = norm(busqueda);
+    if (!q) return inscripciones || [];
+    return (inscripciones || []).filter((i: any) => {
+      const p = i.personas || {};
+      const full = norm(`${p.nombres || ""} ${p.apellidos || ""}`);
+      const doc = norm(p.documento);
+      return full.includes(q) || doc.includes(q);
+    });
+  }, [inscripciones, busqueda]);
 
   const toggleSel = (id: string) => {
     setSeleccion(s => {
@@ -206,11 +234,20 @@ export default function EstudiantesSection() {
           <p className="text-xs text-muted-foreground">Inscribe estudiantes por semestre y registra avance académico</p>
         </div>
         <div className="flex gap-2 flex-wrap">
-          <Select value={effProg} onValueChange={setProgramaId}>
+          <div className="relative">
+            <Search className="absolute left-2 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
+            <Input
+              value={busqueda}
+              onChange={(e) => setBusqueda(e.target.value)}
+              placeholder="Buscar por nombre o CC..."
+              className="pl-8 w-56"
+            />
+          </div>
+          <Select value={effProg} onValueChange={handleProgramaChange}>
             <SelectTrigger className="w-48"><SelectValue placeholder="Programa" /></SelectTrigger>
             <SelectContent>{(programas || []).map((p: any) => <SelectItem key={p.id} value={p.id}>{p.nombre}</SelectItem>)}</SelectContent>
           </Select>
-          <Select value={effPer} onValueChange={setPeriodoId}>
+          <Select value={effPer} onValueChange={handlePeriodoChange}>
             <SelectTrigger className="w-48"><SelectValue placeholder="Periodo" /></SelectTrigger>
             <SelectContent>{(periodos || []).map((p: any) => <SelectItem key={p.id} value={p.id}>{p.nombre}</SelectItem>)}</SelectContent>
           </Select>
@@ -243,9 +280,11 @@ export default function EstudiantesSection() {
         <Card><CardContent className="p-6 text-center text-sm text-muted-foreground">Selecciona o crea un periodo en la pestaña Horarios.</CardContent></Card>
       ) : (inscripciones || []).length === 0 ? (
         <Card><CardContent className="p-6 text-center text-sm text-muted-foreground">No hay estudiantes inscritos en este periodo.</CardContent></Card>
+      ) : inscripcionesFiltradas.length === 0 ? (
+        <Card><CardContent className="p-6 text-center text-sm text-muted-foreground">Ningún estudiante coincide con "{busqueda}" en este programa y periodo.</CardContent></Card>
       ) : (
         <div className="grid gap-2 md:grid-cols-2">
-          {(inscripciones || []).map((i: any) => {
+          {inscripcionesFiltradas.map((i: any) => {
             const p = i.personas;
             const credAprob = i.total_creditos_aprobados || 0;
             const totalProg = (programa?.total_semestres || 8) * 20;
