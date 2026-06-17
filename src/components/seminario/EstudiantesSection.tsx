@@ -19,6 +19,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { FileDown as FileDownIcon, Award as AwardIcon } from "lucide-react";
 import { logSemAudit } from "@/lib/seminarioAudit";
 import SearchableCombobox from "./SearchableCombobox";
+import { matchesPersona } from "@/lib/seminarioSearch";
 
 export default function EstudiantesSection() {
   const { data: programas } = useProgramas();
@@ -39,10 +40,6 @@ export default function EstudiantesSection() {
   const can = useCan();
   const canMatricular = can("seminario:matricular");
   const canCertificar = can("seminario:certificar");
-
-  // Normaliza texto (sin acentos, minúsculas) para búsqueda consistente
-  const norm = (s: any) =>
-    String(s ?? "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
 
   // Cambiar de programa resetea periodo, selección y búsqueda para evitar estado inconsistente
   const handleProgramaChange = (v: string) => {
@@ -69,14 +66,8 @@ export default function EstudiantesSection() {
 
   // Inscripciones filtradas por nombre o documento (CC) sobre el resultado ya filtrado por programa+periodo
   const inscripcionesFiltradas = useMemo(() => {
-    const q = norm(busqueda);
-    if (!q) return inscripciones || [];
-    return (inscripciones || []).filter((i: any) => {
-      const p = i.personas || {};
-      const full = norm(`${p.nombres || ""} ${p.apellidos || ""}`);
-      const doc = norm(p.documento);
-      return full.includes(q) || doc.includes(q);
-    });
+    if (!busqueda.trim()) return inscripciones || [];
+    return (inscripciones || []).filter((i: any) => matchesPersona(busqueda, i.personas || {}));
   }, [inscripciones, busqueda]);
 
   const toggleSel = (id: string) => {
