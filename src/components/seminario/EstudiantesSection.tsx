@@ -18,6 +18,7 @@ import { useCan } from "@/hooks/useCan";
 import { Checkbox } from "@/components/ui/checkbox";
 import { FileDown as FileDownIcon, Award as AwardIcon } from "lucide-react";
 import { logSemAudit } from "@/lib/seminarioAudit";
+import SearchableCombobox from "./SearchableCombobox";
 
 export default function EstudiantesSection() {
   const { data: programas } = useProgramas();
