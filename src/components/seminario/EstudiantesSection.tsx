@@ -20,6 +20,7 @@ import { FileDown as FileDownIcon, Award as AwardIcon } from "lucide-react";
 import { logSemAudit } from "@/lib/seminarioAudit";
 import SearchableCombobox from "./SearchableCombobox";
 import { matchesPersona } from "@/lib/seminarioSearch";
+import { yaInscritoBadge, periodoLabel, personaFullName } from "@/lib/seminarioFormat";
 
 export default function EstudiantesSection() {
   const { data: programas } = useProgramas();
