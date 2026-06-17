@@ -411,30 +411,59 @@ export default function EstudiantesSection() {
   );
 }
 
-function InscripcionDialog({ personas, yaInscritos, totalSem, onSave, pending }: any) {
+function InscripcionDialog({ personas, yaInscritosMap, incluirYaInscritos, setIncluirYaInscritos, onVerInscripcion, totalSem, onSave, pending }: any) {
   const [f, setF] = useState({ persona_id: "", semestre_actual: 1 });
+  const map: Map<string, { ins: any; periodoNombre: string }> = yaInscritosMap || new Map();
+
+  const items = useMemo(() => {
+    const base = (personas || []).map((p: any) => {
+      const info = map.get(p.id);
+      const inscrita = !!info;
+      return {
+        id: p.id,
+        label: `${p.nombres} ${p.apellidos}`.trim(),
+        sub: inscrita
+          ? `${p.documento || "—"} · Inscrito en ${info!.periodoNombre}`
+          : (p.documento || undefined),
+        disabled: inscrita,
+        badge: inscrita ? `Ya inscrito · ${info!.periodoNombre}` : undefined,
+        action: inscrita ? { label: "Ver inscripción", onClick: () => onVerInscripcion?.(info!.ins) } : undefined,
+        _inscrita: inscrita,
+      };
+    });
+    return incluirYaInscritos ? base : base.filter((i: any) => !i._inscrita);
+  }, [personas, map, incluirYaInscritos, onVerInscripcion]);
+
+  const totalInscritos = useMemo(
+    () => (personas || []).filter((p: any) => map.has(p.id)).length,
+    [personas, map]
+  );
+
   return (
     <DialogContent>
       <DialogHeader><DialogTitle>Nueva inscripción</DialogTitle></DialogHeader>
       <div className="space-y-3">
         <div>
-          <Label>Persona *</Label>
+          <div className="flex items-center justify-between mb-1">
+            <Label>Persona *</Label>
+            <label className="flex items-center gap-1.5 text-[11px] text-muted-foreground cursor-pointer">
+              <input
+                type="checkbox"
+                checked={!!incluirYaInscritos}
+                onChange={(e) => setIncluirYaInscritos?.(e.target.checked)}
+              />
+              {incluirYaInscritos
+                ? `Incluir ya inscritos (${totalInscritos})`
+                : `Solo disponibles · ocultos ${totalInscritos}`}
+            </label>
+          </div>
           <SearchableCombobox
             width="w-full"
             value={f.persona_id}
             onChange={(v) => setF({ ...f, persona_id: v })}
             placeholder="Buscar persona por nombre o documento…"
             emptyLabel="No hay personas disponibles"
-            items={personas.map((p: any) => {
-              const inscrita = yaInscritos?.has?.(p.id);
-              return {
-                id: p.id,
-                label: `${p.nombres} ${p.apellidos}`.trim(),
-                sub: p.documento || undefined,
-                disabled: inscrita,
-                badge: inscrita ? "Ya inscrito" : undefined,
-              };
-            })}
+            items={items}
           />
         </div>
         <div>
