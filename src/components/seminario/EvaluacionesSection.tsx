@@ -90,16 +90,18 @@ export default function EvaluacionesSection() {
             <SelectTrigger className="w-44"><SelectValue placeholder="Periodo" /></SelectTrigger>
             <SelectContent>{(periodos || []).map((p: any) => <SelectItem key={p.id} value={p.id}>{p.nombre}</SelectItem>)}</SelectContent>
           </Select>
-          <Select value={effOf} onValueChange={setOfertaId}>
-            <SelectTrigger className="w-56"><SelectValue placeholder="Materia (oferta)" /></SelectTrigger>
-            <SelectContent>
-              {(ofertas as any[] || []).map((o: any) => (
-                <SelectItem key={o.id} value={o.id}>
-                  {o.sem_materias?.codigo} · {o.sem_materias?.nombre}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <SearchableCombobox
+            width="w-64"
+            value={effOf}
+            onChange={setOfertaId}
+            placeholder="Buscar materia para evaluar…"
+            emptyLabel="Sin materias en el periodo"
+            items={(ofertas as any[] || []).map((o: any) => ({
+              id: o.id,
+              label: `${o.sem_materias?.codigo || ""} · ${o.sem_materias?.nombre || ""}`.trim(),
+              sub: o.docente_nombre || undefined,
+            }))}
+          />
           {canEdit && effOf && (
             <Dialog open={!!editing} onOpenChange={(v) => !v && setEditing(null)}>
               <DialogTrigger asChild>
