@@ -350,10 +350,20 @@ export function usePersonasLite() {
   return useQuery({
     queryKey: ["sem-personas-lite"],
     queryFn: async () => {
-      const { data, error } = await sb.from("personas")
-        .select("id,nombres,apellidos,documento,foto_url").order("nombres").limit(2000);
-      if (error) throw error;
-      return data || [];
+      const pageSize = 1000;
+      const rows: any[] = [];
+
+      for (let from = 0; ; from += pageSize) {
+        const { data, error } = await sb.from("personas")
+          .select("id,nombres,apellidos,documento,foto_url")
+          .order("nombres", { ascending: true })
+          .range(from, from + pageSize - 1);
+        if (error) throw error;
+        rows.push(...(data || []));
+        if (!data || data.length < pageSize) break;
+      }
+
+      return rows;
     },
   });
 }
