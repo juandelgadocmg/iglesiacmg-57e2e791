@@ -280,9 +280,11 @@ export default function EstudiantesSection() {
         <Card><CardContent className="p-6 text-center text-sm text-muted-foreground">Selecciona o crea un periodo en la pestaña Horarios.</CardContent></Card>
       ) : (inscripciones || []).length === 0 ? (
         <Card><CardContent className="p-6 text-center text-sm text-muted-foreground">No hay estudiantes inscritos en este periodo.</CardContent></Card>
+      ) : inscripcionesFiltradas.length === 0 ? (
+        <Card><CardContent className="p-6 text-center text-sm text-muted-foreground">Ningún estudiante coincide con "{busqueda}" en este programa y periodo.</CardContent></Card>
       ) : (
         <div className="grid gap-2 md:grid-cols-2">
-          {(inscripciones || []).map((i: any) => {
+          {inscripcionesFiltradas.map((i: any) => {
             const p = i.personas;
             const credAprob = i.total_creditos_aprobados || 0;
             const totalProg = (programa?.total_semestres || 8) * 20;
