@@ -8,6 +8,7 @@ export interface ComboboxItem {
   sub?: string;
   disabled?: boolean;
   badge?: string;
+  action?: { label: string; onClick: () => void };
 }
 
 interface Props {
