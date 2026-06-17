@@ -15,9 +15,20 @@ export default function DocentesSection() {
   const { data: docentes = [] } = useDocentes(periodoId || undefined);
   const [q, setQ] = useState("");
 
-  const filtered = (docentes as any[]).filter((d) =>
-    !q || d.nombre.toLowerCase().includes(q.toLowerCase())
-  );
+  // Al cambiar de programa, resetea el periodo para evitar mostrar uno que no pertenece
+  const handleProgramaChange = (v: string) => {
+    setProgramaId(v);
+    setPeriodoId("");
+  };
+
+  const norm = (s: any) =>
+    String(s ?? "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+
+  const filtered = (docentes as any[]).filter((d) => {
+    const nq = norm(q);
+    if (!nq) return true;
+    return norm(d.nombre).includes(nq) || norm(d.documento).includes(nq);
+  });
 
   return (
     <div className="space-y-4">
@@ -29,9 +40,9 @@ export default function DocentesSection() {
         <div className="flex gap-2 flex-wrap">
           <div className="relative">
             <Search className="absolute left-2 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
-            <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Buscar docente..." className="pl-8 w-56" />
+            <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Buscar por nombre o CC..." className="pl-8 w-56" />
           </div>
-          <Select value={effProg} onValueChange={setProgramaId}>
+          <Select value={effProg} onValueChange={handleProgramaChange}>
             <SelectTrigger className="w-48"><SelectValue placeholder="Programa" /></SelectTrigger>
             <SelectContent>{(programas || []).map((p: any) => <SelectItem key={p.id} value={p.id}>{p.nombre}</SelectItem>)}</SelectContent>
           </Select>
