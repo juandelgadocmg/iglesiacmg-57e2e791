@@ -369,12 +369,18 @@ function InscripcionDialog({ personas, totalSem, onSave, pending }: any) {
       <div className="space-y-3">
         <div>
           <Label>Persona *</Label>
-          <Select value={f.persona_id} onValueChange={(v) => setF({ ...f, persona_id: v })}>
-            <SelectTrigger><SelectValue placeholder="Seleccionar persona" /></SelectTrigger>
-            <SelectContent className="max-h-72">
-              {personas.map((p: any) => <SelectItem key={p.id} value={p.id}>{p.nombres} {p.apellidos} {p.documento && `· ${p.documento}`}</SelectItem>)}
-            </SelectContent>
-          </Select>
+          <SearchableCombobox
+            width="w-full"
+            value={f.persona_id}
+            onChange={(v) => setF({ ...f, persona_id: v })}
+            placeholder="Buscar persona por nombre o documento…"
+            emptyLabel="No hay personas disponibles"
+            items={personas.map((p: any) => ({
+              id: p.id,
+              label: `${p.nombres} ${p.apellidos}`.trim(),
+              sub: p.documento || undefined,
+            }))}
+          />
         </div>
         <div>
           <Label>Semestre a cursar *</Label>
