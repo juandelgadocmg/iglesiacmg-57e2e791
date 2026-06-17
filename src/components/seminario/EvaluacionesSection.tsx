@@ -13,6 +13,7 @@ import { toast } from "sonner";
 import DeleteConfirmDialog from "@/components/shared/DeleteConfirmDialog";
 import { useCan } from "@/hooks/useCan";
 import { logSemAudit } from "@/lib/seminarioAudit";
+import SearchableCombobox from "./SearchableCombobox";
 
 const TIPOS = [
   { v: "quiz", l: "Quiz" },
