@@ -68,9 +68,13 @@ export default function EstudiantesSection() {
 
   // Mapa enriquecido: persona_id -> { inscripcion, periodoNombre } a través de todos los periodos del programa
   const yaInscritosMap = useMemo(() => {
-    const m = new Map<string, { ins: any; periodoNombre: string }>();
+    const m = new Map<string, { ins: any; periodoNombre: string; badge: string }>();
     (inscripcionesPrograma || []).forEach((i: any) => {
-      m.set(i.persona_id, { ins: i, periodoNombre: i.sem_periodos?.nombre || i.sem_periodos?.codigo || "—" });
+      m.set(i.persona_id, {
+        ins: i,
+        periodoNombre: periodoLabel(i.sem_periodos),
+        badge: yaInscritoBadge(i.sem_periodos),
+      });
     });
     return m;
   }, [inscripcionesPrograma]);
