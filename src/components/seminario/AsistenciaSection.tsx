@@ -11,6 +11,7 @@ import { Save, UserCheck } from "lucide-react";
 import { toast } from "sonner";
 import { useCan } from "@/hooks/useCan";
 import { logSemAudit } from "@/lib/seminarioAudit";
+import SearchableCombobox from "./SearchableCombobox";
 
 const ESTADOS = [
   { v: "presente", l: "Presente", color: "default" },
