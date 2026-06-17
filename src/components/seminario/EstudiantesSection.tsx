@@ -30,6 +30,8 @@ export default function EstudiantesSection() {
   const [periodoId, setPeriodoId] = useState("");
   const effPer = periodoId || periodos?.[0]?.id || "";
   const { data: inscripciones } = useInscripciones(effProg, effPer);
+  // Todas las inscripciones del programa (todos los periodos) para detectar "Ya inscrito"
+  const { data: inscripcionesPrograma } = useInscripciones(effProg);
   const upsertIns = useUpsertInscripcion();
   const delIns = useDeleteInscripcion();
   const { data: personas } = usePersonasLite();
@@ -37,6 +39,7 @@ export default function EstudiantesSection() {
   const [selectedIns, setSelectedIns] = useState<any>(null);
   const [seleccion, setSeleccion] = useState<Set<string>>(new Set());
   const [busqueda, setBusqueda] = useState("");
+  const [incluirYaInscritos, setIncluirYaInscritos] = useState(false);
   const can = useCan();
   const canMatricular = can("seminario:matricular");
   const canCertificar = can("seminario:certificar");
@@ -62,6 +65,16 @@ export default function EstudiantesSection() {
   const [autoRetry, setAutoRetry] = useState(true);
   const [batchFinalizado, setBatchFinalizado] = useState(false);
 
+  // Mapa enriquecido: persona_id -> { inscripcion, periodoNombre } a través de todos los periodos del programa
+  const yaInscritosMap = useMemo(() => {
+    const m = new Map<string, { ins: any; periodoNombre: string }>();
+    (inscripcionesPrograma || []).forEach((i: any) => {
+      m.set(i.persona_id, { ins: i, periodoNombre: i.sem_periodos?.nombre || i.sem_periodos?.codigo || "—" });
+    });
+    return m;
+  }, [inscripcionesPrograma]);
+
+  // Compatibilidad con código existente (solo periodo actual)
   const yaInscritos = new Set((inscripciones || []).map((i: any) => i.persona_id));
 
   // Inscripciones filtradas por nombre o documento (CC) sobre el resultado ya filtrado por programa+periodo
