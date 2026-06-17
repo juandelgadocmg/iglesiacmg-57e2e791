@@ -391,7 +391,7 @@ export default function EstudiantesSection() {
   );
 }
 
-function InscripcionDialog({ personas, totalSem, onSave, pending }: any) {
+function InscripcionDialog({ personas, yaInscritos, totalSem, onSave, pending }: any) {
   const [f, setF] = useState({ persona_id: "", semestre_actual: 1 });
   return (
     <DialogContent>
@@ -405,11 +405,16 @@ function InscripcionDialog({ personas, totalSem, onSave, pending }: any) {
             onChange={(v) => setF({ ...f, persona_id: v })}
             placeholder="Buscar persona por nombre o documento…"
             emptyLabel="No hay personas disponibles"
-            items={personas.map((p: any) => ({
-              id: p.id,
-              label: `${p.nombres} ${p.apellidos}`.trim(),
-              sub: p.documento || undefined,
-            }))}
+            items={personas.map((p: any) => {
+              const inscrita = yaInscritos?.has?.(p.id);
+              return {
+                id: p.id,
+                label: `${p.nombres} ${p.apellidos}`.trim(),
+                sub: p.documento || undefined,
+                disabled: inscrita,
+                badge: inscrita ? "Ya inscrito" : undefined,
+              };
+            })}
           />
         </div>
         <div>
