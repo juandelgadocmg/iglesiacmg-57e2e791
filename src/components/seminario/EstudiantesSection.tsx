@@ -259,7 +259,7 @@ export default function EstudiantesSection() {
               <DialogTrigger asChild>
                 <Button size="sm" disabled={!effPer}><UserPlus className="h-4 w-4 mr-1" />Inscribir</Button>
               </DialogTrigger>
-              <InscripcionDialog personas={(personas || []).filter((p: any) => !yaInscritos.has(p.id))}
+              <InscripcionDialog personas={personas || []} yaInscritos={yaInscritos}
                 totalSem={programa?.total_semestres || 8}
                 onSave={handleCreate} pending={upsertIns.isPending} />
             </Dialog>
