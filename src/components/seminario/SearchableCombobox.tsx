@@ -92,9 +92,12 @@ export default function SearchableCombobox({
             <div className="px-3 py-3 text-xs text-center text-muted-foreground">{emptyLabel}</div>
           ) : filtered.map(i => (
             <div key={i.id}
-              className={`px-3 py-1.5 cursor-pointer hover:bg-muted/60 text-sm ${i.id === value ? "bg-muted/40" : ""}`}
-              onMouseDown={() => { onChange(i.id); setQuery(""); setOpen(false); }}>
-              <div className="truncate font-medium">{i.label}</div>
+              className={`px-3 py-1.5 text-sm ${i.disabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer hover:bg-muted/60"} ${i.id === value ? "bg-muted/40" : ""}`}
+              onMouseDown={() => { if (i.disabled) return; onChange(i.id); setQuery(""); setOpen(false); }}>
+              <div className="truncate font-medium flex items-center gap-2">
+                <span className="truncate">{i.label}</span>
+                {i.badge && <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground shrink-0">{i.badge}</span>}
+              </div>
               {i.sub && <div className="text-[11px] text-muted-foreground truncate">{i.sub}</div>}
             </div>
           ))}
