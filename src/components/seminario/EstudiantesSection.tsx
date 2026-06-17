@@ -432,21 +432,27 @@ export default function EstudiantesSection() {
 
 function InscripcionDialog({ personas, yaInscritosMap, incluirYaInscritos, setIncluirYaInscritos, onVerInscripcion, totalSem, onSave, pending }: any) {
   const [f, setF] = useState({ persona_id: "", semestre_actual: 1 });
-  const map: Map<string, { ins: any; periodoNombre: string }> = yaInscritosMap || new Map();
+  const map: Map<string, { ins: any; periodoNombre: string; badge: string }> = yaInscritosMap || new Map();
 
   const items = useMemo(() => {
     const base = (personas || []).map((p: any) => {
       const info = map.get(p.id);
       const inscrita = !!info;
+      const fullName = personaFullName(p);
       return {
         id: p.id,
-        label: `${p.nombres} ${p.apellidos}`.trim(),
+        label: fullName,
         sub: inscrita
           ? `${p.documento || "—"} · Inscrito en ${info!.periodoNombre}`
           : (p.documento || undefined),
         disabled: inscrita,
-        badge: inscrita ? `Ya inscrito · ${info!.periodoNombre}` : undefined,
-        action: inscrita ? { label: "Ver inscripción", onClick: () => onVerInscripcion?.(info!.ins) } : undefined,
+        badge: inscrita ? info!.badge : undefined,
+        ariaLabel: inscrita
+          ? `${fullName}, ${info!.badge}. No disponible para nueva inscripción.`
+          : `${fullName}${p.documento ? `, documento ${p.documento}` : ""}`,
+        action: inscrita
+          ? { label: "Ver inscripción", onClick: () => onVerInscripcion?.(info!.ins), ariaLabel: `Ver inscripción de ${fullName} en ${info!.periodoNombre}` }
+          : undefined,
         _inscrita: inscrita,
       };
     });
