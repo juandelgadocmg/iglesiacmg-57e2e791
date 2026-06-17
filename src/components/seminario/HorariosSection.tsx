@@ -224,17 +224,22 @@ function OfertaDialog({ ctx, personas, onSave, pending }: any) {
       <div className="space-y-3">
         <div>
           <Label>Docente (de la iglesia)</Label>
-          <Select value={f.docente_persona_id || "none"} onValueChange={(v) => {
-            if (v === "none") { setF({ ...f, docente_persona_id: null }); return; }
-            const p: any = personas.find((x: any) => x.id === v);
-            setF({ ...f, docente_persona_id: v, docente_nombre: p ? `${p.nombres} ${p.apellidos}` : f.docente_nombre });
-          }}>
-            <SelectTrigger><SelectValue placeholder="Seleccionar docente" /></SelectTrigger>
-            <SelectContent className="max-h-72">
-              <SelectItem value="none">— Sin asignar —</SelectItem>
-              {personas.map((p: any) => <SelectItem key={p.id} value={p.id}>{p.nombres} {p.apellidos}</SelectItem>)}
-            </SelectContent>
-          </Select>
+          <SearchableCombobox
+            width="w-full"
+            value={f.docente_persona_id || ""}
+            onChange={(v) => {
+              if (!v) { setF({ ...f, docente_persona_id: null }); return; }
+              const p: any = personas.find((x: any) => x.id === v);
+              setF({ ...f, docente_persona_id: v, docente_nombre: p ? `${p.nombres} ${p.apellidos}` : f.docente_nombre });
+            }}
+            placeholder="Buscar docente por nombre…"
+            emptyLabel="Sin coincidencias"
+            items={personas.map((p: any) => ({
+              id: p.id,
+              label: `${p.nombres} ${p.apellidos}`.trim(),
+              sub: p.documento || undefined,
+            }))}
+          />
         </div>
         <div><Label>Nombre docente (libre)</Label><Input value={f.docente_nombre} onChange={e => setF({ ...f, docente_nombre: e.target.value })} placeholder="Si no está en personas" /></div>
         <div className="grid grid-cols-2 gap-2">
