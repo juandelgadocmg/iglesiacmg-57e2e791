@@ -324,10 +324,16 @@ export default function EstudiantesSection() {
                         <Progress value={pct} className="h-1.5 flex-1" />
                         <span className="text-[10px] text-muted-foreground">{credAprob} cr · {pct}%</span>
                       </div>
-                      <div className="flex items-center justify-between mt-1.5">
+                      <div className="flex items-center justify-between mt-1.5 gap-2">
                         <span className="text-[10px] text-muted-foreground">Promedio: {i.promedio_acumulado ?? "—"}</span>
-                        <DeleteConfirmDialog onConfirm={async () => { await delIns.mutateAsync(i.id); await logSemAudit({ action: "inscripcion.eliminada", persona_id: i.persona_id, inscripcion_id: i.id }); toast.success("Eliminado"); }}
-                          trigger={<Button size="icon" variant="ghost" className="h-6 w-6 text-destructive" onClick={(e) => e.stopPropagation()}><Trash2 className="h-3 w-3" /></Button>} />
+                        <div className="flex items-center gap-1">
+                          <Button size="sm" variant="outline" className="h-6 px-2 text-[10px]"
+                            onClick={(e) => { e.stopPropagation(); setSelectedIns(i); }}>
+                            Ver inscripción
+                          </Button>
+                          <DeleteConfirmDialog onConfirm={async () => { await delIns.mutateAsync(i.id); await logSemAudit({ action: "inscripcion.eliminada", persona_id: i.persona_id, inscripcion_id: i.id }); toast.success("Eliminado"); }}
+                            trigger={<Button size="icon" variant="ghost" className="h-6 w-6 text-destructive" onClick={(e) => e.stopPropagation()}><Trash2 className="h-3 w-3" /></Button>} />
+                        </div>
                       </div>
                     </div>
                   </div>
