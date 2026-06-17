@@ -6,6 +6,8 @@ export interface ComboboxItem {
   id: string;
   label: string;
   sub?: string;
+  disabled?: boolean;
+  badge?: string;
 }
 
 interface Props {
