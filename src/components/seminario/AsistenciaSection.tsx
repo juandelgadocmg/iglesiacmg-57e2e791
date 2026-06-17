@@ -11,6 +11,7 @@ import { Save, UserCheck } from "lucide-react";
 import { toast } from "sonner";
 import { useCan } from "@/hooks/useCan";
 import { logSemAudit } from "@/lib/seminarioAudit";
+import SearchableCombobox from "./SearchableCombobox";
 
 const ESTADOS = [
   { v: "presente", l: "Presente", color: "default" },
@@ -85,14 +86,18 @@ export default function AsistenciaSection() {
             <SelectTrigger className="w-36"><SelectValue placeholder="Periodo" /></SelectTrigger>
             <SelectContent>{(periodos || []).map((p: any) => <SelectItem key={p.id} value={p.id}>{p.nombre}</SelectItem>)}</SelectContent>
           </Select>
-          <Select value={effOf} onValueChange={setOfertaId}>
-            <SelectTrigger className="w-52"><SelectValue placeholder="Materia" /></SelectTrigger>
-            <SelectContent>
-              {(ofertas as any[] || []).map((o: any) => (
-                <SelectItem key={o.id} value={o.id}>{o.sem_materias?.codigo} · {o.sem_materias?.nombre}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <SearchableCombobox
+            width="w-64"
+            value={effOf}
+            onChange={setOfertaId}
+            placeholder="Buscar materia…"
+            emptyLabel="Sin materias en el periodo"
+            items={(ofertas as any[] || []).map((o: any) => ({
+              id: o.id,
+              label: `${o.sem_materias?.codigo || ""} · ${o.sem_materias?.nombre || ""}`.trim(),
+              sub: o.docente_nombre || undefined,
+            }))}
+          />
           <Input type="date" value={fecha} onChange={(e) => setFecha(e.target.value)} className="w-40" />
         </div>
       </div>
