@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useDocentes, usePeriodos, useProgramas } from "@/hooks/useSeminario";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { User, BookOpen, Search } from "lucide-react";
+import { matchesPersona } from "@/lib/seminarioSearch";
 
 export default function DocentesSection() {
   const { data: programas } = useProgramas();
@@ -15,20 +16,18 @@ export default function DocentesSection() {
   const { data: docentes = [] } = useDocentes(periodoId || undefined);
   const [q, setQ] = useState("");
 
-  // Al cambiar de programa, resetea el periodo para evitar mostrar uno que no pertenece
+  // Al cambiar de programa, resetea el periodo y la búsqueda para evitar estado inconsistente
   const handleProgramaChange = (v: string) => {
     setProgramaId(v);
     setPeriodoId("");
   };
 
-  const norm = (s: any) =>
-    String(s ?? "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+  const filtered = useMemo(() => {
+    if (!q.trim()) return docentes as any[];
+    return (docentes as any[]).filter((d) => matchesPersona(q, { nombre: d.nombre, documento: d.documento }));
+  }, [docentes, q]);
 
-  const filtered = (docentes as any[]).filter((d) => {
-    const nq = norm(q);
-    if (!nq) return true;
-    return norm(d.nombre).includes(nq) || norm(d.documento).includes(nq);
-  });
+  const periodoLabel = (periodos || []).find((p: any) => p.id === periodoId)?.nombre;
 
   return (
     <div className="space-y-4">
@@ -57,7 +56,11 @@ export default function DocentesSection() {
       </div>
 
       {filtered.length === 0 ? (
-        <Card><CardContent className="p-6 text-center text-sm text-muted-foreground">Sin docentes asignados aún.</CardContent></Card>
+        <Card><CardContent className="p-6 text-center text-sm text-muted-foreground">
+          {q.trim()
+            ? `Ningún docente coincide con "${q}"${periodoLabel ? ` en el periodo ${periodoLabel}` : ""}.`
+            : (periodoLabel ? `Sin docentes asignados en el periodo ${periodoLabel}.` : "Sin docentes asignados aún.")}
+        </CardContent></Card>
       ) : (
         <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
           {filtered.map((d: any) => (
