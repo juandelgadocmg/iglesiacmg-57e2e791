@@ -20,6 +20,7 @@ import { FileDown as FileDownIcon, Award as AwardIcon } from "lucide-react";
 import { logSemAudit } from "@/lib/seminarioAudit";
 import SearchableCombobox from "./SearchableCombobox";
 import { matchesPersona } from "@/lib/seminarioSearch";
+import { yaInscritoBadge, periodoLabel, personaFullName } from "@/lib/seminarioFormat";
 
 export default function EstudiantesSection() {
   const { data: programas } = useProgramas();
@@ -67,9 +68,13 @@ export default function EstudiantesSection() {
 
   // Mapa enriquecido: persona_id -> { inscripcion, periodoNombre } a través de todos los periodos del programa
   const yaInscritosMap = useMemo(() => {
-    const m = new Map<string, { ins: any; periodoNombre: string }>();
+    const m = new Map<string, { ins: any; periodoNombre: string; badge: string }>();
     (inscripcionesPrograma || []).forEach((i: any) => {
-      m.set(i.persona_id, { ins: i, periodoNombre: i.sem_periodos?.nombre || i.sem_periodos?.codigo || "—" });
+      m.set(i.persona_id, {
+        ins: i,
+        periodoNombre: periodoLabel(i.sem_periodos),
+        badge: yaInscritoBadge(i.sem_periodos),
+      });
     });
     return m;
   }, [inscripcionesPrograma]);
@@ -311,11 +316,14 @@ export default function EstudiantesSection() {
                     </div>
                     <div className="flex-1 min-w-0 cursor-pointer" onClick={() => setSelectedIns(i)}>
                       <div className="flex items-center justify-between gap-2">
-                        <p className="font-semibold text-sm truncate">{p?.nombres} {p?.apellidos}</p>
+                        <p className="font-semibold text-sm truncate">{personaFullName(p)}</p>
                         <div className="flex items-center gap-1 shrink-0">
                           <Badge variant="outline" className="text-[10px]">Sem {i.semestre_actual || "—"}</Badge>
-                          <Badge className="text-[10px] bg-amber-100 text-amber-800 border border-amber-200 hover:bg-amber-100">
-                            Ya inscrito · {i.sem_periodos?.nombre || i.sem_periodos?.codigo || "—"}
+                          <Badge
+                            className="text-[10px] bg-amber-100 text-amber-800 border border-amber-200 hover:bg-amber-100"
+                            aria-label={`${yaInscritoBadge(i.sem_periodos)} en el programa ${programa?.nombre || ""}`.trim()}
+                          >
+                            {yaInscritoBadge(i.sem_periodos)}
                           </Badge>
                         </div>
                       </div>
@@ -424,21 +432,27 @@ export default function EstudiantesSection() {
 
 function InscripcionDialog({ personas, yaInscritosMap, incluirYaInscritos, setIncluirYaInscritos, onVerInscripcion, totalSem, onSave, pending }: any) {
   const [f, setF] = useState({ persona_id: "", semestre_actual: 1 });
-  const map: Map<string, { ins: any; periodoNombre: string }> = yaInscritosMap || new Map();
+  const map: Map<string, { ins: any; periodoNombre: string; badge: string }> = yaInscritosMap || new Map();
 
   const items = useMemo(() => {
     const base = (personas || []).map((p: any) => {
       const info = map.get(p.id);
       const inscrita = !!info;
+      const fullName = personaFullName(p);
       return {
         id: p.id,
-        label: `${p.nombres} ${p.apellidos}`.trim(),
+        label: fullName,
         sub: inscrita
           ? `${p.documento || "—"} · Inscrito en ${info!.periodoNombre}`
           : (p.documento || undefined),
         disabled: inscrita,
-        badge: inscrita ? `Ya inscrito · ${info!.periodoNombre}` : undefined,
-        action: inscrita ? { label: "Ver inscripción", onClick: () => onVerInscripcion?.(info!.ins) } : undefined,
+        badge: inscrita ? info!.badge : undefined,
+        ariaLabel: inscrita
+          ? `${fullName}, ${info!.badge}. No disponible para nueva inscripción.`
+          : `${fullName}${p.documento ? `, documento ${p.documento}` : ""}`,
+        action: inscrita
+          ? { label: "Ver inscripción", onClick: () => onVerInscripcion?.(info!.ins), ariaLabel: `Ver inscripción de ${fullName} en ${info!.periodoNombre}` }
+          : undefined,
         _inscrita: inscrita,
       };
     });
