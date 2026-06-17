@@ -50,11 +50,13 @@ export default function SearchableCombobox({
 
   const filtered = useMemo(() => {
     const q = norm(query);
-    const base = !q
+    const tokens = q.split(/\s+/).filter(Boolean);
+    const base = tokens.length === 0
       ? items
-      : items.filter(i => norm(`${i.label} ${i.sub || ""}`).includes(q));
-    // pageSize estable: NO depende del filtro externo de la página padre,
-    // así el conteo visible se mantiene consistente al alternar toggles.
+      : items.filter(i => {
+          const hay = norm(`${i.label} ${i.sub || ""}`);
+          return tokens.every(t => hay.includes(t));
+        });
     return base.slice(0, pageSize);
   }, [items, query, pageSize]);
 
