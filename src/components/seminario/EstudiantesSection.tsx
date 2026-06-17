@@ -234,11 +234,20 @@ export default function EstudiantesSection() {
           <p className="text-xs text-muted-foreground">Inscribe estudiantes por semestre y registra avance académico</p>
         </div>
         <div className="flex gap-2 flex-wrap">
-          <Select value={effProg} onValueChange={setProgramaId}>
+          <div className="relative">
+            <Search className="absolute left-2 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
+            <Input
+              value={busqueda}
+              onChange={(e) => setBusqueda(e.target.value)}
+              placeholder="Buscar por nombre o CC..."
+              className="pl-8 w-56"
+            />
+          </div>
+          <Select value={effProg} onValueChange={handleProgramaChange}>
             <SelectTrigger className="w-48"><SelectValue placeholder="Programa" /></SelectTrigger>
             <SelectContent>{(programas || []).map((p: any) => <SelectItem key={p.id} value={p.id}>{p.nombre}</SelectItem>)}</SelectContent>
           </Select>
-          <Select value={effPer} onValueChange={setPeriodoId}>
+          <Select value={effPer} onValueChange={handlePeriodoChange}>
             <SelectTrigger className="w-48"><SelectValue placeholder="Periodo" /></SelectTrigger>
             <SelectContent>{(periodos || []).map((p: any) => <SelectItem key={p.id} value={p.id}>{p.nombre}</SelectItem>)}</SelectContent>
           </Select>
