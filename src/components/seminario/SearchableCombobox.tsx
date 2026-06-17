@@ -8,6 +8,7 @@ export interface ComboboxItem {
   sub?: string;
   disabled?: boolean;
   badge?: string;
+  action?: { label: string; onClick: () => void };
 }
 
 interface Props {
@@ -92,13 +93,31 @@ export default function SearchableCombobox({
             <div className="px-3 py-3 text-xs text-center text-muted-foreground">{emptyLabel}</div>
           ) : filtered.map(i => (
             <div key={i.id}
-              className={`px-3 py-1.5 text-sm ${i.disabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer hover:bg-muted/60"} ${i.id === value ? "bg-muted/40" : ""}`}
-              onMouseDown={() => { if (i.disabled) return; onChange(i.id); setQuery(""); setOpen(false); }}>
-              <div className="truncate font-medium flex items-center gap-2">
-                <span className="truncate">{i.label}</span>
-                {i.badge && <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground shrink-0">{i.badge}</span>}
+              className={`px-3 py-1.5 text-sm flex items-start justify-between gap-2 ${i.disabled && !i.action ? "opacity-60 cursor-not-allowed" : i.disabled ? "cursor-default" : "cursor-pointer hover:bg-muted/60"} ${i.id === value ? "bg-muted/40" : ""}`}
+              onMouseDown={(e) => {
+                if (i.disabled) return;
+                // Avoid hijacking clicks on the action button
+                if ((e.target as HTMLElement).closest("[data-combobox-action]")) return;
+                onChange(i.id); setQuery(""); setOpen(false);
+              }}>
+              <div className="min-w-0 flex-1">
+                <div className="truncate font-medium flex items-center gap-2">
+                  <span className="truncate">{i.label}</span>
+                  {i.badge && <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 border border-amber-200 shrink-0">{i.badge}</span>}
+                </div>
+                {i.sub && <div className="text-[11px] text-muted-foreground truncate">{i.sub}</div>}
               </div>
-              {i.sub && <div className="text-[11px] text-muted-foreground truncate">{i.sub}</div>}
+              {i.action && (
+                <button
+                  type="button"
+                  data-combobox-action
+                  onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); i.action!.onClick(); setOpen(false); }}
+                  className="text-[10px] px-2 py-1 rounded border border-primary/30 text-primary hover:bg-primary/10 shrink-0"
+                >
+                  {i.action.label}
+                </button>
+              )}
             </div>
           ))}
         </div>

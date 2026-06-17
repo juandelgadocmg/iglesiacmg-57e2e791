@@ -30,6 +30,8 @@ export default function EstudiantesSection() {
   const [periodoId, setPeriodoId] = useState("");
   const effPer = periodoId || periodos?.[0]?.id || "";
   const { data: inscripciones } = useInscripciones(effProg, effPer);
+  // Todas las inscripciones del programa (todos los periodos) para detectar "Ya inscrito"
+  const { data: inscripcionesPrograma } = useInscripciones(effProg);
   const upsertIns = useUpsertInscripcion();
   const delIns = useDeleteInscripcion();
   const { data: personas } = usePersonasLite();
@@ -37,6 +39,7 @@ export default function EstudiantesSection() {
   const [selectedIns, setSelectedIns] = useState<any>(null);
   const [seleccion, setSeleccion] = useState<Set<string>>(new Set());
   const [busqueda, setBusqueda] = useState("");
+  const [incluirYaInscritos, setIncluirYaInscritos] = useState(false);
   const can = useCan();
   const canMatricular = can("seminario:matricular");
   const canCertificar = can("seminario:certificar");
@@ -62,6 +65,16 @@ export default function EstudiantesSection() {
   const [autoRetry, setAutoRetry] = useState(true);
   const [batchFinalizado, setBatchFinalizado] = useState(false);
 
+  // Mapa enriquecido: persona_id -> { inscripcion, periodoNombre } a través de todos los periodos del programa
+  const yaInscritosMap = useMemo(() => {
+    const m = new Map<string, { ins: any; periodoNombre: string }>();
+    (inscripcionesPrograma || []).forEach((i: any) => {
+      m.set(i.persona_id, { ins: i, periodoNombre: i.sem_periodos?.nombre || i.sem_periodos?.codigo || "—" });
+    });
+    return m;
+  }, [inscripcionesPrograma]);
+
+  // Compatibilidad con código existente (solo periodo actual)
   const yaInscritos = new Set((inscripciones || []).map((i: any) => i.persona_id));
 
   // Inscripciones filtradas por nombre o documento (CC) sobre el resultado ya filtrado por programa+periodo
@@ -259,9 +272,16 @@ export default function EstudiantesSection() {
               <DialogTrigger asChild>
                 <Button size="sm" disabled={!effPer}><UserPlus className="h-4 w-4 mr-1" />Inscribir</Button>
               </DialogTrigger>
-              <InscripcionDialog personas={personas || []} yaInscritos={yaInscritos}
+              <InscripcionDialog
+                personas={personas || []}
+                yaInscritosMap={yaInscritosMap}
+                incluirYaInscritos={incluirYaInscritos}
+                setIncluirYaInscritos={setIncluirYaInscritos}
+                onVerInscripcion={(ins: any) => { setCreating(false); setSelectedIns(ins); }}
                 totalSem={programa?.total_semestres || 8}
-                onSave={handleCreate} pending={upsertIns.isPending} />
+                onSave={handleCreate}
+                pending={upsertIns.isPending}
+              />
             </Dialog>
           )}
         </div>
@@ -292,17 +312,28 @@ export default function EstudiantesSection() {
                     <div className="flex-1 min-w-0 cursor-pointer" onClick={() => setSelectedIns(i)}>
                       <div className="flex items-center justify-between gap-2">
                         <p className="font-semibold text-sm truncate">{p?.nombres} {p?.apellidos}</p>
-                        <Badge variant="outline" className="text-[10px]">Sem {i.semestre_actual || "—"}</Badge>
+                        <div className="flex items-center gap-1 shrink-0">
+                          <Badge variant="outline" className="text-[10px]">Sem {i.semestre_actual || "—"}</Badge>
+                          <Badge className="text-[10px] bg-amber-100 text-amber-800 border border-amber-200 hover:bg-amber-100">
+                            Ya inscrito · {i.sem_periodos?.nombre || i.sem_periodos?.codigo || "—"}
+                          </Badge>
+                        </div>
                       </div>
                       <p className="text-[10px] text-muted-foreground">{p?.documento}</p>
                       <div className="mt-1.5 flex items-center gap-2">
                         <Progress value={pct} className="h-1.5 flex-1" />
                         <span className="text-[10px] text-muted-foreground">{credAprob} cr · {pct}%</span>
                       </div>
-                      <div className="flex items-center justify-between mt-1.5">
+                      <div className="flex items-center justify-between mt-1.5 gap-2">
                         <span className="text-[10px] text-muted-foreground">Promedio: {i.promedio_acumulado ?? "—"}</span>
-                        <DeleteConfirmDialog onConfirm={async () => { await delIns.mutateAsync(i.id); await logSemAudit({ action: "inscripcion.eliminada", persona_id: i.persona_id, inscripcion_id: i.id }); toast.success("Eliminado"); }}
-                          trigger={<Button size="icon" variant="ghost" className="h-6 w-6 text-destructive" onClick={(e) => e.stopPropagation()}><Trash2 className="h-3 w-3" /></Button>} />
+                        <div className="flex items-center gap-1">
+                          <Button size="sm" variant="outline" className="h-6 px-2 text-[10px]"
+                            onClick={(e) => { e.stopPropagation(); setSelectedIns(i); }}>
+                            Ver inscripción
+                          </Button>
+                          <DeleteConfirmDialog onConfirm={async () => { await delIns.mutateAsync(i.id); await logSemAudit({ action: "inscripcion.eliminada", persona_id: i.persona_id, inscripcion_id: i.id }); toast.success("Eliminado"); }}
+                            trigger={<Button size="icon" variant="ghost" className="h-6 w-6 text-destructive" onClick={(e) => e.stopPropagation()}><Trash2 className="h-3 w-3" /></Button>} />
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -391,30 +422,59 @@ export default function EstudiantesSection() {
   );
 }
 
-function InscripcionDialog({ personas, yaInscritos, totalSem, onSave, pending }: any) {
+function InscripcionDialog({ personas, yaInscritosMap, incluirYaInscritos, setIncluirYaInscritos, onVerInscripcion, totalSem, onSave, pending }: any) {
   const [f, setF] = useState({ persona_id: "", semestre_actual: 1 });
+  const map: Map<string, { ins: any; periodoNombre: string }> = yaInscritosMap || new Map();
+
+  const items = useMemo(() => {
+    const base = (personas || []).map((p: any) => {
+      const info = map.get(p.id);
+      const inscrita = !!info;
+      return {
+        id: p.id,
+        label: `${p.nombres} ${p.apellidos}`.trim(),
+        sub: inscrita
+          ? `${p.documento || "—"} · Inscrito en ${info!.periodoNombre}`
+          : (p.documento || undefined),
+        disabled: inscrita,
+        badge: inscrita ? `Ya inscrito · ${info!.periodoNombre}` : undefined,
+        action: inscrita ? { label: "Ver inscripción", onClick: () => onVerInscripcion?.(info!.ins) } : undefined,
+        _inscrita: inscrita,
+      };
+    });
+    return incluirYaInscritos ? base : base.filter((i: any) => !i._inscrita);
+  }, [personas, map, incluirYaInscritos, onVerInscripcion]);
+
+  const totalInscritos = useMemo(
+    () => (personas || []).filter((p: any) => map.has(p.id)).length,
+    [personas, map]
+  );
+
   return (
     <DialogContent>
       <DialogHeader><DialogTitle>Nueva inscripción</DialogTitle></DialogHeader>
       <div className="space-y-3">
         <div>
-          <Label>Persona *</Label>
+          <div className="flex items-center justify-between mb-1">
+            <Label>Persona *</Label>
+            <label className="flex items-center gap-1.5 text-[11px] text-muted-foreground cursor-pointer">
+              <input
+                type="checkbox"
+                checked={!!incluirYaInscritos}
+                onChange={(e) => setIncluirYaInscritos?.(e.target.checked)}
+              />
+              {incluirYaInscritos
+                ? `Incluir ya inscritos (${totalInscritos})`
+                : `Solo disponibles · ocultos ${totalInscritos}`}
+            </label>
+          </div>
           <SearchableCombobox
             width="w-full"
             value={f.persona_id}
             onChange={(v) => setF({ ...f, persona_id: v })}
             placeholder="Buscar persona por nombre o documento…"
             emptyLabel="No hay personas disponibles"
-            items={personas.map((p: any) => {
-              const inscrita = yaInscritos?.has?.(p.id);
-              return {
-                id: p.id,
-                label: `${p.nombres} ${p.apellidos}`.trim(),
-                sub: p.documento || undefined,
-                disabled: inscrita,
-                badge: inscrita ? "Ya inscrito" : undefined,
-              };
-            })}
+            items={items}
           />
         </div>
         <div>
