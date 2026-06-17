@@ -13,6 +13,7 @@ import DeleteConfirmDialog from "@/components/shared/DeleteConfirmDialog";
 import { isZoomStale, generateZoomLink } from "@/lib/seminarioZoom";
 import { useCan } from "@/hooks/useCan";
 import { logSemAudit } from "@/lib/seminarioAudit";
+import SearchableCombobox from "./SearchableCombobox";
 
 export default function HorariosSection() {
   const { data: programas } = useProgramas();
