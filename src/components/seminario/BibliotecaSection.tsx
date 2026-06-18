@@ -123,6 +123,35 @@ export default function BibliotecaSection() {
 
 function RecursoDialog({ data, materias, onSave, pending }: any) {
   const [f, setF] = useState(data);
+  const [uploading, setUploading] = useState(false);
+
+  const handleUpload = async (file: File) => {
+    if (!file) return;
+    if (file.size > 50 * 1024 * 1024) { toast.error("El archivo supera 50MB"); return; }
+    setUploading(true);
+    try {
+      const ext = file.name.split(".").pop() || "bin";
+      const path = `seminario/${Date.now()}_${Math.random().toString(36).slice(2, 8)}.${ext}`;
+      const { error } = await supabase.storage.from("recursos-academicos").upload(path, file, {
+        cacheControl: "3600", upsert: false, contentType: file.type || undefined,
+      });
+      if (error) throw error;
+      const { data: pub } = supabase.storage.from("recursos-academicos").getPublicUrl(path);
+      const inferredTipo =
+        file.type.startsWith("video/") ? "video" :
+        file.type.startsWith("audio/") ? "audio" :
+        file.type === "application/pdf" ? "pdf" : f.tipo || "pdf";
+      setF((prev: any) => ({
+        ...prev,
+        url: pub.publicUrl,
+        tipo: prev.tipo || inferredTipo,
+        titulo: prev.titulo || file.name.replace(/\.[^.]+$/, ""),
+      }));
+      toast.success("Archivo subido");
+    } catch (e: any) { toast.error(e.message || "Error subiendo archivo"); }
+    finally { setUploading(false); }
+  };
+
   return (
     <DialogContent>
       <DialogHeader><DialogTitle>{f.id ? "Editar" : "Nuevo"} recurso</DialogTitle></DialogHeader>
@@ -147,10 +176,27 @@ function RecursoDialog({ data, materias, onSave, pending }: any) {
             </Select>
           </div>
         </div>
-        <div><Label>URL *</Label><Input value={f.url} onChange={(e) => setF({ ...f, url: e.target.value })} placeholder="https://..." /></div>
+        <div>
+          <Label>Archivo (opcional)</Label>
+          <div className="flex items-center gap-2">
+            <Input
+              type="file"
+              accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.mp3,.mp4,.m4a,.wav,.zip,image/*"
+              onChange={(e) => { const file = e.target.files?.[0]; if (file) handleUpload(file); }}
+              disabled={uploading}
+              className="text-xs"
+            />
+            {uploading && <span className="text-xs text-muted-foreground flex items-center gap-1"><Upload className="h-3 w-3 animate-pulse" />Subiendo…</span>}
+          </div>
+          <p className="text-[10px] text-muted-foreground mt-1">PDF, video, audio o documentos (máx 50MB). Al subir se llena la URL automáticamente.</p>
+        </div>
+        <div><Label>URL *</Label><Input value={f.url} onChange={(e) => setF({ ...f, url: e.target.value })} placeholder="https://... o sube un archivo arriba" /></div>
         <div><Label>Descripción</Label><Textarea value={f.descripcion || ""} onChange={(e) => setF({ ...f, descripcion: e.target.value })} rows={2} /></div>
-        <Button disabled={pending || !f.titulo || !f.url} onClick={() => onSave(f)} className="w-full">Guardar</Button>
+        <Button disabled={pending || uploading || !f.titulo || !f.url} onClick={() => onSave(f)} className="w-full">
+          {pending ? "Guardando…" : "Guardar"}
+        </Button>
       </div>
     </DialogContent>
   );
 }
+
