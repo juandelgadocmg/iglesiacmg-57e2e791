@@ -68,12 +68,12 @@ export default function SeminarioPage() {
     setParams(next, { replace: false });
   };
   useEffect(() => {
-    if (!urlTab) {
+    if (!urlTab || !validIds.includes(urlTab)) {
       const next = new URLSearchParams(params);
-      next.set("tab", "dashboard");
+      next.set("tab", defaultTab);
       setParams(next, { replace: true });
     }
-  }, []); // eslint-disable-line
+  }, [isDocenteOnly]); // eslint-disable-line
 
 
   return (
