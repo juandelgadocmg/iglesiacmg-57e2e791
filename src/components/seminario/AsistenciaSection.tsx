@@ -36,6 +36,7 @@ export default function AsistenciaSection() {
   const [fecha, setFecha] = useUrlParam("as_fecha", today);
   const { data, isLoading: loadingAsist } = useAsistenciaOferta(effOf, fecha);
   const save = useSaveAsistencia();
+  const bulkEnroll = useBulkEnrollOferta();
   const [local, setLocal] = useState<Record<string, { estado: string; observacion?: string }>>({});
   const [detalle, setDetalle] = useState<any>(null);
 
