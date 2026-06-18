@@ -13,6 +13,7 @@ import { toast } from "sonner";
 import DeleteConfirmDialog from "@/components/shared/DeleteConfirmDialog";
 import { useCan } from "@/hooks/useCan";
 import { supabase } from "@/integrations/supabase/client";
+import { useMiPersona, useMisOfertas, useIsSeminarioStaff } from "@/hooks/useSeminarioStudent";
 
 const TIPOS = [
   { v: "pdf", l: "PDF", icon: FileText },
@@ -24,10 +25,19 @@ const TIPOS = [
 export default function BibliotecaSection() {
   const can = useCan();
   const canEdit = can("seminario:biblioteca_crud");
+  const { data: isStaff } = useIsSeminarioStaff();
+  const { data: miPersona } = useMiPersona();
+  const { data: misOfertas } = useMisOfertas(miPersona?.id);
+  const studentMode = !isStaff && !canEdit;
+  const enrolledMateriaIds = new Set((misOfertas || []).map((o: any) => o.materia_id).filter(Boolean));
+
   const { data: programas } = useProgramas();
   const [programaId, setProgramaId] = useState("");
   const effProg = programaId || programas?.[0]?.id || "";
-  const { data: materias } = useMateriasSem(effProg);
+  const { data: allMaterias } = useMateriasSem(effProg);
+  const materias = studentMode
+    ? (allMaterias || []).filter((m: any) => enrolledMateriaIds.has(m.id))
+    : (allMaterias || []);
   const [materiaId, setMateriaId] = useState("");
   const [q, setQ] = useState("");
   const { data: recursos } = useRecursos({ programa_id: effProg || undefined, materia_id: materiaId || undefined });
@@ -35,7 +45,14 @@ export default function BibliotecaSection() {
   const del = useDeleteRecurso();
   const [editing, setEditing] = useState<any>(null);
 
-  const filtered = (recursos || []).filter((r: any) => !q || r.titulo?.toLowerCase().includes(q.toLowerCase()));
+  const filtered = (recursos || []).filter((r: any) => {
+    if (q && !r.titulo?.toLowerCase().includes(q.toLowerCase())) return false;
+    if (studentMode) {
+      // Solo recursos de materias matriculadas; oculta recursos "Generales" sin materia
+      if (!r.materia_id || !enrolledMateriaIds.has(r.materia_id)) return false;
+    }
+    return true;
+  });
 
   const handleSave = async (f: any) => {
     try {
