@@ -3,6 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import PageHeader from "@/components/shared/PageHeader";
 import { useUserRoles } from "@/hooks/useUserRoles";
+import { useActiveRole } from "@/hooks/useActiveRole";
 import {
   LayoutDashboard, BookOpen, Layers, FileText, Video, ClipboardCheck,
   BarChart3, UserCheck, Library, Award, Users, FileBarChart2, CalendarClock, GraduationCap, ShieldCheck, Settings2,
@@ -46,12 +47,15 @@ const SIDEBAR = [
 
 export default function SeminarioPage() {
   const [params, setParams] = useSearchParams();
-  const { roles } = useUserRoles();
+  const { roles, isLoading: rolesLoading } = useUserRoles();
+  const { activeRole } = useActiveRole();
 
   const STAFF_ROLES = ["admin", "super_admin", "pastor", "seminario_admin", "maestro"];
-  const isStaff = roles.some((r) => STAFF_ROLES.includes(r));
-  const isDocenteOnly = !isStaff && roles.includes("seminario_docente" as any);
-  const isEstudianteOnly = !isStaff && !isDocenteOnly && roles.includes("seminario_estudiante" as any);
+  const effectiveRoles = activeRole ? [activeRole] : roles;
+  const waitingForActiveRole = roles.length > 0 && !activeRole;
+  const isStaff = effectiveRoles.some((r) => STAFF_ROLES.includes(r));
+  const isDocenteOnly = !isStaff && effectiveRoles.includes("seminario_docente" as any);
+  const isEstudianteOnly = !isStaff && !isDocenteOnly && effectiveRoles.includes("seminario_estudiante" as any);
   const DOCENTE_TABS = ["horarios", "aula-virtual", "evaluaciones", "calificaciones", "asistencia", "biblioteca"];
   const ESTUDIANTE_TABS = ["pensum", "aula-virtual", "calificaciones", "biblioteca"];
 
@@ -76,7 +80,25 @@ export default function SeminarioPage() {
       next.set("tab", defaultTab);
       setParams(next, { replace: true });
     }
-  }, [isDocenteOnly, isEstudianteOnly]); // eslint-disable-line
+  }, [isDocenteOnly, isEstudianteOnly, activeRole]); // eslint-disable-line
+
+  if (rolesLoading || waitingForActiveRole) {
+    return (
+      <div className="flex flex-col h-full">
+        <PageHeader
+          title="Seminario Bíblico CMG"
+          description="Sistema de gestión académica · Teología Bíblica y Ministerial"
+        />
+        <div className="flex flex-1 min-h-0">
+          <div className="w-56 shrink-0 border-r bg-card/50 hidden md:block" />
+          <div className="flex-1 overflow-auto p-4 md:p-6 space-y-3">
+            <div className="h-8 w-64 bg-muted animate-pulse rounded" />
+            <div className="h-40 bg-muted animate-pulse rounded" />
+          </div>
+        </div>
+      </div>
+    );
+  }
 
 
   return (
