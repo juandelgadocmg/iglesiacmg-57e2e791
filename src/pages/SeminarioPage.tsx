@@ -47,20 +47,22 @@ export default function SeminarioPage() {
   const [params, setParams] = useSearchParams();
   const { roles } = useUserRoles();
 
-  // Rol docente puro: solo ve las secciones operativas de su rol
   const STAFF_ROLES = ["admin", "super_admin", "pastor", "seminario_admin", "maestro"];
   const isStaff = roles.some((r) => STAFF_ROLES.includes(r));
   const isDocenteOnly = !isStaff && roles.includes("seminario_docente" as any);
+  const isEstudianteOnly = !isStaff && !isDocenteOnly && roles.includes("seminario_estudiante" as any);
   const DOCENTE_TABS = ["horarios", "aula-virtual", "evaluaciones", "calificaciones", "asistencia", "biblioteca"];
+  const ESTUDIANTE_TABS = ["pensum", "aula-virtual", "calificaciones", "biblioteca"];
 
-  const sidebar = useMemo(
-    () => (isDocenteOnly ? SIDEBAR.filter((s) => DOCENTE_TABS.includes(s.id)) : SIDEBAR),
-    [isDocenteOnly]
-  );
+  const sidebar = useMemo(() => {
+    if (isEstudianteOnly) return SIDEBAR.filter((s) => ESTUDIANTE_TABS.includes(s.id));
+    if (isDocenteOnly) return SIDEBAR.filter((s) => DOCENTE_TABS.includes(s.id));
+    return SIDEBAR;
+  }, [isDocenteOnly, isEstudianteOnly]);
 
   const validIds = sidebar.map((s) => s.id);
   const urlTab = params.get("tab");
-  const defaultTab = isDocenteOnly ? "horarios" : "dashboard";
+  const defaultTab = isEstudianteOnly ? "aula-virtual" : isDocenteOnly ? "horarios" : "dashboard";
   const section = urlTab && validIds.includes(urlTab) ? urlTab : defaultTab;
   const setSection = (id: string) => {
     const next = new URLSearchParams(params);
@@ -73,7 +75,7 @@ export default function SeminarioPage() {
       next.set("tab", defaultTab);
       setParams(next, { replace: true });
     }
-  }, [isDocenteOnly]); // eslint-disable-line
+  }, [isDocenteOnly, isEstudianteOnly]); // eslint-disable-line
 
 
   return (
