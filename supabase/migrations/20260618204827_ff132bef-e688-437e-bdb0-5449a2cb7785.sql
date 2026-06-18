@@ -1,0 +1,1 @@
+ALTER TABLE public.sem_zoom_sesiones ALTER COLUMN meeting_id DROP NOT NULL;
