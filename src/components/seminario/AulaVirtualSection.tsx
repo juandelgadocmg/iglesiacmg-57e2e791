@@ -26,6 +26,7 @@ import { toast } from "sonner";
 import DeleteConfirmDialog from "@/components/shared/DeleteConfirmDialog";
 import { useCan } from "@/hooks/useCan";
 import { useUserRoles } from "@/hooks/useUserRoles";
+import { useActiveRole } from "@/hooks/useActiveRole";
 import { useAuth } from "@/hooks/useAuth";
 import MiAulaSection from "./MiAulaSection";
 import AulaErrorBoundary from "./AulaErrorBoundary";
@@ -39,6 +40,7 @@ const STAFF_ROLES = ["admin", "super_admin", "pastor", "seminario_admin", "maest
 export default function AulaVirtualSection() {
   const { user, loading: authLoading } = useAuth() as any;
   const { roles, isLoading: rolesLoading } = useUserRoles() as any;
+  const { activeRole } = useActiveRole();
   const [previewStudent, setPreviewStudent] = useState(false);
 
   // Guard 1: aún no sabemos si hay sesión
@@ -59,7 +61,8 @@ export default function AulaVirtualSection() {
     return <div className="space-y-3" data-testid="aula-loading"><div className="h-8 w-64 bg-muted animate-pulse rounded" /><div className="h-32 bg-muted animate-pulse rounded" /></div>;
   }
 
-  const isStaff = (roles || []).some((r: string) => STAFF_ROLES.includes(r));
+  const effectiveRoles = activeRole ? [activeRole] : roles || [];
+  const isStaff = effectiveRoles.some((r: string) => STAFF_ROLES.includes(r));
 
   if (!isStaff) {
     return (
