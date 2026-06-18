@@ -148,7 +148,7 @@ export default function SeminarioPage() {
         <div className="flex-1 overflow-auto p-4 md:p-6">
           {section === "programas" && <ProgramasSection />}
           {section === "pensum" && <PensumSection readOnly={isEstudianteOnly} />}
-          {section === "materias" && <MateriasSection />}
+          {section === "materias" && <MateriasSection readOnly={isEstudianteOnly} />}
           {section === "horarios" && <HorariosSection />}
           {section === "estudiantes" && <EstudiantesSection />}
           {section === "auditoria" && <AuditoriaSection />}
