@@ -105,7 +105,7 @@ export default function SeminarioPage() {
           <div className="p-4">
             <h2 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-3">Seminario</h2>
             <div className="space-y-0.5">
-              {SIDEBAR.map((it) => (
+              {sidebar.map((it) => (
                 <button key={it.id} onClick={() => setSection(it.id)}
                   className={cn(
                     "w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
