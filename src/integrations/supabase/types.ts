@@ -3276,7 +3276,7 @@ export type Database = {
           grabacion_url: string | null
           id: string
           join_url: string
-          meeting_id: string
+          meeting_id: string | null
           oferta_id: string
           password: string | null
           raw: Json | null
@@ -3291,7 +3291,7 @@ export type Database = {
           grabacion_url?: string | null
           id?: string
           join_url: string
-          meeting_id: string
+          meeting_id?: string | null
           oferta_id: string
           password?: string | null
           raw?: Json | null
@@ -3306,7 +3306,7 @@ export type Database = {
           grabacion_url?: string | null
           id?: string
           join_url?: string
-          meeting_id?: string
+          meeting_id?: string | null
           oferta_id?: string
           password?: string | null
           raw?: Json | null
