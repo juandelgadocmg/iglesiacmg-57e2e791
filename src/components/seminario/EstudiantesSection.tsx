@@ -40,7 +40,7 @@ export default function EstudiantesSection() {
   const [selectedIns, setSelectedIns] = useState<any>(null);
   const [seleccion, setSeleccion] = useState<Set<string>>(new Set());
   const [busqueda, setBusqueda] = useState("");
-  const [incluirYaInscritos, setIncluirYaInscritos] = useState(false);
+  const [incluirYaInscritos, setIncluirYaInscritos] = useState(true);
   const can = useCan();
   const canMatricular = can("seminario:matricular");
   const canCertificar = can("seminario:certificar");
@@ -478,8 +478,8 @@ function InscripcionDialog({ personas, yaInscritosMap, incluirYaInscritos, setIn
                 onChange={(e) => setIncluirYaInscritos?.(e.target.checked)}
               />
               {incluirYaInscritos
-                ? `Incluir ya inscritos (${totalInscritos})`
-                : `Solo disponibles · ocultos ${totalInscritos}`}
+                ? `Toda la membresía · incluye inscritos (${totalInscritos})`
+                : `Solo disponibles · oculta inscritos (${totalInscritos})`}
             </label>
           </div>
           <SearchableCombobox
