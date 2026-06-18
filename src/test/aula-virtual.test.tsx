@@ -4,6 +4,7 @@ import { MemoryRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 const rolesMock = vi.fn();
+const activeRoleMock = vi.fn();
 const authMock = vi.fn();
 const miPersonaMock = vi.fn();
 const misOfertasMock = vi.fn();
@@ -32,6 +33,7 @@ const upsertRecurso = vi.fn().mockResolvedValue({});
 const upsertEvaluacion = vi.fn().mockResolvedValue({});
 
 vi.mock("@/hooks/useUserRoles", () => ({ useUserRoles: () => rolesMock() }));
+vi.mock("@/hooks/useActiveRole", () => ({ useActiveRole: () => activeRoleMock() }));
 vi.mock("@/hooks/useAuth", () => ({ useAuth: () => authMock() }));
 vi.mock("@/hooks/useCan", () => ({ useCan: () => () => true }));
 vi.mock("@/hooks/useSeminarioStudent", () => ({
@@ -89,6 +91,7 @@ describe("AulaVirtualSection E2E", () => {
     upsertRecurso.mockClear();
     upsertEvaluacion.mockClear();
     rolesMock.mockReturnValue({ roles: [], isLoading: false });
+    activeRoleMock.mockReturnValue({ activeRole: null });
     authMock.mockReturnValue({ user: { id: "u1", email: "test@cmg.org" }, loading: false });
     miPersonaMock.mockReturnValue({ data: null, isLoading: false, error: null });
     misOfertasMock.mockReturnValue({ data: [], isLoading: false, error: null });
@@ -198,5 +201,13 @@ describe("AulaVirtualSection E2E", () => {
     expect(screen.getByRole("button", { name: /^Notas$/i })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /^Asistencia$/i })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /^Biblioteca$/i })).toBeInTheDocument();
+  });
+
+  it("renders student view when active profile is seminar student even if user also has admin role", () => {
+    rolesMock.mockReturnValue({ roles: ["admin", "seminario_estudiante"], isLoading: false });
+    activeRoleMock.mockReturnValue({ activeRole: "seminario_estudiante" });
+    renderIt();
+    expect(screen.getByTestId("aula-student")).toBeInTheDocument();
+    expect(screen.queryByTestId("aula-staff")).not.toBeInTheDocument();
   });
 });
