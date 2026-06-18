@@ -93,6 +93,15 @@ function Harness({ initialInclude = true }: { initialInclude?: boolean }) {
 }
 
 describe("E2E combobox 'Ya inscrito'", () => {
+  it("por defecto muestra toda la membresía, incluyendo personas ya inscritas", () => {
+    render(<Harness />);
+    fireEvent.focus(screen.getByPlaceholderText("Buscar persona…"));
+    fireEvent.change(screen.getByPlaceholderText("Buscar persona…"), { target: { value: "ximena" } });
+
+    const listbox = screen.getByRole("listbox");
+    expect(within(listbox).getByRole("option", { name: /Yaddith Ximena Espinel Mendez.*Ya inscrito/i })).toBeInTheDocument();
+  });
+
   it("Romero Erika aparece deshabilitada con badge 'Ya inscrito · 2025-2'", () => {
     render(<Harness />);
     fireEvent.focus(screen.getByPlaceholderText("Buscar persona…"));
