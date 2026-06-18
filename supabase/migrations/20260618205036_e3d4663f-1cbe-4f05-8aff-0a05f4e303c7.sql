@@ -1,0 +1,1 @@
+ALTER TABLE public.sem_zoom_sesiones ALTER COLUMN join_url DROP NOT NULL;
