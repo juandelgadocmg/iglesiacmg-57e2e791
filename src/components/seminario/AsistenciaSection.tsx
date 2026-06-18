@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useUrlParam } from "@/hooks/useUrlParam";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { useProgramas, usePeriodos, useOfertas, useAsistenciaOferta, useSaveAsistencia } from "@/hooks/useSeminario";
+import { useProgramas, usePeriodos, useOfertas, useAsistenciaOferta, useSaveAsistencia, useBulkEnrollOferta } from "@/hooks/useSeminario";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
