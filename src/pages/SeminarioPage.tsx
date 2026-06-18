@@ -125,7 +125,7 @@ export default function SeminarioPage() {
         {/* Content */}
         <div className="flex-1 overflow-auto p-4 md:p-6">
           {section === "programas" && <ProgramasSection />}
-          {section === "pensum" && <PensumSection />}
+          {section === "pensum" && <PensumSection readOnly={isEstudianteOnly} />}
           {section === "materias" && <MateriasSection />}
           {section === "horarios" && <HorariosSection />}
           {section === "estudiantes" && <EstudiantesSection />}
@@ -134,7 +134,7 @@ export default function SeminarioPage() {
           {section === "dashboard" && <DashboardSection />}
           {section === "aula-virtual" && <AulaVirtualSection />}
           {section === "evaluaciones" && <EvaluacionesSection />}
-          {section === "calificaciones" && <CalificacionesSection />}
+          {section === "calificaciones" && (isEstudianteOnly ? <MiAulaSection /> : <CalificacionesSection />)}
           {section === "asistencia" && <AsistenciaSection />}
           {section === "biblioteca" && <BibliotecaSection />}
           {section === "certificados" && <CertificadosSection />}
