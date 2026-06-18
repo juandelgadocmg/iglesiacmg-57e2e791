@@ -1,7 +1,8 @@
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import PageHeader from "@/components/shared/PageHeader";
+import { useUserRoles } from "@/hooks/useUserRoles";
 import {
   LayoutDashboard, BookOpen, Layers, FileText, Video, ClipboardCheck,
   BarChart3, UserCheck, Library, Award, Users, FileBarChart2, CalendarClock, GraduationCap, ShieldCheck, Settings2,
