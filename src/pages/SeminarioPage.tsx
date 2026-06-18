@@ -1,7 +1,8 @@
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import PageHeader from "@/components/shared/PageHeader";
+import { useUserRoles } from "@/hooks/useUserRoles";
 import {
   LayoutDashboard, BookOpen, Layers, FileText, Video, ClipboardCheck,
   BarChart3, UserCheck, Library, Award, Users, FileBarChart2, CalendarClock, GraduationCap, ShieldCheck, Settings2,
@@ -44,21 +45,35 @@ const SIDEBAR = [
 
 export default function SeminarioPage() {
   const [params, setParams] = useSearchParams();
-  const validIds = SIDEBAR.map(s => s.id);
+  const { roles } = useUserRoles();
+
+  // Rol docente puro: solo ve las secciones operativas de su rol
+  const STAFF_ROLES = ["admin", "super_admin", "pastor", "seminario_admin", "maestro"];
+  const isStaff = roles.some((r) => STAFF_ROLES.includes(r));
+  const isDocenteOnly = !isStaff && roles.includes("seminario_docente" as any);
+  const DOCENTE_TABS = ["horarios", "aula-virtual", "evaluaciones", "calificaciones", "asistencia", "biblioteca"];
+
+  const sidebar = useMemo(
+    () => (isDocenteOnly ? SIDEBAR.filter((s) => DOCENTE_TABS.includes(s.id)) : SIDEBAR),
+    [isDocenteOnly]
+  );
+
+  const validIds = sidebar.map((s) => s.id);
   const urlTab = params.get("tab");
-  const section = urlTab && validIds.includes(urlTab) ? urlTab : "dashboard";
+  const defaultTab = isDocenteOnly ? "horarios" : "dashboard";
+  const section = urlTab && validIds.includes(urlTab) ? urlTab : defaultTab;
   const setSection = (id: string) => {
     const next = new URLSearchParams(params);
     next.set("tab", id);
     setParams(next, { replace: false });
   };
   useEffect(() => {
-    if (!urlTab) {
+    if (!urlTab || !validIds.includes(urlTab)) {
       const next = new URLSearchParams(params);
-      next.set("tab", "dashboard");
+      next.set("tab", defaultTab);
       setParams(next, { replace: true });
     }
-  }, []); // eslint-disable-line
+  }, [isDocenteOnly]); // eslint-disable-line
 
 
   return (
@@ -71,7 +86,7 @@ export default function SeminarioPage() {
       {/* Mobile tabs */}
       <div className="md:hidden overflow-x-auto border-b bg-card/50">
         <div className="flex gap-0.5 px-2 py-1 min-w-max">
-          {SIDEBAR.map((it) => (
+          {sidebar.map((it) => (
             <button key={it.id} onClick={() => setSection(it.id)}
               className={cn(
                 "flex items-center gap-1.5 px-3 py-2 rounded-md text-xs font-medium whitespace-nowrap transition-colors",
@@ -90,7 +105,7 @@ export default function SeminarioPage() {
           <div className="p-4">
             <h2 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-3">Seminario</h2>
             <div className="space-y-0.5">
-              {SIDEBAR.map((it) => (
+              {sidebar.map((it) => (
                 <button key={it.id} onClick={() => setSection(it.id)}
                   className={cn(
                     "w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors",

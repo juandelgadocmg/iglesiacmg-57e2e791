@@ -594,10 +594,55 @@ export function useSaveAsistencia() {
   return useMutation({
     mutationFn: async (rows: { id?: string; inscripcion_materia_id: string; fecha: string; estado: string; observacion?: string }[]) => {
       if (!rows.length) return;
-      const { error } = await sb.from("sem_asistencias").upsert(rows, { onConflict: "inscripcion_materia_id,fecha" });
+      // Normaliza: si no hay id existente, omitir la propiedad para que el default gen_random_uuid() aplique
+      const payload = rows.map((r) => {
+        const { id, ...rest } = r;
+        return id ? { id, ...rest } : rest;
+      });
+      const { error } = await sb.from("sem_asistencias").upsert(payload, { onConflict: "inscripcion_materia_id,fecha" });
       if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["sem-asist"] }),
+  });
+}
+
+// ─────────────── BULK ENROLL MATERIA ───────────────
+/**
+ * Matricula a todos los inscritos del periodo en la oferta indicada,
+ * omitiendo a quienes ya están matriculados.
+ */
+export function useBulkEnrollOferta() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ oferta_id, materia_id, periodo_id, programa_id }: { oferta_id: string; materia_id: string; periodo_id: string; programa_id?: string }) => {
+      // 1) Inscripciones activas del periodo (y programa si se conoce)
+      let qInsc = sb.from("sem_inscripciones").select("id, persona_id, programa_id, periodo_id")
+        .eq("periodo_id", periodo_id);
+      if (programa_id) qInsc = qInsc.eq("programa_id", programa_id);
+      const { data: inscs, error: e1 } = await qInsc;
+      if (e1) throw e1;
+      const inscIds = (inscs || []).map((i: any) => i.id);
+      if (!inscIds.length) return { creados: 0, omitidos: 0, total: 0 };
+
+      // 2) Quiénes ya están matriculados en esta oferta
+      const { data: existentes, error: e2 } = await sb.from("sem_inscripcion_materias")
+        .select("inscripcion_id").eq("oferta_id", oferta_id).in("inscripcion_id", inscIds);
+      if (e2) throw e2;
+      const yaSet = new Set((existentes || []).map((x: any) => x.inscripcion_id));
+
+      const nuevos = inscIds.filter((id) => !yaSet.has(id))
+        .map((inscripcion_id) => ({ inscripcion_id, oferta_id, materia_id, estado: "cursando" }));
+      if (!nuevos.length) return { creados: 0, omitidos: inscIds.length, total: inscIds.length };
+
+      const { error: e3 } = await sb.from("sem_inscripcion_materias").insert(nuevos);
+      if (e3) throw e3;
+      return { creados: nuevos.length, omitidos: yaSet.size, total: inscIds.length };
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["sem-insc-materias"] });
+      qc.invalidateQueries({ queryKey: ["sem-asist"] });
+      qc.invalidateQueries({ queryKey: ["sem-calif-matriz"] });
+    },
   });
 }
 

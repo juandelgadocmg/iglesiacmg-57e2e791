@@ -1,13 +1,13 @@
 import { useState, useEffect } from "react";
 import { useUrlParam } from "@/hooks/useUrlParam";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { useProgramas, usePeriodos, useOfertas, useAsistenciaOferta, useSaveAsistencia } from "@/hooks/useSeminario";
+import { useProgramas, usePeriodos, useOfertas, useAsistenciaOferta, useSaveAsistencia, useBulkEnrollOferta } from "@/hooks/useSeminario";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Save, UserCheck } from "lucide-react";
+import { Save, UserCheck, UserPlus } from "lucide-react";
 import { toast } from "sonner";
 import { useCan } from "@/hooks/useCan";
 import { logSemAudit } from "@/lib/seminarioAudit";
@@ -36,6 +36,7 @@ export default function AsistenciaSection() {
   const [fecha, setFecha] = useUrlParam("as_fecha", today);
   const { data, isLoading: loadingAsist } = useAsistenciaOferta(effOf, fecha);
   const save = useSaveAsistencia();
+  const bulkEnroll = useBulkEnrollOferta();
   const [local, setLocal] = useState<Record<string, { estado: string; observacion?: string }>>({});
   const [detalle, setDetalle] = useState<any>(null);
 
@@ -109,12 +110,47 @@ export default function AsistenciaSection() {
           {Array.from({ length: 5 }).map((_, i) => <div key={i} className="h-10 bg-muted rounded animate-pulse" />)}
         </CardContent></Card>
       ) : !data?.estudiantes?.length ? (
-        <Card><CardContent className="p-6 text-center text-sm text-muted-foreground">Sin estudiantes matriculados.</CardContent></Card>
+        <Card><CardContent className="p-6 text-center space-y-3">
+          <p className="text-sm text-muted-foreground">Sin estudiantes matriculados en esta materia.</p>
+          {canEdit && effOf && effPer && (
+            <Button size="sm" onClick={async () => {
+              const oferta = (ofertas as any[] || []).find((o: any) => o.id === effOf);
+              if (!oferta) return;
+              try {
+                const r = await bulkEnroll.mutateAsync({
+                  oferta_id: effOf,
+                  materia_id: oferta.materia_id,
+                  periodo_id: effPer,
+                  programa_id: effProg || undefined,
+                });
+                toast.success(`Matriculados ${r.creados} (omitidos ${r.omitidos}, total inscritos ${r.total})`);
+              } catch (e: any) { toast.error(e.message); }
+            }} disabled={bulkEnroll.isPending}>
+              <UserPlus className="h-4 w-4 mr-1" />
+              {bulkEnroll.isPending ? "Matriculando…" : "Matricular todos los inscritos del periodo"}
+            </Button>
+          )}
+        </CardContent></Card>
       ) : (
         <>
           {canEdit && (
-            <div className="flex gap-1 flex-wrap text-xs">
-              <span className="text-muted-foreground self-center mr-1">Marcar todos:</span>
+            <div className="flex gap-1 flex-wrap text-xs items-center">
+              <Button size="sm" variant="outline" onClick={async () => {
+                const oferta = (ofertas as any[] || []).find((o: any) => o.id === effOf);
+                if (!oferta) return;
+                try {
+                  const r = await bulkEnroll.mutateAsync({
+                    oferta_id: effOf, materia_id: oferta.materia_id,
+                    periodo_id: effPer, programa_id: effProg || undefined,
+                  });
+                  if (r.creados > 0) toast.success(`Se matricularon ${r.creados} estudiantes faltantes`);
+                  else toast.info("Todos los inscritos ya estaban matriculados");
+                } catch (e: any) { toast.error(e.message); }
+              }} disabled={bulkEnroll.isPending}>
+                <UserPlus className="h-3.5 w-3.5 mr-1" />Matricular faltantes
+              </Button>
+              <span className="text-muted-foreground self-center mx-1">Marcar todos:</span>
+
               {ESTADOS.map((e) => (
                 <Button key={e.v} size="sm" variant="outline" onClick={() => marcarTodos(e.v)}>{e.l}</Button>
               ))}
