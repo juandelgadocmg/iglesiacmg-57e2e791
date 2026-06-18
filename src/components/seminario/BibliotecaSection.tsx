@@ -8,10 +8,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Library, Plus, Pencil, Trash2, Search, FileText, Video, Link as LinkIcon, Music } from "lucide-react";
+import { Library, Plus, Pencil, Trash2, Search, FileText, Video, Link as LinkIcon, Music, Upload } from "lucide-react";
 import { toast } from "sonner";
 import DeleteConfirmDialog from "@/components/shared/DeleteConfirmDialog";
 import { useCan } from "@/hooks/useCan";
+import { supabase } from "@/integrations/supabase/client";
 
 const TIPOS = [
   { v: "pdf", l: "PDF", icon: FileText },
