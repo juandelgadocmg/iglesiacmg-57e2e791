@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Plus, X, Pencil } from "lucide-react";
 import { toast } from "sonner";
 
-export default function PensumSection() {
+export default function PensumSection({ readOnly = false }: { readOnly?: boolean }) {
   const { data: programas } = useProgramas();
   const [programaId, setProgramaId] = useState<string>("");
   const effectiveId = programaId || programas?.[0]?.id || "";
