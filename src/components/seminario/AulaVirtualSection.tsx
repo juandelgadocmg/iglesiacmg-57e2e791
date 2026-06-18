@@ -279,6 +279,11 @@ function AulaVirtualStaff() {
               ))}
             </TabsContent>
 
+            {/* CLASES GRABADAS */}
+            <TabsContent value="clases" className="space-y-2">
+              <ClasesGrabadasTab ofertaId={effOf} />
+            </TabsContent>
+
             {/* FOROS */}
             <TabsContent value="foros">
               <StaffForosTab ofertaId={effOf} />
