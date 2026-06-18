@@ -3275,7 +3275,7 @@ export type Database = {
           duration_minutes: number | null
           grabacion_url: string | null
           id: string
-          join_url: string
+          join_url: string | null
           meeting_id: string | null
           oferta_id: string
           password: string | null
@@ -3290,7 +3290,7 @@ export type Database = {
           duration_minutes?: number | null
           grabacion_url?: string | null
           id?: string
-          join_url: string
+          join_url?: string | null
           meeting_id?: string | null
           oferta_id: string
           password?: string | null
@@ -3305,7 +3305,7 @@ export type Database = {
           duration_minutes?: number | null
           grabacion_url?: string | null
           id?: string
-          join_url?: string
+          join_url?: string | null
           meeting_id?: string | null
           oferta_id?: string
           password?: string | null
