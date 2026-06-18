@@ -86,7 +86,7 @@ export default function SeminarioPage() {
       {/* Mobile tabs */}
       <div className="md:hidden overflow-x-auto border-b bg-card/50">
         <div className="flex gap-0.5 px-2 py-1 min-w-max">
-          {SIDEBAR.map((it) => (
+          {sidebar.map((it) => (
             <button key={it.id} onClick={() => setSection(it.id)}
               className={cn(
                 "flex items-center gap-1.5 px-3 py-2 rounded-md text-xs font-medium whitespace-nowrap transition-colors",
