@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useSearchParams } from "react-router-dom";
 import {
   useProgramas, usePeriodos, useOfertas, useCalificacionesMatriz, useEvaluaciones, useRecursos,
@@ -198,6 +199,7 @@ function AulaVirtualStaff() {
               <TabsTrigger value="trabajos"><ClipboardList className="h-3.5 w-3.5 mr-1" />Trabajos ({evals?.length || 0})</TabsTrigger>
               <TabsTrigger value="estudiantes"><User className="h-3.5 w-3.5 mr-1" />Estudiantes ({matriz?.estudiantes?.length || 0})</TabsTrigger>
               <TabsTrigger value="anuncios"><Megaphone className="h-3.5 w-3.5 mr-1" />Anuncios ({anuncios?.length || 0})</TabsTrigger>
+              <TabsTrigger value="clases"><Video className="h-3.5 w-3.5 mr-1" />Clases grabadas</TabsTrigger>
               <TabsTrigger value="foros"><MessageSquare className="h-3.5 w-3.5 mr-1" />Foros</TabsTrigger>
             </TabsList>
 
@@ -276,6 +278,11 @@ function AulaVirtualStaff() {
                   </CardContent>
                 </Card>
               ))}
+            </TabsContent>
+
+            {/* CLASES GRABADAS */}
+            <TabsContent value="clases" className="space-y-2">
+              <ClasesGrabadasTab ofertaId={effOf} />
             </TabsContent>
 
             {/* FOROS */}
@@ -677,6 +684,142 @@ function StaffForoDetalle({ foro, onBack, userId }: any) {
           catch (e: any) { toast.error(e.message); }
         }} disabled={!texto.trim() || enviar.isPending}><Send className="h-4 w-4" /></Button>
       </div>
+    </div>
+  );
+}
+
+// ════════════ CLASES GRABADAS ════════════
+function ytEmbed(url: string) {
+  try {
+    const u = new URL(url);
+    if (u.hostname.includes("youtu.be")) return `https://www.youtube.com/embed/${u.pathname.slice(1)}`;
+    if (u.hostname.includes("youtube.com")) {
+      const id = u.searchParams.get("v");
+      if (id) return `https://www.youtube.com/embed/${id}`;
+      if (u.pathname.startsWith("/embed/")) return url;
+    }
+  } catch {}
+  return null;
+}
+
+function ClasesGrabadasTab({ ofertaId }: { ofertaId: string }) {
+  const qc = useQueryClient();
+  const { data: sesiones, isLoading } = useQuery({
+    queryKey: ["clases-grabadas", ofertaId],
+    enabled: !!ofertaId,
+    queryFn: async () => {
+      const { data, error } = await sb.from("sem_zoom_sesiones")
+        .select("*").eq("oferta_id", ofertaId).order("start_time", { ascending: false });
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
+  const [open, setOpen] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [form, setForm] = useState<any>({ topic: "", grabacion_url: "", start_time: "", duration_minutes: 60 });
+  const [uploadFile, setUploadFile] = useState<File | null>(null);
+
+  const reset = () => { setForm({ topic: "", grabacion_url: "", start_time: "", duration_minutes: 60 }); setUploadFile(null); };
+
+  const save = async () => {
+    if (!form.topic || (!form.grabacion_url && !uploadFile)) {
+      toast.error("Título y enlace o archivo son requeridos");
+      return;
+    }
+    setBusy(true);
+    try {
+      let grabacion_url = form.grabacion_url || null;
+      if (uploadFile) {
+        if (uploadFile.size > 500 * 1024 * 1024) throw new Error("Máx 500MB");
+        const ext = uploadFile.name.split(".").pop() || "mp4";
+        const path = `${ofertaId}/clase-${Date.now()}.${ext}`;
+        const up = await supabase.storage.from("recursos-academicos").upload(path, uploadFile, { upsert: true, contentType: uploadFile.type });
+        if (up.error) throw up.error;
+        const { data: pub } = supabase.storage.from("recursos-academicos").getPublicUrl(path);
+        grabacion_url = pub?.publicUrl || null;
+      }
+      const { error } = await sb.from("sem_zoom_sesiones").insert({
+        oferta_id: ofertaId,
+        topic: form.topic,
+        grabacion_url,
+        start_time: form.start_time || new Date().toISOString(),
+        duration_minutes: Number(form.duration_minutes) || 60,
+        realizada: true,
+      });
+      if (error) throw error;
+      toast.success("Clase publicada");
+      qc.invalidateQueries({ queryKey: ["clases-grabadas", ofertaId] });
+      qc.invalidateQueries({ queryKey: ["mi-curso"] });
+      setOpen(false); reset();
+    } catch (e: any) { toast.error(e.message); }
+    finally { setBusy(false); }
+  };
+
+  const del = async (id: string) => {
+    try {
+      const { error } = await sb.from("sem_zoom_sesiones").delete().eq("id", id);
+      if (error) throw error;
+      toast.success("Eliminada");
+      qc.invalidateQueries({ queryKey: ["clases-grabadas", ofertaId] });
+    } catch (e: any) { toast.error(e.message); }
+  };
+
+  return (
+    <div className="space-y-2">
+      <div className="flex justify-end">
+        <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) reset(); }}>
+          <DialogTrigger asChild>
+            <Button size="sm"><Plus className="h-3.5 w-3.5 mr-1" />Agregar clase</Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader><DialogTitle>Nueva clase grabada</DialogTitle></DialogHeader>
+            <div className="space-y-3">
+              <div><Label>Título de la clase *</Label><Input value={form.topic} onChange={(e) => setForm({ ...form, topic: e.target.value })} placeholder="Clase 1 — Introducción" /></div>
+              <div><Label>Enlace YouTube / Vimeo / URL</Label><Input value={form.grabacion_url} onChange={(e) => setForm({ ...form, grabacion_url: e.target.value })} placeholder="https://www.youtube.com/watch?v=..." /></div>
+              <div>
+                <Label>O subir archivo de video (máx 500MB)</Label>
+                <Input type="file" accept="video/*" onChange={(e) => setUploadFile(e.target.files?.[0] || null)} />
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div><Label>Fecha de la clase</Label><Input type="datetime-local" value={form.start_time} onChange={(e) => setForm({ ...form, start_time: e.target.value })} /></div>
+                <div><Label>Duración (min)</Label><Input type="number" value={form.duration_minutes} onChange={(e) => setForm({ ...form, duration_minutes: e.target.value })} /></div>
+              </div>
+              <Button onClick={save} disabled={busy || !form.topic || (!form.grabacion_url && !uploadFile)} className="w-full">
+                {busy ? "Guardando..." : "Publicar clase"}
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      </div>
+
+      {isLoading ? <p className="text-sm text-muted-foreground py-4 text-center">Cargando...</p> :
+        !sesiones?.length ? <p className="text-sm text-muted-foreground py-4 text-center">Sin clases grabadas. Agrega una para que los estudiantes la vean en su aula.</p> :
+        sesiones.map((z: any) => {
+          const embed = z.grabacion_url ? ytEmbed(z.grabacion_url) : null;
+          return (
+            <Card key={z.id}>
+              <CardContent className="p-3 space-y-2">
+                <div className="flex items-start gap-2">
+                  <div className="h-10 w-10 rounded bg-primary/10 flex items-center justify-center shrink-0"><Video className="h-5 w-5 text-primary" /></div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-sm">{z.topic}</p>
+                    <p className="text-[10px] text-muted-foreground flex items-center gap-1"><Calendar className="h-3 w-3" />{fmtDateTime(z.start_time)} · {z.duration_minutes || "—"} min</p>
+                  </div>
+                  {z.grabacion_url && <Button size="sm" variant="outline" asChild><a href={z.grabacion_url} target="_blank" rel="noopener noreferrer">Abrir</a></Button>}
+                  <DeleteConfirmDialog onConfirm={() => del(z.id)}
+                    trigger={<Button size="icon" variant="ghost" className="h-7 w-7 text-destructive"><Trash2 className="h-3 w-3" /></Button>} />
+                </div>
+                {embed && (
+                  <div className="aspect-video rounded overflow-hidden border">
+                    <iframe src={embed} className="w-full h-full" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowFullScreen />
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          );
+        })
+      }
     </div>
   );
 }

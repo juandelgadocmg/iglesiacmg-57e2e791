@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Plus, X, Pencil } from "lucide-react";
 import { toast } from "sonner";
 
-export default function PensumSection() {
+export default function PensumSection({ readOnly = false }: { readOnly?: boolean }) {
   const { data: programas } = useProgramas();
   const [programaId, setProgramaId] = useState<string>("");
   const effectiveId = programaId || programas?.[0]?.id || "";
@@ -47,7 +47,9 @@ export default function PensumSection() {
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
           <h2 className="text-lg font-semibold">Malla Curricular</h2>
-          <p className="text-xs text-muted-foreground">Edita materias y créditos directamente, o asígnalas a un semestre</p>
+          <p className="text-xs text-muted-foreground">
+            {readOnly ? "Consulta de materias por semestre" : "Edita materias y créditos directamente, o asígnalas a un semestre"}
+          </p>
         </div>
         <Select value={effectiveId} onValueChange={setProgramaId}>
           <SelectTrigger className="w-56"><SelectValue placeholder="Programa" /></SelectTrigger>
@@ -57,7 +59,7 @@ export default function PensumSection() {
         </Select>
       </div>
 
-      {hayDuplicadas && (
+      {hayDuplicadas && !readOnly && (
         <div className="text-xs p-2 rounded border border-destructive/40 bg-destructive/5 text-destructive">
           ⚠ Hay materias asignadas a más de un semestre. Verifique la malla.
         </div>
@@ -82,18 +84,24 @@ export default function PensumSection() {
                         <p className="font-medium truncate">{it.sem_materias?.nombre}</p>
                         <p className="text-[9px] text-muted-foreground">{it.sem_materias?.codigo} · {it.sem_materias?.creditos}cr</p>
                       </div>
-                      <button onClick={() => setEditing(it.sem_materias)} className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-foreground" title="Editar">
-                        <Pencil className="h-3 w-3" />
-                      </button>
-                      <button onClick={() => unassign.mutateAsync(it.id).then(() => toast.success("Quitada"))} className="opacity-0 group-hover:opacity-100 text-destructive" title="Quitar de semestre">
-                        <X className="h-3 w-3" />
-                      </button>
+                      {!readOnly && (
+                        <>
+                          <button onClick={() => setEditing(it.sem_materias)} className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-foreground" title="Editar">
+                            <Pencil className="h-3 w-3" />
+                          </button>
+                          <button onClick={() => unassign.mutateAsync(it.id).then(() => toast.success("Quitada"))} className="opacity-0 group-hover:opacity-100 text-destructive" title="Quitar de semestre">
+                            <X className="h-3 w-3" />
+                          </button>
+                        </>
+                      )}
                     </div>
                   ))}
                 </div>
-                <Button size="sm" variant="ghost" className="w-full h-7 text-[11px]" onClick={() => setAddingFor(s)}>
-                  <Plus className="h-3 w-3 mr-1" /> Agregar
-                </Button>
+                {!readOnly && (
+                  <Button size="sm" variant="ghost" className="w-full h-7 text-[11px]" onClick={() => setAddingFor(s)}>
+                    <Plus className="h-3 w-3 mr-1" /> Agregar
+                  </Button>
+                )}
               </CardContent>
             </Card>
           );
