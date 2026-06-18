@@ -198,6 +198,7 @@ function AulaVirtualStaff() {
               <TabsTrigger value="trabajos"><ClipboardList className="h-3.5 w-3.5 mr-1" />Trabajos ({evals?.length || 0})</TabsTrigger>
               <TabsTrigger value="estudiantes"><User className="h-3.5 w-3.5 mr-1" />Estudiantes ({matriz?.estudiantes?.length || 0})</TabsTrigger>
               <TabsTrigger value="anuncios"><Megaphone className="h-3.5 w-3.5 mr-1" />Anuncios ({anuncios?.length || 0})</TabsTrigger>
+              <TabsTrigger value="clases"><Video className="h-3.5 w-3.5 mr-1" />Clases grabadas</TabsTrigger>
               <TabsTrigger value="foros"><MessageSquare className="h-3.5 w-3.5 mr-1" />Foros</TabsTrigger>
             </TabsList>
 
