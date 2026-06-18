@@ -12,7 +12,7 @@ import { Plus, Pencil, Trash2, Link2, X } from "lucide-react";
 import { toast } from "sonner";
 import DeleteConfirmDialog from "@/components/shared/DeleteConfirmDialog";
 
-export default function MateriasSection() {
+export default function MateriasSection({ readOnly = false }: { readOnly?: boolean }) {
   const { data: programas } = useProgramas();
   const [programaId, setProgramaId] = useState<string>("");
   const effectiveId = programaId || programas?.[0]?.id || "";
@@ -44,10 +44,12 @@ export default function MateriasSection() {
               {(programas || []).map((p: any) => <SelectItem key={p.id} value={p.id}>{p.nombre}</SelectItem>)}
             </SelectContent>
           </Select>
-          <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) setEditing(null); }}>
-            <DialogTrigger asChild><Button size="sm"><Plus className="h-4 w-4 mr-1" /> Nueva materia</Button></DialogTrigger>
-            <MateriaDialog initial={editing} onSave={onSave} pending={upsert.isPending} />
-          </Dialog>
+          {!readOnly && (
+            <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) setEditing(null); }}>
+              <DialogTrigger asChild><Button size="sm"><Plus className="h-4 w-4 mr-1" /> Nueva materia</Button></DialogTrigger>
+              <MateriaDialog initial={editing} onSave={onSave} pending={upsert.isPending} />
+            </Dialog>
+          )}
         </div>
       </div>
 
@@ -73,17 +75,19 @@ export default function MateriasSection() {
                             return (
                               <Badge key={pr.id} variant="secondary" className="text-[9px] gap-1">
                                 ↰ {ref?.codigo || "?"}
-                                <button onClick={() => remPre.mutateAsync(pr.id)}><X className="h-2.5 w-2.5" /></button>
+                                {!readOnly && <button onClick={() => remPre.mutateAsync(pr.id)}><X className="h-2.5 w-2.5" /></button>}
                               </Badge>
                             );
                           })}
                         </div>
                       )}
-                      <div className="flex gap-1 mt-2">
-                        <Button size="sm" variant="ghost" className="h-6 px-2 text-[10px]" onClick={() => { setEditing(m); setOpen(true); }}><Pencil className="h-3 w-3" /></Button>
-                        <Button size="sm" variant="ghost" className="h-6 px-2 text-[10px]" onClick={() => setPrereqFor(m)}><Link2 className="h-3 w-3" /> Prerreq</Button>
-                        <DeleteConfirmDialog onConfirm={async () => { await del.mutateAsync(m.id); toast.success("Eliminada"); }} trigger={<Button size="sm" variant="ghost" className="h-6 px-2 text-destructive"><Trash2 className="h-3 w-3" /></Button>} />
-                      </div>
+                      {!readOnly && (
+                        <div className="flex gap-1 mt-2">
+                          <Button size="sm" variant="ghost" className="h-6 px-2 text-[10px]" onClick={() => { setEditing(m); setOpen(true); }}><Pencil className="h-3 w-3" /></Button>
+                          <Button size="sm" variant="ghost" className="h-6 px-2 text-[10px]" onClick={() => setPrereqFor(m)}><Link2 className="h-3 w-3" /> Prerreq</Button>
+                          <DeleteConfirmDialog onConfirm={async () => { await del.mutateAsync(m.id); toast.success("Eliminada"); }} trigger={<Button size="sm" variant="ghost" className="h-6 px-2 text-destructive"><Trash2 className="h-3 w-3" /></Button>} />
+                        </div>
+                      )}
                     </div>
                   </div>
                 </CardContent>
