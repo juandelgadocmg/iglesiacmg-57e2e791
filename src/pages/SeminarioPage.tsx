@@ -23,6 +23,7 @@ import AulaVirtualSection from "@/components/seminario/AulaVirtualSection";
 import BibliotecaSection from "@/components/seminario/BibliotecaSection";
 import CertificadosSection from "@/components/seminario/CertificadosSection";
 import ReportesSection from "@/components/seminario/ReportesSection";
+import MiAulaSection from "@/components/seminario/MiAulaSection";
 
 const SIDEBAR = [
   { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
