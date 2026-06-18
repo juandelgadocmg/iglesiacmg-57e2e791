@@ -1,7 +1,12 @@
-import { describe, it, expect, vi } from "vitest";
+import { beforeEach, describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent, within } from "@testing-library/react";
 import { MemoryRouter, Routes, Route } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+
+const roleMocks = vi.hoisted(() => ({
+  useUserRoles: vi.fn(),
+  useActiveRole: vi.fn(),
+}));
 
 // Mock heavy section components so the test focuses on navigation
 vi.mock("@/components/seminario/ProgramasSection", () => ({ default: () => <div>SECTION_PROGRAMAS</div> }));
@@ -25,6 +30,8 @@ vi.mock("@/components/seminario/CertificadosSection", () => ({ default: () => <d
 vi.mock("@/components/seminario/DocentesSection", () => ({ default: () => <div>SECTION_DOCENTES</div> }));
 vi.mock("@/components/seminario/ReportesSection", () => ({ default: () => <div>SECTION_REPORTES</div> }));
 vi.mock("@/components/shared/PageHeader", () => ({ default: () => <header>Header</header> }));
+vi.mock("@/hooks/useUserRoles", () => ({ useUserRoles: () => roleMocks.useUserRoles() }));
+vi.mock("@/hooks/useActiveRole", () => ({ useActiveRole: () => roleMocks.useActiveRole() }));
 
 import SeminarioPage from "@/pages/SeminarioPage";
 
@@ -61,6 +68,11 @@ const TABS = [
 ];
 
 describe("SeminarioPage navigation", () => {
+  beforeEach(() => {
+    roleMocks.useUserRoles.mockReturnValue({ roles: [], isLoading: false });
+    roleMocks.useActiveRole.mockReturnValue({ activeRole: null });
+  });
+
   it("defaults to dashboard when no tab param is present", () => {
     renderAt("/seminario");
     expect(screen.getByText("SECTION_DASHBOARD")).toBeInTheDocument();
@@ -95,5 +107,20 @@ describe("SeminarioPage navigation", () => {
   it("shows the Calificaciones skeleton/loading state", () => {
     renderAt("/seminario?tab=calificaciones");
     expect(screen.getByRole("status")).toHaveTextContent(/Cargando/i);
+  });
+
+  it("uses the active student profile to hide admin tabs and redirect blocked URL tabs", () => {
+    roleMocks.useUserRoles.mockReturnValue({ roles: ["admin", "seminario_estudiante"], isLoading: false });
+    roleMocks.useActiveRole.mockReturnValue({ activeRole: "seminario_estudiante" });
+
+    renderAt("/seminario?tab=materias");
+
+    expect(screen.getByText("SECTION_AULA")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Dashboard/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Materias/i })).not.toBeInTheDocument();
+    expect(screen.getAllByRole("button", { name: /Aula Virtual/i }).length).toBeGreaterThan(0);
+    expect(screen.getAllByRole("button", { name: /Pensum/i }).length).toBeGreaterThan(0);
+    expect(screen.getAllByRole("button", { name: /Calificaciones/i }).length).toBeGreaterThan(0);
+    expect(screen.getAllByRole("button", { name: /Biblioteca/i }).length).toBeGreaterThan(0);
   });
 });
