@@ -233,13 +233,19 @@ function CursoDetalle({ persona, im, onBack }: { persona: any; im: any; onBack: 
         </CardContent>
       </Card>
 
-      <Tabs defaultValue="anuncios">
+      <Tabs defaultValue="evaluaciones">
         <TabsList className="w-full flex-wrap h-auto justify-start">
           <TabsTrigger value="anuncios" className="relative">
             <Megaphone className="h-3.5 w-3.5 mr-1" />Anuncios ({data?.anuncios?.length || 0})
             {notifs.anunNoLeidos > 0 && <span className="ml-1 h-4 min-w-4 px-1 rounded-full bg-destructive text-destructive-foreground text-[10px] inline-flex items-center justify-center">{notifs.anunNoLeidos}</span>}
           </TabsTrigger>
-          <TabsTrigger value="evaluaciones"><GraduationCap className="h-3.5 w-3.5 mr-1" />Evaluaciones y entregas</TabsTrigger>
+          <TabsTrigger value="evaluaciones" className="relative">
+            <Upload className="h-3.5 w-3.5 mr-1" />Mis trabajos / Evaluaciones ({data?.evaluaciones?.length || 0})
+            {(() => {
+              const pendientes = (data?.evaluaciones || []).filter((e: any) => !(data?.entregasPorEval?.[e.id]?.length)).length;
+              return pendientes > 0 ? <span className="ml-1 h-4 min-w-4 px-1 rounded-full bg-destructive text-destructive-foreground text-[10px] inline-flex items-center justify-center">{pendientes}</span> : null;
+            })()}
+          </TabsTrigger>
           <TabsTrigger value="notas"><CheckCircle2 className="h-3.5 w-3.5 mr-1" />Mis notas</TabsTrigger>
           <TabsTrigger value="recursos"><FileText className="h-3.5 w-3.5 mr-1" />Recursos ({data?.recursos?.length || 0})</TabsTrigger>
           <TabsTrigger value="clases"><Video className="h-3.5 w-3.5 mr-1" />Clases grabadas</TabsTrigger>
@@ -258,8 +264,17 @@ function CursoDetalle({ persona, im, onBack }: { persona: any; im: any; onBack: 
 
         {/* EVALUACIONES + ENTREGAS */}
         <TabsContent value="evaluaciones" className="space-y-2">
+          <Card className="border-primary/40 bg-primary/5">
+            <CardContent className="p-3 flex items-start gap-2">
+              <Upload className="h-4 w-4 text-primary mt-0.5 shrink-0" />
+              <div className="text-xs">
+                <p className="font-semibold">Espacio para subir tus trabajos</p>
+                <p className="text-muted-foreground">Cada evaluación tiene un botón <strong>"Subir trabajo"</strong> donde puedes cargar tu documento (PDF, Word, etc., máx 50MB). Puedes enviar nuevas versiones y revisar la retroalimentación del docente.</p>
+              </div>
+            </CardContent>
+          </Card>
           {isLoading ? <Skeleton n={4} /> :
-            !data?.evaluaciones?.length ? <Empty icon={GraduationCap} text="Sin evaluaciones programadas" /> :
+            !data?.evaluaciones?.length ? <Empty icon={GraduationCap} text="Aún no hay evaluaciones publicadas. Cuando el docente las cree, aquí podrás subir tus trabajos." /> :
             data.evaluaciones.map((e: any) => (
               <EvaluacionRow key={e.id} ev={e} entregas={data.entregasPorEval[e.id] || []} calificacion={data.calificaciones[e.id]}
                 inscripcionMateriaId={im.id} personaId={persona.id} />
