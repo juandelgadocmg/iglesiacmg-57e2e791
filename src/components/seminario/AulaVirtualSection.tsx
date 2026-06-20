@@ -20,7 +20,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import {
   Video, Megaphone, Plus, Trash2, FileText, Calendar, User, Clock, MapPin, Eye, Settings,
   Upload, ClipboardList, BarChart3, UserCheck, MessageSquare, Download, Lock, Unlock,
-  ChevronLeft, ChevronRight, Search, Send,
+  ChevronLeft, ChevronRight, Search, Send, Pencil,
 } from "lucide-react";
 import { toast } from "sonner";
 import DeleteConfirmDialog from "@/components/shared/DeleteConfirmDialog";
