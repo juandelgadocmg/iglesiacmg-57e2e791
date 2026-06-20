@@ -120,6 +120,7 @@ function MateriaDialog({ initial, onSave, pending }: any) {
     descripcion: initial?.descripcion || "", creditos: initial?.creditos || 3,
     intensidad_horaria: initial?.intensidad_horaria || 48, area: initial?.area || "",
     color: initial?.color || "#3B82F6", activo: initial?.activo ?? true,
+    zoom_link: initial?.zoom_link || "",
   });
   return (
     <DialogContent>
@@ -134,6 +135,16 @@ function MateriaDialog({ initial, onSave, pending }: any) {
         <div className="grid grid-cols-2 gap-2">
           <div><Label>Área</Label><Input value={f.area} onChange={e => setF({ ...f, area: e.target.value })} placeholder="Bíblica / Teológica / Pastoral" /></div>
           <div><Label>Color</Label><Input type="color" value={f.color} onChange={e => setF({ ...f, color: e.target.value })} /></div>
+        </div>
+        <div>
+          <Label>Link de Zoom (único para todas las clases de esta materia)</Label>
+          <Input
+            type="url"
+            value={f.zoom_link}
+            onChange={e => setF({ ...f, zoom_link: e.target.value })}
+            placeholder="https://zoom.us/j/..."
+          />
+          <p className="text-[10px] text-muted-foreground mt-1">Se usará en todas las clases. Déjalo vacío para usar el link por oferta/horario.</p>
         </div>
         <div><Label>Descripción</Label><Textarea rows={2} value={f.descripcion} onChange={e => setF({ ...f, descripcion: e.target.value })} /></div>
         <Button onClick={() => onSave(f)} disabled={pending || !f.codigo || !f.nombre} className="w-full">{pending ? "Guardando..." : "Guardar"}</Button>
