@@ -197,9 +197,9 @@ function CursoDetalle({ persona, im, onBack }: { persona: any; im: any; onBack: 
                   Nota final: {Number(im.nota_final).toFixed(2)}
                 </Badge>
               )}
-              {of?.zoom_link && (
+              {(mat?.zoom_link || of?.zoom_link) && (
                 <Button size="sm" asChild>
-                  <a href={of.zoom_link} target="_blank" rel="noopener noreferrer">
+                  <a href={mat?.zoom_link || of?.zoom_link} target="_blank" rel="noopener noreferrer">
                     <Video className="h-4 w-4 mr-1" />Unirse Zoom
                   </a>
                 </Button>
