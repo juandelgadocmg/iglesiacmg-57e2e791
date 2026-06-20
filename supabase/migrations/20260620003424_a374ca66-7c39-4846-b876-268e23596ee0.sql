@@ -1,0 +1,1 @@
+ALTER TABLE public.sem_materias ADD COLUMN IF NOT EXISTS zoom_link text;

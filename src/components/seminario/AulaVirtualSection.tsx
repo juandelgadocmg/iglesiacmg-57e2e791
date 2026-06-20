@@ -173,9 +173,9 @@ function AulaVirtualStaff() {
                 </div>
                 <div className="flex gap-2 flex-wrap">
                   {ofertaSel.modalidad && <Badge variant="outline">{ofertaSel.modalidad}</Badge>}
-                  {ofertaSel.zoom_link && (
+                  {(ofertaSel.sem_materias?.zoom_link || ofertaSel.zoom_link) && (
                     <Button size="sm" variant="default" asChild>
-                      <a href={ofertaSel.zoom_link} target="_blank" rel="noopener noreferrer">
+                      <a href={ofertaSel.sem_materias?.zoom_link || ofertaSel.zoom_link} target="_blank" rel="noopener noreferrer">
                         <Video className="h-4 w-4 mr-1" />Unirse Zoom
                       </a>
                     </Button>

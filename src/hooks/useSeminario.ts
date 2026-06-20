@@ -225,7 +225,7 @@ export function useOfertas(periodoId?: string, programaId?: string) {
     queryFn: async () => {
       if (!periodoId) return [];
       const { data, error } = await sb.from("sem_ofertas")
-        .select("*, sem_materias!inner(id,codigo,nombre,creditos,color,programa_id)")
+        .select("*, sem_materias!inner(id,codigo,nombre,creditos,color,programa_id,zoom_link)")
         .eq("periodo_id", periodoId);
       if (error) throw error;
       return (data || []).filter((o: any) => !programaId || o.sem_materias?.programa_id === programaId);
