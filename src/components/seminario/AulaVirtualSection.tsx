@@ -399,29 +399,46 @@ function MaterialTab({ materiaId, periodoId, recursos }: { materiaId?: string; p
 }
 
 // ════════════ TRABAJOS (Evaluaciones + Entregas) ════════════
+const EMPTY_TRABAJO = { id: undefined, nombre: "", tipo: "trabajo", peso: 10, fecha: "", descripcion: "" };
+
 function TrabajosTab({ ofertaId, evals }: { ofertaId: string; evals: any[] }) {
   const upsert = useUpsertEvaluacion();
   const del = useDeleteEvaluacion();
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState<any>({ nombre: "", tipo: "trabajo", peso: 10, fecha: "", descripcion: "" });
-  const reset = () => setForm({ nombre: "", tipo: "trabajo", peso: 10, fecha: "", descripcion: "" });
+  const [form, setForm] = useState<any>(EMPTY_TRABAJO);
+  const reset = () => setForm(EMPTY_TRABAJO);
 
   const save = async () => {
     if (!form.nombre) { toast.error("Nombre requerido"); return; }
     try {
-      await upsert.mutateAsync({ ...form, oferta_id: ofertaId, peso: Number(form.peso) });
-      toast.success("Trabajo creado");
+      const payload: any = { ...form, oferta_id: ofertaId, peso: Number(form.peso) };
+      if (!payload.id) delete payload.id;
+      if (!payload.fecha) delete payload.fecha;
+      await upsert.mutateAsync(payload);
+      toast.success(form.id ? "Trabajo actualizado" : "Trabajo creado");
       setOpen(false); reset();
     } catch (e: any) { toast.error(e.message); }
+  };
+
+  const openEdit = (ev: any) => {
+    setForm({
+      id: ev.id,
+      nombre: ev.nombre || "",
+      tipo: ev.tipo || "trabajo",
+      peso: ev.peso ?? 0,
+      fecha: ev.fecha || "",
+      descripcion: ev.descripcion || "",
+    });
+    setOpen(true);
   };
 
   return (
     <div className="space-y-2">
       <div className="flex justify-end">
         <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) reset(); }}>
-          <DialogTrigger asChild><Button size="sm"><Plus className="h-3.5 w-3.5 mr-1" />Crear trabajo</Button></DialogTrigger>
+          <DialogTrigger asChild><Button size="sm" onClick={reset}><Plus className="h-3.5 w-3.5 mr-1" />Crear trabajo</Button></DialogTrigger>
           <DialogContent>
-            <DialogHeader><DialogTitle>Nuevo trabajo / evaluación</DialogTitle></DialogHeader>
+            <DialogHeader><DialogTitle>{form.id ? "Editar" : "Nuevo"} trabajo / evaluación</DialogTitle></DialogHeader>
             <div className="space-y-3">
               <div><Label>Nombre *</Label><Input value={form.nombre} onChange={(e) => setForm({ ...form, nombre: e.target.value })} /></div>
               <div><Label>Descripción / instrucciones</Label><Textarea rows={3} value={form.descripcion} onChange={(e) => setForm({ ...form, descripcion: e.target.value })} /></div>
@@ -442,19 +459,25 @@ function TrabajosTab({ ofertaId, evals }: { ofertaId: string; evals: any[] }) {
                 <div><Label>Peso (%)</Label><Input type="number" value={form.peso} onChange={(e) => setForm({ ...form, peso: e.target.value })} /></div>
                 <div><Label>Fecha</Label><Input type="date" value={form.fecha} onChange={(e) => setForm({ ...form, fecha: e.target.value })} /></div>
               </div>
-              <Button onClick={save} disabled={!form.nombre || upsert.isPending} className="w-full">Crear</Button>
+              <Button onClick={save} disabled={!form.nombre || upsert.isPending} className="w-full">
+                {upsert.isPending ? "Guardando..." : (form.id ? "Guardar cambios" : "Crear")}
+              </Button>
             </div>
           </DialogContent>
         </Dialog>
       </div>
       {!evals?.length ? (
         <p className="text-sm text-muted-foreground p-4 text-center">Sin trabajos creados</p>
-      ) : evals.map((e: any) => <EvalRow key={e.id} ev={e} onDelete={async () => { await del.mutateAsync(e.id); toast.success("Eliminado"); }} />)}
+      ) : evals.map((e: any) => (
+        <EvalRow key={e.id} ev={e}
+          onEdit={() => openEdit(e)}
+          onDelete={async () => { await del.mutateAsync(e.id); toast.success("Eliminado"); }} />
+      ))}
     </div>
   );
 }
 
-function EvalRow({ ev, onDelete }: { ev: any; onDelete: () => Promise<void> }) {
+function EvalRow({ ev, onEdit, onDelete }: { ev: any; onEdit: () => void; onDelete: () => Promise<void> }) {
   const [open, setOpen] = useState(false);
   return (
     <Card>
@@ -466,6 +489,7 @@ function EvalRow({ ev, onDelete }: { ev: any; onDelete: () => Promise<void> }) {
           <Badge variant="secondary" className="text-[10px]">{ev.peso}%</Badge>
           <Badge variant="outline" className="text-[10px]"><Calendar className="h-3 w-3 mr-1" />{ev.fecha || "sin fecha"}</Badge>
           <Button size="sm" variant="outline" onClick={() => setOpen(true)}><Eye className="h-3 w-3 mr-1" />Entregas</Button>
+          <Button size="icon" variant="ghost" className="h-7 w-7" onClick={onEdit} title="Editar trabajo"><Pencil className="h-3 w-3" /></Button>
           <DeleteConfirmDialog onConfirm={onDelete}
             trigger={<Button size="icon" variant="ghost" className="h-7 w-7 text-destructive"><Trash2 className="h-3 w-3" /></Button>} />
         </div>
@@ -475,6 +499,7 @@ function EvalRow({ ev, onDelete }: { ev: any; onDelete: () => Promise<void> }) {
     </Card>
   );
 }
+
 
 function EntregasDialog({ open, onOpenChange, evaluacion }: any) {
   const qkey = ["entregas-eval", evaluacion.id, open];
