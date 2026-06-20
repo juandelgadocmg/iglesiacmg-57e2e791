@@ -150,6 +150,10 @@ export default function HorariosSection() {
                               <p className="flex items-center gap-1.5"><Clock className="h-3 w-3 text-muted-foreground" />{of.horario || "Sin horario"}</p>
                               <p className="flex items-center gap-1.5"><MapPin className="h-3 w-3 text-muted-foreground" />{of.aula || "Sin aula"} {of.modalidad && <Badge variant="outline" className="ml-1 text-[9px]">{of.modalidad}</Badge>}</p>
                               {(() => {
+                                const materiaLink = m.zoom_link;
+                                if (materiaLink && of.modalidad !== "presencial") {
+                                  return <p className="flex items-center gap-1.5"><Video className="h-3 w-3 text-primary" /><a href={materiaLink} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline truncate">Zoom (materia)</a></p>;
+                                }
                                 const stale = isZoomStale(of, { docente: of.docente_nombre, periodoCodigo: periodoActivo?.codigo, materiaCodigo: m.codigo });
                                 if (of.zoom_link && of.modalidad !== "presencial" && !stale) {
                                   return <p className="flex items-center gap-1.5"><Video className="h-3 w-3 text-primary" /><a href={of.zoom_link} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline truncate">Zoom</a></p>;
