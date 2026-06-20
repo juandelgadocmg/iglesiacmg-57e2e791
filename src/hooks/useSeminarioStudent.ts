@@ -48,7 +48,7 @@ export function useMisOfertas(personaId?: string) {
         .from("sem_inscripcion_materias")
         .select(`
           id, oferta_id, materia_id, nota_final, estado, inscripcion_id,
-          sem_materias(id, codigo, nombre, creditos, color),
+          sem_materias(id, codigo, nombre, creditos, color, zoom_link),
           sem_ofertas(id, docente_nombre, docente_persona_id, horario, aula, modalidad, zoom_link, estado, periodo_id,
             sem_periodos(id, codigo, nombre, fecha_inicio, fecha_fin, activo)),
           sem_inscripciones!inner(id, persona_id, programa_id,
