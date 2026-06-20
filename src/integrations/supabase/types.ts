@@ -2814,6 +2814,7 @@ export type Database = {
           nombre: string
           programa_id: string
           updated_at: string
+          zoom_link: string | null
         }
         Insert: {
           activo?: boolean
@@ -2828,6 +2829,7 @@ export type Database = {
           nombre: string
           programa_id: string
           updated_at?: string
+          zoom_link?: string | null
         }
         Update: {
           activo?: boolean
@@ -2842,6 +2844,7 @@ export type Database = {
           nombre?: string
           programa_id?: string
           updated_at?: string
+          zoom_link?: string | null
         }
         Relationships: [
           {
