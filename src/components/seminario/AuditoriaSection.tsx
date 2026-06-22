@@ -23,6 +23,8 @@ const ACTIONS = [
   { value: "zoom.regenerado", label: "Zoom regenerado" },
   { value: "inscripcion.creada", label: "Inscripción creada" },
   { value: "inscripcion.eliminada", label: "Inscripción eliminada" },
+  { value: "inscripcion.periodo_actualizado", label: "Periodo de inscripción actualizado" },
+  { value: "inscripcion.anio_actualizado", label: "Año/periodo de ingreso actualizado" },
   { value: "matricula.creada", label: "Matrícula creada" },
   { value: "matricula.eliminada", label: "Matrícula eliminada" },
   { value: "matricula.actualizada", label: "Matrícula actualizada" },
