@@ -83,11 +83,24 @@ export default function EstudiantesSection() {
   // Compatibilidad con código existente (solo periodo actual)
   const yaInscritos = new Set((inscripciones || []).map((i: any) => i.persona_id));
 
-  // Inscripciones filtradas por nombre o documento (CC) sobre el resultado ya filtrado por programa+periodo
+  // Inscripciones filtradas por nombre/CC y año de ingreso
   const inscripcionesFiltradas = useMemo(() => {
-    if (!busqueda.trim()) return inscripciones || [];
-    return (inscripciones || []).filter((i: any) => matchesPersona(busqueda, i.personas || {}));
-  }, [inscripciones, busqueda]);
+    let rows = inscripciones || [];
+    if (anioIngreso !== "_all") {
+      rows = rows.filter((i: any) => String(i.anio_ingreso ?? "") === anioIngreso);
+    }
+    if (busqueda.trim()) {
+      rows = rows.filter((i: any) => matchesPersona(busqueda, i.personas || {}));
+    }
+    return rows;
+  }, [inscripciones, busqueda, anioIngreso]);
+
+  // Años de ingreso disponibles (de las inscripciones del periodo actual + programa)
+  const aniosDisponibles = useMemo(() => {
+    const s = new Set<number>();
+    (inscripcionesPrograma || []).forEach((i: any) => { if (i.anio_ingreso) s.add(i.anio_ingreso); });
+    return Array.from(s).sort((a, b) => b - a);
+  }, [inscripcionesPrograma]);
 
   const toggleSel = (id: string) => {
     setSeleccion(s => {
