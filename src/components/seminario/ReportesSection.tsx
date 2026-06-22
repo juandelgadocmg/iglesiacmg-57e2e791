@@ -196,7 +196,7 @@ export default function ReportesSection() {
         <Card><CardContent className="p-4 space-y-2">
           {Array.from({ length: 6 }).map((_, i) => <div key={i} className="h-10 bg-muted rounded animate-pulse" />)}
         </CardContent></Card>
-      ) : !registros.length ? (
+      ) : !registrosFiltrados.length ? (
         <Card><CardContent className="p-8 text-center text-sm text-muted-foreground">
           No hay registros académicos para los filtros seleccionados. Ajusta programa o periodo para ver datos.
         </CardContent></Card>
