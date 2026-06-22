@@ -40,6 +40,7 @@ export default function EstudiantesSection() {
   const [selectedIns, setSelectedIns] = useState<any>(null);
   const [seleccion, setSeleccion] = useState<Set<string>>(new Set());
   const [busqueda, setBusqueda] = useState("");
+  const [anioIngreso, setAnioIngreso] = useState<string>("_all");
   const [incluirYaInscritos, setIncluirYaInscritos] = useState(true);
   const can = useCan();
   const canMatricular = can("seminario:matricular");
