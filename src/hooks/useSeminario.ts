@@ -792,7 +792,7 @@ export function useReportesAcademicos(programaId?: string, periodoId?: string) {
       let q = sb.from("sem_inscripcion_materias").select(`
         id, nota_final, estado, oferta_id, materia_id,
         sem_materias(id, nombre, codigo, creditos),
-        sem_inscripciones!inner(programa_id, periodo_id, persona_id)
+        sem_inscripciones!inner(id, programa_id, periodo_id, persona_id, anio_ingreso, personas(nombres, apellidos, documento))
       `);
       if (programaId) q = q.eq("sem_inscripciones.programa_id", programaId);
       if (periodoId) q = q.eq("sem_inscripciones.periodo_id", periodoId);
