@@ -2856,6 +2856,47 @@ export type Database = {
           },
         ]
       }
+      sem_materias_historial: {
+        Row: {
+          campo: string
+          created_at: string
+          id: string
+          materia_id: string
+          usuario_id: string | null
+          usuario_nombre: string | null
+          valor_anterior: string | null
+          valor_nuevo: string | null
+        }
+        Insert: {
+          campo: string
+          created_at?: string
+          id?: string
+          materia_id: string
+          usuario_id?: string | null
+          usuario_nombre?: string | null
+          valor_anterior?: string | null
+          valor_nuevo?: string | null
+        }
+        Update: {
+          campo?: string
+          created_at?: string
+          id?: string
+          materia_id?: string
+          usuario_id?: string | null
+          usuario_nombre?: string | null
+          valor_anterior?: string | null
+          valor_nuevo?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sem_materias_historial_materia_id_fkey"
+            columns: ["materia_id"]
+            isOneToOne: false
+            referencedRelation: "sem_materias"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sem_ofertas: {
         Row: {
           aula: string | null
