@@ -71,12 +71,42 @@ export default function PensumSection({ readOnly = false }: { readOnly?: boolean
         {(semestres || []).map((s: any) => {
           const items = matsBySem(s.id);
           const totCred = items.reduce((sum: number, it: any) => sum + (it.sem_materias?.creditos || 0), 0);
+          const programaNombre = (programas || []).find((p: any) => p.id === effectiveId)?.nombre || "Programa";
+          const exportPdf = () => {
+            const doc = new jsPDF();
+            doc.setFontSize(15);
+            doc.text("Iglesia Cristiana CMG — Seminario Bíblico", 14, 16);
+            doc.setFontSize(11);
+            doc.text(`Pensum · ${programaNombre}`, 14, 24);
+            doc.setFontSize(10);
+            doc.text(`Semestre ${s.numero}${s.nombre ? " — " + s.nombre : ""}`, 14, 32);
+            doc.text(`Total créditos: ${totCred}`, 14, 38);
+            autoTable(doc, {
+              startY: 44,
+              head: [["Código", "Materia", "Créd.", "Horas", "Área"]],
+              body: items.map((it: any) => [
+                it.sem_materias?.codigo || "—",
+                it.sem_materias?.nombre || "—",
+                it.sem_materias?.creditos ?? "—",
+                it.sem_materias?.intensidad_horaria ?? "—",
+                it.sem_materias?.area || "—",
+              ]),
+              styles: { fontSize: 9 },
+              headStyles: { fillColor: [37, 99, 235] },
+            });
+            doc.save(`pensum-sem${s.numero}-${programaNombre.replace(/\s+/g, "_")}.pdf`);
+          };
           return (
             <Card key={s.id} className="min-h-[200px]">
               <CardContent className="p-3 space-y-2">
                 <div className="flex items-center justify-between">
                   <p className="font-semibold text-sm">Sem. {s.numero}</p>
-                  <Badge variant="outline" className="text-[10px]">{totCred} cr</Badge>
+                  <div className="flex items-center gap-1">
+                    <Badge variant="outline" className="text-[10px]">{totCred} cr</Badge>
+                    <button onClick={exportPdf} title="Exportar pensum del semestre a PDF" className="text-muted-foreground hover:text-primary" disabled={items.length === 0}>
+                      <FileDown className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
                 </div>
                 <div className="space-y-1.5">
                   {items.map((it: any) => (
