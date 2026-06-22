@@ -20,8 +20,22 @@ export default function ReportesSection() {
   const [periodoId, setPeriodoId] = useUrlParam("rep_per");
   const { data: registros = [], isLoading: loadingRep } = useReportesAcademicos(effProg || undefined, periodoId || undefined);
   const [q, setQ] = useUrlParam("rep_q");
+  const [anioIngreso, setAnioIngreso] = useUrlParam("rep_anio");
   const [page, setPage] = useUrlNumber("rep_page", 1);
   const PAGE_SIZE = 10;
+
+  // Años de ingreso disponibles a partir de los registros
+  const aniosDisponibles = useMemo(() => {
+    const s = new Set<number>();
+    (registros as any[]).forEach(r => { const a = r.sem_inscripciones?.anio_ingreso; if (a) s.add(a); });
+    return Array.from(s).sort((a, b) => b - a);
+  }, [registros]);
+
+  // Aplicar filtro por año de ingreso a TODO antes de calcular métricas
+  const registrosFiltrados = useMemo(() => {
+    if (!anioIngreso) return registros as any[];
+    return (registros as any[]).filter(r => String(r.sem_inscripciones?.anio_ingreso ?? "") === anioIngreso);
+  }, [registros, anioIngreso]);
 
   const byMateria = useMemo(() => {
     const map: Record<string, { nombre: string; codigo: string; total: number; aprobadas: number; reprobadas: number; promedio: number; sumaNotas: number; countNotas: number }> = {};
