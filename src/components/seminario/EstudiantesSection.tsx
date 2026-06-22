@@ -666,6 +666,8 @@ function EstudianteDetalle({ ins, programa, onBack }: any) {
 
       <ProgresoPanel semestres={semestres || []} pensum={pensum || []} cursando={cursando || []} semestreActual={ins.semestre_actual || 1} />
 
+      <HistorialEstudiantePanel personaId={ins.persona_id} programaId={ins.programa_id} currentInscripcionId={ins.id} />
+
       <div className="space-y-3">
         {(semestres || []).map((s: any) => {
           const mats = matsBySem[s.numero] || [];
