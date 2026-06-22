@@ -124,8 +124,16 @@ export default function ReportesSection() {
               {(periodos || []).map((p: any) => <SelectItem key={p.id} value={p.id}>{p.nombre}</SelectItem>)}
             </SelectContent>
           </Select>
+          <Select value={anioIngreso || "_all"} onValueChange={(v) => setAnioIngreso(v === "_all" ? "" : v)}>
+            <SelectTrigger className="w-40"><SelectValue placeholder="Año ingreso" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="_all">Todos los años</SelectItem>
+              {aniosDisponibles.map(a => <SelectItem key={a} value={String(a)}>Ingreso {a}</SelectItem>)}
+            </SelectContent>
+          </Select>
           <Button size="sm" variant="outline" onClick={exportar} disabled={!filtradas.length}><Download className="h-4 w-4 mr-1" />Excel</Button>
           <Button size="sm" variant="outline" onClick={exportarPdf} disabled={!filtradas.length}><FileText className="h-4 w-4 mr-1" />PDF</Button>
+          <Button size="sm" variant="outline" onClick={exportarDetalle} disabled={!registrosFiltrados.length}><FileText className="h-4 w-4 mr-1" />Detalle (notas)</Button>
         </div>
       </div>
 
