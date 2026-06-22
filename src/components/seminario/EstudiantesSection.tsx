@@ -738,3 +738,134 @@ function EstudianteDetalle({ ins, programa, onBack }: any) {
     </div>
   );
 }
+
+function HistorialEstudiantePanel({ personaId, programaId, currentInscripcionId }: { personaId: string; programaId: string; currentInscripcionId: string }) {
+  const { data: historial = [], isLoading } = useEstudianteHistorial(personaId, programaId);
+
+  const exportarHistorial = (formato: "csv" | "pdf") => {
+    const rows: any[] = [];
+    (historial as any[]).forEach((insc: any) => {
+      const periodoNombre = insc.sem_periodos?.nombre || insc.sem_periodos?.codigo || "—";
+      (insc.sem_inscripcion_materias || []).forEach((m: any) => {
+        rows.push({
+          periodo: periodoNombre,
+          anio: insc.anio_ingreso || "",
+          codigo: m.sem_materias?.codigo || "",
+          materia: m.sem_materias?.nombre || "",
+          creditos: m.sem_materias?.creditos || 0,
+          estado: m.estado || "",
+          nota: m.nota_final ?? "",
+        });
+      });
+    });
+    if (!rows.length) { toast.error("Sin historial para exportar"); return; }
+
+    if (formato === "csv") {
+      const headers = ["Periodo", "Año ingreso", "Código", "Materia", "Créditos", "Estado", "Nota"];
+      const lines = [headers.join(",")];
+      rows.forEach(r => {
+        lines.push([r.periodo, r.anio, r.codigo, r.materia, r.creditos, r.estado, r.nota]
+          .map(v => `"${String(v).replace(/"/g, '""')}"`).join(","));
+      });
+      const blob = new Blob(["\ufeff" + lines.join("\n")], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a"); a.href = url; a.download = `historial_${Date.now()}.csv`; a.click();
+      URL.revokeObjectURL(url);
+      toast.success("Historial CSV descargado");
+    } else {
+      import("jspdf").then(({ default: jsPDF }) => import("jspdf-autotable").then(({ default: autoTable }) => {
+        const doc = new jsPDF({ orientation: "landscape" });
+        doc.setFontSize(14); doc.text("Historial académico por periodo", 14, 14);
+        doc.setFontSize(9); doc.text(`Generado ${new Date().toLocaleString("es-CO")}`, 14, 20);
+        autoTable(doc, {
+          startY: 26,
+          head: [["Periodo", "Código", "Materia", "Cr.", "Estado", "Nota"]],
+          body: rows.map(r => [r.periodo, r.codigo, r.materia, r.creditos, r.estado, r.nota]),
+          styles: { fontSize: 8 }, headStyles: { fillColor: [37, 99, 235] },
+        });
+        doc.save(`historial_${Date.now()}.pdf`);
+        toast.success("Historial PDF descargado");
+      }));
+    }
+  };
+
+  if (isLoading) return <Card><CardContent className="p-4 text-xs text-muted-foreground">Cargando historial...</CardContent></Card>;
+  if (!historial.length) return null;
+
+  return (
+    <Card>
+      <CardContent className="p-4 space-y-3">
+        <div className="flex items-center justify-between gap-2 flex-wrap">
+          <div>
+            <p className="font-semibold text-sm">Historial por periodo</p>
+            <p className="text-[10px] text-muted-foreground">{historial.length} periodo{historial.length > 1 ? "s" : ""} cursado{historial.length > 1 ? "s" : ""}</p>
+          </div>
+          <div className="flex gap-2">
+            <Button size="sm" variant="outline" onClick={() => exportarHistorial("csv")}><FileDownIcon className="h-3.5 w-3.5 mr-1" />CSV</Button>
+            <Button size="sm" variant="outline" onClick={() => exportarHistorial("pdf")}><FileDown className="h-3.5 w-3.5 mr-1" />PDF</Button>
+          </div>
+        </div>
+
+        <div className="space-y-3">
+          {(historial as any[]).map((insc: any) => {
+            const mats = insc.sem_inscripcion_materias || [];
+            const aprob = mats.filter((m: any) => m.estado === "aprobada").length;
+            const reprob = mats.filter((m: any) => m.estado === "reprobada").length;
+            const retir = mats.filter((m: any) => m.estado === "cancelada" || m.estado === "retirada").length;
+            const cursando = mats.filter((m: any) => m.estado === "cursando").length;
+            const isCurrent = insc.id === currentInscripcionId;
+            return (
+              <div key={insc.id} className={`border rounded p-3 ${isCurrent ? "border-primary bg-primary/5" : ""}`}>
+                <div className="flex items-center justify-between gap-2 flex-wrap mb-2">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <Badge variant="outline" className="text-[10px]">{insc.sem_periodos?.nombre || insc.sem_periodos?.codigo || "—"}</Badge>
+                    {isCurrent && <Badge className="text-[10px]">Periodo actual</Badge>}
+                    <span className="text-[10px] text-muted-foreground">Promedio: {insc.promedio_acumulado ?? "—"}</span>
+                  </div>
+                  <div className="flex gap-1 flex-wrap">
+                    {aprob > 0 && <Badge className="text-[10px] bg-emerald-100 text-emerald-700 border-emerald-300">{aprob} aprob.</Badge>}
+                    {reprob > 0 && <Badge className="text-[10px] bg-red-100 text-red-700 border-red-300">{reprob} reprob.</Badge>}
+                    {retir > 0 && <Badge className="text-[10px] bg-amber-100 text-amber-700 border-amber-300">{retir} retir.</Badge>}
+                    {cursando > 0 && <Badge className="text-[10px] bg-blue-100 text-blue-700 border-blue-300">{cursando} cursando</Badge>}
+                  </div>
+                </div>
+                {mats.length === 0 ? (
+                  <p className="text-[10px] text-muted-foreground italic">Sin materias registradas</p>
+                ) : (
+                  <table className="w-full text-[11px]">
+                    <thead className="text-muted-foreground">
+                      <tr className="border-b">
+                        <th className="text-left py-1">Materia</th>
+                        <th className="text-center py-1 w-20">Estado</th>
+                        <th className="text-right py-1 w-12">Nota</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {mats.map((m: any) => (
+                        <tr key={m.id} className="border-b last:border-0">
+                          <td className="py-1">
+                            <div className="font-medium">{m.sem_materias?.nombre || "—"}</div>
+                            <div className="text-[10px] text-muted-foreground">{m.sem_materias?.codigo}</div>
+                          </td>
+                          <td className="py-1 text-center">
+                            <span className={
+                              m.estado === "aprobada" ? "text-emerald-600" :
+                              m.estado === "reprobada" ? "text-red-600" :
+                              m.estado === "cancelada" || m.estado === "retirada" ? "text-amber-600" :
+                              "text-muted-foreground"
+                            }>{m.estado}</span>
+                          </td>
+                          <td className="py-1 text-right font-mono">{m.nota_final ?? "—"}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
