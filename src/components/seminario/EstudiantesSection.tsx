@@ -274,6 +274,13 @@ export default function EstudiantesSection() {
             <SelectTrigger className="w-48"><SelectValue placeholder="Periodo" /></SelectTrigger>
             <SelectContent>{(periodos || []).map((p: any) => <SelectItem key={p.id} value={p.id}>{p.nombre}</SelectItem>)}</SelectContent>
           </Select>
+          <Select value={anioIngreso} onValueChange={setAnioIngreso}>
+            <SelectTrigger className="w-44"><SelectValue placeholder="Año de ingreso" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="_all">Todos los años</SelectItem>
+              {aniosDisponibles.map(a => <SelectItem key={a} value={String(a)}>Ingreso {a}</SelectItem>)}
+            </SelectContent>
+          </Select>
           {seleccion.size > 0 && (
             <>
               <Button size="sm" variant="outline" onClick={() => exportarLote("kardex")}>
