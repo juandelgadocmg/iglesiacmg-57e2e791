@@ -186,7 +186,7 @@ export default function ReportesSection() {
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <Card><CardContent className="p-3"><p className="text-xs text-muted-foreground">Registros</p><p className="text-2xl font-bold">{registros.length}</p></CardContent></Card>
+        <Card><CardContent className="p-3"><p className="text-xs text-muted-foreground">Registros</p><p className="text-2xl font-bold">{registrosFiltrados.length}</p></CardContent></Card>
         <Card><CardContent className="p-3"><p className="text-xs text-muted-foreground">Promedio</p><p className="text-2xl font-bold">{promedioGeneral.toFixed(2)}</p></CardContent></Card>
         <Card><CardContent className="p-3"><p className="text-xs text-muted-foreground">Materias activas</p><p className="text-2xl font-bold">{byMateria.length}</p></CardContent></Card>
         <Card><CardContent className="p-3"><p className="text-xs text-muted-foreground">% Aprobación gral</p><p className="text-2xl font-bold">{byMateria.length ? Math.round(byMateria.reduce((a, b) => a + b.tasaApr, 0) / byMateria.length) : 0}%</p></CardContent></Card>
