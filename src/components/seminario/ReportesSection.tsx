@@ -105,6 +105,49 @@ export default function ReportesSection() {
     toast.success("PDF generado");
   };
 
+  const exportarDetalle = () => {
+    if (!registrosFiltrados.length) { toast.error("No hay datos para exportar"); return; }
+    const rows = (registrosFiltrados as any[]).map(r => ({
+      estudiante: `${r.sem_inscripciones?.personas?.nombres || ""} ${r.sem_inscripciones?.personas?.apellidos || ""}`.trim(),
+      documento: r.sem_inscripciones?.personas?.documento || "",
+      anio_ingreso: r.sem_inscripciones?.anio_ingreso || "",
+      codigo: r.sem_materias?.codigo || "",
+      materia: r.sem_materias?.nombre || "",
+      creditos: r.sem_materias?.creditos || 0,
+      estado: r.estado || "",
+      nota: r.nota_final ?? "",
+    }));
+    exportToExcel({
+      title: `Detalle histórico${anioIngreso ? ` ${anioIngreso}` : ""}`,
+      filename: `detalle-historico${anioIngreso ? `-${anioIngreso}` : ""}`,
+      columns: [
+        { header: "Estudiante", key: "estudiante" },
+        { header: "Documento", key: "documento" },
+        { header: "Año ingreso", key: "anio_ingreso" },
+        { header: "Código", key: "codigo" },
+        { header: "Materia", key: "materia" },
+        { header: "Créditos", key: "creditos" },
+        { header: "Estado", key: "estado" },
+        { header: "Nota", key: "nota" },
+      ],
+      data: rows,
+    });
+    exportToPDF({
+      title: `Detalle histórico${anioIngreso ? ` (Ingreso ${anioIngreso})` : ""}`,
+      filename: `detalle-historico${anioIngreso ? `-${anioIngreso}` : ""}`,
+      columns: [
+        { header: "Estudiante", key: "estudiante" },
+        { header: "Año", key: "anio_ingreso" },
+        { header: "Código", key: "codigo" },
+        { header: "Materia", key: "materia" },
+        { header: "Estado", key: "estado" },
+        { header: "Nota", key: "nota" },
+      ],
+      data: rows,
+    });
+    toast.success(`Detalle exportado (${rows.length} registros)`);
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
