@@ -2699,11 +2699,13 @@ export type Database = {
       }
       sem_inscripciones: {
         Row: {
+          anio_ingreso: number | null
           created_at: string
           estado: string
           id: string
           observaciones: string | null
           periodo_id: string
+          periodo_ingreso_id: string | null
           persona_id: string
           programa_id: string
           promedio_acumulado: number | null
@@ -2713,11 +2715,13 @@ export type Database = {
           user_id: string | null
         }
         Insert: {
+          anio_ingreso?: number | null
           created_at?: string
           estado?: string
           id?: string
           observaciones?: string | null
           periodo_id: string
+          periodo_ingreso_id?: string | null
           persona_id: string
           programa_id: string
           promedio_acumulado?: number | null
@@ -2727,11 +2731,13 @@ export type Database = {
           user_id?: string | null
         }
         Update: {
+          anio_ingreso?: number | null
           created_at?: string
           estado?: string
           id?: string
           observaciones?: string | null
           periodo_id?: string
+          periodo_ingreso_id?: string | null
           persona_id?: string
           programa_id?: string
           promedio_acumulado?: number | null
@@ -2744,6 +2750,13 @@ export type Database = {
           {
             foreignKeyName: "sem_inscripciones_periodo_id_fkey"
             columns: ["periodo_id"]
+            isOneToOne: false
+            referencedRelation: "sem_periodos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sem_inscripciones_periodo_ingreso_id_fkey"
+            columns: ["periodo_ingreso_id"]
             isOneToOne: false
             referencedRelation: "sem_periodos"
             referencedColumns: ["id"]

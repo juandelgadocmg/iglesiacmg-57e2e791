@@ -294,7 +294,7 @@ export function useInscripciones(programaId?: string, periodoId?: string) {
     queryKey: ["sem-inscripciones", programaId, periodoId],
     queryFn: async () => {
       let q = sb.from("sem_inscripciones")
-        .select("*, personas:persona_id(id,nombres,apellidos,documento,foto_url), sem_periodos:periodo_id(codigo,nombre)")
+        .select("*, personas:persona_id(id,nombres,apellidos,documento,foto_url), sem_periodos:periodo_id(codigo,nombre), periodo_ingreso:periodo_ingreso_id(codigo,nombre,fecha_inicio)")
         .order("created_at", { ascending: false });
       if (programaId) q = q.eq("programa_id", programaId);
       if (periodoId) q = q.eq("periodo_id", periodoId);

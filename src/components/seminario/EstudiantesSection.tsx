@@ -317,8 +317,18 @@ export default function EstudiantesSection() {
                     <div className="flex-1 min-w-0 cursor-pointer" onClick={() => setSelectedIns(i)}>
                       <div className="flex items-center justify-between gap-2">
                         <p className="font-semibold text-sm truncate">{personaFullName(p)}</p>
-                        <div className="flex items-center gap-1 shrink-0">
+                        <div className="flex items-center gap-1 shrink-0 flex-wrap justify-end">
                           <Badge variant="outline" className="text-[10px]">Sem {i.semestre_actual || "—"}</Badge>
+                          {i.anio_ingreso && (
+                            <Badge
+                              variant="outline"
+                              className="text-[10px] bg-blue-50 text-blue-700 border-blue-200"
+                              aria-label={`Ingreso original ${i.anio_ingreso}${i.periodo_ingreso?.nombre ? ` (${i.periodo_ingreso.nombre})` : ""}`}
+                              title={i.periodo_ingreso?.nombre ? `Periodo de ingreso: ${i.periodo_ingreso.nombre}` : undefined}
+                            >
+                              Ingreso {i.anio_ingreso}
+                            </Badge>
+                          )}
                           <Badge
                             className="text-[10px] bg-amber-100 text-amber-800 border border-amber-200 hover:bg-amber-100"
                             aria-label={`${yaInscritoBadge(i.sem_periodos)} en el programa ${programa?.nombre || ""}`.trim()}
