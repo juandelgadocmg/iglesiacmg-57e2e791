@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { useProgramas, useSemestres, usePensumMaterias, usePeriodos, useOfertas, useInscripciones, useUpsertInscripcion, useDeleteInscripcion, useInscripcionMaterias, useEnrollMateria, useUnenrollMateria, useUpdateInscripcionMateria, usePersonasLite } from "@/hooks/useSeminario";
+import { useProgramas, useSemestres, usePensumMaterias, usePeriodos, useOfertas, useInscripciones, useUpsertInscripcion, useDeleteInscripcion, useInscripcionMaterias, useEnrollMateria, useUnenrollMateria, useUpdateInscripcionMateria, usePersonasLite, useEstudianteHistorial } from "@/hooks/useSeminario";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
