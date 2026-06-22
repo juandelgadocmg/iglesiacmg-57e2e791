@@ -84,14 +84,47 @@ export function useUpsertMateria() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (payload: any) => {
+      let prev: any = null;
+      if (payload?.id) {
+        const { data: existing } = await sb.from("sem_materias").select("codigo,nombre").eq("id", payload.id).maybeSingle();
+        prev = existing || null;
+      }
       const { data, error } = await sb.from("sem_materias").upsert(payload).select().single();
       if (error) throw error;
+      if (prev && data) {
+        const { data: auth } = await sb.auth.getUser();
+        const userId = auth?.user?.id || null;
+        let userName: string | null = null;
+        if (userId) {
+          const { data: prof } = await sb.from("profiles").select("display_name").eq("user_id", userId).maybeSingle();
+          userName = prof?.display_name || auth?.user?.email || null;
+        }
+        const rows: any[] = [];
+        if (prev.codigo !== data.codigo) rows.push({ materia_id: data.id, campo: "codigo", valor_anterior: prev.codigo, valor_nuevo: data.codigo, usuario_id: userId, usuario_nombre: userName });
+        if (prev.nombre !== data.nombre) rows.push({ materia_id: data.id, campo: "nombre", valor_anterior: prev.nombre, valor_nuevo: data.nombre, usuario_id: userId, usuario_nombre: userName });
+        if (rows.length) await sb.from("sem_materias_historial").insert(rows);
+      }
       return data;
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["sem-materias"] });
       qc.invalidateQueries({ queryKey: ["sem-pensum-materias"] });
+      qc.invalidateQueries({ queryKey: ["sem-materia-historial"] });
     },
+  });
+}
+
+export function useMateriaHistorial(materiaId?: string) {
+  return useQuery({
+    queryKey: ["sem-materia-historial", materiaId],
+    queryFn: async () => {
+      if (!materiaId) return [];
+      const { data, error } = await sb.from("sem_materias_historial")
+        .select("*").eq("materia_id", materiaId).order("created_at", { ascending: false });
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!materiaId,
   });
 }
 
