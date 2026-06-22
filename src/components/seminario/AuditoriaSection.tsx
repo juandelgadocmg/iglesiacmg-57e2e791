@@ -38,7 +38,7 @@ const ACTIONS = [
 const ACTION_GROUPS: Record<string, string[]> = {
   certificado: ["certificado.generado", "certificado.lote"],
   zoom: ["zoom.regenerado"],
-  matricula: ["matricula.creada", "matricula.eliminada", "matricula.actualizada", "inscripcion.creada", "inscripcion.eliminada"],
+  matricula: ["matricula.creada", "matricula.eliminada", "matricula.actualizada", "inscripcion.creada", "inscripcion.eliminada", "inscripcion.periodo_actualizado", "inscripcion.anio_actualizado"],
   kardex: ["kardex.descargado"],
   academico: ["evaluacion.creada", "evaluacion.editada", "evaluacion.eliminada", "calificacion.guardada", "asistencia.guardada"],
 };
