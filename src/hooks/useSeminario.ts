@@ -378,6 +378,34 @@ export function useUnenrollMateria() {
   });
 }
 
+// ─────────────────────────── HISTORIAL ESTUDIANTE (todos los periodos) ───────────────────────────
+export function useEstudianteHistorial(personaId?: string, programaId?: string) {
+  return useQuery({
+    queryKey: ["sem-historial", personaId, programaId],
+    queryFn: async () => {
+      if (!personaId) return [];
+      let q = sb.from("sem_inscripciones")
+        .select(`
+          id, periodo_id, programa_id, estado, semestre_actual, promedio_acumulado, total_creditos_aprobados, anio_ingreso,
+          sem_periodos:periodo_id(id, codigo, nombre, fecha_inicio, fecha_fin),
+          sem_inscripcion_materias(id, estado, nota_final, materia_id, sem_materias(codigo, nombre, creditos))
+        `)
+        .eq("persona_id", personaId);
+      if (programaId) q = q.eq("programa_id", programaId);
+      const { data, error } = await q;
+      if (error) throw error;
+      const rows = data || [];
+      rows.sort((a: any, b: any) => {
+        const fa = a.sem_periodos?.fecha_inicio || "";
+        const fb = b.sem_periodos?.fecha_inicio || "";
+        return fa < fb ? -1 : fa > fb ? 1 : 0;
+      });
+      return rows;
+    },
+    enabled: !!personaId,
+  });
+}
+
 // ─────────────────────────── PERSONAS LITE ───────────────────────────
 export function usePersonasLite() {
   return useQuery({
@@ -764,7 +792,7 @@ export function useReportesAcademicos(programaId?: string, periodoId?: string) {
       let q = sb.from("sem_inscripcion_materias").select(`
         id, nota_final, estado, oferta_id, materia_id,
         sem_materias(id, nombre, codigo, creditos),
-        sem_inscripciones!inner(programa_id, periodo_id, persona_id)
+        sem_inscripciones!inner(id, programa_id, periodo_id, persona_id, anio_ingreso, personas(nombres, apellidos, documento))
       `);
       if (programaId) q = q.eq("sem_inscripciones.programa_id", programaId);
       if (periodoId) q = q.eq("sem_inscripciones.periodo_id", periodoId);

@@ -20,12 +20,26 @@ export default function ReportesSection() {
   const [periodoId, setPeriodoId] = useUrlParam("rep_per");
   const { data: registros = [], isLoading: loadingRep } = useReportesAcademicos(effProg || undefined, periodoId || undefined);
   const [q, setQ] = useUrlParam("rep_q");
+  const [anioIngreso, setAnioIngreso] = useUrlParam("rep_anio");
   const [page, setPage] = useUrlNumber("rep_page", 1);
   const PAGE_SIZE = 10;
 
+  // Años de ingreso disponibles a partir de los registros
+  const aniosDisponibles = useMemo(() => {
+    const s = new Set<number>();
+    (registros as any[]).forEach(r => { const a = r.sem_inscripciones?.anio_ingreso; if (a) s.add(a); });
+    return Array.from(s).sort((a, b) => b - a);
+  }, [registros]);
+
+  // Aplicar filtro por año de ingreso a TODO antes de calcular métricas
+  const registrosFiltrados = useMemo(() => {
+    if (!anioIngreso) return registros as any[];
+    return (registros as any[]).filter(r => String(r.sem_inscripciones?.anio_ingreso ?? "") === anioIngreso);
+  }, [registros, anioIngreso]);
+
   const byMateria = useMemo(() => {
     const map: Record<string, { nombre: string; codigo: string; total: number; aprobadas: number; reprobadas: number; promedio: number; sumaNotas: number; countNotas: number }> = {};
-    (registros as any[]).forEach((r) => {
+    (registrosFiltrados as any[]).forEach((r) => {
       const m = r.sem_materias;
       if (!m) return;
       if (!map[m.id]) map[m.id] = { nombre: m.nombre, codigo: m.codigo, total: 0, aprobadas: 0, reprobadas: 0, promedio: 0, sumaNotas: 0, countNotas: 0 };
@@ -36,13 +50,13 @@ export default function ReportesSection() {
       if (r.nota_final != null) { x.sumaNotas += Number(r.nota_final); x.countNotas++; }
     });
     return Object.values(map).map(x => ({ ...x, promedio: x.countNotas ? x.sumaNotas / x.countNotas : 0, tasaApr: x.total ? Math.round((x.aprobadas / x.total) * 100) : 0 }));
-  }, [registros]);
+  }, [registrosFiltrados]);
 
   const promedioGeneral = useMemo(() => {
-    const notas = (registros as any[]).filter(r => r.nota_final != null).map(r => Number(r.nota_final));
+    const notas = (registrosFiltrados as any[]).filter(r => r.nota_final != null).map(r => Number(r.nota_final));
     if (!notas.length) return 0;
     return notas.reduce((a, b) => a + b, 0) / notas.length;
-  }, [registros]);
+  }, [registrosFiltrados]);
 
   const filtradas = useMemo(() => {
     const term = q.trim().toLowerCase();
@@ -91,6 +105,49 @@ export default function ReportesSection() {
     toast.success("PDF generado");
   };
 
+  const exportarDetalle = () => {
+    if (!registrosFiltrados.length) { toast.error("No hay datos para exportar"); return; }
+    const rows = (registrosFiltrados as any[]).map(r => ({
+      estudiante: `${r.sem_inscripciones?.personas?.nombres || ""} ${r.sem_inscripciones?.personas?.apellidos || ""}`.trim(),
+      documento: r.sem_inscripciones?.personas?.documento || "",
+      anio_ingreso: r.sem_inscripciones?.anio_ingreso || "",
+      codigo: r.sem_materias?.codigo || "",
+      materia: r.sem_materias?.nombre || "",
+      creditos: r.sem_materias?.creditos || 0,
+      estado: r.estado || "",
+      nota: r.nota_final ?? "",
+    }));
+    exportToExcel({
+      title: `Detalle histórico${anioIngreso ? ` ${anioIngreso}` : ""}`,
+      filename: `detalle-historico${anioIngreso ? `-${anioIngreso}` : ""}`,
+      columns: [
+        { header: "Estudiante", key: "estudiante" },
+        { header: "Documento", key: "documento" },
+        { header: "Año ingreso", key: "anio_ingreso" },
+        { header: "Código", key: "codigo" },
+        { header: "Materia", key: "materia" },
+        { header: "Créditos", key: "creditos" },
+        { header: "Estado", key: "estado" },
+        { header: "Nota", key: "nota" },
+      ],
+      data: rows,
+    });
+    exportToPDF({
+      title: `Detalle histórico${anioIngreso ? ` (Ingreso ${anioIngreso})` : ""}`,
+      filename: `detalle-historico${anioIngreso ? `-${anioIngreso}` : ""}`,
+      columns: [
+        { header: "Estudiante", key: "estudiante" },
+        { header: "Año", key: "anio_ingreso" },
+        { header: "Código", key: "codigo" },
+        { header: "Materia", key: "materia" },
+        { header: "Estado", key: "estado" },
+        { header: "Nota", key: "nota" },
+      ],
+      data: rows,
+    });
+    toast.success(`Detalle exportado (${rows.length} registros)`);
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
@@ -110,8 +167,16 @@ export default function ReportesSection() {
               {(periodos || []).map((p: any) => <SelectItem key={p.id} value={p.id}>{p.nombre}</SelectItem>)}
             </SelectContent>
           </Select>
+          <Select value={anioIngreso || "_all"} onValueChange={(v) => setAnioIngreso(v === "_all" ? "" : v)}>
+            <SelectTrigger className="w-40"><SelectValue placeholder="Año ingreso" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="_all">Todos los años</SelectItem>
+              {aniosDisponibles.map(a => <SelectItem key={a} value={String(a)}>Ingreso {a}</SelectItem>)}
+            </SelectContent>
+          </Select>
           <Button size="sm" variant="outline" onClick={exportar} disabled={!filtradas.length}><Download className="h-4 w-4 mr-1" />Excel</Button>
           <Button size="sm" variant="outline" onClick={exportarPdf} disabled={!filtradas.length}><FileText className="h-4 w-4 mr-1" />PDF</Button>
+          <Button size="sm" variant="outline" onClick={exportarDetalle} disabled={!registrosFiltrados.length}><FileText className="h-4 w-4 mr-1" />Detalle (notas)</Button>
         </div>
       </div>
 
@@ -121,7 +186,7 @@ export default function ReportesSection() {
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <Card><CardContent className="p-3"><p className="text-xs text-muted-foreground">Registros</p><p className="text-2xl font-bold">{registros.length}</p></CardContent></Card>
+        <Card><CardContent className="p-3"><p className="text-xs text-muted-foreground">Registros</p><p className="text-2xl font-bold">{registrosFiltrados.length}</p></CardContent></Card>
         <Card><CardContent className="p-3"><p className="text-xs text-muted-foreground">Promedio</p><p className="text-2xl font-bold">{promedioGeneral.toFixed(2)}</p></CardContent></Card>
         <Card><CardContent className="p-3"><p className="text-xs text-muted-foreground">Materias activas</p><p className="text-2xl font-bold">{byMateria.length}</p></CardContent></Card>
         <Card><CardContent className="p-3"><p className="text-xs text-muted-foreground">% Aprobación gral</p><p className="text-2xl font-bold">{byMateria.length ? Math.round(byMateria.reduce((a, b) => a + b.tasaApr, 0) / byMateria.length) : 0}%</p></CardContent></Card>
@@ -131,7 +196,7 @@ export default function ReportesSection() {
         <Card><CardContent className="p-4 space-y-2">
           {Array.from({ length: 6 }).map((_, i) => <div key={i} className="h-10 bg-muted rounded animate-pulse" />)}
         </CardContent></Card>
-      ) : !registros.length ? (
+      ) : !registrosFiltrados.length ? (
         <Card><CardContent className="p-8 text-center text-sm text-muted-foreground">
           No hay registros académicos para los filtros seleccionados. Ajusta programa o periodo para ver datos.
         </CardContent></Card>
