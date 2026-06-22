@@ -39,7 +39,7 @@ export default function ReportesSection() {
 
   const byMateria = useMemo(() => {
     const map: Record<string, { nombre: string; codigo: string; total: number; aprobadas: number; reprobadas: number; promedio: number; sumaNotas: number; countNotas: number }> = {};
-    (registros as any[]).forEach((r) => {
+    (registrosFiltrados as any[]).forEach((r) => {
       const m = r.sem_materias;
       if (!m) return;
       if (!map[m.id]) map[m.id] = { nombre: m.nombre, codigo: m.codigo, total: 0, aprobadas: 0, reprobadas: 0, promedio: 0, sumaNotas: 0, countNotas: 0 };
@@ -50,13 +50,13 @@ export default function ReportesSection() {
       if (r.nota_final != null) { x.sumaNotas += Number(r.nota_final); x.countNotas++; }
     });
     return Object.values(map).map(x => ({ ...x, promedio: x.countNotas ? x.sumaNotas / x.countNotas : 0, tasaApr: x.total ? Math.round((x.aprobadas / x.total) * 100) : 0 }));
-  }, [registros]);
+  }, [registrosFiltrados]);
 
   const promedioGeneral = useMemo(() => {
-    const notas = (registros as any[]).filter(r => r.nota_final != null).map(r => Number(r.nota_final));
+    const notas = (registrosFiltrados as any[]).filter(r => r.nota_final != null).map(r => Number(r.nota_final));
     if (!notas.length) return 0;
     return notas.reduce((a, b) => a + b, 0) / notas.length;
-  }, [registros]);
+  }, [registrosFiltrados]);
 
   const filtradas = useMemo(() => {
     const term = q.trim().toLowerCase();
