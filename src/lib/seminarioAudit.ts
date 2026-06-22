@@ -7,6 +7,8 @@ export type SemAuditAction =
   | "zoom.regenerado"
   | "inscripcion.creada"
   | "inscripcion.eliminada"
+  | "inscripcion.periodo_actualizado"
+  | "inscripcion.anio_actualizado"
   | "matricula.creada"
   | "matricula.eliminada"
   | "matricula.actualizada"
