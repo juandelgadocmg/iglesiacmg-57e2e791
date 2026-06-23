@@ -470,8 +470,8 @@ export function useProgramasForMessaging() {
     queryKey: ["msg_programas"],
     staleTime: 60_000,
     queryFn: async () => {
-      const { data } = await supabase.from("sem_programas").select("id, nombre, duracion_semestres").order("nombre");
-      return data || [];
+      const { data } = await supabase.from("sem_programas").select("*").order("nombre");
+      return (data || []) as any[];
     },
   });
 }
