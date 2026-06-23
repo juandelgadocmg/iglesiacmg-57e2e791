@@ -175,7 +175,7 @@ export default function MensajesPage() {
   return (
     <div className="flex flex-col h-[calc(100vh-4rem)]">
       <div className="px-6 pt-4">
-        <PageHeader title="Correo Interno" subtitle="Mensajería interna del seminario" />
+        <PageHeader title="Correo Interno" description="Mensajería interna del seminario" />
       </div>
       <div className="flex-1 flex min-h-0 mt-2 border-t">
         {!isMobile && sidebar}
