@@ -16,7 +16,24 @@ export interface ThreadRow {
   is_archived: boolean;
   is_deleted: boolean;
   participants: { user_id: string; role: string; display_name: string | null; avatar_url: string | null }[];
-  last_message: { body: string; sender_id: string } | null;
+  last_message: { body: string; sender_id: string | null; is_system: boolean; system_sender_key: string | null } | null;
+}
+
+export interface SystemSender {
+  key: string;
+  display_name: string;
+  avatar_url: string | null;
+}
+
+export function useSystemSenders() {
+  return useQuery({
+    queryKey: ["msg_system_senders"],
+    staleTime: 5 * 60_000,
+    queryFn: async (): Promise<SystemSender[]> => {
+      const { data } = await supabase.from("msg_system_senders").select("key, display_name, avatar_url");
+      return (data || []) as SystemSender[];
+    },
+  });
 }
 
 export function useProfilesDirectory() {
@@ -44,7 +61,16 @@ export function useProfilesDirectory() {
   });
 }
 
-export function useThreads(folder: Folder, search: string) {
+export interface ThreadFilters {
+  folder: Folder;
+  search: string;
+  searchField?: "all" | "subject" | "from" | "body";
+  page?: number;
+  pageSize?: number;
+}
+
+export function useThreads(filters: ThreadFilters) {
+  const { folder, search, searchField = "all", page = 0, pageSize = 25 } = filters;
   const { user } = useAuth();
   const qc = useQueryClient();
 
@@ -66,16 +92,30 @@ export function useThreads(folder: Folder, search: string) {
   }, [user?.id, qc]);
 
   return useQuery({
-    queryKey: ["msg_threads", folder, search, user?.id],
+    queryKey: ["msg_threads", folder, search, searchField, page, pageSize, user?.id],
     enabled: !!user?.id,
-    queryFn: async (): Promise<ThreadRow[]> => {
-      if (folder === "drafts") return [];
+    queryFn: async (): Promise<{ rows: ThreadRow[]; total: number }> => {
+      if (folder === "drafts") return { rows: [], total: 0 };
+
+      // Body search: pre-filter thread ids from messages
+      let restrictThreadIds: string[] | null = null;
+      const s = search.trim();
+      if (s && (searchField === "body" || searchField === "all")) {
+        const { data: msgs } = await supabase
+          .from("msg_messages")
+          .select("thread_id")
+          .ilike("body", `%${s}%`)
+          .limit(500);
+        const ids = Array.from(new Set((msgs || []).map((m: any) => m.thread_id)));
+        if (searchField === "body") restrictThreadIds = ids;
+        else restrictThreadIds = ids; // we'll OR in client side via subject too
+      }
+
       let q = supabase
         .from("msg_participants")
-        .select("thread_id, is_read, is_important, is_favorite, is_archived, is_deleted, role, thread:msg_threads(id, subject, last_message_at, created_by)")
+        .select("thread_id, is_read, is_important, is_favorite, is_archived, is_deleted, role, thread:msg_threads!inner(id, subject, last_message_at, created_by)", { count: "exact" })
         .eq("user_id", user!.id)
-        .order("thread(last_message_at)", { ascending: false })
-        .limit(200);
+        .order("thread(last_message_at)", { ascending: false });
 
       if (folder === "deleted") q = q.eq("is_deleted", true);
       else q = q.eq("is_deleted", false);
@@ -88,30 +128,44 @@ export function useThreads(folder: Folder, search: string) {
       if (folder === "favorites") q = q.eq("is_favorite", true);
       if (folder === "sent") q = q.eq("role", "from");
 
-      const { data, error } = await q;
+      // Subject search server-side
+      if (s && (searchField === "subject" || searchField === "all")) {
+        q = q.ilike("thread.subject", `%${s}%`);
+      }
+
+      // Pagination
+      const from = page * pageSize;
+      const to = from + pageSize - 1;
+      q = q.range(from, to);
+
+      const { data, error, count } = await q;
       if (error) throw error;
 
-      const threadIds = (data || []).map((r: any) => r.thread_id);
-      if (threadIds.length === 0) return [];
+      let rawRows = (data || []) as any[];
 
-      // participants for these threads
+      // If body-search active and not pure body mode, union with subject results (already in rawRows when search hit subject)
+      if (restrictThreadIds && searchField === "body") {
+        rawRows = rawRows.filter((r) => restrictThreadIds!.includes(r.thread_id));
+      }
+
+      const threadIds = rawRows.map((r: any) => r.thread_id);
+      if (threadIds.length === 0) return { rows: [], total: count || 0 };
+
       const { data: parts } = await supabase
         .from("msg_participants")
         .select("thread_id, user_id, role")
         .in("thread_id", threadIds);
 
-      // user profiles
       const uids = Array.from(new Set((parts || []).map((p: any) => p.user_id)));
       const { data: profs } = await supabase
         .from("profiles")
         .select("user_id, display_name, avatar_url")
-        .in("user_id", uids);
+        .in("user_id", uids.length ? uids : ["00000000-0000-0000-0000-000000000000"]);
       const profMap = new Map((profs || []).map((p: any) => [p.user_id, p]));
 
-      // last message per thread
       const { data: lastMsgs } = await supabase
         .from("msg_messages")
-        .select("thread_id, body, sender_id, created_at")
+        .select("thread_id, body, sender_id, is_system, system_sender_key, created_at")
         .in("thread_id", threadIds)
         .order("created_at", { ascending: false });
       const lastByThread = new Map<string, any>();
@@ -119,7 +173,7 @@ export function useThreads(folder: Folder, search: string) {
         if (!lastByThread.has(m.thread_id)) lastByThread.set(m.thread_id, m);
       });
 
-      const rows: ThreadRow[] = (data || []).map((r: any) => ({
+      let rows: ThreadRow[] = rawRows.map((r: any) => ({
         id: r.thread_id,
         subject: r.thread?.subject || "(sin asunto)",
         last_message_at: r.thread?.last_message_at,
@@ -138,17 +192,24 @@ export function useThreads(folder: Folder, search: string) {
             avatar_url: (profMap.get(p.user_id) as any)?.avatar_url || null,
           })),
         last_message: lastByThread.get(r.thread_id)
-          ? { body: lastByThread.get(r.thread_id).body, sender_id: lastByThread.get(r.thread_id).sender_id }
+          ? {
+              body: lastByThread.get(r.thread_id).body,
+              sender_id: lastByThread.get(r.thread_id).sender_id,
+              is_system: !!lastByThread.get(r.thread_id).is_system,
+              system_sender_key: lastByThread.get(r.thread_id).system_sender_key || null,
+            }
           : null,
       }));
 
-      const s = search.trim().toLowerCase();
-      if (!s) return rows;
-      return rows.filter((r) =>
-        r.subject.toLowerCase().includes(s) ||
-        r.last_message?.body.toLowerCase().includes(s) ||
-        r.participants.some((p) => (p.display_name || "").toLowerCase().includes(s))
-      );
+      // Client-side filter "from" (sender display name)
+      if (s && searchField === "from") {
+        const sl = s.toLowerCase();
+        rows = rows.filter((r) =>
+          r.participants.some((p) => (p.display_name || "").toLowerCase().includes(sl))
+        );
+      }
+
+      return { rows, total: count || rows.length };
     },
   });
 }
@@ -190,15 +251,44 @@ export function useThread(threadId: string | null) {
         .from("msg_participants")
         .select("*")
         .eq("thread_id", threadId!);
-      const uids = Array.from(new Set([...(parts || []).map((p: any) => p.user_id), ...(messages || []).map((m: any) => m.sender_id)]));
+      const uids = Array.from(new Set([
+        ...(parts || []).map((p: any) => p.user_id),
+        ...(messages || []).map((m: any) => m.sender_id).filter(Boolean),
+      ]));
       const { data: profs } = await supabase
         .from("profiles")
         .select("user_id, display_name, avatar_url")
         .in("user_id", uids.length ? uids : ["00000000-0000-0000-0000-000000000000"]);
       const profMap = new Map((profs || []).map((p: any) => [p.user_id, p]));
-      return { thread, messages: messages || [], participants: parts || [], profiles: profMap };
+      const { data: sysSenders } = await supabase.from("msg_system_senders").select("*");
+      const sysMap = new Map((sysSenders || []).map((s: any) => [s.key, s]));
+      return { thread, messages: messages || [], participants: parts || [], profiles: profMap, systemSenders: sysMap };
     },
   });
+}
+
+// Allowed attachment types and size limit
+export const ATTACHMENT_MAX_BYTES = 25 * 1024 * 1024; // 25 MB
+export const ALLOWED_ATTACHMENT_MIMES = [
+  "image/png","image/jpeg","image/gif","image/webp","image/svg+xml",
+  "application/pdf",
+  "application/msword","application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "application/vnd.ms-excel","application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  "application/vnd.ms-powerpoint","application/vnd.openxmlformats-officedocument.presentationml.presentation",
+  "text/plain","text/csv",
+  "application/zip","application/x-rar-compressed","application/x-7z-compressed",
+  "video/mp4","video/webm","audio/mpeg","audio/wav",
+];
+
+export function validateAttachment(f: File): string | null {
+  if (f.size > ATTACHMENT_MAX_BYTES) return `"${f.name}" supera 25 MB`;
+  if (f.type && !ALLOWED_ATTACHMENT_MIMES.includes(f.type)) {
+    // allow by extension fallback
+    const ext = f.name.split(".").pop()?.toLowerCase() || "";
+    const okExt = ["pdf","doc","docx","xls","xlsx","ppt","pptx","png","jpg","jpeg","gif","webp","svg","txt","csv","zip","rar","7z","mp4","webm","mp3","wav"];
+    if (!okExt.includes(ext)) return `"${f.name}" tipo no permitido`;
+  }
+  return null;
 }
 
 export interface ComposePayload {
@@ -218,6 +308,12 @@ export function useSendMessage() {
       const recipients = Array.from(new Set(p.recipientUserIds.filter((u) => u && u !== user.id)));
       if (recipients.length === 0) throw new Error("Selecciona al menos un destinatario");
 
+      // Validate files early
+      for (const f of p.files) {
+        const err = validateAttachment(f);
+        if (err) throw new Error(err);
+      }
+
       let threadId = p.replyThreadId || null;
       if (!threadId) {
         const { data: t, error: te } = await supabase
@@ -227,7 +323,6 @@ export function useSendMessage() {
           .single();
         if (te) throw te;
         threadId = t.id;
-        // participants
         const rows = [
           { thread_id: threadId, user_id: user.id, role: "from", is_read: true, last_read_at: new Date().toISOString() },
           ...recipients.map((uid) => ({ thread_id: threadId!, user_id: uid, role: "to" })),
@@ -235,7 +330,6 @@ export function useSendMessage() {
         const { error: pe } = await supabase.from("msg_participants").insert(rows);
         if (pe) throw pe;
       } else {
-        // ensure recipients are participants (for replies)
         const { data: existing } = await supabase
           .from("msg_participants")
           .select("user_id")
@@ -245,19 +339,17 @@ export function useSendMessage() {
         if (toAdd.length) await supabase.from("msg_participants").insert(toAdd);
       }
 
-      // create message
       const { data: msg, error: me } = await supabase
         .from("msg_messages")
-        .insert({ thread_id: threadId, sender_id: user.id, body: p.body || "" })
+        .insert({ thread_id: threadId, sender_id: user.id, body: p.body || "", is_system: false })
         .select()
         .single();
       if (me) throw me;
 
-      // upload attachments
       for (const f of p.files) {
         const safe = f.name.replace(/[^\w.\-]+/g, "_");
         const path = `${threadId}/${msg.id}/${Date.now()}_${safe}`;
-        const { error: ue } = await supabase.storage.from("mensajes-adjuntos").upload(path, f, { upsert: false });
+        const { error: ue } = await supabase.storage.from("mensajes-adjuntos").upload(path, f, { upsert: false, contentType: f.type || undefined });
         if (ue) throw ue;
         await supabase.from("msg_attachments").insert({
           message_id: msg.id, file_path: path, file_name: f.name, file_size: f.size, mime_type: f.type,
@@ -352,4 +444,52 @@ export function useDeleteDraft() {
 export async function getAttachmentUrl(path: string) {
   const { data } = await supabase.storage.from("mensajes-adjuntos").createSignedUrl(path, 60 * 10);
   return data?.signedUrl || null;
+}
+
+// Mass recipient helpers
+export function useOfertasForMessaging() {
+  return useQuery({
+    queryKey: ["msg_ofertas"],
+    staleTime: 60_000,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("sem_ofertas")
+        .select("id, materia:sem_materias(id, nombre, codigo), periodo:sem_periodos(id, nombre)")
+        .order("id", { ascending: false })
+        .limit(200);
+      return (data || []).map((o: any) => ({
+        id: o.id,
+        label: `${o.materia?.nombre || "Materia"}${o.materia?.codigo ? " (" + o.materia.codigo + ")" : ""} — ${o.periodo?.nombre || ""}`,
+      }));
+    },
+  });
+}
+
+export function useProgramasForMessaging() {
+  return useQuery({
+    queryKey: ["msg_programas"],
+    staleTime: 60_000,
+    queryFn: async () => {
+      const { data } = await supabase.from("sem_programas").select("*").order("nombre");
+      return (data || []) as any[];
+    },
+  });
+}
+
+export async function fetchRecipientsByOferta(ofertaId: string): Promise<string[]> {
+  const { data, error } = await supabase.rpc("msg_recipients_by_oferta", { _oferta_id: ofertaId });
+  if (error) throw error;
+  return (data || []).map((r: any) => r.user_id);
+}
+
+export async function fetchRecipientsByPrograma(programaId: string, semestre?: number | null): Promise<string[]> {
+  const { data, error } = await supabase.rpc("msg_recipients_by_programa", { _programa_id: programaId, _semestre: semestre ?? null });
+  if (error) throw error;
+  return (data || []).map((r: any) => r.user_id);
+}
+
+export async function fetchRecipientsByRole(role: string): Promise<string[]> {
+  const { data, error } = await supabase.rpc("msg_recipients_by_role", { _role: role as any });
+  if (error) throw error;
+  return (data || []).map((r: any) => r.user_id);
 }

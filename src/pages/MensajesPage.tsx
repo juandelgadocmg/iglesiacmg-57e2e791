@@ -6,12 +6,13 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
-  Inbox, Send, FileText, Star, AlertCircle, Archive, Trash2, Plus, Search, Mail,
+  Inbox, Send, FileText, Star, AlertCircle, Archive, Trash2, Plus, Search, Mail, Bot, ChevronLeft, ChevronRight,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
-import { useThreads, useDrafts, useDeleteDraft, useUnreadCount, type Folder } from "@/hooks/useMensajes";
+import { useThreads, useDrafts, useDeleteDraft, useUnreadCount, useSystemSenders, type Folder } from "@/hooks/useMensajes";
 import MensajeComposer from "@/components/mensajes/MensajeComposer";
 import MensajeThreadView from "@/components/mensajes/MensajeThreadView";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -29,6 +30,8 @@ const FOLDERS: { id: Folder; label: string; icon: any }[] = [
   { id: "deleted", label: "Eliminados", icon: Trash2 },
 ];
 
+const PAGE_SIZE = 25;
+
 function formatDate(iso: string) {
   const d = new Date(iso);
   if (isToday(d)) return format(d, "HH:mm");
@@ -41,14 +44,20 @@ export default function MensajesPage() {
   const isMobile = useIsMobile();
   const [folder, setFolder] = useState<Folder>("inbox");
   const [search, setSearch] = useState("");
+  const [searchField, setSearchField] = useState<"all" | "subject" | "from" | "body">("all");
+  const [page, setPage] = useState(0);
   const [selected, setSelected] = useState<string | null>(null);
   const [composerOpen, setComposerOpen] = useState(false);
   const [composerInitial, setComposerInitial] = useState<any>(undefined);
 
-  const { data: threads = [], isLoading } = useThreads(folder, search);
+  const { data: threadsResult, isLoading } = useThreads({ folder, search, searchField, page, pageSize: PAGE_SIZE });
+  const threads = threadsResult?.rows || [];
+  const total = threadsResult?.total || 0;
   const { data: drafts = [] } = useDrafts();
   const deleteDraft = useDeleteDraft();
   const { data: unread = 0 } = useUnreadCount();
+  const { data: sysSenders = [] } = useSystemSenders();
+  const sysMap = new Map(sysSenders.map((s) => [s.key, s]));
 
   const sidebar = (
     <div className="flex flex-col h-full w-60 border-r bg-muted/30">
@@ -65,7 +74,7 @@ export default function MensajesPage() {
           return (
             <button
               key={f.id}
-              onClick={() => { setFolder(f.id); setSelected(null); }}
+              onClick={() => { setFolder(f.id); setSelected(null); setPage(0); }}
               className={cn(
                 "w-full flex items-center gap-2 px-3 py-2 text-sm rounded-md transition-colors",
                 active ? "bg-primary/10 text-primary font-medium" : "text-foreground hover:bg-accent"
@@ -84,18 +93,44 @@ export default function MensajesPage() {
     </div>
   );
 
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+
   const listPanel = (
     <div className="flex-1 flex flex-col border-r min-w-0">
-      <div className="p-3 border-b">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Buscar en mensajes…"
-            className="pl-9"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
+      <div className="p-3 border-b space-y-2">
+        <div className="flex gap-2">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Buscar en mensajes…"
+              className="pl-9"
+              value={search}
+              onChange={(e) => { setSearch(e.target.value); setPage(0); }}
+            />
+          </div>
+          <Select value={searchField} onValueChange={(v: any) => { setSearchField(v); setPage(0); }}>
+            <SelectTrigger className="w-32 shrink-0"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todo</SelectItem>
+              <SelectItem value="subject">Asunto</SelectItem>
+              <SelectItem value="from">Remitente</SelectItem>
+              <SelectItem value="body">Contenido</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
+        {folder !== "drafts" && total > 0 && (
+          <div className="flex items-center justify-between text-xs text-muted-foreground">
+            <span>{page * PAGE_SIZE + 1}–{Math.min((page + 1) * PAGE_SIZE, total)} de {total}</span>
+            <div className="flex gap-1">
+              <Button size="sm" variant="ghost" disabled={page === 0} onClick={() => setPage((p) => Math.max(0, p - 1))}>
+                <ChevronLeft className="h-3.5 w-3.5" />
+              </Button>
+              <Button size="sm" variant="ghost" disabled={page + 1 >= totalPages} onClick={() => setPage((p) => p + 1)}>
+                <ChevronRight className="h-3.5 w-3.5" />
+              </Button>
+            </div>
+          </div>
+        )}
       </div>
       <ScrollArea className="flex-1">
         {folder === "drafts" ? (
@@ -131,7 +166,11 @@ export default function MensajesPage() {
           threads.map((t) => {
             const isActive = selected === t.id;
             const others = t.participants.filter((p) => p.user_id !== user?.id);
-            const headline = others.map((o) => o.display_name).filter(Boolean).slice(0, 2).join(", ") || "Yo";
+            const isSystem = !!t.last_message?.is_system;
+            const sys = isSystem ? sysMap.get(t.last_message?.system_sender_key || "") : null;
+            const headline = isSystem
+              ? sys?.display_name || "Sistema"
+              : others.map((o) => o.display_name).filter(Boolean).slice(0, 2).join(", ") || "Yo";
             return (
               <button
                 key={t.id}
@@ -143,12 +182,19 @@ export default function MensajesPage() {
                 )}
               >
                 <Avatar className="h-9 w-9 mt-0.5">
-                  <AvatarImage src={others[0]?.avatar_url || undefined} />
-                  <AvatarFallback>{(others[0]?.display_name || "?").slice(0, 2).toUpperCase()}</AvatarFallback>
+                  {isSystem ? (
+                    <AvatarFallback className="bg-primary/10 text-primary"><Bot className="h-4 w-4" /></AvatarFallback>
+                  ) : (
+                    <>
+                      <AvatarImage src={others[0]?.avatar_url || undefined} />
+                      <AvatarFallback>{(others[0]?.display_name || "?").slice(0, 2).toUpperCase()}</AvatarFallback>
+                    </>
+                  )}
                 </Avatar>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <span className={cn("text-sm truncate", !t.is_read ? "font-semibold" : "font-medium")}>{headline}</span>
+                    {isSystem && <Badge variant="outline" className="h-4 text-[9px] px-1">Sistema</Badge>}
                     {t.is_important && <AlertCircle className="h-3.5 w-3.5 text-orange-500 shrink-0" />}
                     {t.is_favorite && <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400 shrink-0" />}
                     <span className="ml-auto text-[11px] text-muted-foreground shrink-0">{formatDate(t.last_message_at)}</span>
@@ -200,7 +246,7 @@ export default function MensajesPage() {
                     key={f.id}
                     size="sm"
                     variant={folder === f.id ? "default" : "outline"}
-                    onClick={() => setFolder(f.id)}
+                    onClick={() => { setFolder(f.id); setPage(0); }}
                   >
                     <f.icon className="h-3.5 w-3.5 mr-1" />
                     {f.label}

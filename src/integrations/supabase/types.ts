@@ -1523,7 +1523,8 @@ export type Database = {
           created_at: string
           id: string
           is_system: boolean
-          sender_id: string
+          sender_id: string | null
+          system_sender_key: string | null
           thread_id: string
         }
         Insert: {
@@ -1531,7 +1532,8 @@ export type Database = {
           created_at?: string
           id?: string
           is_system?: boolean
-          sender_id: string
+          sender_id?: string | null
+          system_sender_key?: string | null
           thread_id: string
         }
         Update: {
@@ -1539,7 +1541,8 @@ export type Database = {
           created_at?: string
           id?: string
           is_system?: boolean
-          sender_id?: string
+          sender_id?: string | null
+          system_sender_key?: string | null
           thread_id?: string
         }
         Relationships: [
@@ -1601,6 +1604,30 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      msg_system_senders: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          description: string | null
+          display_name: string
+          key: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          description?: string | null
+          display_name: string
+          key: string
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          description?: string | null
+          display_name?: string
+          key?: string
+        }
+        Relationships: []
       }
       msg_threads: {
         Row: {
@@ -3894,6 +3921,33 @@ export type Database = {
       msg_is_participant: {
         Args: { _thread_id: string; _user_id: string }
         Returns: boolean
+      }
+      msg_recipients_by_oferta: {
+        Args: { _oferta_id: string }
+        Returns: {
+          user_id: string
+        }[]
+      }
+      msg_recipients_by_programa: {
+        Args: { _programa_id: string; _semestre?: number }
+        Returns: {
+          user_id: string
+        }[]
+      }
+      msg_recipients_by_role: {
+        Args: { _role: Database["public"]["Enums"]["app_role"] }
+        Returns: {
+          user_id: string
+        }[]
+      }
+      msg_send_system: {
+        Args: {
+          _body: string
+          _sender_key: string
+          _subject: string
+          _user_ids: string[]
+        }
+        Returns: string
       }
       read_email_batch: {
         Args: { batch_size: number; queue_name: string; vt: number }
