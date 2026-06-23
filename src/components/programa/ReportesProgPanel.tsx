@@ -57,13 +57,31 @@ export default function ReportesProgPanel() {
       <div className="grid gap-4 md:grid-cols-2">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-base">Ministerios más activos</CardTitle>
+            <CardTitle className="text-base">Ministerios — Resumen</CardTitle>
+            <ExportDropdown
+              title="Servicios por ministerio"
+              filename="servicios-por-ministerio"
+              columns={[
+                { header: "Ministerio", key: "ministerio" },
+                { header: "Total asignaciones", key: "total" },
+                { header: "Confirmados", key: "confirmados" },
+                { header: "Presente", key: "presente" },
+                { header: "Tarde", key: "tarde" },
+                { header: "Ausente", key: "ausente" },
+              ]}
+              data={porMinisterio}
+            />
           </CardHeader>
           <CardContent>
             <div className="space-y-1.5">
               {porMinisterio.map((r) => (
                 <div key={r.ministerio} className="flex justify-between items-center text-sm">
-                  <span>{r.ministerio}</span><Badge variant="secondary">{r.total}</Badge>
+                  <span>{r.ministerio}</span>
+                  <div className="flex gap-1">
+                    <Badge variant="secondary">{r.total}</Badge>
+                    <Badge className="bg-green-100 text-green-700 border-0">{r.presente}✓</Badge>
+                    <Badge className="bg-red-100 text-red-700 border-0">{r.ausente}✗</Badge>
+                  </div>
                 </div>
               ))}
             </div>
