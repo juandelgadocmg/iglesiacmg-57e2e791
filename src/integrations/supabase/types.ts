@@ -2426,6 +2426,47 @@ export type Database = {
           },
         ]
       }
+      prog_audit_log: {
+        Row: {
+          action: string
+          actor_nombre: string | null
+          actor_user_id: string | null
+          asignacion_id: string | null
+          created_at: string
+          details: Json | null
+          evento_id: string | null
+          id: string
+        }
+        Insert: {
+          action: string
+          actor_nombre?: string | null
+          actor_user_id?: string | null
+          asignacion_id?: string | null
+          created_at?: string
+          details?: Json | null
+          evento_id?: string | null
+          id?: string
+        }
+        Update: {
+          action?: string
+          actor_nombre?: string | null
+          actor_user_id?: string | null
+          asignacion_id?: string | null
+          created_at?: string
+          details?: Json | null
+          evento_id?: string | null
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "prog_audit_log_evento_id_fkey"
+            columns: ["evento_id"]
+            isOneToOne: false
+            referencedRelation: "prog_eventos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       prog_cargos: {
         Row: {
           activo: boolean
@@ -2504,6 +2545,7 @@ export type Database = {
       }
       prog_eventos: {
         Row: {
+          bloqueo_at: string | null
           created_at: string
           created_by: string | null
           descripcion: string | null
@@ -2513,12 +2555,15 @@ export type Database = {
           id: string
           lugar: string | null
           publicado_at: string | null
+          reminder_24h_sent_at: string | null
+          reminder_2h_sent_at: string | null
           servicio_id: string | null
           tipo: string
           titulo: string
           updated_at: string
         }
         Insert: {
+          bloqueo_at?: string | null
           created_at?: string
           created_by?: string | null
           descripcion?: string | null
@@ -2528,12 +2573,15 @@ export type Database = {
           id?: string
           lugar?: string | null
           publicado_at?: string | null
+          reminder_24h_sent_at?: string | null
+          reminder_2h_sent_at?: string | null
           servicio_id?: string | null
           tipo?: string
           titulo: string
           updated_at?: string
         }
         Update: {
+          bloqueo_at?: string | null
           created_at?: string
           created_by?: string | null
           descripcion?: string | null
@@ -2543,6 +2591,8 @@ export type Database = {
           id?: string
           lugar?: string | null
           publicado_at?: string | null
+          reminder_24h_sent_at?: string | null
+          reminder_2h_sent_at?: string | null
           servicio_id?: string | null
           tipo?: string
           titulo?: string
@@ -2598,6 +2648,72 @@ export type Database = {
             columns: ["lider_persona_id"]
             isOneToOne: false
             referencedRelation: "personas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      prog_reemplazos: {
+        Row: {
+          aprobado_at: string | null
+          aprobado_por: string | null
+          asignacion_id: string
+          cargo_id: string | null
+          created_at: string
+          estado: string
+          evento_id: string
+          id: string
+          ministerio_id: string | null
+          motivo: string | null
+          notas_aprobacion: string | null
+          persona_reemplazo_id: string | null
+          persona_solicita_id: string
+          updated_at: string
+        }
+        Insert: {
+          aprobado_at?: string | null
+          aprobado_por?: string | null
+          asignacion_id: string
+          cargo_id?: string | null
+          created_at?: string
+          estado?: string
+          evento_id: string
+          id?: string
+          ministerio_id?: string | null
+          motivo?: string | null
+          notas_aprobacion?: string | null
+          persona_reemplazo_id?: string | null
+          persona_solicita_id: string
+          updated_at?: string
+        }
+        Update: {
+          aprobado_at?: string | null
+          aprobado_por?: string | null
+          asignacion_id?: string
+          cargo_id?: string | null
+          created_at?: string
+          estado?: string
+          evento_id?: string
+          id?: string
+          ministerio_id?: string | null
+          motivo?: string | null
+          notas_aprobacion?: string | null
+          persona_reemplazo_id?: string | null
+          persona_solicita_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "prog_reemplazos_asignacion_id_fkey"
+            columns: ["asignacion_id"]
+            isOneToOne: false
+            referencedRelation: "prog_asignaciones"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "prog_reemplazos_evento_id_fkey"
+            columns: ["evento_id"]
+            isOneToOne: false
+            referencedRelation: "prog_eventos"
             referencedColumns: ["id"]
           },
         ]
@@ -4411,6 +4527,11 @@ export type Database = {
         }
         Returns: string
       }
+      prog_evento_ts: {
+        Args: { _fecha: string; _hora: string }
+        Returns: string
+      }
+      prog_send_reminders: { Args: never; Returns: number }
       read_email_batch: {
         Args: { batch_size: number; queue_name: string; vt: number }
         Returns: {

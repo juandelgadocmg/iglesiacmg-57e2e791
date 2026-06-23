@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Calendar, AlertCircle, Clock, Users } from "lucide-react";
 import { useProgEventos, useProgAsignaciones, useProgMinisterios } from "@/hooks/usePrograma";
 import { usePersonas } from "@/hooks/useDatabase";
+import ReemplazosPanel from "./ReemplazosPanel";
 
 export default function DashboardProgPanel({ onOpenEvento }: { onOpenEvento: (id: string) => void }) {
   const { data: eventos = [] } = useProgEventos();
@@ -53,6 +54,8 @@ export default function DashboardProgPanel({ onOpenEvento }: { onOpenEvento: (id
           })}
         </CardContent>
       </Card>
+
+      <ReemplazosPanel />
 
       {(pendientes.length > 0 || reemplazos.length > 0) && (
         <Card>

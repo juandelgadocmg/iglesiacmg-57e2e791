@@ -36,25 +36,52 @@ export default function ReportesProgPanel() {
   }, [asignaciones, personasMap, eventosMap]);
 
   const porMinisterio = useMemo(() => {
-    const m = new Map<string, number>();
-    asignaciones.forEach((a) => m.set(a.ministerio_id, (m.get(a.ministerio_id) || 0) + 1));
-    return Array.from(m.entries()).map(([id, total]) => ({ ministerio: minMap.get(id)?.nombre || "—", total })).sort((a, b) => b.total - a.total);
+    const m = new Map<string, { total: number; presente: number; tarde: number; ausente: number; confirmados: number }>();
+    asignaciones.forEach((a) => {
+      const cur = m.get(a.ministerio_id) || { total: 0, presente: 0, tarde: 0, ausente: 0, confirmados: 0 };
+      cur.total++;
+      if (a.asistencia === "presente") cur.presente++;
+      if (a.asistencia === "tarde") cur.tarde++;
+      if (a.asistencia === "ausente") cur.ausente++;
+      if (a.estado === "confirmado") cur.confirmados++;
+      m.set(a.ministerio_id, cur);
+    });
+    return Array.from(m.entries()).map(([id, v]) => ({ ministerio: minMap.get(id)?.nombre || "—", ...v })).sort((a, b) => b.total - a.total);
   }, [asignaciones, minMap]);
 
   const ausencias = porPersona.filter((p) => p.ausente > 0).sort((a, b) => b.ausente - a.ausente);
+  const confirmaciones = porPersona.map((p) => ({ nombre: p.nombre, total: p.total, presente: p.presente, ausente: p.ausente, tarde: p.tarde })).filter((p) => p.total > 0);
 
   return (
     <div className="space-y-4">
       <div className="grid gap-4 md:grid-cols-2">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-base">Ministerios más activos</CardTitle>
+            <CardTitle className="text-base">Ministerios — Resumen</CardTitle>
+            <ExportDropdown
+              title="Servicios por ministerio"
+              filename="servicios-por-ministerio"
+              columns={[
+                { header: "Ministerio", key: "ministerio" },
+                { header: "Total asignaciones", key: "total" },
+                { header: "Confirmados", key: "confirmados" },
+                { header: "Presente", key: "presente" },
+                { header: "Tarde", key: "tarde" },
+                { header: "Ausente", key: "ausente" },
+              ]}
+              data={porMinisterio}
+            />
           </CardHeader>
           <CardContent>
             <div className="space-y-1.5">
               {porMinisterio.map((r) => (
                 <div key={r.ministerio} className="flex justify-between items-center text-sm">
-                  <span>{r.ministerio}</span><Badge variant="secondary">{r.total}</Badge>
+                  <span>{r.ministerio}</span>
+                  <div className="flex gap-1">
+                    <Badge variant="secondary">{r.total}</Badge>
+                    <Badge className="bg-green-100 text-green-700 border-0">{r.presente}✓</Badge>
+                    <Badge className="bg-red-100 text-red-700 border-0">{r.ausente}✗</Badge>
+                  </div>
                 </div>
               ))}
             </div>
@@ -120,7 +147,21 @@ export default function ReportesProgPanel() {
       </Card>
 
       <Card>
-        <CardHeader className="pb-2"><CardTitle className="text-base">Reporte de ausencias</CardTitle></CardHeader>
+        <CardHeader className="flex flex-row items-center justify-between pb-2">
+          <CardTitle className="text-base">Reporte de ausencias</CardTitle>
+          <ExportDropdown
+            title="Ausencias por servidor"
+            filename="ausencias-por-servidor"
+            columns={[
+              { header: "Servidor", key: "nombre" },
+              { header: "Ausencias", key: "ausente" },
+              { header: "Tarde", key: "tarde" },
+              { header: "Total asignaciones", key: "total" },
+              { header: "% Asistencia", key: "pct" },
+            ]}
+            data={ausencias}
+          />
+        </CardHeader>
         <CardContent>
           <div className="space-y-1.5 text-sm">
             {ausencias.length === 0 && <p className="text-muted-foreground">Sin ausencias registradas.</p>}
@@ -128,6 +169,27 @@ export default function ReportesProgPanel() {
               <div key={r.persona_id} className="flex justify-between"><span>{r.nombre}</span><Badge variant="destructive">{r.ausente} ausencias</Badge></div>
             ))}
           </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between pb-2">
+          <CardTitle className="text-base">Confirmaciones y servicios realizados</CardTitle>
+          <ExportDropdown
+            title="Confirmaciones y servicios"
+            filename="confirmaciones-servicios"
+            columns={[
+              { header: "Servidor", key: "nombre" },
+              { header: "Total", key: "total" },
+              { header: "Presente", key: "presente" },
+              { header: "Tarde", key: "tarde" },
+              { header: "Ausente", key: "ausente" },
+            ]}
+            data={confirmaciones}
+          />
+        </CardHeader>
+        <CardContent>
+          <p className="text-xs text-muted-foreground">Exporta el detalle completo de confirmaciones y servicios realizados por persona en PDF o Excel.</p>
         </CardContent>
       </Card>
     </div>
