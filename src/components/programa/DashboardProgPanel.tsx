@@ -55,6 +55,8 @@ export default function DashboardProgPanel({ onOpenEvento }: { onOpenEvento: (id
         </CardContent>
       </Card>
 
+      <ReemplazosPanel />
+
       {(pendientes.length > 0 || reemplazos.length > 0) && (
         <Card>
           <CardHeader className="pb-2"><CardTitle className="text-base">Alertas</CardTitle></CardHeader>
