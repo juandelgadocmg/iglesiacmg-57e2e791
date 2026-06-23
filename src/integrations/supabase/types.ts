@@ -2352,6 +2352,311 @@ export type Database = {
           },
         ]
       }
+      prog_asignaciones: {
+        Row: {
+          asistencia: string | null
+          asistencia_at: string | null
+          cargo_id: string | null
+          confirmado_at: string | null
+          created_at: string
+          estado: string
+          evento_id: string
+          id: string
+          ministerio_id: string
+          notas: string | null
+          persona_id: string
+          updated_at: string
+        }
+        Insert: {
+          asistencia?: string | null
+          asistencia_at?: string | null
+          cargo_id?: string | null
+          confirmado_at?: string | null
+          created_at?: string
+          estado?: string
+          evento_id: string
+          id?: string
+          ministerio_id: string
+          notas?: string | null
+          persona_id: string
+          updated_at?: string
+        }
+        Update: {
+          asistencia?: string | null
+          asistencia_at?: string | null
+          cargo_id?: string | null
+          confirmado_at?: string | null
+          created_at?: string
+          estado?: string
+          evento_id?: string
+          id?: string
+          ministerio_id?: string
+          notas?: string | null
+          persona_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "prog_asignaciones_cargo_id_fkey"
+            columns: ["cargo_id"]
+            isOneToOne: false
+            referencedRelation: "prog_cargos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "prog_asignaciones_evento_id_fkey"
+            columns: ["evento_id"]
+            isOneToOne: false
+            referencedRelation: "prog_eventos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "prog_asignaciones_ministerio_id_fkey"
+            columns: ["ministerio_id"]
+            isOneToOne: false
+            referencedRelation: "prog_ministerios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "prog_asignaciones_persona_id_fkey"
+            columns: ["persona_id"]
+            isOneToOne: false
+            referencedRelation: "personas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      prog_cargos: {
+        Row: {
+          activo: boolean
+          created_at: string
+          cupo: number
+          id: string
+          ministerio_id: string
+          nombre: string
+          orden: number
+        }
+        Insert: {
+          activo?: boolean
+          created_at?: string
+          cupo?: number
+          id?: string
+          ministerio_id: string
+          nombre: string
+          orden?: number
+        }
+        Update: {
+          activo?: boolean
+          created_at?: string
+          cupo?: number
+          id?: string
+          ministerio_id?: string
+          nombre?: string
+          orden?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "prog_cargos_ministerio_id_fkey"
+            columns: ["ministerio_id"]
+            isOneToOne: false
+            referencedRelation: "prog_ministerios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      prog_disponibilidad: {
+        Row: {
+          created_at: string
+          fecha_fin: string
+          fecha_inicio: string
+          id: string
+          motivo: string
+          notas: string | null
+          persona_id: string
+        }
+        Insert: {
+          created_at?: string
+          fecha_fin: string
+          fecha_inicio: string
+          id?: string
+          motivo?: string
+          notas?: string | null
+          persona_id: string
+        }
+        Update: {
+          created_at?: string
+          fecha_fin?: string
+          fecha_inicio?: string
+          id?: string
+          motivo?: string
+          notas?: string | null
+          persona_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "prog_disponibilidad_persona_id_fkey"
+            columns: ["persona_id"]
+            isOneToOne: false
+            referencedRelation: "personas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      prog_eventos: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          descripcion: string | null
+          estado: string
+          fecha: string
+          hora: string | null
+          id: string
+          lugar: string | null
+          publicado_at: string | null
+          servicio_id: string | null
+          tipo: string
+          titulo: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          descripcion?: string | null
+          estado?: string
+          fecha: string
+          hora?: string | null
+          id?: string
+          lugar?: string | null
+          publicado_at?: string | null
+          servicio_id?: string | null
+          tipo?: string
+          titulo: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          descripcion?: string | null
+          estado?: string
+          fecha?: string
+          hora?: string | null
+          id?: string
+          lugar?: string | null
+          publicado_at?: string | null
+          servicio_id?: string | null
+          tipo?: string
+          titulo?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "prog_eventos_servicio_id_fkey"
+            columns: ["servicio_id"]
+            isOneToOne: false
+            referencedRelation: "servicios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      prog_ministerios: {
+        Row: {
+          activo: boolean
+          color: string | null
+          created_at: string
+          descripcion: string | null
+          icono: string | null
+          id: string
+          lider_persona_id: string | null
+          nombre: string
+          updated_at: string
+        }
+        Insert: {
+          activo?: boolean
+          color?: string | null
+          created_at?: string
+          descripcion?: string | null
+          icono?: string | null
+          id?: string
+          lider_persona_id?: string | null
+          nombre: string
+          updated_at?: string
+        }
+        Update: {
+          activo?: boolean
+          color?: string | null
+          created_at?: string
+          descripcion?: string | null
+          icono?: string | null
+          id?: string
+          lider_persona_id?: string | null
+          nombre?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "prog_ministerios_lider_persona_id_fkey"
+            columns: ["lider_persona_id"]
+            isOneToOne: false
+            referencedRelation: "personas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      prog_servidores: {
+        Row: {
+          activo: boolean
+          cargo_id: string | null
+          created_at: string
+          es_lider: boolean
+          id: string
+          ministerio_id: string
+          notas: string | null
+          persona_id: string
+        }
+        Insert: {
+          activo?: boolean
+          cargo_id?: string | null
+          created_at?: string
+          es_lider?: boolean
+          id?: string
+          ministerio_id: string
+          notas?: string | null
+          persona_id: string
+        }
+        Update: {
+          activo?: boolean
+          cargo_id?: string | null
+          created_at?: string
+          es_lider?: boolean
+          id?: string
+          ministerio_id?: string
+          notas?: string | null
+          persona_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "prog_servidores_cargo_id_fkey"
+            columns: ["cargo_id"]
+            isOneToOne: false
+            referencedRelation: "prog_cargos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "prog_servidores_ministerio_id_fkey"
+            columns: ["ministerio_id"]
+            isOneToOne: false
+            referencedRelation: "prog_ministerios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "prog_servidores_persona_id_fkey"
+            columns: ["persona_id"]
+            isOneToOne: false
+            referencedRelation: "personas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       recursos_academicos: {
         Row: {
           archivo_nombre: string | null
