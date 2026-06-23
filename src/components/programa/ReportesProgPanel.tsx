@@ -147,7 +147,21 @@ export default function ReportesProgPanel() {
       </Card>
 
       <Card>
-        <CardHeader className="pb-2"><CardTitle className="text-base">Reporte de ausencias</CardTitle></CardHeader>
+        <CardHeader className="flex flex-row items-center justify-between pb-2">
+          <CardTitle className="text-base">Reporte de ausencias</CardTitle>
+          <ExportDropdown
+            title="Ausencias por servidor"
+            filename="ausencias-por-servidor"
+            columns={[
+              { header: "Servidor", key: "nombre" },
+              { header: "Ausencias", key: "ausente" },
+              { header: "Tarde", key: "tarde" },
+              { header: "Total asignaciones", key: "total" },
+              { header: "% Asistencia", key: "pct" },
+            ]}
+            data={ausencias}
+          />
+        </CardHeader>
         <CardContent>
           <div className="space-y-1.5 text-sm">
             {ausencias.length === 0 && <p className="text-muted-foreground">Sin ausencias registradas.</p>}
@@ -155,6 +169,27 @@ export default function ReportesProgPanel() {
               <div key={r.persona_id} className="flex justify-between"><span>{r.nombre}</span><Badge variant="destructive">{r.ausente} ausencias</Badge></div>
             ))}
           </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between pb-2">
+          <CardTitle className="text-base">Confirmaciones y servicios realizados</CardTitle>
+          <ExportDropdown
+            title="Confirmaciones y servicios"
+            filename="confirmaciones-servicios"
+            columns={[
+              { header: "Servidor", key: "nombre" },
+              { header: "Total", key: "total" },
+              { header: "Presente", key: "presente" },
+              { header: "Tarde", key: "tarde" },
+              { header: "Ausente", key: "ausente" },
+            ]}
+            data={confirmaciones}
+          />
+        </CardHeader>
+        <CardContent>
+          <p className="text-xs text-muted-foreground">Exporta el detalle completo de confirmaciones y servicios realizados por persona en PDF o Excel.</p>
         </CardContent>
       </Card>
     </div>
