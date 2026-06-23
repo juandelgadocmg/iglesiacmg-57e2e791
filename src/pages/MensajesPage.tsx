@@ -254,7 +254,16 @@ export default function MensajesPage() {
       </div>
       <div className="flex-1 flex min-h-0 mt-2 border-t">
         {!isMobile && sidebar}
-        {!isMobile ? (
+        {view !== "folder" ? (
+          <div className="flex-1 min-w-0">
+            {view === "templates" && <MensajeTemplatesPanel onUse={(t) => {
+              setComposerInitial({ subject: t.subject, body: t.body });
+              setComposerOpen(true);
+            }} />}
+            {view === "scheduled" && <MensajeScheduledPanel />}
+            {view === "audit" && <MensajeAuditPanel />}
+          </div>
+        ) : !isMobile ? (
           <>
             {listPanel}
             <div className="flex-1 flex flex-col min-w-0">{detailPanel}</div>
