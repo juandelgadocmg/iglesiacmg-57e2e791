@@ -9,15 +9,21 @@ import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Inbox, Send, FileText, Star, AlertCircle, Archive, Trash2, Plus, Search, Mail, Bot, ChevronLeft, ChevronRight,
+  ClipboardList, Calendar, BookMarked,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 import { useThreads, useDrafts, useDeleteDraft, useUnreadCount, useSystemSenders, type Folder } from "@/hooks/useMensajes";
 import MensajeComposer from "@/components/mensajes/MensajeComposer";
 import MensajeThreadView from "@/components/mensajes/MensajeThreadView";
+import MensajeTemplatesPanel from "@/components/mensajes/MensajeTemplatesPanel";
+import MensajeScheduledPanel from "@/components/mensajes/MensajeScheduledPanel";
+import MensajeAuditPanel from "@/components/mensajes/MensajeAuditPanel";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { format, isToday, isYesterday } from "date-fns";
 import { es } from "date-fns/locale";
+
+type View = "folder" | "templates" | "scheduled" | "audit";
 
 const FOLDERS: { id: Folder; label: string; icon: any }[] = [
   { id: "inbox", label: "Entrada", icon: Inbox },
@@ -42,6 +48,7 @@ function formatDate(iso: string) {
 export default function MensajesPage() {
   const { user } = useAuth();
   const isMobile = useIsMobile();
+  const [view, setView] = useState<View>("folder");
   const [folder, setFolder] = useState<Folder>("inbox");
   const [search, setSearch] = useState("");
   const [searchField, setSearchField] = useState<"all" | "subject" | "from" | "body">("all");
@@ -59,6 +66,12 @@ export default function MensajesPage() {
   const { data: sysSenders = [] } = useSystemSenders();
   const sysMap = new Map(sysSenders.map((s) => [s.key, s]));
 
+  const EXTRA_VIEWS: { id: View; label: string; icon: any }[] = [
+    { id: "templates", label: "Plantillas", icon: BookMarked },
+    { id: "scheduled", label: "Programados", icon: Calendar },
+    { id: "audit", label: "Auditoría", icon: ClipboardList },
+  ];
+
   const sidebar = (
     <div className="flex flex-col h-full w-60 border-r bg-muted/30">
       <div className="p-3">
@@ -68,13 +81,13 @@ export default function MensajesPage() {
       </div>
       <nav className="px-2 space-y-0.5">
         {FOLDERS.map((f) => {
-          const active = folder === f.id;
+          const active = view === "folder" && folder === f.id;
           const showBadge = f.id === "inbox" && unread > 0;
           const Icon = f.icon;
           return (
             <button
               key={f.id}
-              onClick={() => { setFolder(f.id); setSelected(null); setPage(0); }}
+              onClick={() => { setView("folder"); setFolder(f.id); setSelected(null); setPage(0); }}
               className={cn(
                 "w-full flex items-center gap-2 px-3 py-2 text-sm rounded-md transition-colors",
                 active ? "bg-primary/10 text-primary font-medium" : "text-foreground hover:bg-accent"
@@ -86,6 +99,22 @@ export default function MensajesPage() {
               {f.id === "drafts" && drafts.length > 0 && (
                 <Badge variant="secondary" className="h-5 px-1.5 text-[10px]">{drafts.length}</Badge>
               )}
+            </button>
+          );
+        })}
+        <div className="border-t my-2" />
+        {EXTRA_VIEWS.map((v) => {
+          const active = view === v.id;
+          const Icon = v.icon;
+          return (
+            <button key={v.id}
+              onClick={() => { setView(v.id); setSelected(null); }}
+              className={cn(
+                "w-full flex items-center gap-2 px-3 py-2 text-sm rounded-md transition-colors",
+                active ? "bg-primary/10 text-primary font-medium" : "text-foreground hover:bg-accent"
+              )}>
+              <Icon className="h-4 w-4" />
+              <span className="flex-1 text-left">{v.label}</span>
             </button>
           );
         })}
@@ -225,7 +254,16 @@ export default function MensajesPage() {
       </div>
       <div className="flex-1 flex min-h-0 mt-2 border-t">
         {!isMobile && sidebar}
-        {!isMobile ? (
+        {view !== "folder" ? (
+          <div className="flex-1 min-w-0">
+            {view === "templates" && <MensajeTemplatesPanel onUse={(t) => {
+              setComposerInitial({ subject: t.subject, body: t.body });
+              setComposerOpen(true);
+            }} />}
+            {view === "scheduled" && <MensajeScheduledPanel />}
+            {view === "audit" && <MensajeAuditPanel />}
+          </div>
+        ) : !isMobile ? (
           <>
             {listPanel}
             <div className="flex-1 flex flex-col min-w-0">{detailPanel}</div>

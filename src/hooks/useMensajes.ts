@@ -493,3 +493,195 @@ export async function fetchRecipientsByRole(role: string): Promise<string[]> {
   if (error) throw error;
   return (data || []).map((r: any) => r.user_id);
 }
+
+// ============================================================
+// Plantillas, programados, auditoría y recibos de lectura
+// ============================================================
+
+export interface MsgTemplate {
+  id: string;
+  name: string;
+  category: string | null;
+  subject: string;
+  body: string;
+  variables: string[];
+  is_shared: boolean;
+  created_by: string | null;
+}
+
+export function useMsgTemplates() {
+  return useQuery({
+    queryKey: ["msg_templates"],
+    queryFn: async (): Promise<MsgTemplate[]> => {
+      const { data } = await supabase.from("msg_templates").select("*").order("name");
+      return (data || []) as MsgTemplate[];
+    },
+  });
+}
+
+export function useSaveTemplate() {
+  const { user } = useAuth();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (t: Partial<MsgTemplate> & { id?: string }) => {
+      const vars = extractVariables(`${t.subject || ""} ${t.body || ""}`);
+      const row: any = {
+        name: t.name, category: t.category || null,
+        subject: t.subject || "", body: t.body || "",
+        variables: vars, is_shared: !!t.is_shared,
+      };
+      if (t.id) {
+        const { error } = await supabase.from("msg_templates").update(row).eq("id", t.id);
+        if (error) throw error;
+        return t.id;
+      }
+      row.created_by = user?.id;
+      const { data, error } = await supabase.from("msg_templates").insert(row).select().single();
+      if (error) throw error;
+      return data.id;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["msg_templates"] }),
+  });
+}
+
+export function useDeleteTemplate() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("msg_templates").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["msg_templates"] }),
+  });
+}
+
+export function extractVariables(text: string): string[] {
+  const out = new Set<string>();
+  const re = /\{([a-zA-Z0-9_]+)\}/g;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(text)) !== null) out.add(m[1]);
+  return Array.from(out);
+}
+
+export function applyVariables(text: string, values: Record<string, string>): string {
+  return text.replace(/\{([a-zA-Z0-9_]+)\}/g, (_, k) => (values[k] ?? `{${k}}`));
+}
+
+// ----- Programados -----
+export interface MsgScheduled {
+  id: string;
+  scheduled_for: string;
+  status: "pending" | "sent" | "failed" | "cancelled";
+  scope_type: "oferta" | "programa" | "role" | "users";
+  scope_ref: string | null;
+  semestre: number | null;
+  user_ids: string[] | null;
+  subject: string;
+  body: string;
+  variables: Record<string, string>;
+  sent_at: string | null;
+  thread_id: string | null;
+  error: string | null;
+  created_at: string;
+  system_sender_key: string;
+}
+
+export function useScheduledMessages() {
+  return useQuery({
+    queryKey: ["msg_scheduled"],
+    queryFn: async (): Promise<MsgScheduled[]> => {
+      const { data } = await supabase.from("msg_scheduled").select("*").order("scheduled_for", { ascending: false }).limit(200);
+      return (data || []) as any;
+    },
+  });
+}
+
+export function useCreateScheduled() {
+  const { user } = useAuth();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (p: Omit<MsgScheduled, "id" | "status" | "sent_at" | "thread_id" | "error" | "created_at">) => {
+      const row: any = { ...p, sender_user_id: user?.id, status: "pending" };
+      const { data, error } = await supabase.from("msg_scheduled").insert(row).select().single();
+      if (error) throw error;
+      return data.id;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["msg_scheduled"] }),
+  });
+}
+
+export function useCancelScheduled() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("msg_scheduled").update({ status: "cancelled" }).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["msg_scheduled"] }),
+  });
+}
+
+// ----- Auditoría de envíos masivos -----
+export function useBulkSendLog() {
+  return useQuery({
+    queryKey: ["msg_bulk_log"],
+    queryFn: async () => {
+      const { data } = await supabase.from("msg_bulk_send_log").select("*").order("created_at", { ascending: false }).limit(200);
+      return data || [];
+    },
+  });
+}
+
+export async function logBulkSend(p: {
+  scope_type: string;
+  scope_ref?: string | null;
+  scope_detail?: any;
+  subject: string;
+  body: string;
+  recipients_count: number;
+  threads_created: number;
+  threads_failed: number;
+  errors?: any;
+}) {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return;
+  const { data: prof } = await supabase.from("profiles").select("display_name").eq("user_id", user.id).maybeSingle();
+  await supabase.from("msg_bulk_send_log").insert({
+    sender_user_id: user.id,
+    sender_display: prof?.display_name || null,
+    scope_type: p.scope_type,
+    scope_ref: p.scope_ref || null,
+    scope_detail: p.scope_detail || null,
+    subject: p.subject,
+    body_preview: (p.body || "").slice(0, 200),
+    recipients_count: p.recipients_count,
+    threads_created: p.threads_created,
+    threads_failed: p.threads_failed,
+    errors: p.errors || null,
+  });
+}
+
+// ----- Confirmaciones de lectura por hilo -----
+export function useReadReceipts(threadId: string | null) {
+  return useQuery({
+    queryKey: ["msg_receipts", threadId],
+    enabled: !!threadId,
+    queryFn: async () => {
+      const { data: parts } = await supabase
+        .from("msg_participants")
+        .select("user_id, is_read, last_read_at, role")
+        .eq("thread_id", threadId!);
+      const uids = (parts || []).map((p: any) => p.user_id);
+      const { data: profs } = await supabase
+        .from("profiles")
+        .select("user_id, display_name, avatar_url")
+        .in("user_id", uids.length ? uids : ["00000000-0000-0000-0000-000000000000"]);
+      const pm = new Map((profs || []).map((p: any) => [p.user_id, p]));
+      return (parts || []).map((p: any) => ({
+        ...p,
+        display_name: pm.get(p.user_id)?.display_name || "Usuario",
+        avatar_url: pm.get(p.user_id)?.avatar_url || null,
+      }));
+    },
+  });
+}

@@ -1476,6 +1476,54 @@ export type Database = {
           },
         ]
       }
+      msg_bulk_send_log: {
+        Row: {
+          body_preview: string | null
+          created_at: string
+          errors: Json | null
+          id: string
+          recipients_count: number
+          scope_detail: Json | null
+          scope_ref: string | null
+          scope_type: string
+          sender_display: string | null
+          sender_user_id: string | null
+          subject: string | null
+          threads_created: number
+          threads_failed: number
+        }
+        Insert: {
+          body_preview?: string | null
+          created_at?: string
+          errors?: Json | null
+          id?: string
+          recipients_count?: number
+          scope_detail?: Json | null
+          scope_ref?: string | null
+          scope_type: string
+          sender_display?: string | null
+          sender_user_id?: string | null
+          subject?: string | null
+          threads_created?: number
+          threads_failed?: number
+        }
+        Update: {
+          body_preview?: string | null
+          created_at?: string
+          errors?: Json | null
+          id?: string
+          recipients_count?: number
+          scope_detail?: Json | null
+          scope_ref?: string | null
+          scope_type?: string
+          sender_display?: string | null
+          sender_user_id?: string | null
+          subject?: string | null
+          threads_created?: number
+          threads_failed?: number
+        }
+        Relationships: []
+      }
       msg_drafts: {
         Row: {
           body: string
@@ -1605,6 +1653,66 @@ export type Database = {
           },
         ]
       }
+      msg_scheduled: {
+        Row: {
+          body: string
+          created_at: string
+          error: string | null
+          id: string
+          scheduled_for: string
+          scope_ref: string | null
+          scope_type: string
+          semestre: number | null
+          sender_user_id: string | null
+          sent_at: string | null
+          status: string
+          subject: string
+          system_sender_key: string
+          thread_id: string | null
+          updated_at: string
+          user_ids: string[] | null
+          variables: Json
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          error?: string | null
+          id?: string
+          scheduled_for: string
+          scope_ref?: string | null
+          scope_type: string
+          semestre?: number | null
+          sender_user_id?: string | null
+          sent_at?: string | null
+          status?: string
+          subject: string
+          system_sender_key?: string
+          thread_id?: string | null
+          updated_at?: string
+          user_ids?: string[] | null
+          variables?: Json
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          error?: string | null
+          id?: string
+          scheduled_for?: string
+          scope_ref?: string | null
+          scope_type?: string
+          semestre?: number | null
+          sender_user_id?: string | null
+          sent_at?: string | null
+          status?: string
+          subject?: string
+          system_sender_key?: string
+          thread_id?: string | null
+          updated_at?: string
+          user_ids?: string[] | null
+          variables?: Json
+        }
+        Relationships: []
+      }
       msg_system_senders: {
         Row: {
           avatar_url: string | null
@@ -1626,6 +1734,45 @@ export type Database = {
           description?: string | null
           display_name?: string
           key?: string
+        }
+        Relationships: []
+      }
+      msg_templates: {
+        Row: {
+          body: string
+          category: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          is_shared: boolean
+          name: string
+          subject: string
+          updated_at: string
+          variables: string[]
+        }
+        Insert: {
+          body: string
+          category?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_shared?: boolean
+          name: string
+          subject: string
+          updated_at?: string
+          variables?: string[]
+        }
+        Update: {
+          body?: string
+          category?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_shared?: boolean
+          name?: string
+          subject?: string
+          updated_at?: string
+          variables?: string[]
         }
         Relationships: []
       }
@@ -3922,6 +4069,7 @@ export type Database = {
         Args: { _thread_id: string; _user_id: string }
         Returns: boolean
       }
+      msg_process_scheduled: { Args: never; Returns: number }
       msg_recipients_by_oferta: {
         Args: { _oferta_id: string }
         Returns: {
@@ -3939,6 +4087,15 @@ export type Database = {
         Returns: {
           user_id: string
         }[]
+      }
+      msg_resolve_recipients: {
+        Args: {
+          _scope_ref: string
+          _scope_type: string
+          _semestre: number
+          _user_ids: string[]
+        }
+        Returns: string[]
       }
       msg_send_system: {
         Args: {

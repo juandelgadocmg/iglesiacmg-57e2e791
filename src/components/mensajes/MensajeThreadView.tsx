@@ -1,13 +1,14 @@
 import { useEffect, useState } from "react";
-import { useThread, useUpdateFlag, getAttachmentUrl } from "@/hooks/useMensajes";
+import { useThread, useUpdateFlag, getAttachmentUrl, useReadReceipts } from "@/hooks/useMensajes";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { Star, Archive, Trash2, CornerUpLeft, Forward, Paperclip, AlertCircle, Mail, MailOpen, Download, Eye, Bot, FileText, Image as ImageIcon } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Star, Archive, Trash2, CornerUpLeft, Forward, Paperclip, AlertCircle, Mail, MailOpen, Download, Eye, Bot, FileText, Image as ImageIcon, CheckCheck } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
-import { format } from "date-fns";
+import { format, formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
 import MensajeComposer from "./MensajeComposer";
 
@@ -30,6 +31,7 @@ export default function MensajeThreadView({ threadId }: Props) {
   const { user } = useAuth();
   const { data, isLoading } = useThread(threadId);
   const updateFlag = useUpdateFlag();
+  const { data: receipts = [] } = useReadReceipts(threadId);
   const [replyOpen, setReplyOpen] = useState(false);
   const [replyMode, setReplyMode] = useState<"reply" | "replyAll" | "forward">("reply");
   const [preview, setPreview] = useState<{ url: string; kind: string; name: string } | null>(null);
@@ -134,7 +136,36 @@ export default function MensajeThreadView({ threadId }: Props) {
         <Button size="sm" variant="ghost" onClick={() => updateFlag.mutate({ threadId, patch: { is_deleted: true } })}>
           <Trash2 className="h-4 w-4" />
         </Button>
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button size="sm" variant="ghost" title="Confirmaciones de lectura">
+              <CheckCheck className="h-4 w-4" />
+              <span className="ml-1 text-xs">{receipts.filter((r: any) => r.is_read && r.user_id !== user?.id).length}/{Math.max(0, receipts.length - 1)}</span>
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-80 p-0" align="end">
+            <div className="p-3 border-b text-sm font-semibold">Confirmaciones de lectura</div>
+            <div className="max-h-72 overflow-y-auto">
+              {receipts.length === 0 && <div className="p-4 text-xs text-muted-foreground">Sin participantes</div>}
+              {receipts.map((r: any) => (
+                <div key={r.user_id} className="flex items-center gap-2 px-3 py-2 border-b text-xs">
+                  <Avatar className="h-6 w-6"><AvatarImage src={r.avatar_url || undefined} /><AvatarFallback>{r.display_name.slice(0,2).toUpperCase()}</AvatarFallback></Avatar>
+                  <div className="flex-1 min-w-0">
+                    <div className="truncate font-medium">{r.display_name}{r.user_id === user?.id && " (tú)"}</div>
+                    <div className="text-muted-foreground text-[10px]">
+                      {r.is_read
+                        ? (r.last_read_at ? `Leído ${formatDistanceToNow(new Date(r.last_read_at), { addSuffix: true, locale: es })}` : "Leído")
+                        : "Sin leer"}
+                    </div>
+                  </div>
+                  {r.is_read ? <CheckCheck className="h-3.5 w-3.5 text-emerald-500" /> : <Mail className="h-3.5 w-3.5 text-muted-foreground" />}
+                </div>
+              ))}
+            </div>
+          </PopoverContent>
+        </Popover>
       </div>
+
 
       <div className="px-6 pt-4 pb-2">
         <h2 className="text-xl font-semibold">{data.thread.subject}</h2>
