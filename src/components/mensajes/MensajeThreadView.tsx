@@ -31,6 +31,7 @@ export default function MensajeThreadView({ threadId }: Props) {
   const { user } = useAuth();
   const { data, isLoading } = useThread(threadId);
   const updateFlag = useUpdateFlag();
+  const { data: receipts = [] } = useReadReceipts(threadId);
   const [replyOpen, setReplyOpen] = useState(false);
   const [replyMode, setReplyMode] = useState<"reply" | "replyAll" | "forward">("reply");
   const [preview, setPreview] = useState<{ url: string; kind: string; name: string } | null>(null);
