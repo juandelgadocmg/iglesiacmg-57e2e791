@@ -22,6 +22,7 @@ import CertificadosPage from "@/pages/CertificadosPage";
 import ReportesPage from "@/pages/ReportesPage";
 import PeticionesPage from "@/pages/PeticionesPage";
 import UsuariosPage from "@/pages/UsuariosPage";
+import MensajesPage from "@/pages/MensajesPage";
 import ConfiguracionPage from "@/pages/ConfiguracionPage";
 import ChatPage from "@/pages/ChatPage";
 import ResetPasswordPage from "@/pages/ResetPasswordPage";
@@ -59,6 +60,7 @@ const App = () => (
               <Route path="/reportes" element={<RoleGuard><ReportesPage /></RoleGuard>} />
               <Route path="/peticiones" element={<RoleGuard><PeticionesPage /></RoleGuard>} />
               <Route path="/usuarios" element={<RoleGuard><UsuariosPage /></RoleGuard>} />
+              <Route path="/mensajes" element={<MensajesPage />} />
               <Route path="/configuracion" element={<RoleGuard><ConfiguracionPage /></RoleGuard>} />
               <Route path="/chat" element={<ChatPage />} />
               <Route path="/verificar-academico/:id" element={<VerificarAcademicoPage />} />

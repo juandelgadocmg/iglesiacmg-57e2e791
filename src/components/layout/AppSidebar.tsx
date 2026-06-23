@@ -17,7 +17,7 @@ import {
   LayoutDashboard, Users, UsersRound, Church,
   DollarSign, CalendarDays, GraduationCap, BookMarked,
   Award, BarChart3, Settings, UserCog, ChevronLeft, ChevronRight,
-  LogOut, HandHeart, MessageCircle
+  LogOut, HandHeart, MessageCircle, Mail
 } from "lucide-react";
 
 const menuItems = [
@@ -29,6 +29,7 @@ const menuItems = [
   { label: "Eventos", icon: CalendarDays, path: "/eventos" },
   { label: "Academia", icon: GraduationCap, path: "/academia" },
   { label: "Seminario", icon: BookMarked, path: "/seminario" },
+  { label: "Mensajes", icon: Mail, path: "/mensajes" },
   { label: "Certificados", icon: Award, path: "/certificados" },
   { label: "Peticiones", icon: HandHeart, path: "/peticiones" },
   { label: "Reportes", icon: BarChart3, path: "/reportes" },
