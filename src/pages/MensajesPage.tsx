@@ -9,15 +9,21 @@ import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Inbox, Send, FileText, Star, AlertCircle, Archive, Trash2, Plus, Search, Mail, Bot, ChevronLeft, ChevronRight,
+  ClipboardList, Calendar, BookMarked,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 import { useThreads, useDrafts, useDeleteDraft, useUnreadCount, useSystemSenders, type Folder } from "@/hooks/useMensajes";
 import MensajeComposer from "@/components/mensajes/MensajeComposer";
 import MensajeThreadView from "@/components/mensajes/MensajeThreadView";
+import MensajeTemplatesPanel from "@/components/mensajes/MensajeTemplatesPanel";
+import MensajeScheduledPanel from "@/components/mensajes/MensajeScheduledPanel";
+import MensajeAuditPanel from "@/components/mensajes/MensajeAuditPanel";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { format, isToday, isYesterday } from "date-fns";
 import { es } from "date-fns/locale";
+
+type View = "folder" | "templates" | "scheduled" | "audit";
 
 const FOLDERS: { id: Folder; label: string; icon: any }[] = [
   { id: "inbox", label: "Entrada", icon: Inbox },
