@@ -1,0 +1,90 @@
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+
+const KEYS = {
+  ministerios: ["prog_ministerios"],
+  cargos: ["prog_cargos"],
+  servidores: ["prog_servidores"],
+  eventos: ["prog_eventos"],
+  asignaciones: ["prog_asignaciones"],
+  disponibilidad: ["prog_disponibilidad"],
+};
+
+export type ProgMinisterio = { id: string; nombre: string; descripcion: string | null; color: string | null; icono: string | null; lider_persona_id: string | null; activo: boolean };
+export type ProgCargo = { id: string; ministerio_id: string; nombre: string; orden: number; cupo: number; activo: boolean };
+export type ProgServidor = { id: string; ministerio_id: string; persona_id: string; cargo_id: string | null; es_lider: boolean; activo: boolean; notas: string | null };
+export type ProgEvento = { id: string; titulo: string; tipo: string; fecha: string; hora: string | null; lugar: string | null; descripcion: string | null; servicio_id: string | null; estado: string; publicado_at: string | null };
+export type ProgAsignacion = { id: string; evento_id: string; ministerio_id: string; cargo_id: string | null; persona_id: string; estado: string; asistencia: string | null; notas: string | null; confirmado_at: string | null; asistencia_at: string | null };
+export type ProgDisponibilidad = { id: string; persona_id: string; fecha_inicio: string; fecha_fin: string; motivo: string; notas: string | null };
+
+function useList<T>(table: string, key: string[], orderBy = "created_at", asc = false) {
+  return useQuery<T[]>({
+    queryKey: key,
+    queryFn: async () => {
+      const { data, error } = await supabase.from(table as any).select("*").order(orderBy, { ascending: asc });
+      if (error) throw error;
+      return (data || []) as T[];
+    },
+  });
+}
+
+export const useProgMinisterios = () => useList<ProgMinisterio>("prog_ministerios", KEYS.ministerios, "nombre", true);
+export const useProgCargos = () => useList<ProgCargo>("prog_cargos", KEYS.cargos, "orden", true);
+export const useProgServidores = () => useList<ProgServidor>("prog_servidores", KEYS.servidores);
+export const useProgEventos = () => useList<ProgEvento>("prog_eventos", KEYS.eventos, "fecha", false);
+export const useProgAsignaciones = () => useList<ProgAsignacion>("prog_asignaciones", KEYS.asignaciones);
+export const useProgDisponibilidad = () => useList<ProgDisponibilidad>("prog_disponibilidad", KEYS.disponibilidad);
+
+function useUpsert<T>(table: string, invalidate: string[][]) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (row: any) => {
+      const { data, error } = row.id
+        ? await supabase.from(table as any).update(row).eq("id", row.id).select().single()
+        : await supabase.from(table as any).insert(row).select().single();
+      if (error) throw error;
+      return data as T;
+    },
+    onSuccess: () => invalidate.forEach((k) => qc.invalidateQueries({ queryKey: k })),
+  });
+}
+function useDelete(table: string, invalidate: string[][]) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from(table as any).delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => invalidate.forEach((k) => qc.invalidateQueries({ queryKey: k })),
+  });
+}
+
+export const useUpsertMinisterio = () => useUpsert("prog_ministerios", [KEYS.ministerios]);
+export const useDeleteMinisterio = () => useDelete("prog_ministerios", [KEYS.ministerios, KEYS.cargos, KEYS.servidores]);
+export const useUpsertCargo = () => useUpsert("prog_cargos", [KEYS.cargos]);
+export const useDeleteCargo = () => useDelete("prog_cargos", [KEYS.cargos]);
+export const useUpsertServidor = () => useUpsert("prog_servidores", [KEYS.servidores]);
+export const useDeleteServidor = () => useDelete("prog_servidores", [KEYS.servidores]);
+export const useUpsertEvento = () => useUpsert("prog_eventos", [KEYS.eventos]);
+export const useDeleteEvento = () => useDelete("prog_eventos", [KEYS.eventos, KEYS.asignaciones]);
+export const useUpsertAsignacion = () => useUpsert("prog_asignaciones", [KEYS.asignaciones]);
+export const useDeleteAsignacion = () => useDelete("prog_asignaciones", [KEYS.asignaciones]);
+export const useUpsertDisponibilidad = () => useUpsert("prog_disponibilidad", [KEYS.disponibilidad]);
+export const useDeleteDisponibilidad = () => useDelete("prog_disponibilidad", [KEYS.disponibilidad]);
+
+/** Asignaciones por persona en rango — usado para sugerir rotación. */
+export function useAsignacionesPorPersona() {
+  const { data: asignaciones } = useProgAsignaciones();
+  const { data: eventos } = useProgEventos();
+  const eventosMap = new Map((eventos || []).map((e) => [e.id, e]));
+  const byPersona = new Map<string, { total: number; lastFecha: string | null }>();
+  (asignaciones || []).forEach((a) => {
+    const ev = eventosMap.get(a.evento_id);
+    if (!ev) return;
+    const cur = byPersona.get(a.persona_id) || { total: 0, lastFecha: null };
+    cur.total += 1;
+    if (!cur.lastFecha || ev.fecha > cur.lastFecha) cur.lastFecha = ev.fecha;
+    byPersona.set(a.persona_id, cur);
+  });
+  return byPersona;
+}
