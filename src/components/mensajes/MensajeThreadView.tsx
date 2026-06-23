@@ -4,7 +4,8 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Star, Archive, Trash2, CornerUpLeft, Forward, Paperclip, AlertCircle, Mail, MailOpen } from "lucide-react";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Star, Archive, Trash2, CornerUpLeft, Forward, Paperclip, AlertCircle, Mail, MailOpen, Download, Eye, Bot, FileText, Image as ImageIcon } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
@@ -15,18 +16,51 @@ interface Props {
   onClose?: () => void;
 }
 
+function attachmentKind(mime: string | null, name: string): "image" | "pdf" | "video" | "audio" | "other" {
+  const m = (mime || "").toLowerCase();
+  const ext = name.split(".").pop()?.toLowerCase() || "";
+  if (m.startsWith("image/") || ["png","jpg","jpeg","gif","webp","svg"].includes(ext)) return "image";
+  if (m === "application/pdf" || ext === "pdf") return "pdf";
+  if (m.startsWith("video/")) return "video";
+  if (m.startsWith("audio/")) return "audio";
+  return "other";
+}
+
 export default function MensajeThreadView({ threadId }: Props) {
   const { user } = useAuth();
   const { data, isLoading } = useThread(threadId);
   const updateFlag = useUpdateFlag();
   const [replyOpen, setReplyOpen] = useState(false);
   const [replyMode, setReplyMode] = useState<"reply" | "replyAll" | "forward">("reply");
+  const [preview, setPreview] = useState<{ url: string; kind: string; name: string } | null>(null);
+  const [urls, setUrls] = useState<Record<string, string>>({});
 
-  // Mark as read on open
   useEffect(() => {
     if (threadId) updateFlag.mutate({ threadId, patch: { is_read: true } });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [threadId]);
+
+  // Pre-fetch signed URLs for image attachments for inline preview
+  useEffect(() => {
+    let cancel = false;
+    (async () => {
+      if (!data?.messages) return;
+      const next: Record<string, string> = {};
+      for (const m of data.messages as any[]) {
+        for (const a of m.attachments || []) {
+          if (urls[a.id]) { next[a.id] = urls[a.id]; continue; }
+          const kind = attachmentKind(a.mime_type, a.file_name);
+          if (kind === "image" || kind === "pdf") {
+            const u = await getAttachmentUrl(a.file_path);
+            if (u) next[a.id] = u;
+          }
+        }
+      }
+      if (!cancel) setUrls((prev) => ({ ...prev, ...next }));
+    })();
+    return () => { cancel = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data?.messages]);
 
   if (isLoading || !data?.thread) {
     return <div className="p-6 text-sm text-muted-foreground">Cargando…</div>;
@@ -37,7 +71,7 @@ export default function MensajeThreadView({ threadId }: Props) {
   const fromIds = others.map((o: any) => o.user_id);
 
   const replyInitial = () => {
-    const lastMsg = [...data.messages].reverse()[0];
+    const lastMsg = [...(data.messages as any[])].reverse().find((m) => !m.is_system) || (data.messages as any[]).slice(-1)[0];
     if (replyMode === "forward") {
       return {
         subject: data.thread.subject.startsWith("Fwd:") ? data.thread.subject : `Fwd: ${data.thread.subject}`,
@@ -48,14 +82,32 @@ export default function MensajeThreadView({ threadId }: Props) {
     }
     return {
       subject: data.thread.subject.startsWith("Re:") ? data.thread.subject : `Re: ${data.thread.subject}`,
-      recipients: replyMode === "replyAll" ? fromIds : (lastMsg ? [lastMsg.sender_id].filter((id) => id !== user?.id) : []),
+      recipients: replyMode === "replyAll" ? fromIds : (lastMsg?.sender_id ? [lastMsg.sender_id].filter((id) => id !== user?.id) : []),
       replyThreadId: threadId,
     };
   };
 
+  const openAttachment = async (a: any) => {
+    const url = urls[a.id] || await getAttachmentUrl(a.file_path);
+    if (!url) return;
+    const kind = attachmentKind(a.mime_type, a.file_name);
+    if (kind === "image" || kind === "pdf" || kind === "video" || kind === "audio") {
+      setPreview({ url, kind, name: a.file_name });
+    } else {
+      window.open(url, "_blank");
+    }
+  };
+
+  const downloadAttachment = async (a: any) => {
+    const url = urls[a.id] || await getAttachmentUrl(a.file_path);
+    if (!url) return;
+    const link = document.createElement("a");
+    link.href = url; link.download = a.file_name; link.target = "_blank";
+    document.body.appendChild(link); link.click(); link.remove();
+  };
+
   return (
     <div className="flex flex-col h-full">
-      {/* Toolbar */}
       <div className="flex items-center gap-1 px-4 py-2 border-b">
         <Button size="sm" variant="ghost" onClick={() => { setReplyMode("reply"); setReplyOpen(true); }}>
           <CornerUpLeft className="h-4 w-4 mr-1" /> Responder
@@ -84,7 +136,6 @@ export default function MensajeThreadView({ threadId }: Props) {
         </Button>
       </div>
 
-      {/* Subject */}
       <div className="px-6 pt-4 pb-2">
         <h2 className="text-xl font-semibold">{data.thread.subject}</h2>
         <div className="flex items-center gap-1 mt-1 flex-wrap">
@@ -95,19 +146,30 @@ export default function MensajeThreadView({ threadId }: Props) {
         </div>
       </div>
 
-      {/* Messages */}
       <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
-        {data.messages.map((m: any) => {
-          const pr = data.profiles.get(m.sender_id);
+        {(data.messages as any[]).map((m: any) => {
+          const isSys = !!m.is_system;
+          const sys = isSys ? data.systemSenders.get(m.system_sender_key) : null;
+          const pr = !isSys ? data.profiles.get(m.sender_id) : null;
+          const senderName = isSys ? (sys?.display_name || "Sistema") : (pr?.display_name || "Usuario");
           return (
-            <div key={m.id} className="rounded-lg border bg-card p-4">
+            <div key={m.id} className={`rounded-lg border p-4 ${isSys ? "bg-primary/5 border-primary/20" : "bg-card"}`}>
               <div className="flex items-center gap-3 mb-3">
                 <Avatar className="h-9 w-9">
-                  <AvatarImage src={pr?.avatar_url || undefined} />
-                  <AvatarFallback>{(pr?.display_name || "?").slice(0, 2).toUpperCase()}</AvatarFallback>
+                  {isSys ? (
+                    <AvatarFallback className="bg-primary/10 text-primary"><Bot className="h-4 w-4" /></AvatarFallback>
+                  ) : (
+                    <>
+                      <AvatarImage src={pr?.avatar_url || undefined} />
+                      <AvatarFallback>{(pr?.display_name || "?").slice(0, 2).toUpperCase()}</AvatarFallback>
+                    </>
+                  )}
                 </Avatar>
                 <div className="flex-1">
-                  <div className="text-sm font-medium">{pr?.display_name || "Usuario"}</div>
+                  <div className="text-sm font-medium flex items-center gap-2">
+                    {senderName}
+                    {isSys && <Badge variant="outline" className="text-[9px] h-4 px-1">Sistema</Badge>}
+                  </div>
                   <div className="text-xs text-muted-foreground">{format(new Date(m.created_at), "PPp", { locale: es })}</div>
                 </div>
               </div>
@@ -115,21 +177,38 @@ export default function MensajeThreadView({ threadId }: Props) {
               {m.attachments?.length > 0 && (
                 <>
                   <Separator className="my-3" />
-                  <div className="space-y-1">
-                    {m.attachments.map((a: any) => (
-                      <button
-                        key={a.id}
-                        onClick={async () => {
-                          const url = await getAttachmentUrl(a.file_path);
-                          if (url) window.open(url, "_blank");
-                        }}
-                        className="flex items-center gap-2 text-sm text-primary hover:underline"
-                      >
-                        <Paperclip className="h-3.5 w-3.5" />
-                        {a.file_name}
-                        <span className="text-xs text-muted-foreground">({Math.round(a.file_size / 1024)} KB)</span>
-                      </button>
-                    ))}
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    {m.attachments.map((a: any) => {
+                      const kind = attachmentKind(a.mime_type, a.file_name);
+                      const url = urls[a.id];
+                      return (
+                        <div key={a.id} className="border rounded-md overflow-hidden bg-background">
+                          {kind === "image" && url ? (
+                            <button onClick={() => openAttachment(a)} className="block w-full">
+                              <img src={url} alt={a.file_name} className="w-full h-32 object-cover" />
+                            </button>
+                          ) : kind === "pdf" ? (
+                            <button onClick={() => openAttachment(a)} className="flex items-center justify-center h-32 w-full bg-red-50 dark:bg-red-950/20">
+                              <FileText className="h-10 w-10 text-red-500" />
+                            </button>
+                          ) : (
+                            <button onClick={() => openAttachment(a)} className="flex items-center justify-center h-32 w-full bg-muted">
+                              {kind === "image" ? <ImageIcon className="h-10 w-10 text-muted-foreground" /> : <Paperclip className="h-10 w-10 text-muted-foreground" />}
+                            </button>
+                          )}
+                          <div className="flex items-center gap-1 p-2 text-xs">
+                            <span className="flex-1 truncate" title={a.file_name}>{a.file_name}</span>
+                            <span className="text-muted-foreground shrink-0">{(a.file_size / 1024).toFixed(0)} KB</span>
+                            <Button size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={() => openAttachment(a)} title="Vista previa">
+                              <Eye className="h-3.5 w-3.5" />
+                            </Button>
+                            <Button size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={() => downloadAttachment(a)} title="Descargar">
+                              <Download className="h-3.5 w-3.5" />
+                            </Button>
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 </>
               )}
@@ -139,6 +218,21 @@ export default function MensajeThreadView({ threadId }: Props) {
       </div>
 
       <MensajeComposer open={replyOpen} onOpenChange={setReplyOpen} initial={replyInitial()} />
+
+      <Dialog open={!!preview} onOpenChange={(o) => !o && setPreview(null)}>
+        <DialogContent className="max-w-4xl p-0 overflow-hidden">
+          {preview?.kind === "image" && <img src={preview.url} alt={preview.name} className="w-full max-h-[80vh] object-contain bg-black" />}
+          {preview?.kind === "pdf" && <iframe src={preview.url} title={preview.name} className="w-full h-[80vh] border-0" />}
+          {preview?.kind === "video" && <video src={preview.url} controls className="w-full max-h-[80vh] bg-black" />}
+          {preview?.kind === "audio" && <div className="p-6"><audio src={preview.url} controls className="w-full" /></div>}
+          <div className="flex items-center justify-between p-3 border-t bg-background">
+            <span className="text-sm truncate">{preview?.name}</span>
+            <Button size="sm" variant="outline" onClick={() => preview && window.open(preview.url, "_blank")}>
+              <Download className="h-4 w-4 mr-1" /> Abrir / Descargar
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
