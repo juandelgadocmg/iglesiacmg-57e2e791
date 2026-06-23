@@ -8,7 +8,12 @@ const KEYS = {
   eventos: ["prog_eventos"],
   asignaciones: ["prog_asignaciones"],
   disponibilidad: ["prog_disponibilidad"],
+  audit: ["prog_audit_log"],
+  reemplazos: ["prog_reemplazos"],
 };
+
+export type ProgAuditEntry = { id: string; evento_id: string | null; asignacion_id: string | null; actor_user_id: string | null; actor_nombre: string | null; action: string; details: any; created_at: string };
+export type ProgReemplazo = { id: string; asignacion_id: string; evento_id: string; ministerio_id: string | null; cargo_id: string | null; persona_solicita_id: string; persona_reemplazo_id: string | null; motivo: string | null; estado: string; aprobado_por: string | null; aprobado_at: string | null; notas_aprobacion: string | null; created_at: string };
 
 export type ProgMinisterio = { id: string; nombre: string; descripcion: string | null; color: string | null; icono: string | null; lider_persona_id: string | null; activo: boolean };
 export type ProgCargo = { id: string; ministerio_id: string; nombre: string; orden: number; cupo: number; activo: boolean };
