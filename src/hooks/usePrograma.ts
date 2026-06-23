@@ -77,6 +77,56 @@ export const useDeleteAsignacion = () => useDelete("prog_asignaciones", [KEYS.as
 export const useUpsertDisponibilidad = () => useUpsert("prog_disponibilidad", [KEYS.disponibilidad]);
 export const useDeleteDisponibilidad = () => useDelete("prog_disponibilidad", [KEYS.disponibilidad]);
 
+// ============ Audit log ============
+export function useProgAuditByEvento(eventoId: string | null) {
+  return useQuery<ProgAuditEntry[]>({
+    queryKey: [...KEYS.audit, eventoId],
+    enabled: !!eventoId,
+    queryFn: async () => {
+      const { data, error } = await supabase.from("prog_audit_log" as any).select("*").eq("evento_id", eventoId).order("created_at", { ascending: false });
+      if (error) throw error;
+      return (data || []) as any;
+    },
+  });
+}
+
+export async function logProgAction(params: { evento_id?: string | null; asignacion_id?: string | null; action: string; details?: any }) {
+  const { data: { user } } = await supabase.auth.getUser();
+  let actor_nombre: string | null = null;
+  if (user) {
+    const { data: prof } = await supabase.from("profiles").select("display_name").eq("user_id", user.id).maybeSingle();
+    actor_nombre = prof?.display_name || user.email || null;
+  }
+  await supabase.from("prog_audit_log" as any).insert({
+    evento_id: params.evento_id || null,
+    asignacion_id: params.asignacion_id || null,
+    actor_user_id: user?.id || null,
+    actor_nombre,
+    action: params.action,
+    details: params.details || {},
+  });
+}
+
+// ============ Reemplazos ============
+export const useProgReemplazos = () => useList<ProgReemplazo>("prog_reemplazos", KEYS.reemplazos);
+export const useUpsertReemplazo = () => useUpsert<ProgReemplazo>("prog_reemplazos", [KEYS.reemplazos, KEYS.asignaciones]);
+export const useDeleteReemplazo = () => useDelete("prog_reemplazos", [KEYS.reemplazos]);
+
+/** Bloqueo: si bloqueo_at definido y ya pasó, true. Si no hay bloqueo_at, default a 1h después de la hora del evento. */
+export function isEventoBloqueado(ev: ProgEvento | null | undefined): boolean {
+  if (!ev) return false;
+  let limit: Date | null = null;
+  if (ev.bloqueo_at) limit = new Date(ev.bloqueo_at);
+  else {
+    const horaClean = (ev.hora || "").replace(/[^0-9:]/g, "");
+    const t = horaClean || "09:00";
+    const d = new Date(`${ev.fecha}T${t.length === 5 ? t : "09:00"}:00`);
+    d.setHours(d.getHours() + 2);
+    limit = d;
+  }
+  return new Date() > limit;
+}
+
 /** Asignaciones por persona en rango — usado para sugerir rotación. */
 export function useAsignacionesPorPersona() {
   const { data: asignaciones } = useProgAsignaciones();
