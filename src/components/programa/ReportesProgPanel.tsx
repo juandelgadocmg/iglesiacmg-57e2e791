@@ -36,12 +36,21 @@ export default function ReportesProgPanel() {
   }, [asignaciones, personasMap, eventosMap]);
 
   const porMinisterio = useMemo(() => {
-    const m = new Map<string, number>();
-    asignaciones.forEach((a) => m.set(a.ministerio_id, (m.get(a.ministerio_id) || 0) + 1));
-    return Array.from(m.entries()).map(([id, total]) => ({ ministerio: minMap.get(id)?.nombre || "—", total })).sort((a, b) => b.total - a.total);
+    const m = new Map<string, { total: number; presente: number; tarde: number; ausente: number; confirmados: number }>();
+    asignaciones.forEach((a) => {
+      const cur = m.get(a.ministerio_id) || { total: 0, presente: 0, tarde: 0, ausente: 0, confirmados: 0 };
+      cur.total++;
+      if (a.asistencia === "presente") cur.presente++;
+      if (a.asistencia === "tarde") cur.tarde++;
+      if (a.asistencia === "ausente") cur.ausente++;
+      if (a.estado === "confirmado") cur.confirmados++;
+      m.set(a.ministerio_id, cur);
+    });
+    return Array.from(m.entries()).map(([id, v]) => ({ ministerio: minMap.get(id)?.nombre || "—", ...v })).sort((a, b) => b.total - a.total);
   }, [asignaciones, minMap]);
 
   const ausencias = porPersona.filter((p) => p.ausente > 0).sort((a, b) => b.ausente - a.ausente);
+  const confirmaciones = porPersona.map((p) => ({ nombre: p.nombre, total: p.total, presente: p.presente, ausente: p.ausente, tarde: p.tarde })).filter((p) => p.total > 0);
 
   return (
     <div className="space-y-4">
