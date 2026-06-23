@@ -1,13 +1,14 @@
 import { useEffect, useState } from "react";
-import { useThread, useUpdateFlag, getAttachmentUrl } from "@/hooks/useMensajes";
+import { useThread, useUpdateFlag, getAttachmentUrl, useReadReceipts } from "@/hooks/useMensajes";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { Star, Archive, Trash2, CornerUpLeft, Forward, Paperclip, AlertCircle, Mail, MailOpen, Download, Eye, Bot, FileText, Image as ImageIcon } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Star, Archive, Trash2, CornerUpLeft, Forward, Paperclip, AlertCircle, Mail, MailOpen, Download, Eye, Bot, FileText, Image as ImageIcon, CheckCheck } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
-import { format } from "date-fns";
+import { format, formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
 import MensajeComposer from "./MensajeComposer";
 
