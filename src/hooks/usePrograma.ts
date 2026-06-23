@@ -18,7 +18,7 @@ export type ProgReemplazo = { id: string; asignacion_id: string; evento_id: stri
 export type ProgMinisterio = { id: string; nombre: string; descripcion: string | null; color: string | null; icono: string | null; lider_persona_id: string | null; activo: boolean };
 export type ProgCargo = { id: string; ministerio_id: string; nombre: string; orden: number; cupo: number; activo: boolean };
 export type ProgServidor = { id: string; ministerio_id: string; persona_id: string; cargo_id: string | null; es_lider: boolean; activo: boolean; notas: string | null };
-export type ProgEvento = { id: string; titulo: string; tipo: string; fecha: string; hora: string | null; lugar: string | null; descripcion: string | null; servicio_id: string | null; estado: string; publicado_at: string | null };
+export type ProgEvento = { id: string; titulo: string; tipo: string; fecha: string; hora: string | null; lugar: string | null; descripcion: string | null; servicio_id: string | null; estado: string; publicado_at: string | null; bloqueo_at: string | null; reminder_24h_sent_at?: string | null; reminder_2h_sent_at?: string | null };
 export type ProgAsignacion = { id: string; evento_id: string; ministerio_id: string; cargo_id: string | null; persona_id: string; estado: string; asistencia: string | null; notas: string | null; confirmado_at: string | null; asistencia_at: string | null };
 export type ProgDisponibilidad = { id: string; persona_id: string; fecha_inicio: string; fecha_fin: string; motivo: string; notas: string | null };
 
