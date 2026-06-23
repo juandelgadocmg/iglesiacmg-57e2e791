@@ -122,7 +122,7 @@ export default function MensajeComposer({ open, onOpenChange, initial }: Props) 
 
   const recipientLabel = (id: string) => directory.find((u: any) => u.user_id === id)?.display_name || id.slice(0, 8);
   const selectedPrograma = programas.find((p: any) => p.id === programaSel);
-  const maxSemestres = selectedPrograma?.duracion_semestres || 0;
+  const maxSemestres = (selectedPrograma as any)?.duracion_semestres || (selectedPrograma as any)?.semestres || 12;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
