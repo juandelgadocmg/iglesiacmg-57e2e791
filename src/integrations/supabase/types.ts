@@ -1438,6 +1438,197 @@ export type Database = {
           },
         ]
       }
+      msg_attachments: {
+        Row: {
+          created_at: string
+          file_name: string
+          file_path: string
+          file_size: number
+          id: string
+          message_id: string
+          mime_type: string | null
+        }
+        Insert: {
+          created_at?: string
+          file_name: string
+          file_path: string
+          file_size?: number
+          id?: string
+          message_id: string
+          mime_type?: string | null
+        }
+        Update: {
+          created_at?: string
+          file_name?: string
+          file_path?: string
+          file_size?: number
+          id?: string
+          message_id?: string
+          mime_type?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "msg_attachments_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "msg_messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      msg_drafts: {
+        Row: {
+          body: string
+          created_at: string
+          id: string
+          recipients: Json
+          reply_thread_id: string | null
+          subject: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          body?: string
+          created_at?: string
+          id?: string
+          recipients?: Json
+          reply_thread_id?: string | null
+          subject?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          id?: string
+          recipients?: Json
+          reply_thread_id?: string | null
+          subject?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "msg_drafts_reply_thread_id_fkey"
+            columns: ["reply_thread_id"]
+            isOneToOne: false
+            referencedRelation: "msg_threads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      msg_messages: {
+        Row: {
+          body: string
+          created_at: string
+          id: string
+          is_system: boolean
+          sender_id: string
+          thread_id: string
+        }
+        Insert: {
+          body?: string
+          created_at?: string
+          id?: string
+          is_system?: boolean
+          sender_id: string
+          thread_id: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          id?: string
+          is_system?: boolean
+          sender_id?: string
+          thread_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "msg_messages_thread_id_fkey"
+            columns: ["thread_id"]
+            isOneToOne: false
+            referencedRelation: "msg_threads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      msg_participants: {
+        Row: {
+          created_at: string
+          id: string
+          is_archived: boolean
+          is_deleted: boolean
+          is_favorite: boolean
+          is_important: boolean
+          is_read: boolean
+          last_read_at: string | null
+          role: string
+          thread_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_archived?: boolean
+          is_deleted?: boolean
+          is_favorite?: boolean
+          is_important?: boolean
+          is_read?: boolean
+          last_read_at?: string | null
+          role?: string
+          thread_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_archived?: boolean
+          is_deleted?: boolean
+          is_favorite?: boolean
+          is_important?: boolean
+          is_read?: boolean
+          last_read_at?: string | null
+          role?: string
+          thread_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "msg_participants_thread_id_fkey"
+            columns: ["thread_id"]
+            isOneToOne: false
+            referencedRelation: "msg_threads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      msg_threads: {
+        Row: {
+          created_at: string
+          created_by: string
+          id: string
+          last_message_at: string
+          subject: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          id?: string
+          last_message_at?: string
+          subject?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          id?: string
+          last_message_at?: string
+          subject?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       notification_preferences: {
         Row: {
           created_at: string
@@ -3699,6 +3890,10 @@ export type Database = {
           source_queue: string
         }
         Returns: number
+      }
+      msg_is_participant: {
+        Args: { _thread_id: string; _user_id: string }
+        Returns: boolean
       }
       read_email_batch: {
         Args: { batch_size: number; queue_name: string; vt: number }
