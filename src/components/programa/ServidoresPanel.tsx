@@ -78,16 +78,26 @@ export default function ServidoresPanel() {
             <DialogHeader><DialogTitle>Asignar servidor a ministerio</DialogTitle></DialogHeader>
             <div className="space-y-3">
               <div><Label>Persona</Label>
-                <Select value={draft.persona_id} onValueChange={(v) => setDraft({ ...draft, persona_id: v })}>
-                  <SelectTrigger><SelectValue placeholder="Seleccionar..." /></SelectTrigger>
-                  <SelectContent>{personas.slice(0, 500).map((p: any) => <SelectItem key={p.id} value={p.id}>{p.nombres} {p.apellidos}</SelectItem>)}</SelectContent>
-                </Select>
+                <SearchableCombobox
+                  items={personaItems}
+                  value={draft.persona_id || ""}
+                  onChange={(v) => setDraft({ ...draft, persona_id: v })}
+                  placeholder="Buscar persona..."
+                  emptyLabel="Sin resultados"
+                  width="w-full"
+                  allowClear
+                />
               </div>
               <div><Label>Ministerio</Label>
-                <Select value={draft.ministerio_id} onValueChange={(v) => setDraft({ ...draft, ministerio_id: v, cargo_id: null })}>
-                  <SelectTrigger><SelectValue placeholder="Seleccionar..." /></SelectTrigger>
-                  <SelectContent>{ministerios.map((m) => <SelectItem key={m.id} value={m.id}>{m.nombre}</SelectItem>)}</SelectContent>
-                </Select>
+                <SearchableCombobox
+                  items={ministerioItems}
+                  value={draft.ministerio_id || ""}
+                  onChange={(v) => setDraft({ ...draft, ministerio_id: v, cargo_id: null })}
+                  placeholder="Buscar ministerio..."
+                  emptyLabel="Sin resultados"
+                  width="w-full"
+                  allowClear
+                />
               </div>
               <div><Label>Cargo</Label>
                 <Select value={draft.cargo_id || ""} onValueChange={(v) => setDraft({ ...draft, cargo_id: v })}>
