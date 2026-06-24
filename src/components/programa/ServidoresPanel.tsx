@@ -11,6 +11,7 @@ import { Plus, Trash2, Search, Calendar as CalIcon } from "lucide-react";
 import { toast } from "sonner";
 import { useProgMinisterios, useProgCargos, useProgServidores, useUpsertServidor, useDeleteServidor, useAsignacionesPorPersona, useUpsertDisponibilidad, useProgDisponibilidad, useDeleteDisponibilidad } from "@/hooks/usePrograma";
 import { usePersonas } from "@/hooks/useDatabase";
+import SearchableCombobox, { ComboboxItem } from "@/components/seminario/SearchableCombobox";
 
 export default function ServidoresPanel() {
   const { data: personas = [] } = usePersonas();
@@ -34,6 +35,15 @@ export default function ServidoresPanel() {
   const personasMap = useMemo(() => new Map(personas.map((p: any) => [p.id, p])), [personas]);
   const cargosMap = useMemo(() => new Map(cargos.map((c) => [c.id, c])), [cargos]);
   const minMap = useMemo(() => new Map(ministerios.map((m) => [m.id, m])), [ministerios]);
+
+  const personaItems: ComboboxItem[] = useMemo(
+    () => personas.map((p: any) => ({ id: p.id, label: `${p.nombres} ${p.apellidos}`, sub: p.telefono || p.email || "" })),
+    [personas]
+  );
+  const ministerioItems: ComboboxItem[] = useMemo(
+    () => ministerios.map((m) => ({ id: m.id, label: m.nombre, sub: m.descripcion || "" })),
+    [ministerios]
+  );
 
   const filtered = servidores.filter((s) => {
     if (filterMin !== "all" && s.ministerio_id !== filterMin) return false;
@@ -68,16 +78,26 @@ export default function ServidoresPanel() {
             <DialogHeader><DialogTitle>Asignar servidor a ministerio</DialogTitle></DialogHeader>
             <div className="space-y-3">
               <div><Label>Persona</Label>
-                <Select value={draft.persona_id} onValueChange={(v) => setDraft({ ...draft, persona_id: v })}>
-                  <SelectTrigger><SelectValue placeholder="Seleccionar..." /></SelectTrigger>
-                  <SelectContent>{personas.slice(0, 500).map((p: any) => <SelectItem key={p.id} value={p.id}>{p.nombres} {p.apellidos}</SelectItem>)}</SelectContent>
-                </Select>
+                <SearchableCombobox
+                  items={personaItems}
+                  value={draft.persona_id || ""}
+                  onChange={(v) => setDraft({ ...draft, persona_id: v })}
+                  placeholder="Buscar persona..."
+                  emptyLabel="Sin resultados"
+                  width="w-full"
+                  allowClear
+                />
               </div>
               <div><Label>Ministerio</Label>
-                <Select value={draft.ministerio_id} onValueChange={(v) => setDraft({ ...draft, ministerio_id: v, cargo_id: null })}>
-                  <SelectTrigger><SelectValue placeholder="Seleccionar..." /></SelectTrigger>
-                  <SelectContent>{ministerios.map((m) => <SelectItem key={m.id} value={m.id}>{m.nombre}</SelectItem>)}</SelectContent>
-                </Select>
+                <SearchableCombobox
+                  items={ministerioItems}
+                  value={draft.ministerio_id || ""}
+                  onChange={(v) => setDraft({ ...draft, ministerio_id: v, cargo_id: null })}
+                  placeholder="Buscar ministerio..."
+                  emptyLabel="Sin resultados"
+                  width="w-full"
+                  allowClear
+                />
               </div>
               <div><Label>Cargo</Label>
                 <Select value={draft.cargo_id || ""} onValueChange={(v) => setDraft({ ...draft, cargo_id: v })}>
