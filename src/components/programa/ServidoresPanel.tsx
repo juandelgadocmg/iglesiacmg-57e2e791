@@ -11,6 +11,7 @@ import { Plus, Trash2, Search, Calendar as CalIcon } from "lucide-react";
 import { toast } from "sonner";
 import { useProgMinisterios, useProgCargos, useProgServidores, useUpsertServidor, useDeleteServidor, useAsignacionesPorPersona, useUpsertDisponibilidad, useProgDisponibilidad, useDeleteDisponibilidad } from "@/hooks/usePrograma";
 import { usePersonas } from "@/hooks/useDatabase";
+import SearchableCombobox, { ComboboxItem } from "@/components/seminario/SearchableCombobox";
 
 export default function ServidoresPanel() {
   const { data: personas = [] } = usePersonas();
