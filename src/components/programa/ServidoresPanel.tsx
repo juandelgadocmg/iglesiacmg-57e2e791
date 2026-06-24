@@ -36,6 +36,15 @@ export default function ServidoresPanel() {
   const cargosMap = useMemo(() => new Map(cargos.map((c) => [c.id, c])), [cargos]);
   const minMap = useMemo(() => new Map(ministerios.map((m) => [m.id, m])), [ministerios]);
 
+  const personaItems: ComboboxItem[] = useMemo(
+    () => personas.map((p: any) => ({ id: p.id, label: `${p.nombres} ${p.apellidos}`, sub: p.telefono || p.email || "" })),
+    [personas]
+  );
+  const ministerioItems: ComboboxItem[] = useMemo(
+    () => ministerios.map((m) => ({ id: m.id, label: m.nombre, sub: m.descripcion || "" })),
+    [ministerios]
+  );
+
   const filtered = servidores.filter((s) => {
     if (filterMin !== "all" && s.ministerio_id !== filterMin) return false;
     const p: any = personasMap.get(s.persona_id);
