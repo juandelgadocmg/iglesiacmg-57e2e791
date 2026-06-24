@@ -4548,6 +4548,15 @@ export type Database = {
         Args: { _persona_id: string }
         Returns: boolean
       }
+      sem_inscripciones_sin_vincular: {
+        Args: never
+        Returns: {
+          email: string
+          inscripcion_id: string
+          nombre: string
+          persona_id: string
+        }[]
+      }
       sem_is_staff: { Args: { _uid: string }; Returns: boolean }
       sem_is_tesoreria: { Args: { _uid: string }; Returns: boolean }
       sem_puede_inscribir: {
@@ -4557,6 +4566,10 @@ export type Database = {
       sem_recalcular_inscripcion: {
         Args: { _persona_id: string; _programa_id: string }
         Returns: Json
+      }
+      sem_resolve_user_id_from_persona: {
+        Args: { _persona_id: string }
+        Returns: string
       }
     }
     Enums: {
