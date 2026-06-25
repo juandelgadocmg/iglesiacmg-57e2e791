@@ -227,33 +227,43 @@ export default function AsistenciaSection() {
         )}
       </Dialog>
 
-      <DeleteConfirmDialog
-        open={!!quitar}
-        onOpenChange={(v) => !v && setQuitar(null)}
-        title="Quitar estudiante de la materia"
-        description={
-          quitar
-            ? `¿Confirmas quitar a ${quitar.persona?.nombres || ""} ${quitar.persona?.apellidos || ""} de esta materia? Se eliminará la matrícula en esta clase y sus asistencias/calificaciones asociadas. Esta acción no afecta su inscripción al programa.`
-            : ""
-        }
-        onConfirm={async () => {
-          if (!quitar) return;
-          try {
-            await unenroll.mutateAsync(quitar.im.id);
-            await logSemAudit({
-              action: "matricula.eliminada",
-              persona_id: quitar.im.sem_inscripciones?.persona_id,
-              inscripcion_id: quitar.im.inscripcion_id,
-              oferta_id: effOf,
-              details: { desde: "asistencia" },
-            });
-            toast.success("Estudiante quitado de la materia");
-            setQuitar(null);
-          } catch (e: any) {
-            toast.error(e.message);
-          }
-        }}
-      />
+      <AlertDialog open={!!quitar} onOpenChange={(v) => !v && setQuitar(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Quitar estudiante de la materia</AlertDialogTitle>
+            <AlertDialogDescription>
+              {quitar
+                ? `¿Confirmas quitar a ${quitar.persona?.nombres || ""} ${quitar.persona?.apellidos || ""} de esta materia? Se eliminará la matrícula en esta clase junto con sus asistencias y calificaciones asociadas. No afecta su inscripción al programa.`
+                : ""}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={async () => {
+                if (!quitar) return;
+                try {
+                  await unenroll.mutateAsync(quitar.im.id);
+                  await logSemAudit({
+                    action: "matricula.eliminada",
+                    persona_id: quitar.im.sem_inscripciones?.persona_id,
+                    inscripcion_id: quitar.im.inscripcion_id,
+                    oferta_id: effOf,
+                    details: { desde: "asistencia" },
+                  });
+                  toast.success("Estudiante quitado de la materia");
+                  setQuitar(null);
+                } catch (e: any) {
+                  toast.error(e.message);
+                }
+              }}
+            >
+              Quitar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
