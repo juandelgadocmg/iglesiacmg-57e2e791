@@ -12,7 +12,8 @@ import { usePersonas } from "@/hooks/useDatabase";
 import { exportMinisterioProgramaPDF } from "@/lib/exportUtils";
 import { findIsoTemplate } from "@/lib/isoMinisterioTemplates";
 import { exportIsoMinisterioPdf, normKey } from "@/lib/exportIsoMinisterioPdf";
-import { FileText } from "lucide-react";
+import { FileText, Eye } from "lucide-react";
+import IsoProgramacionPreview from "./IsoProgramacionPreview";
 
 export default function MinisteriosPanel() {
   const { data: ministerios = [] } = useProgMinisterios();
