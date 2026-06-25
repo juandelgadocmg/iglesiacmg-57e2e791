@@ -66,6 +66,7 @@ export default function BibliotecaSection() {
   const upsert = useUpsertRecurso();
   const del = useDeleteRecurso();
   const [editing, setEditing] = useState<any>(null);
+  const [preview, setPreview] = useState<any>(null);
 
   const filtered = (recursos || []).filter((r: any) => {
     if (q && !r.titulo?.toLowerCase().includes(q.toLowerCase())) return false;
