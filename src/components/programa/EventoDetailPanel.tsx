@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ChevronLeft, Plus, Trash2, Check, X, MessageSquare, Send, Sparkles, Phone, Lock, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
-import { useProgMinisterios, useProgCargos, useProgServidores, useProgAsignaciones, useUpsertAsignacion, useDeleteAsignacion, useAsignacionesPorPersona, useProgDisponibilidad, useUpsertEvento, logProgAction, isEventoBloqueado, type ProgEvento } from "@/hooks/usePrograma";
+import { useProgMinisterios, useProgCargos, useProgServidores, useProgAsignaciones, useUpsertAsignacion, useDeleteAsignacion, useAsignacionesPorPersona, useProgDisponibilidad, useUpsertEvento, logProgAction, isEventoBloqueado, getCargoTipo, CARGOS_GENERICOS, type ProgEvento } from "@/hooks/usePrograma";
 import { usePersonas } from "@/hooks/useDatabase";
 import { supabase } from "@/integrations/supabase/client";
 import ReemplazoDialog from "./ReemplazoDialog";
