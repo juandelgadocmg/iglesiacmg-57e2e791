@@ -86,7 +86,7 @@ export default function ReportesProgPanel() {
   }, [asignaciones, minMap]);
 
   const ausencias = porPersona.filter((p) => p.ausente > 0).sort((a, b) => b.ausente - a.ausente);
-  const confirmaciones = porPersona.map((p) => ({ nombre: p.nombre, total: p.total, presente: p.presente, ausente: p.ausente, tarde: p.tarde })).filter((p) => p.total > 0);
+  const confirmaciones = porPersona.map((p) => ({ nombre: p.nombre, cargos: p.cargos, tipo_cargo: p.tipo_cargo, total: p.total, presente: p.presente, ausente: p.ausente, tarde: p.tarde })).filter((p) => p.total > 0);
 
   return (
     <div className="space-y-4">
