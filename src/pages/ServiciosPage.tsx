@@ -329,7 +329,7 @@ function ReportarReunionView({ servicios, personas, onSelectReunion }: any) {
 function ReporteDetalleView({
   reunion, personas, localAttendance, setLocalAttendance, toggleAttendance, markAll, saveAttendance,
   isPending, searchTerm, setSearchTerm, filterStatus, setFilterStatus,
-  filteredPersonas, totalPresent, totalAbsent, attendanceRate, loadingAsistencia, onBack
+  filteredPersonas, totalPresent, totalAbsent, attendanceRate, loadingAsistencia, onBack, onProgramar
 }: any) {
   // Classify by tipo_persona
   const clasificacion: Record<string, number> = {};
