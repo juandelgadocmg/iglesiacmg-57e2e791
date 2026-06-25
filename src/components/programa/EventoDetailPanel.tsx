@@ -293,7 +293,49 @@ export default function EventoDetailPanel({ evento, onBack, onDelete }: { evento
                           {p.whatsapp || p.telefono ? (
                             <Button size="icon" variant="ghost" className="h-7 w-7" title="WhatsApp" onClick={() => {
                               const num = (p.whatsapp || p.telefono || "").replace(/\D/g, "");
-                              const text = encodeURIComponent(`Hola ${p.nombres}, has sido programado para servir en ${m.nombre}${c ? " como " + c.nombre : ""} el ${evento.fecha}${evento.hora ? " a las " + evento.hora : ""}. ¿Puedes confirmar tu asistencia?`);
+                              const nombreCompleto = `${p.nombres ?? ""} ${p.apellidos ?? ""}`.trim();
+                              const fechaFmt = (() => {
+                                try {
+                                  const d = new Date(`${evento.fecha}T00:00:00`);
+                                  return d.toLocaleDateString("es-CO", { weekday: "long", day: "2-digit", month: "long", year: "numeric" });
+                                } catch { return evento.fecha; }
+                              })();
+                              const horaFmt = evento.hora
+                                ? (() => {
+                                    const [hh, mm] = String(evento.hora).split(":");
+                                    const h = parseInt(hh, 10);
+                                    const ampm = h >= 12 ? "p.m." : "a.m.";
+                                    const h12 = ((h + 11) % 12) + 1;
+                                    return `${h12}:${mm} ${ampm}`;
+                                  })()
+                                : "Por confirmar";
+                              const mensaje =
+`🔥 *CMG - CENTRO MUNDIAL DE GLORIA* 🔥
+━━━━━━━━━━━━━━━━━━━━
+*HAS SIDO PROGRAMADO PARA SERVIR*
+━━━━━━━━━━━━━━━━━━━━
+
+👤 *SERVIDOR*
+${nombreCompleto}
+
+👥 *MINISTERIO*
+${m.nombre}
+
+⭐ *FUNCIÓN*
+${c?.nombre ?? "Por asignar"}
+
+📅 *FECHA*
+${fechaFmt}
+
+🕐 *HORA*
+${horaFmt}
+
+━━━━━━━━━━━━━━━━━━━━
+✅ *¿Confirmas tu asistencia?*
+Responde a este mensaje para confirmar.
+
+_Bendiciones, equipo CMG_ 🙌`;
+                              const text = encodeURIComponent(mensaje);
                               window.open(`https://wa.me/${num}?text=${text}`, "_blank");
                             }}><Phone className="h-3.5 w-3.5 text-green-600" /></Button>
                           ) : null}
