@@ -14,6 +14,7 @@ import DeleteConfirmDialog from "@/components/shared/DeleteConfirmDialog";
 import { useCan } from "@/hooks/useCan";
 import { supabase } from "@/integrations/supabase/client";
 import { useMiPersona, useMisOfertas, useIsSeminarioStaff } from "@/hooks/useSeminarioStudent";
+import { openAsset } from "@/lib/openAsset";
 
 const TIPOS = [
   { v: "pdf", l: "PDF", icon: FileText },
