@@ -226,6 +226,34 @@ export default function AsistenciaSection() {
           </DialogContent>
         )}
       </Dialog>
+
+      <DeleteConfirmDialog
+        open={!!quitar}
+        onOpenChange={(v) => !v && setQuitar(null)}
+        title="Quitar estudiante de la materia"
+        description={
+          quitar
+            ? `¿Confirmas quitar a ${quitar.persona?.nombres || ""} ${quitar.persona?.apellidos || ""} de esta materia? Se eliminará la matrícula en esta clase y sus asistencias/calificaciones asociadas. Esta acción no afecta su inscripción al programa.`
+            : ""
+        }
+        onConfirm={async () => {
+          if (!quitar) return;
+          try {
+            await unenroll.mutateAsync(quitar.im.id);
+            await logSemAudit({
+              action: "matricula.eliminada",
+              persona_id: quitar.im.sem_inscripciones?.persona_id,
+              inscripcion_id: quitar.im.inscripcion_id,
+              oferta_id: effOf,
+              details: { desde: "asistencia" },
+            });
+            toast.success("Estudiante quitado de la materia");
+            setQuitar(null);
+          } catch (e: any) {
+            toast.error(e.message);
+          }
+        }}
+      />
     </div>
   );
 }
