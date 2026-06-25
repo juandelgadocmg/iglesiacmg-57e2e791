@@ -192,6 +192,8 @@ export default function ReportesProgPanel() {
             filename="ausencias-por-servidor"
             columns={[
               { header: "Servidor", key: "nombre" },
+              { header: "Cargos", key: "cargos" },
+              { header: "Tipo de cargo", key: "tipo_cargo" },
               { header: "Ausencias", key: "ausente" },
               { header: "Tarde", key: "tarde" },
               { header: "Total asignaciones", key: "total" },
