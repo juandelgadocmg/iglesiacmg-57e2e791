@@ -17,6 +17,8 @@ import ReemplazoDialog from "./ReemplazoDialog";
 import ReemplazosPanel from "./ReemplazosPanel";
 import HistorialPanel from "./HistorialPanel";
 import CheckInPanel from "./CheckInPanel";
+import { useCan } from "@/hooks/useCan";
+import type { ActionPermission } from "@/lib/permissions";
 
 export default function EventoDetailPanel({ evento, onBack, onDelete }: { evento: ProgEvento; onBack: () => void; onDelete: () => void }) {
   const { data: ministerios = [] } = useProgMinisterios();
