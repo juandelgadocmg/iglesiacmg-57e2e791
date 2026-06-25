@@ -220,6 +220,8 @@ export default function ReportesProgPanel() {
             filename="confirmaciones-servicios"
             columns={[
               { header: "Servidor", key: "nombre" },
+              { header: "Cargos", key: "cargos" },
+              { header: "Tipo de cargo", key: "tipo_cargo" },
               { header: "Total", key: "total" },
               { header: "Presente", key: "presente" },
               { header: "Tarde", key: "tarde" },
@@ -230,6 +232,31 @@ export default function ReportesProgPanel() {
         </CardHeader>
         <CardContent>
           <p className="text-xs text-muted-foreground">Exporta el detalle completo de confirmaciones y servicios realizados por persona en PDF o Excel.</p>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between pb-2">
+          <CardTitle className="text-base">Detalle por asignación (con cargo)</CardTitle>
+          <ExportDropdown
+            title="Detalle por asignación"
+            filename="programa-detalle-asignaciones"
+            columns={[
+              { header: "Fecha", key: "fecha" },
+              { header: "Evento", key: "evento" },
+              { header: "Ministerio", key: "ministerio" },
+              { header: "Cargo", key: "cargo" },
+              { header: "Tipo de cargo", key: "tipo_cargo" },
+              { header: "Servidor", key: "servidor" },
+              { header: "Estado", key: "estado" },
+              { header: "Asistencia", key: "asistencia" },
+              { header: "Teléfono", key: "telefono" },
+            ]}
+            data={detalleAsignaciones}
+          />
+        </CardHeader>
+        <CardContent>
+          <p className="text-xs text-muted-foreground">Exporta cada asignación individual con su cargo y tipo (Pastor, Líder, Servidor o Colaborador) para auditoría completa.</p>
         </CardContent>
       </Card>
     </div>
