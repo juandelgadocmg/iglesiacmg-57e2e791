@@ -344,9 +344,16 @@ function ReporteDetalleView({
 
   return (
     <div className="space-y-6">
-      <Button variant="ghost" onClick={onBack} className="gap-1.5 text-sm">
-        ← Volver a reuniones
-      </Button>
+      <div className="flex items-center justify-between flex-wrap gap-2">
+        <Button variant="ghost" onClick={onBack} className="gap-1.5 text-sm">
+          ← Volver a reuniones
+        </Button>
+        {onProgramar && (
+          <Button onClick={onProgramar} className="gap-1.5 text-sm">
+            <Users className="h-4 w-4" /> Programar Servicio
+          </Button>
+        )}
+      </div>
 
       {/* Header */}
       <Card className="border-2 border-primary/20">
