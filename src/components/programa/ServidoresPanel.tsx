@@ -50,6 +50,11 @@ export default function ServidoresPanel() {
 
   const filtered = servidores.filter((s) => {
     if (filterMin !== "all" && s.ministerio_id !== filterMin) return false;
+    if (filterCargoTipo !== "all") {
+      const c = s.cargo_id ? cargosMap.get(s.cargo_id) : null;
+      const tipo = getCargoTipo(c?.nombre);
+      if (tipo !== filterCargoTipo) return false;
+    }
     const p: any = personasMap.get(s.persona_id);
     if (!p) return false;
     if (search && !`${p.nombres} ${p.apellidos}`.toLowerCase().includes(search.toLowerCase())) return false;
