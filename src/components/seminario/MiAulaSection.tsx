@@ -19,6 +19,8 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
+import AssetPreview from "@/components/shared/AssetPreview";
+import { openAsset } from "@/lib/openAsset";
 
 function fmtDate(d?: string) { return d ? new Date(d).toLocaleDateString("es-CO", { day: "2-digit", month: "short", year: "numeric" }) : "—"; }
 function fmtDateTime(d?: string) { return d ? new Date(d).toLocaleString("es-CO") : "—"; }
@@ -422,14 +424,11 @@ function RecursoRow({ r }: { r: any }) {
         <DialogContent className="max-w-3xl">
           <DialogHeader><DialogTitle>{r.titulo}</DialogTitle></DialogHeader>
           {!url ? <p className="text-sm text-muted-foreground p-4">Recurso sin archivo asociado.</p> :
-            prev?.kind === "image" ? <img src={prev.url} alt={r.titulo} className="max-h-[70vh] mx-auto" /> :
-            prev?.kind === "pdf" ? <iframe src={prev.url} className="w-full h-[70vh]" title={r.titulo} /> :
-            prev?.kind === "video" ? <video src={prev.url} controls className="w-full max-h-[70vh]" /> :
-            <p className="text-sm text-muted-foreground p-4">No hay vista previa disponible para este tipo de archivo.</p>
+            <AssetPreview url={url} bucket="recursos-academicos" kind={(prev?.kind as any) || "other"} filename={r.titulo} />
           }
           {url && (
             <div className="flex justify-end">
-              <Button size="sm" asChild><a href={url} target="_blank" rel="noopener noreferrer" download><Download className="h-3 w-3 mr-1" />Descargar</a></Button>
+              <Button size="sm" onClick={() => openAsset({ url, bucket: "recursos-academicos", filename: r.titulo, download: true })}><Download className="h-3 w-3 mr-1" />Descargar</Button>
             </div>
           )}
         </DialogContent>

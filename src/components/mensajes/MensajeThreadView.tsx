@@ -96,16 +96,14 @@ export default function MensajeThreadView({ threadId }: Props) {
     if (kind === "image" || kind === "pdf" || kind === "video" || kind === "audio") {
       setPreview({ url, kind, name: a.file_name });
     } else {
-      window.open(url, "_blank");
+      openAssetSafe({ url, filename: a.file_name });
     }
   };
 
   const downloadAttachment = async (a: any) => {
     const url = urls[a.id] || await getAttachmentUrl(a.file_path);
     if (!url) return;
-    const link = document.createElement("a");
-    link.href = url; link.download = a.file_name; link.target = "_blank";
-    document.body.appendChild(link); link.click(); link.remove();
+    openAssetSafe({ url, filename: a.file_name, download: true });
   };
 
   return (
@@ -252,14 +250,18 @@ export default function MensajeThreadView({ threadId }: Props) {
 
       <Dialog open={!!preview} onOpenChange={(o) => !o && setPreview(null)}>
         <DialogContent className="max-w-4xl p-0 overflow-hidden">
-          {preview?.kind === "image" && <img src={preview.url} alt={preview.name} className="w-full max-h-[80vh] object-contain bg-black" />}
-          {preview?.kind === "pdf" && <iframe src={preview.url} title={preview.name} className="w-full h-[80vh] border-0" />}
-          {preview?.kind === "video" && <video src={preview.url} controls className="w-full max-h-[80vh] bg-black" />}
-          {preview?.kind === "audio" && <div className="p-6"><audio src={preview.url} controls className="w-full" /></div>}
+          {preview && preview.kind !== "other" && (
+            <AssetPreview url={preview.url} kind={preview.kind as any} filename={preview.name} className={
+              preview.kind === "image" ? "w-full max-h-[80vh] object-contain bg-black" :
+              preview.kind === "pdf" ? "w-full h-[80vh] border-0" :
+              preview.kind === "video" ? "w-full max-h-[80vh] bg-black" :
+              "w-full"
+            } />
+          )}
           <div className="flex items-center justify-between p-3 border-t bg-background">
             <span className="text-sm truncate">{preview?.name}</span>
-            <Button size="sm" variant="outline" onClick={() => preview && window.open(preview.url, "_blank")}>
-              <Download className="h-4 w-4 mr-1" /> Abrir / Descargar
+            <Button size="sm" variant="outline" onClick={() => preview && openAssetSafe({ url: preview.url, filename: preview.name, download: true })}>
+              <Download className="h-4 w-4 mr-1" /> Descargar
             </Button>
           </div>
         </DialogContent>
