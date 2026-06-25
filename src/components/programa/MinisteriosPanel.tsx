@@ -12,7 +12,8 @@ import { usePersonas } from "@/hooks/useDatabase";
 import { exportMinisterioProgramaPDF } from "@/lib/exportUtils";
 import { findIsoTemplate } from "@/lib/isoMinisterioTemplates";
 import { exportIsoMinisterioPdf, normKey } from "@/lib/exportIsoMinisterioPdf";
-import { FileText } from "lucide-react";
+import { FileText, Eye } from "lucide-react";
+import IsoProgramacionPreview from "./IsoProgramacionPreview";
 
 export default function MinisteriosPanel() {
   const { data: ministerios = [] } = useProgMinisterios();
@@ -29,6 +30,7 @@ export default function MinisteriosPanel() {
   const [editMin, setEditMin] = useState<Partial<ProgMinisterio>>({});
   const [openCar, setOpenCar] = useState<string | null>(null);
   const [editCar, setEditCar] = useState<Partial<ProgCargo>>({});
+  const [previewMin, setPreviewMin] = useState<ProgMinisterio | null>(null);
 
   const personasMap = useMemo(() => new Map(personas.map((p: any) => [p.id, p])), [personas]);
   const cargosMap = useMemo(() => new Map(cargos.map((c) => [c.id, c])), [cargos]);
@@ -161,7 +163,10 @@ export default function MinisteriosPanel() {
                   </div>
                   <div className="flex gap-1 flex-shrink-0">
                     {findIsoTemplate(m.nombre) && (
-                      <Button size="icon" variant="ghost" className="h-7 w-7" title="Cargar estaciones ISO como cargos" onClick={() => cargarPlantillaIso(m)}><FileText className="h-3.5 w-3.5" /></Button>
+                      <>
+                        <Button size="icon" variant="ghost" className="h-7 w-7" title="Cargar estaciones ISO como cargos" onClick={() => cargarPlantillaIso(m)}><FileText className="h-3.5 w-3.5" /></Button>
+                        <Button size="icon" variant="ghost" className="h-7 w-7" title="Vista previa ISO y editar" onClick={() => setPreviewMin(m)}><Eye className="h-3.5 w-3.5" /></Button>
+                      </>
                     )}
                     <Button size="icon" variant="ghost" className="h-7 w-7" title="Descargar PDF de programación" onClick={() => descargarPdfMinisterio(m)}><FileDown className="h-3.5 w-3.5" /></Button>
                     <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => { setEditMin(m); setOpenMin(true); }}><Pencil className="h-3.5 w-3.5" /></Button>
@@ -206,6 +211,19 @@ export default function MinisteriosPanel() {
           );
         })}
       </div>
+
+      {previewMin && findIsoTemplate(previewMin.nombre) && (
+        <IsoProgramacionPreview
+          open={!!previewMin}
+          onOpenChange={(o) => !o && setPreviewMin(null)}
+          ministerio={previewMin}
+          template={findIsoTemplate(previewMin.nombre)!}
+          liderNombre={(() => {
+            const l: any = personasMap.get(previewMin.lider_persona_id || "");
+            return l ? `${l.nombres} ${l.apellidos}` : "";
+          })()}
+        />
+      )}
     </div>
   );
 }
