@@ -69,7 +69,13 @@ export type ActionPermission =
   | "seminario:asistencia_edit"
   | "seminario:biblioteca_crud"
   | "seminario:anuncios_crud"
-  | "seminario:reportes";
+  | "seminario:reportes"
+  | "programa:manage"
+  | "programa:assign"
+  | "programa:confirm:pastor"
+  | "programa:confirm:lider"
+  | "programa:confirm:servidor"
+  | "programa:confirm:colaborador";
 
 const ACTION_PERMISSIONS: Record<ActionPermission, AppRole[]> = {
   "personas:create": ["admin", "super_admin", "pastor", "lider", "secretaria", "consolidador_lider"],
@@ -94,6 +100,13 @@ const ACTION_PERMISSIONS: Record<ActionPermission, AppRole[]> = {
   "seminario:biblioteca_crud":     ["admin", "super_admin", "pastor", "maestro", "seminario_admin", "seminario_docente"],
   "seminario:anuncios_crud":       ["admin", "super_admin", "pastor", "maestro", "seminario_admin", "seminario_docente"],
   "seminario:reportes":            ["admin", "super_admin", "pastor", "seminario_admin"],
+  // Programación: control granular por cargo. Cada cargo solo puede ver/confirmar lo que le corresponde.
+  "programa:manage":              ["admin", "super_admin", "pastor"],
+  "programa:assign":              ["admin", "super_admin", "pastor", "lider"],
+  "programa:confirm:pastor":      ["admin", "super_admin", "pastor"],
+  "programa:confirm:lider":       ["admin", "super_admin", "pastor", "lider"],
+  "programa:confirm:servidor":    ["admin", "super_admin", "pastor", "lider", "secretaria"],
+  "programa:confirm:colaborador": ["admin", "super_admin", "pastor", "lider", "secretaria"],
 };
 
 export function canAccess(userRoles: AppRole[], path: string): boolean {
