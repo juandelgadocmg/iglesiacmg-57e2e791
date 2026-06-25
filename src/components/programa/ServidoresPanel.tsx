@@ -7,11 +7,12 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Plus, Trash2, Search, Calendar as CalIcon } from "lucide-react";
+import { Plus, Trash2, Search, Calendar as CalIcon, LayoutGrid } from "lucide-react";
 import { toast } from "sonner";
-import { useProgMinisterios, useProgCargos, useProgServidores, useUpsertServidor, useDeleteServidor, useAsignacionesPorPersona, useUpsertDisponibilidad, useProgDisponibilidad, useDeleteDisponibilidad } from "@/hooks/usePrograma";
+import { useProgMinisterios, useProgCargos, useProgServidores, useUpsertServidor, useDeleteServidor, useAsignacionesPorPersona, useUpsertDisponibilidad, useProgDisponibilidad, useDeleteDisponibilidad, CARGOS_GENERICOS, getCargoTipo, isPersonaDisponibleEnFecha, type CargoGenerico } from "@/hooks/usePrograma";
 import { usePersonas } from "@/hooks/useDatabase";
 import SearchableCombobox, { ComboboxItem } from "@/components/seminario/SearchableCombobox";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 
 export default function ServidoresPanel() {
   const { data: personas = [] } = usePersonas();
