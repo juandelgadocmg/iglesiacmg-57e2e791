@@ -193,6 +193,122 @@ export const ISO_TEMPLATES: IsoMinisterioTemplate[] = [
     responsabilidades: RESPONSABILIDADES_DEFAULT,
     firmas: FIRMAS_DEFAULT,
   },
+  {
+    nombreMinisterio: "Alabanza",
+    codigo: "FO-EC-PAL01",
+    version: "01",
+    fechaVigencia: "18/07/2024",
+    titulo: "FORMATO PROGRAMACIÓN MINISTERIO ALABANZA",
+    estaciones: ["Director", "Cantante", "Teclado", "Batería", "Bajo", "Guitarra", "Coros"],
+    importante:
+      "Ensayo obligatorio el día previo al servicio. Llegar 1 hora antes para prueba de sonido. " +
+      "Uniforme institucional y actitud de adoración durante todo el servicio.",
+    responsabilidades: RESPONSABILIDADES_DEFAULT,
+    firmas: FIRMAS_DEFAULT,
+  },
+  {
+    nombreMinisterio: "Danza",
+    codigo: "FO-EC-PDZ01",
+    version: "01",
+    fechaVigencia: "18/07/2024",
+    titulo: "FORMATO PROGRAMACIÓN MINISTERIO DANZA",
+    estaciones: ["Bailarín 1", "Bailarín 2", "Bailarín 3", "Bailarín 4", "Tema", "Vestuario"],
+    importante:
+      "Llegar 30 min antes para preparación y calentamiento. Confirmar coreografía y tema con la líder 2 días antes.",
+    responsabilidades: RESPONSABILIDADES_DEFAULT,
+    firmas: FIRMAS_DEFAULT,
+  },
+  {
+    nombreMinisterio: "Infantil",
+    codigo: "FO-EC-PIN01",
+    version: "01",
+    fechaVigencia: "18/07/2024",
+    titulo: "FORMATO PROGRAMACIÓN MINISTERIO INFANTIL",
+    estaciones: ["Maestro", "Apoyo", "Tema", "Material", "Recepción", "Aseo"],
+    importante:
+      "Preparar material didáctico y dinámicas con anticipación. Llegar 45 min antes del servicio. " +
+      "Cumplir con el protocolo de cuidado del menor.",
+    responsabilidades: RESPONSABILIDADES_DEFAULT,
+    firmas: FIRMAS_DEFAULT,
+  },
+  {
+    nombreMinisterio: "Consolidación",
+    codigo: "FO-EC-PCN01",
+    version: "01",
+    fechaVigencia: "18/07/2024",
+    titulo: "FORMATO PROGRAMACIÓN MINISTERIO CONSOLIDACIÓN",
+    estaciones: [
+      "Palabra NPT",
+      "Bienvenida y Palabra",
+      "Lateral Derecho",
+      "Lateral Derecho Centro",
+      "Centro",
+      "Lateral Izquierdo",
+      "Lateral Izquierdo Centro",
+    ],
+    importante:
+      "Atender con calidez a los nuevos, registrar sus datos y entregar el material de bienvenida. " +
+      "Uniforme completo y llegada 30 min antes del servicio.",
+    responsabilidades: RESPONSABILIDADES_DEFAULT,
+    firmas: FIRMAS_DEFAULT,
+  },
+  {
+    nombreMinisterio: "EscuelasFel",
+    codigo: "FO-EC-PEF01",
+    version: "01",
+    fechaVigencia: "18/07/2024",
+    titulo: "FORMATO PROGRAMACIÓN MINISTERIO ESCUELAS FEL",
+    estaciones: [
+      "Toma De Asistencia",
+      "Docente",
+      "Coffe Break",
+      "Recepción",
+      "Organización De Auditorio",
+      "Proyecto Nehemías",
+    ],
+    importante:
+      "Coordinar materiales y refrigerios con anticipación. Confirmar docente y tema de la clase 2 días antes.",
+    responsabilidades: RESPONSABILIDADES_DEFAULT,
+    firmas: FIRMAS_DEFAULT,
+  },
+  {
+    nombreMinisterio: "Protocolo y Seguridad",
+    codigo: "FO-EC-PPS01",
+    version: "01",
+    fechaVigencia: "18/07/2024",
+    titulo: "FORMATO PROGRAMACIÓN MINISTERIO PROTOCOLO Y SEGURIDAD",
+    estaciones: [
+      "Puerta Principal",
+      "Parqueadero",
+      "Acceso Auditorio",
+      "Recorrido Interno",
+      "Apoyo Pastoral",
+      "Apoyo Externo",
+    ],
+    importante:
+      "Llegar 1 hora antes del servicio. Uniforme y radio asignado. Mantener comunicación constante por canal interno.",
+    responsabilidades: RESPONSABILIDADES_DEFAULT,
+    firmas: FIRMAS_DEFAULT,
+  },
+  {
+    nombreMinisterio: "Sonido",
+    codigo: "FO-EC-PSO01",
+    version: "01",
+    fechaVigencia: "18/07/2024",
+    titulo: "FORMATO PROGRAMACIÓN MINISTERIO SONIDO",
+    estaciones: [
+      "Operador FOH",
+      "Operador Monitores",
+      "Microfonía",
+      "Backline",
+      "Apoyo Técnico",
+    ],
+    importante:
+      "Llegar 1.5 horas antes para montaje, prueba de línea y ensayo con alabanza. " +
+      "Revisión de cableado, baterías de inalámbricos y respaldo de consola.",
+    responsabilidades: RESPONSABILIDADES_DEFAULT,
+    firmas: FIRMAS_DEFAULT,
+  },
 ];
 
 /** Normaliza un nombre para comparar (minúsculas, sin tildes ni espacios extra). */
