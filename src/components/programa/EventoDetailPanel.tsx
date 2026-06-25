@@ -31,6 +31,19 @@ export default function EventoDetailPanel({ evento, onBack, onDelete }: { evento
   const delAsig = useDeleteAsignacion();
   const upEv = useUpsertEvento();
   const stats = useAsignacionesPorPersona();
+  const can = useCan();
+
+  const canConfirmForCargo = (cargoNombre: string | null | undefined): boolean => {
+    const tipo = getCargoTipo(cargoNombre);
+    if (!tipo) return can("programa:assign");
+    const map: Record<string, ActionPermission> = {
+      Pastor: "programa:confirm:pastor",
+      "Líder": "programa:confirm:lider",
+      Servidor: "programa:confirm:servidor",
+      Colaborador: "programa:confirm:colaborador",
+    };
+    return can(map[tipo]);
+  };
 
   const personasMap = useMemo(() => new Map(personas.map((p: any) => [p.id, p])), [personas]);
   const cargosMap = useMemo(() => new Map(cargos.map((c) => [c.id, c])), [cargos]);
