@@ -211,6 +211,19 @@ export default function MinisteriosPanel() {
           );
         })}
       </div>
+
+      {previewMin && findIsoTemplate(previewMin.nombre) && (
+        <IsoProgramacionPreview
+          open={!!previewMin}
+          onOpenChange={(o) => !o && setPreviewMin(null)}
+          ministerio={previewMin}
+          template={findIsoTemplate(previewMin.nombre)!}
+          liderNombre={(() => {
+            const l: any = personasMap.get(previewMin.lider_persona_id || "");
+            return l ? `${l.nombres} ${l.apellidos}` : "";
+          })()}
+        />
+      )}
     </div>
   );
 }
