@@ -25,9 +25,7 @@ import { cn } from "@/lib/utils";
 import ExportDropdown from "@/components/shared/ExportDropdown";
 import AttendanceTrendChart from "@/components/charts/AttendanceTrendChart";
 
-import ProgramarServicioPanel from "@/components/programa/ProgramarServicioPanel";
-
-type ActiveView = "reuniones" | "reportes" | "reporte-detalle" | "consejeria" | "programacion" | "programar-servicio";
+type ActiveView = "reuniones" | "reportes" | "reporte-detalle" | "consejeria" | "programacion";
 
 export default function ServiciosPage() {
   const { data: servicios, isLoading } = useServicios();
@@ -287,15 +285,6 @@ export default function ServiciosPage() {
           attendanceRate={attendanceRate}
           loadingAsistencia={loadingAsistencia}
           onBack={() => { setActiveView("reuniones"); setSelectedReunion(null); }}
-          onProgramar={() => setActiveView("programar-servicio")}
-        />
-      )}
-
-      {/* ===== PROGRAMAR SERVICIO ===== */}
-      {activeView === "programar-servicio" && selectedReunion && (
-        <ProgramarServicioPanel
-          reunion={selectedReunion}
-          onBack={() => setActiveView("reporte-detalle")}
         />
       )}
     </div>
@@ -329,7 +318,7 @@ function ReportarReunionView({ servicios, personas, onSelectReunion }: any) {
 function ReporteDetalleView({
   reunion, personas, localAttendance, setLocalAttendance, toggleAttendance, markAll, saveAttendance,
   isPending, searchTerm, setSearchTerm, filterStatus, setFilterStatus,
-  filteredPersonas, totalPresent, totalAbsent, attendanceRate, loadingAsistencia, onBack, onProgramar
+  filteredPersonas, totalPresent, totalAbsent, attendanceRate, loadingAsistencia, onBack
 }: any) {
   // Classify by tipo_persona
   const clasificacion: Record<string, number> = {};
@@ -344,16 +333,9 @@ function ReporteDetalleView({
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between flex-wrap gap-2">
-        <Button variant="ghost" onClick={onBack} className="gap-1.5 text-sm">
-          ← Volver a reuniones
-        </Button>
-        {onProgramar && (
-          <Button onClick={onProgramar} className="gap-1.5 text-sm">
-            <Users className="h-4 w-4" /> Programar Servicio
-          </Button>
-        )}
-      </div>
+      <Button variant="ghost" onClick={onBack} className="gap-1.5 text-sm">
+        ← Volver a reuniones
+      </Button>
 
       {/* Header */}
       <Card className="border-2 border-primary/20">
