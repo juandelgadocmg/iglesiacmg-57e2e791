@@ -11,6 +11,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { format, formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
 import MensajeComposer from "./MensajeComposer";
+import AssetPreview from "@/components/shared/AssetPreview";
+import { openAsset as openAssetSafe } from "@/lib/openAsset";
 
 interface Props {
   threadId: string;
