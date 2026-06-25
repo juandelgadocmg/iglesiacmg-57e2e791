@@ -7,11 +7,12 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Plus, Trash2, Search, Calendar as CalIcon } from "lucide-react";
+import { Plus, Trash2, Search, Calendar as CalIcon, LayoutGrid, Users } from "lucide-react";
 import { toast } from "sonner";
-import { useProgMinisterios, useProgCargos, useProgServidores, useUpsertServidor, useDeleteServidor, useAsignacionesPorPersona, useUpsertDisponibilidad, useProgDisponibilidad, useDeleteDisponibilidad } from "@/hooks/usePrograma";
+import { useProgMinisterios, useProgCargos, useProgServidores, useUpsertServidor, useDeleteServidor, useAsignacionesPorPersona, useUpsertDisponibilidad, useProgDisponibilidad, useDeleteDisponibilidad, CARGOS_GENERICOS, getCargoTipo, isPersonaDisponibleEnFecha, type CargoGenerico } from "@/hooks/usePrograma";
 import { usePersonas } from "@/hooks/useDatabase";
 import SearchableCombobox, { ComboboxItem } from "@/components/seminario/SearchableCombobox";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 
 export default function ServidoresPanel() {
   const { data: personas = [] } = usePersonas();
@@ -26,11 +27,13 @@ export default function ServidoresPanel() {
   const stats = useAsignacionesPorPersona();
 
   const [filterMin, setFilterMin] = useState<string>("all");
+  const [filterCargoTipo, setFilterCargoTipo] = useState<string>("all");
   const [search, setSearch] = useState("");
   const [openAdd, setOpenAdd] = useState(false);
   const [draft, setDraft] = useState<any>({});
   const [openDisp, setOpenDisp] = useState<string | null>(null);
   const [draftDisp, setDraftDisp] = useState<any>({});
+  const [matrixDate, setMatrixDate] = useState<string>(new Date().toISOString().slice(0, 10));
 
   const personasMap = useMemo(() => new Map(personas.map((p: any) => [p.id, p])), [personas]);
   const cargosMap = useMemo(() => new Map(cargos.map((c) => [c.id, c])), [cargos]);
@@ -47,6 +50,11 @@ export default function ServidoresPanel() {
 
   const filtered = servidores.filter((s) => {
     if (filterMin !== "all" && s.ministerio_id !== filterMin) return false;
+    if (filterCargoTipo !== "all") {
+      const c = s.cargo_id ? cargosMap.get(s.cargo_id) : null;
+      const tipo = getCargoTipo(c?.nombre);
+      if (tipo !== filterCargoTipo) return false;
+    }
     const p: any = personasMap.get(s.persona_id);
     if (!p) return false;
     if (search && !`${p.nombres} ${p.apellidos}`.toLowerCase().includes(search.toLowerCase())) return false;
@@ -63,13 +71,25 @@ export default function ServidoresPanel() {
   };
 
   return (
-    <div className="space-y-4">
+    <Tabs defaultValue="lista" className="space-y-4">
+      <TabsList>
+        <TabsTrigger value="lista"><Users className="h-3.5 w-3.5 mr-1.5" />Lista de servidores</TabsTrigger>
+        <TabsTrigger value="matriz"><LayoutGrid className="h-3.5 w-3.5 mr-1.5" />Matriz por cargos</TabsTrigger>
+      </TabsList>
+      <TabsContent value="lista" className="space-y-4 mt-0">
       <div className="flex flex-wrap gap-2 items-center justify-between">
-        <div className="flex gap-2 flex-1 min-w-[260px]">
-          <div className="relative flex-1"><Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" /><Input placeholder="Buscar servidor..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-8" /></div>
+        <div className="flex gap-2 flex-1 min-w-[260px] flex-wrap">
+          <div className="relative flex-1 min-w-[180px]"><Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" /><Input placeholder="Buscar servidor..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-8" /></div>
           <Select value={filterMin} onValueChange={setFilterMin}>
-            <SelectTrigger className="w-[200px]"><SelectValue /></SelectTrigger>
+            <SelectTrigger className="w-[180px]"><SelectValue /></SelectTrigger>
             <SelectContent><SelectItem value="all">Todos los ministerios</SelectItem>{ministerios.map((m) => <SelectItem key={m.id} value={m.id}>{m.nombre}</SelectItem>)}</SelectContent>
+          </Select>
+          <Select value={filterCargoTipo} onValueChange={setFilterCargoTipo}>
+            <SelectTrigger className="w-[160px]"><SelectValue placeholder="Tipo de cargo" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos los cargos</SelectItem>
+              {CARGOS_GENERICOS.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+            </SelectContent>
           </Select>
         </div>
         <Dialog open={openAdd} onOpenChange={(o) => { setOpenAdd(o); if (!o) setDraft({}); }}>
@@ -177,6 +197,81 @@ export default function ServidoresPanel() {
         })}
         {filtered.length === 0 && <p className="text-sm text-muted-foreground col-span-full">No hay servidores registrados.</p>}
       </div>
-    </div>
+      </TabsContent>
+
+      <TabsContent value="matriz" className="space-y-4 mt-0">
+        <Card>
+          <CardContent className="p-4 space-y-3">
+            <div className="flex flex-wrap items-end gap-3 justify-between">
+              <div>
+                <Label className="text-xs">Validar disponibilidad para la fecha</Label>
+                <Input type="date" value={matrixDate} onChange={(e) => setMatrixDate(e.target.value)} className="w-[200px] mt-1" />
+                <p className="text-[11px] text-muted-foreground mt-1">Antes de programar un servicio, verifica qué cargos están cubiertos y qué servidores están disponibles.</p>
+              </div>
+              <div className="flex gap-2 text-[11px]">
+                <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">● Disponible</Badge>
+                <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">● No disponible</Badge>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <div className="space-y-3">
+          {(filterMin === "all" ? ministerios : ministerios.filter((m) => m.id === filterMin)).map((m) => {
+            const cargosMin = cargos.filter((c) => c.ministerio_id === m.id);
+            return (
+              <Card key={m.id}>
+                <CardContent className="p-4 space-y-3">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2 h-6 rounded-full" style={{ background: m.color || "#2563eb" }} />
+                    <h4 className="font-semibold">{m.nombre}</h4>
+                    <Badge variant="secondary" className="text-[10px]">{cargosMin.length} cargo(s)</Badge>
+                  </div>
+                  {cargosMin.length === 0 && <p className="text-xs text-muted-foreground">Sin cargos definidos.</p>}
+                  <div className="grid gap-2 md:grid-cols-2">
+                    {cargosMin.map((c) => {
+                      const asignados = servidores.filter((s) => s.ministerio_id === m.id && s.cargo_id === c.id && s.activo);
+                      const tipo = getCargoTipo(c.nombre);
+                      return (
+                        <div key={c.id} className="border rounded-md p-2.5 bg-card">
+                          <div className="flex items-center justify-between mb-1.5">
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-sm font-medium">{c.nombre}</span>
+                              {tipo && <Badge variant="outline" className="text-[9px]">{tipo}</Badge>}
+                            </div>
+                            <Badge variant="secondary" className="text-[10px]">{asignados.length}/{c.cupo || 1}</Badge>
+                          </div>
+                          <div className="space-y-1">
+                            {asignados.length === 0 && <p className="text-[11px] text-muted-foreground italic">Sin personas asignadas.</p>}
+                            {asignados.map((s) => {
+                              const p: any = personasMap.get(s.persona_id);
+                              if (!p) return null;
+                              const disponible = isPersonaDisponibleEnFecha(s.persona_id, matrixDate, disponibilidad);
+                              return (
+                                <div key={s.id} className="flex items-center justify-between text-xs">
+                                  <span className="truncate">{p.nombres} {p.apellidos}</span>
+                                  <Badge
+                                    variant="outline"
+                                    className={disponible
+                                      ? "bg-green-50 text-green-700 border-green-200 text-[9px]"
+                                      : "bg-red-50 text-red-700 border-red-200 text-[9px]"}
+                                  >
+                                    {disponible ? "Disponible" : "No disponible"}
+                                  </Badge>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+      </TabsContent>
+    </Tabs>
   );
 }

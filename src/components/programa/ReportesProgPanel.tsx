@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import ExportDropdown from "@/components/shared/ExportDropdown";
-import { useProgMinisterios, useProgAsignaciones, useProgEventos } from "@/hooks/usePrograma";
+import { useProgMinisterios, useProgAsignaciones, useProgEventos, useProgCargos, getCargoTipo } from "@/hooks/usePrograma";
 import { usePersonas } from "@/hooks/useDatabase";
 
 export default function ReportesProgPanel() {
@@ -10,19 +10,25 @@ export default function ReportesProgPanel() {
   const { data: asignaciones = [] } = useProgAsignaciones();
   const { data: eventos = [] } = useProgEventos();
   const { data: personas = [] } = usePersonas();
+  const { data: cargos = [] } = useProgCargos();
 
   const personasMap = useMemo(() => new Map(personas.map((p: any) => [p.id, p])), [personas]);
   const eventosMap = useMemo(() => new Map(eventos.map((e) => [e.id, e])), [eventos]);
   const minMap = useMemo(() => new Map(ministerios.map((m) => [m.id, m])), [ministerios]);
+  const cargosMap = useMemo(() => new Map(cargos.map((c) => [c.id, c])), [cargos]);
 
   const porPersona = useMemo(() => {
-    const m = new Map<string, { total: number; presente: number; ausente: number; tarde: number; last: string | null }>();
+    const m = new Map<string, { total: number; presente: number; ausente: number; tarde: number; last: string | null; cargos: Set<string>; tipos: Set<string> }>();
     asignaciones.forEach((a) => {
-      const cur = m.get(a.persona_id) || { total: 0, presente: 0, ausente: 0, tarde: 0, last: null };
+      const cur = m.get(a.persona_id) || { total: 0, presente: 0, ausente: 0, tarde: 0, last: null, cargos: new Set<string>(), tipos: new Set<string>() };
       cur.total++;
       if (a.asistencia === "presente") cur.presente++;
       if (a.asistencia === "ausente") cur.ausente++;
       if (a.asistencia === "tarde") cur.tarde++;
+      const c = a.cargo_id ? cargosMap.get(a.cargo_id) : null;
+      if (c?.nombre) cur.cargos.add(c.nombre);
+      const tipo = getCargoTipo(c?.nombre);
+      if (tipo) cur.tipos.add(tipo);
       const ev = eventosMap.get(a.evento_id);
       if (ev && (!cur.last || ev.fecha > cur.last)) cur.last = ev.fecha;
       m.set(a.persona_id, cur);
@@ -30,10 +36,40 @@ export default function ReportesProgPanel() {
     return Array.from(m.entries())
       .map(([persona_id, v]) => {
         const p: any = personasMap.get(persona_id);
-        return { persona_id, nombre: p ? `${p.nombres} ${p.apellidos}` : "—", ...v, pct: v.total ? Math.round((v.presente / v.total) * 100) : 0 };
+        return {
+          persona_id,
+          nombre: p ? `${p.nombres} ${p.apellidos}` : "—",
+          total: v.total,
+          presente: v.presente,
+          ausente: v.ausente,
+          tarde: v.tarde,
+          last: v.last,
+          cargos: Array.from(v.cargos).join(", ") || "—",
+          tipo_cargo: Array.from(v.tipos).join(", ") || "—",
+          pct: v.total ? Math.round((v.presente / v.total) * 100) : 0,
+        };
       })
       .sort((a, b) => b.total - a.total);
-  }, [asignaciones, personasMap, eventosMap]);
+  }, [asignaciones, personasMap, eventosMap, cargosMap]);
+
+  const detalleAsignaciones = useMemo(() => {
+    return asignaciones.map((a) => {
+      const p: any = personasMap.get(a.persona_id);
+      const c = a.cargo_id ? cargosMap.get(a.cargo_id) : null;
+      const ev = eventosMap.get(a.evento_id);
+      return {
+        fecha: ev?.fecha || "—",
+        evento: ev?.titulo || "—",
+        ministerio: minMap.get(a.ministerio_id)?.nombre || "—",
+        cargo: c?.nombre || "—",
+        tipo_cargo: getCargoTipo(c?.nombre) || "—",
+        servidor: p ? `${p.nombres} ${p.apellidos}` : "—",
+        estado: a.estado,
+        asistencia: a.asistencia || "—",
+        telefono: p?.telefono || p?.whatsapp || "—",
+      };
+    }).sort((a, b) => (b.fecha || "").localeCompare(a.fecha || ""));
+  }, [asignaciones, personasMap, cargosMap, eventosMap, minMap]);
 
   const porMinisterio = useMemo(() => {
     const m = new Map<string, { total: number; presente: number; tarde: number; ausente: number; confirmados: number }>();
@@ -50,7 +86,7 @@ export default function ReportesProgPanel() {
   }, [asignaciones, minMap]);
 
   const ausencias = porPersona.filter((p) => p.ausente > 0).sort((a, b) => b.ausente - a.ausente);
-  const confirmaciones = porPersona.map((p) => ({ nombre: p.nombre, total: p.total, presente: p.presente, ausente: p.ausente, tarde: p.tarde })).filter((p) => p.total > 0);
+  const confirmaciones = porPersona.map((p) => ({ nombre: p.nombre, cargos: p.cargos, tipo_cargo: p.tipo_cargo, total: p.total, presente: p.presente, ausente: p.ausente, tarde: p.tarde })).filter((p) => p.total > 0);
 
   return (
     <div className="space-y-4">
@@ -112,6 +148,8 @@ export default function ReportesProgPanel() {
             filename="servicios-por-servidor"
             columns={[
               { header: "Servidor", key: "nombre" },
+              { header: "Cargos", key: "cargos" },
+              { header: "Tipo de cargo", key: "tipo_cargo" },
               { header: "Total servicios", key: "total" },
               { header: "Presente", key: "presente" },
               { header: "Tarde", key: "tarde" },
@@ -154,6 +192,8 @@ export default function ReportesProgPanel() {
             filename="ausencias-por-servidor"
             columns={[
               { header: "Servidor", key: "nombre" },
+              { header: "Cargos", key: "cargos" },
+              { header: "Tipo de cargo", key: "tipo_cargo" },
               { header: "Ausencias", key: "ausente" },
               { header: "Tarde", key: "tarde" },
               { header: "Total asignaciones", key: "total" },
@@ -180,6 +220,8 @@ export default function ReportesProgPanel() {
             filename="confirmaciones-servicios"
             columns={[
               { header: "Servidor", key: "nombre" },
+              { header: "Cargos", key: "cargos" },
+              { header: "Tipo de cargo", key: "tipo_cargo" },
               { header: "Total", key: "total" },
               { header: "Presente", key: "presente" },
               { header: "Tarde", key: "tarde" },
@@ -190,6 +232,31 @@ export default function ReportesProgPanel() {
         </CardHeader>
         <CardContent>
           <p className="text-xs text-muted-foreground">Exporta el detalle completo de confirmaciones y servicios realizados por persona en PDF o Excel.</p>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between pb-2">
+          <CardTitle className="text-base">Detalle por asignación (con cargo)</CardTitle>
+          <ExportDropdown
+            title="Detalle por asignación"
+            filename="programa-detalle-asignaciones"
+            columns={[
+              { header: "Fecha", key: "fecha" },
+              { header: "Evento", key: "evento" },
+              { header: "Ministerio", key: "ministerio" },
+              { header: "Cargo", key: "cargo" },
+              { header: "Tipo de cargo", key: "tipo_cargo" },
+              { header: "Servidor", key: "servidor" },
+              { header: "Estado", key: "estado" },
+              { header: "Asistencia", key: "asistencia" },
+              { header: "Teléfono", key: "telefono" },
+            ]}
+            data={detalleAsignaciones}
+          />
+        </CardHeader>
+        <CardContent>
+          <p className="text-xs text-muted-foreground">Exporta cada asignación individual con su cargo y tipo (Pastor, Líder, Servidor o Colaborador) para auditoría completa.</p>
         </CardContent>
       </Card>
     </div>

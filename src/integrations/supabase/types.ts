@@ -2505,6 +2505,36 @@ export type Database = {
           },
         ]
       }
+      prog_configuracion_tipos: {
+        Row: {
+          created_at: string
+          horas_bloqueo: number
+          id: string
+          recordatorio_24h: boolean
+          recordatorio_2h: boolean
+          tipo_evento: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          horas_bloqueo?: number
+          id?: string
+          recordatorio_24h?: boolean
+          recordatorio_2h?: boolean
+          tipo_evento: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          horas_bloqueo?: number
+          id?: string
+          recordatorio_24h?: boolean
+          recordatorio_2h?: boolean
+          tipo_evento?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       prog_disponibilidad: {
         Row: {
           created_at: string
@@ -4540,6 +4570,7 @@ export type Database = {
           read_ct: number
         }[]
       }
+      resolve_user_id_by_email: { Args: { _email: string }; Returns: string }
       sem_calcular_promedio: {
         Args: { _persona_id: string; _programa_id: string }
         Returns: number

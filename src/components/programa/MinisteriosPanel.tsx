@@ -1,17 +1,22 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Plus, Pencil, Trash2, Users } from "lucide-react";
+import { Plus, Pencil, Trash2, Users, FileDown } from "lucide-react";
 import { toast } from "sonner";
-import { useProgMinisterios, useProgCargos, useUpsertMinisterio, useDeleteMinisterio, useUpsertCargo, useDeleteCargo, type ProgMinisterio, type ProgCargo } from "@/hooks/usePrograma";
+import { useProgMinisterios, useProgCargos, useUpsertMinisterio, useDeleteMinisterio, useUpsertCargo, useDeleteCargo, useProgEventos, useProgAsignaciones, getCargoTipo, type ProgMinisterio, type ProgCargo } from "@/hooks/usePrograma";
+import { usePersonas } from "@/hooks/useDatabase";
+import { exportMinisterioProgramaPDF } from "@/lib/exportUtils";
 
 export default function MinisteriosPanel() {
   const { data: ministerios = [] } = useProgMinisterios();
   const { data: cargos = [] } = useProgCargos();
+  const { data: eventos = [] } = useProgEventos();
+  const { data: asignaciones = [] } = useProgAsignaciones();
+  const { data: personas = [] } = usePersonas();
   const upMin = useUpsertMinisterio();
   const delMin = useDeleteMinisterio();
   const upCar = useUpsertCargo();
@@ -22,6 +27,9 @@ export default function MinisteriosPanel() {
   const [openCar, setOpenCar] = useState<string | null>(null);
   const [editCar, setEditCar] = useState<Partial<ProgCargo>>({});
 
+  const personasMap = useMemo(() => new Map(personas.map((p: any) => [p.id, p])), [personas]);
+  const cargosMap = useMemo(() => new Map(cargos.map((c) => [c.id, c])), [cargos]);
+
   const saveMin = async () => {
     if (!editMin.nombre) return toast.error("Nombre requerido");
     try { await upMin.mutateAsync(editMin); toast.success("Ministerio guardado"); setOpenMin(false); setEditMin({}); } catch (e: any) { toast.error(e.message); }
@@ -29,6 +37,39 @@ export default function MinisteriosPanel() {
   const saveCar = async () => {
     if (!editCar.nombre || !editCar.ministerio_id) return;
     try { await upCar.mutateAsync({ ...editCar, cupo: editCar.cupo || 1 }); toast.success("Cargo guardado"); setEditCar({ ministerio_id: editCar.ministerio_id }); } catch (e: any) { toast.error(e.message); }
+  };
+
+  const descargarPdfMinisterio = (m: ProgMinisterio) => {
+    const today = new Date().toISOString().slice(0, 10);
+    const proxEventos = eventos
+      .filter((e) => e.fecha >= today)
+      .sort((a, b) => a.fecha.localeCompare(b.fecha))
+      .filter((e) => asignaciones.some((a) => a.evento_id === e.id && a.ministerio_id === m.id));
+    const map = new Map<string, any[]>();
+    proxEventos.forEach((e) => {
+      const filas = asignaciones
+        .filter((a) => a.evento_id === e.id && a.ministerio_id === m.id)
+        .map((a) => {
+          const p: any = personasMap.get(a.persona_id);
+          const c = a.cargo_id ? cargosMap.get(a.cargo_id) : null;
+          return {
+            servidor: p ? `${p.nombres} ${p.apellidos}` : "—",
+            cargo: c?.nombre || "—",
+            tipo: getCargoTipo(c?.nombre) || "—",
+            estado: a.estado,
+            asistencia: a.asistencia || "—",
+            telefono: p?.telefono || p?.whatsapp || "—",
+          };
+        });
+      map.set(e.id, filas);
+    });
+    exportMinisterioProgramaPDF({
+      ministerioNombre: m.nombre,
+      color: m.color,
+      eventos: proxEventos,
+      filasPorEvento: map,
+    });
+    toast.success(`PDF generado para ${m.nombre}`);
   };
 
   return (
@@ -59,6 +100,7 @@ export default function MinisteriosPanel() {
                 <div className="flex justify-between items-start">
                   <CardTitle className="text-base">{m.nombre}</CardTitle>
                   <div className="flex gap-1">
+                    <Button size="icon" variant="ghost" className="h-7 w-7" title="Descargar PDF de programación" onClick={() => descargarPdfMinisterio(m)}><FileDown className="h-3.5 w-3.5" /></Button>
                     <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => { setEditMin(m); setOpenMin(true); }}><Pencil className="h-3.5 w-3.5" /></Button>
                     <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => { if (confirm("¿Eliminar ministerio y sus cargos?")) delMin.mutate(m.id); }}><Trash2 className="h-3.5 w-3.5" /></Button>
                   </div>

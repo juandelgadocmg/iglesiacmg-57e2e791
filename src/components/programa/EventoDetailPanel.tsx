@@ -10,13 +10,15 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ChevronLeft, Plus, Trash2, Check, X, MessageSquare, Send, Sparkles, Phone, Lock, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
-import { useProgMinisterios, useProgCargos, useProgServidores, useProgAsignaciones, useUpsertAsignacion, useDeleteAsignacion, useAsignacionesPorPersona, useProgDisponibilidad, useUpsertEvento, logProgAction, isEventoBloqueado, type ProgEvento } from "@/hooks/usePrograma";
+import { useProgMinisterios, useProgCargos, useProgServidores, useProgAsignaciones, useUpsertAsignacion, useDeleteAsignacion, useAsignacionesPorPersona, useProgDisponibilidad, useUpsertEvento, logProgAction, isEventoBloqueado, getCargoTipo, CARGOS_GENERICOS, type ProgEvento } from "@/hooks/usePrograma";
 import { usePersonas } from "@/hooks/useDatabase";
 import { supabase } from "@/integrations/supabase/client";
 import ReemplazoDialog from "./ReemplazoDialog";
 import ReemplazosPanel from "./ReemplazosPanel";
 import HistorialPanel from "./HistorialPanel";
 import CheckInPanel from "./CheckInPanel";
+import { useCan } from "@/hooks/useCan";
+import type { ActionPermission } from "@/lib/permissions";
 
 export default function EventoDetailPanel({ evento, onBack, onDelete }: { evento: ProgEvento; onBack: () => void; onDelete: () => void }) {
   const { data: ministerios = [] } = useProgMinisterios();
@@ -29,6 +31,19 @@ export default function EventoDetailPanel({ evento, onBack, onDelete }: { evento
   const delAsig = useDeleteAsignacion();
   const upEv = useUpsertEvento();
   const stats = useAsignacionesPorPersona();
+  const can = useCan();
+
+  const canConfirmForCargo = (cargoNombre: string | null | undefined): boolean => {
+    const tipo = getCargoTipo(cargoNombre);
+    if (!tipo) return can("programa:assign");
+    const map: Record<string, ActionPermission> = {
+      Pastor: "programa:confirm:pastor",
+      "Líder": "programa:confirm:lider",
+      Servidor: "programa:confirm:servidor",
+      Colaborador: "programa:confirm:colaborador",
+    };
+    return can(map[tipo]);
+  };
 
   const personasMap = useMemo(() => new Map(personas.map((p: any) => [p.id, p])), [personas]);
   const cargosMap = useMemo(() => new Map(cargos.map((c) => [c.id, c])), [cargos]);
@@ -39,6 +54,8 @@ export default function EventoDetailPanel({ evento, onBack, onDelete }: { evento
 
   const [addOpen, setAddOpen] = useState<string | null>(null);
   const [draft, setDraft] = useState<any>({});
+  const [filterCargoTipoDlg, setFilterCargoTipoDlg] = useState<string>("all");
+  const [filterCargoTipoVista, setFilterCargoTipoVista] = useState<string>("all");
   const [remTarget, setRemTarget] = useState<any | null>(null);
   const [bloqueoOpen, setBloqueoOpen] = useState(false);
   const [bloqueoVal, setBloqueoVal] = useState(evento.bloqueo_at ? evento.bloqueo_at.slice(0, 16) : "");
@@ -169,10 +186,33 @@ export default function EventoDetailPanel({ evento, onBack, onDelete }: { evento
 
       <ReemplazosPanel eventoId={evento.id} />
 
+      <Card>
+        <CardContent className="p-3 flex flex-wrap items-center gap-2">
+          <span className="text-xs font-medium text-muted-foreground mr-1">Filtrar por cargo:</span>
+          <Button size="sm" variant={filterCargoTipoVista === "all" ? "default" : "outline"} className="h-7 text-xs" onClick={() => setFilterCargoTipoVista("all")}>Todos</Button>
+          {CARGOS_GENERICOS.map((t) => (
+            <Button key={t} size="sm" variant={filterCargoTipoVista === t ? "default" : "outline"} className="h-7 text-xs" onClick={() => setFilterCargoTipoVista(t)}>{t}</Button>
+          ))}
+        </CardContent>
+      </Card>
+
       {ministerios.map((m) => {
         const cargosMin = cargos.filter((c) => c.ministerio_id === m.id);
-        const asignsMin = asignsEvento.filter((a) => a.ministerio_id === m.id);
-        const sugg = suggestionsFor(m.id);
+        let asignsMin = asignsEvento.filter((a) => a.ministerio_id === m.id);
+        if (filterCargoTipoVista !== "all") {
+          asignsMin = asignsMin.filter((a) => {
+            const c = a.cargo_id ? cargosMap.get(a.cargo_id) : null;
+            return getCargoTipo(c?.nombre) === filterCargoTipoVista;
+          });
+        }
+        const suggBase = suggestionsFor(m.id);
+        const sugg = filterCargoTipoDlg === "all"
+          ? suggBase
+          : suggBase.filter((s) => {
+              const c = s.cargo_id ? cargosMap.get(s.cargo_id) : null;
+              return getCargoTipo(c?.nombre) === filterCargoTipoDlg;
+            });
+        if (filterCargoTipoVista !== "all" && asignsMin.length === 0) return null;
         return (
           <Card key={m.id}>
             <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0">
@@ -189,6 +229,15 @@ export default function EventoDetailPanel({ evento, onBack, onDelete }: { evento
                           <Select value={draft.cargo_id || ""} onValueChange={(v) => setDraft({ ...draft, cargo_id: v })}>
                             <SelectTrigger><SelectValue placeholder="Sin cargo" /></SelectTrigger>
                             <SelectContent>{cargosMin.map((c) => <SelectItem key={c.id} value={c.id}>{c.nombre}</SelectItem>)}</SelectContent>
+                          </Select>
+                        </div>
+                        <div><label className="text-sm">Filtrar sugerencias por tipo</label>
+                          <Select value={filterCargoTipoDlg} onValueChange={setFilterCargoTipoDlg}>
+                            <SelectTrigger><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="all">Todos los cargos</SelectItem>
+                              {CARGOS_GENERICOS.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                            </SelectContent>
                           </Select>
                         </div>
                       </div>
@@ -248,8 +297,8 @@ export default function EventoDetailPanel({ evento, onBack, onDelete }: { evento
                               window.open(`https://wa.me/${num}?text=${text}`, "_blank");
                             }}><Phone className="h-3.5 w-3.5 text-green-600" /></Button>
                           ) : null}
-                          <Button size="icon" variant="ghost" className="h-7 w-7" title="Confirmado" disabled={bloqueado} onClick={() => setEstadoAsig(a, "confirmado")}><Check className="h-3.5 w-3.5 text-green-600" /></Button>
-                          <Button size="icon" variant="ghost" className="h-7 w-7" title="No disponible" disabled={bloqueado} onClick={() => setEstadoAsig(a, "no_disponible")}><X className="h-3.5 w-3.5 text-destructive" /></Button>
+                          <Button size="icon" variant="ghost" className="h-7 w-7" title={canConfirmForCargo(c?.nombre) ? "Confirmado" : "No tienes permiso para confirmar este cargo"} disabled={bloqueado || !canConfirmForCargo(c?.nombre)} onClick={() => setEstadoAsig(a, "confirmado")}><Check className="h-3.5 w-3.5 text-green-600" /></Button>
+                          <Button size="icon" variant="ghost" className="h-7 w-7" title="No disponible" disabled={bloqueado || !canConfirmForCargo(c?.nombre)} onClick={() => setEstadoAsig(a, "no_disponible")}><X className="h-3.5 w-3.5 text-destructive" /></Button>
                           <Button size="icon" variant="ghost" className="h-7 w-7" title="Solicitar reemplazo" disabled={bloqueado} onClick={() => setRemTarget({ a, m, c })}><RefreshCw className="h-3.5 w-3.5 text-amber-600" /></Button>
                           <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" disabled={bloqueado} onClick={() => removerAsignacion(a)}><Trash2 className="h-3.5 w-3.5" /></Button>
                         </div>
