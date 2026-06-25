@@ -301,6 +301,8 @@ export default function EstudiantesSection() {
               <InscripcionDialog
                 personas={personas || []}
                 yaInscritosMap={yaInscritosMap}
+                inscritosPeriodoActual={yaInscritos}
+                periodoActualNombre={periodoLabel((periodos || []).find((p: any) => p.id === effPer))}
                 incluirYaInscritos={incluirYaInscritos}
                 setIncluirYaInscritos={setIncluirYaInscritos}
                 onVerInscripcion={(ins: any) => { setCreating(false); setSelectedIns(ins); }}
