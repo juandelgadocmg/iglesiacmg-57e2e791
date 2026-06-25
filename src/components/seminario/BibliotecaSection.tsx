@@ -14,6 +14,7 @@ import DeleteConfirmDialog from "@/components/shared/DeleteConfirmDialog";
 import { useCan } from "@/hooks/useCan";
 import { supabase } from "@/integrations/supabase/client";
 import { useMiPersona, useMisOfertas, useIsSeminarioStaff } from "@/hooks/useSeminarioStudent";
+import { openAsset } from "@/lib/openAsset";
 
 const TIPOS = [
   { v: "pdf", l: "PDF", icon: FileText },
@@ -119,7 +120,7 @@ export default function BibliotecaSection() {
                   </div>
                   {r.descripcion && <p className="text-xs text-muted-foreground line-clamp-2">{r.descripcion}</p>}
                   <div className="flex gap-1 pt-1">
-                    {r.url && <Button size="sm" variant="outline" asChild className="flex-1"><a href={r.url} target="_blank" rel="noopener noreferrer">Abrir</a></Button>}
+                    {r.url && <Button size="sm" variant="outline" className="flex-1" onClick={() => openAsset({ url: r.url, bucket: "recursos-academicos", filename: r.titulo })}>Abrir</Button>}
                     {canEdit && (
                       <>
                         <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => setEditing(r)}><Pencil className="h-3.5 w-3.5" /></Button>
