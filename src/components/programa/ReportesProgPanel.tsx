@@ -148,6 +148,8 @@ export default function ReportesProgPanel() {
             filename="servicios-por-servidor"
             columns={[
               { header: "Servidor", key: "nombre" },
+              { header: "Cargos", key: "cargos" },
+              { header: "Tipo de cargo", key: "tipo_cargo" },
               { header: "Total servicios", key: "total" },
               { header: "Presente", key: "presente" },
               { header: "Tarde", key: "tarde" },
