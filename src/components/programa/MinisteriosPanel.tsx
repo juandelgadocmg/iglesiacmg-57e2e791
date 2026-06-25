@@ -48,6 +48,39 @@ export default function MinisteriosPanel() {
       .filter((e) => e.fecha >= today)
       .sort((a, b) => a.fecha.localeCompare(b.fecha))
       .filter((e) => asignaciones.some((a) => a.evento_id === e.id && a.ministerio_id === m.id));
+
+    const tpl = findIsoTemplate(m.nombre);
+    if (tpl) {
+      // === PDF en formato ISO ===
+      const asigsPorEv = new Map<string, Map<string, string>>();
+      proxEventos.forEach((e) => {
+        const inner = new Map<string, string>();
+        asignaciones
+          .filter((a) => a.evento_id === e.id && a.ministerio_id === m.id)
+          .forEach((a) => {
+            const p: any = personasMap.get(a.persona_id);
+            const c = a.cargo_id ? cargosMap.get(a.cargo_id) : null;
+            if (!p || !c) return;
+            const key = normKey(c.nombre);
+            const nombre = `${p.nombres} ${p.apellidos}`;
+            inner.set(key, inner.has(key) ? `${inner.get(key)}, ${nombre}` : nombre);
+          });
+        asigsPorEv.set(e.id, inner);
+      });
+      const mesActual = new Date().toLocaleDateString("es-CO", { month: "long" });
+      const lider = personasMap.get(m.lider_persona_id || "");
+      exportIsoMinisterioPdf({
+        template: tpl,
+        mes: mesActual,
+        liderNombre: lider ? `${(lider as any).nombres} ${(lider as any).apellidos}` : "",
+        eventos: proxEventos.map((e) => ({ id: e.id, fecha: e.fecha, titulo: e.titulo, hora: e.hora })),
+        asignacionesPorEvento: asigsPorEv,
+      });
+      toast.success(`PDF ISO (${tpl.codigo}) generado para ${m.nombre}`);
+      return;
+    }
+
+    // === Fallback: PDF genérico ===
     const map = new Map<string, any[]>();
     proxEventos.forEach((e) => {
       const filas = asignaciones
@@ -74,6 +107,25 @@ export default function MinisteriosPanel() {
     });
     toast.success(`PDF generado para ${m.nombre}`);
   };
+
+  const cargarPlantillaIso = async (m: ProgMinisterio) => {
+    const tpl = findIsoTemplate(m.nombre);
+    if (!tpl) return toast.error("Este ministerio no tiene plantilla ISO definida");
+    const existentes = new Set(cargos.filter((c) => c.ministerio_id === m.id).map((c) => normKey(c.nombre)));
+    let creados = 0;
+    try {
+      for (let i = 0; i < tpl.estaciones.length; i++) {
+        const est = tpl.estaciones[i];
+        if (existentes.has(normKey(est))) continue;
+        await upCar.mutateAsync({ ministerio_id: m.id, nombre: est, orden: i, cupo: 1 });
+        creados++;
+      }
+      toast.success(creados > 0 ? `${creados} cargos creados desde ${tpl.codigo}` : `Todas las estaciones ya existen (${tpl.codigo})`);
+    } catch (e: any) {
+      toast.error(e.message);
+    }
+  };
+
 
   return (
     <div className="space-y-4">
