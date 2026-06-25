@@ -187,6 +187,16 @@ export default function AsistenciaSection() {
                         value={cur.observacion || ""}
                         onChange={(e) => setLocal({ ...local, [im.id]: { ...cur, observacion: e.target.value } })}
                         className="h-8 w-48 text-xs" />
+                      {canEdit && (
+                        <Button
+                          size="sm" variant="ghost"
+                          className="h-8 px-2 text-destructive hover:text-destructive"
+                          title="Quitar de esta materia"
+                          onClick={() => setQuitar({ im, persona: p })}
+                        >
+                          <UserMinus className="h-4 w-4" />
+                        </Button>
+                      )}
                     </div>
                   );
                 })}
