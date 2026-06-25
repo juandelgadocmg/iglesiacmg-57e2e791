@@ -142,7 +142,18 @@ export default function BibliotecaSection() {
                   </div>
                   {r.descripcion && <p className="text-xs text-muted-foreground line-clamp-2">{r.descripcion}</p>}
                   <div className="flex gap-1 pt-1">
-                    {r.url && <Button size="sm" variant="outline" className="flex-1" onClick={() => openAsset({ url: r.url, bucket: "recursos-academicos", filename: r.titulo })}>Abrir</Button>}
+                    {r.url && (
+                      <>
+                        {isExternalLink(r.url) || r.tipo === "link" ? (
+                          <Button size="sm" variant="outline" className="flex-1" onClick={() => window.open(r.url, "_blank", "noopener,noreferrer")}>Abrir</Button>
+                        ) : (
+                          <>
+                            <Button size="sm" variant="outline" className="flex-1" onClick={() => setPreview(r)}>Ver</Button>
+                            <Button size="sm" variant="ghost" onClick={() => openAsset({ url: r.url, bucket: "recursos-academicos", filename: r.titulo, download: true })}>Descargar</Button>
+                          </>
+                        )}
+                      </>
+                    )}
                     {canEdit && (
                       <>
                         <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => setEditing(r)}><Pencil className="h-3.5 w-3.5" /></Button>
