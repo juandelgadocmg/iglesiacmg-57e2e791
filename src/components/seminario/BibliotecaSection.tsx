@@ -15,6 +15,27 @@ import { useCan } from "@/hooks/useCan";
 import { supabase } from "@/integrations/supabase/client";
 import { useMiPersona, useMisOfertas, useIsSeminarioStaff } from "@/hooks/useSeminarioStudent";
 import { openAsset } from "@/lib/openAsset";
+import AssetPreview from "@/components/shared/AssetPreview";
+
+function kindFromTipo(tipo: string, url?: string): "image" | "pdf" | "video" | "audio" | "other" {
+  if (tipo === "pdf") return "pdf";
+  if (tipo === "video") return "video";
+  if (tipo === "audio") return "audio";
+  const u = (url || "").toLowerCase();
+  if (/\.(png|jpe?g|gif|webp|svg)(\?|$)/.test(u)) return "image";
+  if (/\.pdf(\?|$)/.test(u)) return "pdf";
+  if (/\.(mp4|webm|mov)(\?|$)/.test(u)) return "video";
+  if (/\.(mp3|wav|m4a|ogg)(\?|$)/.test(u)) return "audio";
+  return "other";
+}
+
+function isExternalLink(url?: string) {
+  if (!url) return false;
+  try {
+    const h = new URL(url).hostname;
+    return !/supabase\.(co|in)$/.test(h);
+  } catch { return false; }
+}
 
 const TIPOS = [
   { v: "pdf", l: "PDF", icon: FileText },
@@ -45,6 +66,7 @@ export default function BibliotecaSection() {
   const upsert = useUpsertRecurso();
   const del = useDeleteRecurso();
   const [editing, setEditing] = useState<any>(null);
+  const [preview, setPreview] = useState<any>(null);
 
   const filtered = (recursos || []).filter((r: any) => {
     if (q && !r.titulo?.toLowerCase().includes(q.toLowerCase())) return false;
@@ -120,7 +142,18 @@ export default function BibliotecaSection() {
                   </div>
                   {r.descripcion && <p className="text-xs text-muted-foreground line-clamp-2">{r.descripcion}</p>}
                   <div className="flex gap-1 pt-1">
-                    {r.url && <Button size="sm" variant="outline" className="flex-1" onClick={() => openAsset({ url: r.url, bucket: "recursos-academicos", filename: r.titulo })}>Abrir</Button>}
+                    {r.url && (
+                      <>
+                        {isExternalLink(r.url) || r.tipo === "link" ? (
+                          <Button size="sm" variant="outline" className="flex-1" onClick={() => window.open(r.url, "_blank", "noopener,noreferrer")}>Abrir</Button>
+                        ) : (
+                          <>
+                            <Button size="sm" variant="outline" className="flex-1" onClick={() => setPreview(r)}>Ver</Button>
+                            <Button size="sm" variant="ghost" onClick={() => openAsset({ url: r.url, bucket: "recursos-academicos", filename: r.titulo, download: true })}>Descargar</Button>
+                          </>
+                        )}
+                      </>
+                    )}
                     {canEdit && (
                       <>
                         <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => setEditing(r)}><Pencil className="h-3.5 w-3.5" /></Button>
@@ -135,6 +168,29 @@ export default function BibliotecaSection() {
           })}
         </div>
       )}
+
+      <Dialog open={!!preview} onOpenChange={(v) => !v && setPreview(null)}>
+        <DialogContent className="max-w-4xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center justify-between gap-2 pr-6">
+              <span className="truncate">{preview?.titulo}</span>
+              {preview?.url && (
+                <Button size="sm" variant="outline" onClick={() => openAsset({ url: preview.url, bucket: "recursos-academicos", filename: preview.titulo, download: true })}>
+                  Descargar
+                </Button>
+              )}
+            </DialogTitle>
+          </DialogHeader>
+          {preview && (
+            <AssetPreview
+              url={preview.url}
+              bucket="recursos-academicos"
+              kind={kindFromTipo(preview.tipo, preview.url)}
+              filename={preview.titulo}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
