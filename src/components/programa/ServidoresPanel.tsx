@@ -7,7 +7,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Plus, Trash2, Search, Calendar as CalIcon, LayoutGrid } from "lucide-react";
+import { Plus, Trash2, Search, Calendar as CalIcon, LayoutGrid, Users } from "lucide-react";
 import { toast } from "sonner";
 import { useProgMinisterios, useProgCargos, useProgServidores, useUpsertServidor, useDeleteServidor, useAsignacionesPorPersona, useUpsertDisponibilidad, useProgDisponibilidad, useDeleteDisponibilidad, CARGOS_GENERICOS, getCargoTipo, isPersonaDisponibleEnFecha, type CargoGenerico } from "@/hooks/usePrograma";
 import { usePersonas } from "@/hooks/useDatabase";
