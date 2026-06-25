@@ -27,11 +27,13 @@ export default function ServidoresPanel() {
   const stats = useAsignacionesPorPersona();
 
   const [filterMin, setFilterMin] = useState<string>("all");
+  const [filterCargoTipo, setFilterCargoTipo] = useState<string>("all");
   const [search, setSearch] = useState("");
   const [openAdd, setOpenAdd] = useState(false);
   const [draft, setDraft] = useState<any>({});
   const [openDisp, setOpenDisp] = useState<string | null>(null);
   const [draftDisp, setDraftDisp] = useState<any>({});
+  const [matrixDate, setMatrixDate] = useState<string>(new Date().toISOString().slice(0, 10));
 
   const personasMap = useMemo(() => new Map(personas.map((p: any) => [p.id, p])), [personas]);
   const cargosMap = useMemo(() => new Map(cargos.map((c) => [c.id, c])), [cargos]);
