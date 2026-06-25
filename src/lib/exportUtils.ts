@@ -240,3 +240,53 @@ export function exportFinancialSummaryPDF(stats: {
 
   doc.save("reporte-general.pdf");
 }
+
+/** PDF de programación por ministerio: lista próximos eventos con servidores y cargos. */
+export function exportMinisterioProgramaPDF(params: {
+  ministerioNombre: string;
+  color?: string | null;
+  eventos: { id: string; titulo: string; fecha: string; hora: string | null; lugar: string | null; estado: string }[];
+  filasPorEvento: Map<string, { servidor: string; cargo: string; tipo: string; estado: string; asistencia: string; telefono: string }[]>;
+}) {
+  const { ministerioNombre, eventos, filasPorEvento } = params;
+  const doc = new jsPDF();
+  const fecha = new Date().toLocaleDateString("es-CO", { year: "numeric", month: "long", day: "numeric" });
+
+  doc.setFontSize(16);
+  doc.text(`Programación — ${ministerioNombre}`, 14, 20);
+  doc.setFontSize(9);
+  doc.setTextColor(120);
+  doc.text(`Generado: ${fecha} · ${eventos.length} evento(s)`, 14, 28);
+  doc.setTextColor(0);
+
+  let y = 36;
+  if (eventos.length === 0) {
+    doc.setFontSize(11);
+    doc.text("Sin eventos programados.", 14, y);
+  }
+
+  for (const ev of eventos) {
+    if (y > 250) { doc.addPage(); y = 20; }
+    doc.setFontSize(12);
+    doc.setTextColor(30, 41, 59);
+    doc.text(`${ev.fecha}${ev.hora ? "  " + ev.hora : ""} · ${ev.titulo}`, 14, y);
+    doc.setFontSize(9);
+    doc.setTextColor(120);
+    doc.text(`${ev.lugar || "—"} · Estado: ${ev.estado}`, 14, y + 5);
+    doc.setTextColor(0);
+    const filas = filasPorEvento.get(ev.id) || [];
+    autoTable(doc, {
+      startY: y + 9,
+      head: [["Servidor", "Cargo", "Tipo", "Estado", "Asistencia", "Tel."]],
+      body: filas.length
+        ? filas.map((f) => [f.servidor, f.cargo, f.tipo, f.estado, f.asistencia, f.telefono])
+        : [["—", "—", "—", "—", "—", "—"]],
+      styles: { fontSize: 8, cellPadding: 2 },
+      headStyles: { fillColor: [30, 41, 59], textColor: 255 },
+      alternateRowStyles: { fillColor: [245, 247, 250] },
+    });
+    y = (doc as any).lastAutoTable.finalY + 8;
+  }
+
+  doc.save(`programacion-${ministerioNombre.replace(/\s+/g, "-").toLowerCase()}.pdf`);
+}
