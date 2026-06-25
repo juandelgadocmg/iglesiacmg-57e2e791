@@ -163,7 +163,10 @@ export default function MinisteriosPanel() {
                   </div>
                   <div className="flex gap-1 flex-shrink-0">
                     {findIsoTemplate(m.nombre) && (
-                      <Button size="icon" variant="ghost" className="h-7 w-7" title="Cargar estaciones ISO como cargos" onClick={() => cargarPlantillaIso(m)}><FileText className="h-3.5 w-3.5" /></Button>
+                      <>
+                        <Button size="icon" variant="ghost" className="h-7 w-7" title="Cargar estaciones ISO como cargos" onClick={() => cargarPlantillaIso(m)}><FileText className="h-3.5 w-3.5" /></Button>
+                        <Button size="icon" variant="ghost" className="h-7 w-7" title="Vista previa ISO y editar" onClick={() => setPreviewMin(m)}><Eye className="h-3.5 w-3.5" /></Button>
+                      </>
                     )}
                     <Button size="icon" variant="ghost" className="h-7 w-7" title="Descargar PDF de programación" onClick={() => descargarPdfMinisterio(m)}><FileDown className="h-3.5 w-3.5" /></Button>
                     <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => { setEditMin(m); setOpenMin(true); }}><Pencil className="h-3.5 w-3.5" /></Button>
