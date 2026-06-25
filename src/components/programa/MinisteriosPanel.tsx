@@ -14,6 +14,9 @@ import { exportMinisterioProgramaPDF } from "@/lib/exportUtils";
 export default function MinisteriosPanel() {
   const { data: ministerios = [] } = useProgMinisterios();
   const { data: cargos = [] } = useProgCargos();
+  const { data: eventos = [] } = useProgEventos();
+  const { data: asignaciones = [] } = useProgAsignaciones();
+  const { data: personas = [] } = usePersonas();
   const upMin = useUpsertMinisterio();
   const delMin = useDeleteMinisterio();
   const upCar = useUpsertCargo();
@@ -24,6 +27,9 @@ export default function MinisteriosPanel() {
   const [openCar, setOpenCar] = useState<string | null>(null);
   const [editCar, setEditCar] = useState<Partial<ProgCargo>>({});
 
+  const personasMap = useMemo(() => new Map(personas.map((p: any) => [p.id, p])), [personas]);
+  const cargosMap = useMemo(() => new Map(cargos.map((c) => [c.id, c])), [cargos]);
+
   const saveMin = async () => {
     if (!editMin.nombre) return toast.error("Nombre requerido");
     try { await upMin.mutateAsync(editMin); toast.success("Ministerio guardado"); setOpenMin(false); setEditMin({}); } catch (e: any) { toast.error(e.message); }
@@ -31,6 +37,39 @@ export default function MinisteriosPanel() {
   const saveCar = async () => {
     if (!editCar.nombre || !editCar.ministerio_id) return;
     try { await upCar.mutateAsync({ ...editCar, cupo: editCar.cupo || 1 }); toast.success("Cargo guardado"); setEditCar({ ministerio_id: editCar.ministerio_id }); } catch (e: any) { toast.error(e.message); }
+  };
+
+  const descargarPdfMinisterio = (m: ProgMinisterio) => {
+    const today = new Date().toISOString().slice(0, 10);
+    const proxEventos = eventos
+      .filter((e) => e.fecha >= today)
+      .sort((a, b) => a.fecha.localeCompare(b.fecha))
+      .filter((e) => asignaciones.some((a) => a.evento_id === e.id && a.ministerio_id === m.id));
+    const map = new Map<string, any[]>();
+    proxEventos.forEach((e) => {
+      const filas = asignaciones
+        .filter((a) => a.evento_id === e.id && a.ministerio_id === m.id)
+        .map((a) => {
+          const p: any = personasMap.get(a.persona_id);
+          const c = a.cargo_id ? cargosMap.get(a.cargo_id) : null;
+          return {
+            servidor: p ? `${p.nombres} ${p.apellidos}` : "—",
+            cargo: c?.nombre || "—",
+            tipo: getCargoTipo(c?.nombre) || "—",
+            estado: a.estado,
+            asistencia: a.asistencia || "—",
+            telefono: p?.telefono || p?.whatsapp || "—",
+          };
+        });
+      map.set(e.id, filas);
+    });
+    exportMinisterioProgramaPDF({
+      ministerioNombre: m.nombre,
+      color: m.color,
+      eventos: proxEventos,
+      filasPorEvento: map,
+    });
+    toast.success(`PDF generado para ${m.nombre}`);
   };
 
   return (
