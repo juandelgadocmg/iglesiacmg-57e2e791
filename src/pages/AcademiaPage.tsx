@@ -38,6 +38,7 @@ import {
   useHomologaciones, useDeleteHomologacion,
   usePagosEscuela,
 } from "@/hooks/useAcademiaExtras";
+import { openAsset as openAssetSafe } from "@/lib/openAsset";
 import { usePersonas } from "@/hooks/useDatabase";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
@@ -2390,10 +2391,10 @@ function RecursosSection({ escuelas, allPeriodos }: any) {
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
                     {r.tipo === "enlace" && r.url && (
-                      <Button size="sm" variant="ghost" asChild><a href={r.url} target="_blank" rel="noopener"><ExternalLink className="h-3.5 w-3.5" /></a></Button>
+                      <Button size="sm" variant="ghost" onClick={() => openAssetSafe({ url: r.url, filename: r.titulo })}><ExternalLink className="h-3.5 w-3.5" /></Button>
                     )}
                     {r.tipo === "archivo" && r.archivo_url && (
-                      <Button size="sm" variant="ghost" asChild><a href={r.archivo_url} target="_blank" rel="noopener"><Download className="h-3.5 w-3.5" /></a></Button>
+                      <Button size="sm" variant="ghost" onClick={() => openAssetSafe({ url: r.archivo_url, filename: r.archivo_nombre || r.titulo })}><Download className="h-3.5 w-3.5" /></Button>
                     )}
                     <DeleteConfirmDialog title="Eliminar recurso" description={`¿Eliminar "${r.titulo}"?`} onConfirm={() => deleteRecurso.mutateAsync(r.id)} />
                   </div>
