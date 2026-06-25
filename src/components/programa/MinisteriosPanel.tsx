@@ -10,6 +10,9 @@ import { toast } from "sonner";
 import { useProgMinisterios, useProgCargos, useUpsertMinisterio, useDeleteMinisterio, useUpsertCargo, useDeleteCargo, useProgEventos, useProgAsignaciones, getCargoTipo, type ProgMinisterio, type ProgCargo } from "@/hooks/usePrograma";
 import { usePersonas } from "@/hooks/useDatabase";
 import { exportMinisterioProgramaPDF } from "@/lib/exportUtils";
+import { findIsoTemplate } from "@/lib/isoMinisterioTemplates";
+import { exportIsoMinisterioPdf, normKey } from "@/lib/exportIsoMinisterioPdf";
+import { FileText } from "lucide-react";
 
 export default function MinisteriosPanel() {
   const { data: ministerios = [] } = useProgMinisterios();
