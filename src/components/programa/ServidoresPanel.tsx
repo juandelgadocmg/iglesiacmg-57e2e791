@@ -197,6 +197,81 @@ export default function ServidoresPanel() {
         })}
         {filtered.length === 0 && <p className="text-sm text-muted-foreground col-span-full">No hay servidores registrados.</p>}
       </div>
-    </div>
+      </TabsContent>
+
+      <TabsContent value="matriz" className="space-y-4 mt-0">
+        <Card>
+          <CardContent className="p-4 space-y-3">
+            <div className="flex flex-wrap items-end gap-3 justify-between">
+              <div>
+                <Label className="text-xs">Validar disponibilidad para la fecha</Label>
+                <Input type="date" value={matrixDate} onChange={(e) => setMatrixDate(e.target.value)} className="w-[200px] mt-1" />
+                <p className="text-[11px] text-muted-foreground mt-1">Antes de programar un servicio, verifica qué cargos están cubiertos y qué servidores están disponibles.</p>
+              </div>
+              <div className="flex gap-2 text-[11px]">
+                <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">● Disponible</Badge>
+                <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">● No disponible</Badge>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <div className="space-y-3">
+          {(filterMin === "all" ? ministerios : ministerios.filter((m) => m.id === filterMin)).map((m) => {
+            const cargosMin = cargos.filter((c) => c.ministerio_id === m.id);
+            return (
+              <Card key={m.id}>
+                <CardContent className="p-4 space-y-3">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2 h-6 rounded-full" style={{ background: m.color || "#2563eb" }} />
+                    <h4 className="font-semibold">{m.nombre}</h4>
+                    <Badge variant="secondary" className="text-[10px]">{cargosMin.length} cargo(s)</Badge>
+                  </div>
+                  {cargosMin.length === 0 && <p className="text-xs text-muted-foreground">Sin cargos definidos.</p>}
+                  <div className="grid gap-2 md:grid-cols-2">
+                    {cargosMin.map((c) => {
+                      const asignados = servidores.filter((s) => s.ministerio_id === m.id && s.cargo_id === c.id && s.activo);
+                      const tipo = getCargoTipo(c.nombre);
+                      return (
+                        <div key={c.id} className="border rounded-md p-2.5 bg-card">
+                          <div className="flex items-center justify-between mb-1.5">
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-sm font-medium">{c.nombre}</span>
+                              {tipo && <Badge variant="outline" className="text-[9px]">{tipo}</Badge>}
+                            </div>
+                            <Badge variant="secondary" className="text-[10px]">{asignados.length}/{c.cupo || 1}</Badge>
+                          </div>
+                          <div className="space-y-1">
+                            {asignados.length === 0 && <p className="text-[11px] text-muted-foreground italic">Sin personas asignadas.</p>}
+                            {asignados.map((s) => {
+                              const p: any = personasMap.get(s.persona_id);
+                              if (!p) return null;
+                              const disponible = isPersonaDisponibleEnFecha(s.persona_id, matrixDate, disponibilidad);
+                              return (
+                                <div key={s.id} className="flex items-center justify-between text-xs">
+                                  <span className="truncate">{p.nombres} {p.apellidos}</span>
+                                  <Badge
+                                    variant="outline"
+                                    className={disponible
+                                      ? "bg-green-50 text-green-700 border-green-200 text-[9px]"
+                                      : "bg-red-50 text-red-700 border-red-200 text-[9px]"}
+                                  >
+                                    {disponible ? "Disponible" : "No disponible"}
+                                  </Badge>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+      </TabsContent>
+    </Tabs>
   );
 }
