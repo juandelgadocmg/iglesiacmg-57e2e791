@@ -100,6 +100,7 @@ export default function MinisteriosPanel() {
                 <div className="flex justify-between items-start">
                   <CardTitle className="text-base">{m.nombre}</CardTitle>
                   <div className="flex gap-1">
+                    <Button size="icon" variant="ghost" className="h-7 w-7" title="Descargar PDF de programación" onClick={() => descargarPdfMinisterio(m)}><FileDown className="h-3.5 w-3.5" /></Button>
                     <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => { setEditMin(m); setOpenMin(true); }}><Pencil className="h-3.5 w-3.5" /></Button>
                     <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => { if (confirm("¿Eliminar ministerio y sus cargos?")) delMin.mutate(m.id); }}><Trash2 className="h-3.5 w-3.5" /></Button>
                   </div>
