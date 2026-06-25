@@ -216,6 +216,15 @@ export default function EventoDetailPanel({ evento, onBack, onDelete }: { evento
                             <SelectContent>{cargosMin.map((c) => <SelectItem key={c.id} value={c.id}>{c.nombre}</SelectItem>)}</SelectContent>
                           </Select>
                         </div>
+                        <div><label className="text-sm">Filtrar sugerencias por tipo</label>
+                          <Select value={filterCargoTipoDlg} onValueChange={setFilterCargoTipoDlg}>
+                            <SelectTrigger><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="all">Todos los cargos</SelectItem>
+                              {CARGOS_GENERICOS.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                            </SelectContent>
+                          </Select>
+                        </div>
                       </div>
                       <div className="border-t pt-2 max-h-80 overflow-auto">
                         <div className="text-xs font-medium text-muted-foreground mb-2">Sugerencias (menos servicios primero):</div>
