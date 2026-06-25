@@ -38,8 +38,10 @@ export default function AsistenciaSection() {
   const { data, isLoading: loadingAsist } = useAsistenciaOferta(effOf, fecha);
   const save = useSaveAsistencia();
   const bulkEnroll = useBulkEnrollOferta();
+  const unenroll = useUnenrollMateria();
   const [local, setLocal] = useState<Record<string, { estado: string; observacion?: string }>>({});
   const [detalle, setDetalle] = useState<any>(null);
+  const [quitar, setQuitar] = useState<{ im: any; persona: any } | null>(null);
 
   useEffect(() => {
     const init: Record<string, any> = {};
