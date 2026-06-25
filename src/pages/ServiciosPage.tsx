@@ -287,6 +287,15 @@ export default function ServiciosPage() {
           attendanceRate={attendanceRate}
           loadingAsistencia={loadingAsistencia}
           onBack={() => { setActiveView("reuniones"); setSelectedReunion(null); }}
+          onProgramar={() => setActiveView("programar-servicio")}
+        />
+      )}
+
+      {/* ===== PROGRAMAR SERVICIO ===== */}
+      {activeView === "programar-servicio" && selectedReunion && (
+        <ProgramarServicioPanel
+          reunion={selectedReunion}
+          onBack={() => setActiveView("reporte-detalle")}
         />
       )}
     </div>
