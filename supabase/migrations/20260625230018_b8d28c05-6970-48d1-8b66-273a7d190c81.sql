@@ -1,0 +1,1 @@
+GRANT EXECUTE ON FUNCTION public.msg_is_participant(uuid, uuid) TO authenticated;
