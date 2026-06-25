@@ -1,17 +1,18 @@
 import { useState, useEffect } from "react";
 import { useUrlParam } from "@/hooks/useUrlParam";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { useProgramas, usePeriodos, useOfertas, useAsistenciaOferta, useSaveAsistencia, useBulkEnrollOferta } from "@/hooks/useSeminario";
+import { useProgramas, usePeriodos, useOfertas, useAsistenciaOferta, useSaveAsistencia, useBulkEnrollOferta, useUnenrollMateria } from "@/hooks/useSeminario";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Save, UserCheck, UserPlus } from "lucide-react";
+import { Save, UserCheck, UserPlus, UserMinus } from "lucide-react";
 import { toast } from "sonner";
 import { useCan } from "@/hooks/useCan";
 import { logSemAudit } from "@/lib/seminarioAudit";
 import SearchableCombobox from "./SearchableCombobox";
+import DeleteConfirmDialog from "@/components/shared/DeleteConfirmDialog";
 
 const ESTADOS = [
   { v: "presente", l: "Presente", color: "default" },
