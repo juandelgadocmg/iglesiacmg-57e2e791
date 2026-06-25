@@ -25,7 +25,9 @@ import { cn } from "@/lib/utils";
 import ExportDropdown from "@/components/shared/ExportDropdown";
 import AttendanceTrendChart from "@/components/charts/AttendanceTrendChart";
 
-type ActiveView = "reuniones" | "reportes" | "reporte-detalle" | "consejeria" | "programacion";
+import ProgramarServicioPanel from "@/components/programa/ProgramarServicioPanel";
+
+type ActiveView = "reuniones" | "reportes" | "reporte-detalle" | "consejeria" | "programacion" | "programar-servicio";
 
 export default function ServiciosPage() {
   const { data: servicios, isLoading } = useServicios();
