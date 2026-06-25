@@ -10,6 +10,9 @@ import { toast } from "sonner";
 import { useProgMinisterios, useProgCargos, useUpsertMinisterio, useDeleteMinisterio, useUpsertCargo, useDeleteCargo, useProgEventos, useProgAsignaciones, getCargoTipo, type ProgMinisterio, type ProgCargo } from "@/hooks/usePrograma";
 import { usePersonas } from "@/hooks/useDatabase";
 import { exportMinisterioProgramaPDF } from "@/lib/exportUtils";
+import { findIsoTemplate } from "@/lib/isoMinisterioTemplates";
+import { exportIsoMinisterioPdf, normKey } from "@/lib/exportIsoMinisterioPdf";
+import { FileText } from "lucide-react";
 
 export default function MinisteriosPanel() {
   const { data: ministerios = [] } = useProgMinisterios();
@@ -45,6 +48,39 @@ export default function MinisteriosPanel() {
       .filter((e) => e.fecha >= today)
       .sort((a, b) => a.fecha.localeCompare(b.fecha))
       .filter((e) => asignaciones.some((a) => a.evento_id === e.id && a.ministerio_id === m.id));
+
+    const tpl = findIsoTemplate(m.nombre);
+    if (tpl) {
+      // === PDF en formato ISO ===
+      const asigsPorEv = new Map<string, Map<string, string>>();
+      proxEventos.forEach((e) => {
+        const inner = new Map<string, string>();
+        asignaciones
+          .filter((a) => a.evento_id === e.id && a.ministerio_id === m.id)
+          .forEach((a) => {
+            const p: any = personasMap.get(a.persona_id);
+            const c = a.cargo_id ? cargosMap.get(a.cargo_id) : null;
+            if (!p || !c) return;
+            const key = normKey(c.nombre);
+            const nombre = `${p.nombres} ${p.apellidos}`;
+            inner.set(key, inner.has(key) ? `${inner.get(key)}, ${nombre}` : nombre);
+          });
+        asigsPorEv.set(e.id, inner);
+      });
+      const mesActual = new Date().toLocaleDateString("es-CO", { month: "long" });
+      const lider = personasMap.get(m.lider_persona_id || "");
+      exportIsoMinisterioPdf({
+        template: tpl,
+        mes: mesActual,
+        liderNombre: lider ? `${(lider as any).nombres} ${(lider as any).apellidos}` : "",
+        eventos: proxEventos.map((e) => ({ id: e.id, fecha: e.fecha, titulo: e.titulo, hora: e.hora })),
+        asignacionesPorEvento: asigsPorEv,
+      });
+      toast.success(`PDF ISO (${tpl.codigo}) generado para ${m.nombre}`);
+      return;
+    }
+
+    // === Fallback: PDF genérico ===
     const map = new Map<string, any[]>();
     proxEventos.forEach((e) => {
       const filas = asignaciones
@@ -72,6 +108,25 @@ export default function MinisteriosPanel() {
     toast.success(`PDF generado para ${m.nombre}`);
   };
 
+  const cargarPlantillaIso = async (m: ProgMinisterio) => {
+    const tpl = findIsoTemplate(m.nombre);
+    if (!tpl) return toast.error("Este ministerio no tiene plantilla ISO definida");
+    const existentes = new Set(cargos.filter((c) => c.ministerio_id === m.id).map((c) => normKey(c.nombre)));
+    let creados = 0;
+    try {
+      for (let i = 0; i < tpl.estaciones.length; i++) {
+        const est = tpl.estaciones[i];
+        if (existentes.has(normKey(est))) continue;
+        await upCar.mutateAsync({ ministerio_id: m.id, nombre: est, orden: i, cupo: 1 });
+        creados++;
+      }
+      toast.success(creados > 0 ? `${creados} cargos creados desde ${tpl.codigo}` : `Todas las estaciones ya existen (${tpl.codigo})`);
+    } catch (e: any) {
+      toast.error(e.message);
+    }
+  };
+
+
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
@@ -97,9 +152,17 @@ export default function MinisteriosPanel() {
             <Card key={m.id} className="overflow-hidden">
               <div className="h-1.5" style={{ background: m.color || "#2563eb" }} />
               <CardHeader className="pb-3">
-                <div className="flex justify-between items-start">
-                  <CardTitle className="text-base">{m.nombre}</CardTitle>
-                  <div className="flex gap-1">
+                <div className="flex justify-between items-start gap-2">
+                  <div className="min-w-0">
+                    <CardTitle className="text-base truncate">{m.nombre}</CardTitle>
+                    {findIsoTemplate(m.nombre) && (
+                      <Badge variant="outline" className="mt-1 text-[10px]">ISO {findIsoTemplate(m.nombre)!.codigo}</Badge>
+                    )}
+                  </div>
+                  <div className="flex gap-1 flex-shrink-0">
+                    {findIsoTemplate(m.nombre) && (
+                      <Button size="icon" variant="ghost" className="h-7 w-7" title="Cargar estaciones ISO como cargos" onClick={() => cargarPlantillaIso(m)}><FileText className="h-3.5 w-3.5" /></Button>
+                    )}
                     <Button size="icon" variant="ghost" className="h-7 w-7" title="Descargar PDF de programación" onClick={() => descargarPdfMinisterio(m)}><FileDown className="h-3.5 w-3.5" /></Button>
                     <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => { setEditMin(m); setOpenMin(true); }}><Pencil className="h-3.5 w-3.5" /></Button>
                     <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => { if (confirm("¿Eliminar ministerio y sus cargos?")) delMin.mutate(m.id); }}><Trash2 className="h-3.5 w-3.5" /></Button>
