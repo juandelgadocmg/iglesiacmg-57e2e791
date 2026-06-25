@@ -152,9 +152,17 @@ export default function MinisteriosPanel() {
             <Card key={m.id} className="overflow-hidden">
               <div className="h-1.5" style={{ background: m.color || "#2563eb" }} />
               <CardHeader className="pb-3">
-                <div className="flex justify-between items-start">
-                  <CardTitle className="text-base">{m.nombre}</CardTitle>
-                  <div className="flex gap-1">
+                <div className="flex justify-between items-start gap-2">
+                  <div className="min-w-0">
+                    <CardTitle className="text-base truncate">{m.nombre}</CardTitle>
+                    {findIsoTemplate(m.nombre) && (
+                      <Badge variant="outline" className="mt-1 text-[10px]">ISO {findIsoTemplate(m.nombre)!.codigo}</Badge>
+                    )}
+                  </div>
+                  <div className="flex gap-1 flex-shrink-0">
+                    {findIsoTemplate(m.nombre) && (
+                      <Button size="icon" variant="ghost" className="h-7 w-7" title="Cargar estaciones ISO como cargos" onClick={() => cargarPlantillaIso(m)}><FileText className="h-3.5 w-3.5" /></Button>
+                    )}
                     <Button size="icon" variant="ghost" className="h-7 w-7" title="Descargar PDF de programación" onClick={() => descargarPdfMinisterio(m)}><FileDown className="h-3.5 w-3.5" /></Button>
                     <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => { setEditMin(m); setOpenMin(true); }}><Pencil className="h-3.5 w-3.5" /></Button>
                     <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => { if (confirm("¿Eliminar ministerio y sus cargos?")) delMin.mutate(m.id); }}><Trash2 className="h-3.5 w-3.5" /></Button>
