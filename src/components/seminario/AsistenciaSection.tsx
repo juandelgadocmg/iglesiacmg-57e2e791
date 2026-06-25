@@ -12,7 +12,7 @@ import { toast } from "sonner";
 import { useCan } from "@/hooks/useCan";
 import { logSemAudit } from "@/lib/seminarioAudit";
 import SearchableCombobox from "./SearchableCombobox";
-import DeleteConfirmDialog from "@/components/shared/DeleteConfirmDialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 
 const ESTADOS = [
   { v: "presente", l: "Presente", color: "default" },
