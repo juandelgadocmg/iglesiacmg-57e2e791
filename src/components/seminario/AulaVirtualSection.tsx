@@ -389,7 +389,7 @@ function MaterialTab({ materiaId, periodoId, recursos }: { materiaId?: string; p
             <p className="text-sm font-medium truncate">{r.titulo}</p>
             <p className="text-[10px] text-muted-foreground">{r.tipo}{r.descripcion ? ` · ${r.descripcion}` : ""}</p>
           </div>
-          {r.url && <Button size="sm" variant="outline" asChild><a href={r.url} target="_blank" rel="noopener noreferrer"><Download className="h-3 w-3 mr-1" />Abrir</a></Button>}
+          {r.url && <Button size="sm" variant="outline" onClick={() => openAsset({ url: r.url, bucket: "recursos-academicos", filename: r.titulo })}><Download className="h-3 w-3 mr-1" />Abrir</Button>}
           <DeleteConfirmDialog onConfirm={async () => { await del.mutateAsync(r.id); toast.success("Eliminado"); }}
             trigger={<Button size="icon" variant="ghost" className="h-7 w-7 text-destructive"><Trash2 className="h-3 w-3" /></Button>} />
         </div>
