@@ -143,3 +143,33 @@ export function useAsignacionesPorPersona() {
   });
   return byPersona;
 }
+
+// ============ Cargos genéricos ============
+export const CARGOS_GENERICOS = ["Pastor", "Líder", "Servidor", "Colaborador"] as const;
+export type CargoGenerico = (typeof CARGOS_GENERICOS)[number];
+
+/** Devuelve el tipo genérico de un cargo (case-insensitive, sin tildes). */
+export function getCargoTipo(nombre: string | null | undefined): CargoGenerico | null {
+  if (!nombre) return null;
+  const n = nombre
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim();
+  if (n.startsWith("pastor")) return "Pastor";
+  if (n.startsWith("lider") || n === "lider de ministerio") return "Líder";
+  if (n.startsWith("colaborador")) return "Colaborador";
+  if (n.startsWith("servidor")) return "Servidor";
+  return null;
+}
+
+/** Disponibilidad puntual para una fecha. */
+export function isPersonaDisponibleEnFecha(
+  personaId: string,
+  fecha: string,
+  disponibilidad: ProgDisponibilidad[]
+): boolean {
+  return !disponibilidad.some(
+    (d) => d.persona_id === personaId && d.fecha_inicio <= fecha && d.fecha_fin >= fecha
+  );
+}
