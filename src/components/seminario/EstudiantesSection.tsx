@@ -301,6 +301,8 @@ export default function EstudiantesSection() {
               <InscripcionDialog
                 personas={personas || []}
                 yaInscritosMap={yaInscritosMap}
+                inscritosPeriodoActual={yaInscritos}
+                periodoActualNombre={periodoLabel((periodos || []).find((p: any) => p.id === effPer))}
                 incluirYaInscritos={incluirYaInscritos}
                 setIncluirYaInscritos={setIncluirYaInscritos}
                 onVerInscripcion={(ins: any) => { setCreating(false); setSelectedIns(ins); }}
@@ -461,34 +463,43 @@ export default function EstudiantesSection() {
   );
 }
 
-function InscripcionDialog({ personas, yaInscritosMap, incluirYaInscritos, setIncluirYaInscritos, onVerInscripcion, totalSem, onSave, pending }: any) {
+function InscripcionDialog({ personas, yaInscritosMap, inscritosPeriodoActual, periodoActualNombre, incluirYaInscritos, setIncluirYaInscritos, onVerInscripcion, totalSem, onSave, pending }: any) {
   const [f, setF] = useState({ persona_id: "", semestre_actual: 1 });
   const map: Map<string, { ins: any; periodoNombre: string; badge: string }> = yaInscritosMap || new Map();
+  const inscritosActual: Set<string> = inscritosPeriodoActual || new Set();
 
   const items = useMemo(() => {
     const base = (personas || []).map((p: any) => {
       const info = map.get(p.id);
-      const inscrita = !!info;
+      const inscritaActual = inscritosActual.has(p.id);
+      const inscritaOtroPeriodo = !!info && !inscritaActual;
       const fullName = personaFullName(p);
+      const subParts: string[] = [];
+      if (p.documento) subParts.push(p.documento);
+      if (inscritaActual) subParts.push(`Ya inscrito en ${periodoActualNombre || "este periodo"}`);
+      else if (inscritaOtroPeriodo) subParts.push(`Inscrito previamente en ${info!.periodoNombre} · puedes re-inscribir`);
       return {
         id: p.id,
         label: fullName,
-        sub: inscrita
-          ? `${p.documento || "—"} · Inscrito en ${info!.periodoNombre}`
-          : (p.documento || undefined),
-        disabled: inscrita,
-        badge: inscrita ? info!.badge : undefined,
-        ariaLabel: inscrita
-          ? `${fullName}, ${info!.badge}. No disponible para nueva inscripción.`
-          : `${fullName}${p.documento ? `, documento ${p.documento}` : ""}`,
-        action: inscrita
-          ? { label: "Ver inscripción", onClick: () => onVerInscripcion?.(info!.ins), ariaLabel: `Ver inscripción de ${fullName} en ${info!.periodoNombre}` }
+        sub: subParts.join(" · ") || undefined,
+        // Solo bloquear si YA está inscrita en el periodo actual. Si estuvo
+        // inscrita en periodos anteriores, permitir nueva inscripción.
+        disabled: inscritaActual,
+        badge: inscritaActual ? `Ya inscrito · ${periodoActualNombre || ""}`.trim() : (inscritaOtroPeriodo ? info!.badge : undefined),
+        ariaLabel: inscritaActual
+          ? `${fullName}, ya inscrito en ${periodoActualNombre || "el periodo actual"}.`
+          : inscritaOtroPeriodo
+            ? `${fullName}, inscrito previamente en ${info!.periodoNombre}. Disponible para nueva inscripción.`
+            : `${fullName}${p.documento ? `, documento ${p.documento}` : ""}`,
+        action: inscritaActual && info
+          ? { label: "Ver inscripción", onClick: () => onVerInscripcion?.(info!.ins), ariaLabel: `Ver inscripción de ${fullName}` }
           : undefined,
-        _inscrita: inscrita,
+        _inscrita: inscritaActual,
       };
     });
     return incluirYaInscritos ? base : base.filter((i: any) => !i._inscrita);
-  }, [personas, map, incluirYaInscritos, onVerInscripcion]);
+  }, [personas, map, inscritosActual, periodoActualNombre, incluirYaInscritos, onVerInscripcion]);
+
 
   const totalInscritos = useMemo(
     () => (personas || []).filter((p: any) => map.has(p.id)).length,

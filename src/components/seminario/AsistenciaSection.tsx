@@ -1,17 +1,18 @@
 import { useState, useEffect } from "react";
 import { useUrlParam } from "@/hooks/useUrlParam";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { useProgramas, usePeriodos, useOfertas, useAsistenciaOferta, useSaveAsistencia, useBulkEnrollOferta } from "@/hooks/useSeminario";
+import { useProgramas, usePeriodos, useOfertas, useAsistenciaOferta, useSaveAsistencia, useBulkEnrollOferta, useUnenrollMateria } from "@/hooks/useSeminario";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Save, UserCheck, UserPlus } from "lucide-react";
+import { Save, UserCheck, UserPlus, UserMinus } from "lucide-react";
 import { toast } from "sonner";
 import { useCan } from "@/hooks/useCan";
 import { logSemAudit } from "@/lib/seminarioAudit";
 import SearchableCombobox from "./SearchableCombobox";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 
 const ESTADOS = [
   { v: "presente", l: "Presente", color: "default" },
@@ -37,8 +38,10 @@ export default function AsistenciaSection() {
   const { data, isLoading: loadingAsist } = useAsistenciaOferta(effOf, fecha);
   const save = useSaveAsistencia();
   const bulkEnroll = useBulkEnrollOferta();
+  const unenroll = useUnenrollMateria();
   const [local, setLocal] = useState<Record<string, { estado: string; observacion?: string }>>({});
   const [detalle, setDetalle] = useState<any>(null);
+  const [quitar, setQuitar] = useState<{ im: any; persona: any } | null>(null);
 
   useEffect(() => {
     const init: Record<string, any> = {};
@@ -184,6 +187,16 @@ export default function AsistenciaSection() {
                         value={cur.observacion || ""}
                         onChange={(e) => setLocal({ ...local, [im.id]: { ...cur, observacion: e.target.value } })}
                         className="h-8 w-48 text-xs" />
+                      {canEdit && (
+                        <Button
+                          size="sm" variant="ghost"
+                          className="h-8 px-2 text-destructive hover:text-destructive"
+                          title="Quitar de esta materia"
+                          onClick={() => setQuitar({ im, persona: p })}
+                        >
+                          <UserMinus className="h-4 w-4" />
+                        </Button>
+                      )}
                     </div>
                   );
                 })}
@@ -213,6 +226,44 @@ export default function AsistenciaSection() {
           </DialogContent>
         )}
       </Dialog>
+
+      <AlertDialog open={!!quitar} onOpenChange={(v) => !v && setQuitar(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Quitar estudiante de la materia</AlertDialogTitle>
+            <AlertDialogDescription>
+              {quitar
+                ? `¿Confirmas quitar a ${quitar.persona?.nombres || ""} ${quitar.persona?.apellidos || ""} de esta materia? Se eliminará la matrícula en esta clase junto con sus asistencias y calificaciones asociadas. No afecta su inscripción al programa.`
+                : ""}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={async () => {
+                if (!quitar) return;
+                try {
+                  await unenroll.mutateAsync(quitar.im.id);
+                  await logSemAudit({
+                    action: "matricula.eliminada",
+                    persona_id: quitar.im.sem_inscripciones?.persona_id,
+                    inscripcion_id: quitar.im.inscripcion_id,
+                    oferta_id: effOf,
+                    details: { desde: "asistencia" },
+                  });
+                  toast.success("Estudiante quitado de la materia");
+                  setQuitar(null);
+                } catch (e: any) {
+                  toast.error(e.message);
+                }
+              }}
+            >
+              Quitar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
