@@ -15,6 +15,27 @@ import { useCan } from "@/hooks/useCan";
 import { supabase } from "@/integrations/supabase/client";
 import { useMiPersona, useMisOfertas, useIsSeminarioStaff } from "@/hooks/useSeminarioStudent";
 import { openAsset } from "@/lib/openAsset";
+import AssetPreview from "@/components/shared/AssetPreview";
+
+function kindFromTipo(tipo: string, url?: string): "image" | "pdf" | "video" | "audio" | "other" {
+  if (tipo === "pdf") return "pdf";
+  if (tipo === "video") return "video";
+  if (tipo === "audio") return "audio";
+  const u = (url || "").toLowerCase();
+  if (/\.(png|jpe?g|gif|webp|svg)(\?|$)/.test(u)) return "image";
+  if (/\.pdf(\?|$)/.test(u)) return "pdf";
+  if (/\.(mp4|webm|mov)(\?|$)/.test(u)) return "video";
+  if (/\.(mp3|wav|m4a|ogg)(\?|$)/.test(u)) return "audio";
+  return "other";
+}
+
+function isExternalLink(url?: string) {
+  if (!url) return false;
+  try {
+    const h = new URL(url).hostname;
+    return !/supabase\.(co|in)$/.test(h);
+  } catch { return false; }
+}
 
 const TIPOS = [
   { v: "pdf", l: "PDF", icon: FileText },
