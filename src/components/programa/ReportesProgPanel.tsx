@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import ExportDropdown from "@/components/shared/ExportDropdown";
-import { useProgMinisterios, useProgAsignaciones, useProgEventos } from "@/hooks/usePrograma";
+import { useProgMinisterios, useProgAsignaciones, useProgEventos, useProgCargos, getCargoTipo } from "@/hooks/usePrograma";
 import { usePersonas } from "@/hooks/useDatabase";
 
 export default function ReportesProgPanel() {
