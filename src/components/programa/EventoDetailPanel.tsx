@@ -171,10 +171,33 @@ export default function EventoDetailPanel({ evento, onBack, onDelete }: { evento
 
       <ReemplazosPanel eventoId={evento.id} />
 
+      <Card>
+        <CardContent className="p-3 flex flex-wrap items-center gap-2">
+          <span className="text-xs font-medium text-muted-foreground mr-1">Filtrar por cargo:</span>
+          <Button size="sm" variant={filterCargoTipoVista === "all" ? "default" : "outline"} className="h-7 text-xs" onClick={() => setFilterCargoTipoVista("all")}>Todos</Button>
+          {CARGOS_GENERICOS.map((t) => (
+            <Button key={t} size="sm" variant={filterCargoTipoVista === t ? "default" : "outline"} className="h-7 text-xs" onClick={() => setFilterCargoTipoVista(t)}>{t}</Button>
+          ))}
+        </CardContent>
+      </Card>
+
       {ministerios.map((m) => {
         const cargosMin = cargos.filter((c) => c.ministerio_id === m.id);
-        const asignsMin = asignsEvento.filter((a) => a.ministerio_id === m.id);
-        const sugg = suggestionsFor(m.id);
+        let asignsMin = asignsEvento.filter((a) => a.ministerio_id === m.id);
+        if (filterCargoTipoVista !== "all") {
+          asignsMin = asignsMin.filter((a) => {
+            const c = a.cargo_id ? cargosMap.get(a.cargo_id) : null;
+            return getCargoTipo(c?.nombre) === filterCargoTipoVista;
+          });
+        }
+        const suggBase = suggestionsFor(m.id);
+        const sugg = filterCargoTipoDlg === "all"
+          ? suggBase
+          : suggBase.filter((s) => {
+              const c = s.cargo_id ? cargosMap.get(s.cargo_id) : null;
+              return getCargoTipo(c?.nombre) === filterCargoTipoDlg;
+            });
+        if (filterCargoTipoVista !== "all" && asignsMin.length === 0) return null;
         return (
           <Card key={m.id}>
             <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0">
