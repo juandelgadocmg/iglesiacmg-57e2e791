@@ -39,6 +39,8 @@ export default function EventoDetailPanel({ evento, onBack, onDelete }: { evento
 
   const [addOpen, setAddOpen] = useState<string | null>(null);
   const [draft, setDraft] = useState<any>({});
+  const [filterCargoTipoDlg, setFilterCargoTipoDlg] = useState<string>("all");
+  const [filterCargoTipoVista, setFilterCargoTipoVista] = useState<string>("all");
   const [remTarget, setRemTarget] = useState<any | null>(null);
   const [bloqueoOpen, setBloqueoOpen] = useState(false);
   const [bloqueoVal, setBloqueoVal] = useState(evento.bloqueo_at ? evento.bloqueo_at.slice(0, 16) : "");
