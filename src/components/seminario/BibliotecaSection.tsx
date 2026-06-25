@@ -168,6 +168,29 @@ export default function BibliotecaSection() {
           })}
         </div>
       )}
+
+      <Dialog open={!!preview} onOpenChange={(v) => !v && setPreview(null)}>
+        <DialogContent className="max-w-4xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center justify-between gap-2 pr-6">
+              <span className="truncate">{preview?.titulo}</span>
+              {preview?.url && (
+                <Button size="sm" variant="outline" onClick={() => openAsset({ url: preview.url, bucket: "recursos-academicos", filename: preview.titulo, download: true })}>
+                  Descargar
+                </Button>
+              )}
+            </DialogTitle>
+          </DialogHeader>
+          {preview && (
+            <AssetPreview
+              url={preview.url}
+              bucket="recursos-academicos"
+              kind={kindFromTipo(preview.tipo, preview.url)}
+              filename={preview.titulo}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
