@@ -297,8 +297,8 @@ export default function EventoDetailPanel({ evento, onBack, onDelete }: { evento
                               window.open(`https://wa.me/${num}?text=${text}`, "_blank");
                             }}><Phone className="h-3.5 w-3.5 text-green-600" /></Button>
                           ) : null}
-                          <Button size="icon" variant="ghost" className="h-7 w-7" title="Confirmado" disabled={bloqueado} onClick={() => setEstadoAsig(a, "confirmado")}><Check className="h-3.5 w-3.5 text-green-600" /></Button>
-                          <Button size="icon" variant="ghost" className="h-7 w-7" title="No disponible" disabled={bloqueado} onClick={() => setEstadoAsig(a, "no_disponible")}><X className="h-3.5 w-3.5 text-destructive" /></Button>
+                          <Button size="icon" variant="ghost" className="h-7 w-7" title={canConfirmForCargo(c?.nombre) ? "Confirmado" : "No tienes permiso para confirmar este cargo"} disabled={bloqueado || !canConfirmForCargo(c?.nombre)} onClick={() => setEstadoAsig(a, "confirmado")}><Check className="h-3.5 w-3.5 text-green-600" /></Button>
+                          <Button size="icon" variant="ghost" className="h-7 w-7" title="No disponible" disabled={bloqueado || !canConfirmForCargo(c?.nombre)} onClick={() => setEstadoAsig(a, "no_disponible")}><X className="h-3.5 w-3.5 text-destructive" /></Button>
                           <Button size="icon" variant="ghost" className="h-7 w-7" title="Solicitar reemplazo" disabled={bloqueado} onClick={() => setRemTarget({ a, m, c })}><RefreshCw className="h-3.5 w-3.5 text-amber-600" /></Button>
                           <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" disabled={bloqueado} onClick={() => removerAsignacion(a)}><Trash2 className="h-3.5 w-3.5" /></Button>
                         </div>
