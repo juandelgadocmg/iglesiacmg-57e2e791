@@ -24,10 +24,18 @@ interface Props {
 export default function IsoTemplateEditorDialog({ open, onOpenChange, ministerio, template }: Props) {
   const upsert = useUpsertIsoTemplate();
   const remove = useDeleteIsoTemplate();
+  const { data: eventos = [] } = useProgEventos();
 
   const [form, setForm] = useState<IsoMinisterioTemplate>(template);
 
   useEffect(() => { if (open) setForm(template); }, [open, template]);
+
+  const tiposDisponibles = Array.from(new Set(eventos.map((e) => e.tipo).filter(Boolean))).sort();
+  const tiposSel = form.tiposEvento ?? [];
+  const toggleTipo = (t: string) => {
+    const next = tiposSel.includes(t) ? tiposSel.filter((x) => x !== t) : [...tiposSel, t];
+    setF("tiposEvento", next);
+  };
 
   const setF = <K extends keyof IsoMinisterioTemplate>(k: K, v: IsoMinisterioTemplate[K]) =>
     setForm((p) => ({ ...p, [k]: v }));
@@ -57,6 +65,7 @@ export default function IsoTemplateEditorDialog({ open, onOpenChange, ministerio
         importante: form.importante ?? "",
         responsabilidades: form.responsabilidades,
         firmas: form.firmas,
+        tipos_evento: form.tiposEvento && form.tiposEvento.length > 0 ? form.tiposEvento : null,
       });
       toast.success("Formato ISO guardado");
       onOpenChange(false);
