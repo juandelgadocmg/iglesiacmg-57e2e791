@@ -27,12 +27,16 @@ export default function MinisteriosPanel() {
   const delMin = useDeleteMinisterio();
   const upCar = useUpsertCargo();
   const delCar = useDeleteCargo();
+  const { data: overrides = [] } = useIsoTemplateOverrides();
 
   const [openMin, setOpenMin] = useState(false);
   const [editMin, setEditMin] = useState<Partial<ProgMinisterio>>({});
   const [openCar, setOpenCar] = useState<string | null>(null);
   const [editCar, setEditCar] = useState<Partial<ProgCargo>>({});
   const [previewMin, setPreviewMin] = useState<ProgMinisterio | null>(null);
+  const [editTplMin, setEditTplMin] = useState<ProgMinisterio | null>(null);
+
+  const tplFor = (m: ProgMinisterio) => getEffectiveIsoTemplate(m.id, m.nombre, overrides);
 
   const personasMap = useMemo(() => new Map(personas.map((p: any) => [p.id, p])), [personas]);
   const cargosMap = useMemo(() => new Map(cargos.map((c) => [c.id, c])), [cargos]);
