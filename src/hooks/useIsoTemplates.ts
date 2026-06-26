@@ -98,6 +98,7 @@ export function mergeIsoTemplate(
     tiposEvento: override.tipos_evento ?? b.tiposEvento,
     fechaInicio: override.fecha_inicio ?? b.fechaInicio ?? null,
     fechaFin: override.fecha_fin ?? b.fechaFin ?? null,
+    fechasIncluidas: override.fechas_incluidas ?? b.fechasIncluidas ?? null,
   };
 }
 
