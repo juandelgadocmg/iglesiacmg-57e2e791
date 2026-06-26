@@ -60,8 +60,14 @@ export default function IsoProgramacionPreview({ open, onOpenChange, ministerio,
 
   const today = new Date().toISOString().slice(0, 10);
   const proxEventos = useMemo(
-    () => eventos.filter((e) => e.fecha >= today).sort((a, b) => a.fecha.localeCompare(b.fecha)),
-    [eventos, today]
+    () => {
+      const tipos = template.tiposEvento && template.tiposEvento.length > 0 ? new Set(template.tiposEvento) : null;
+      return eventos
+        .filter((e) => e.fecha >= today)
+        .filter((e) => !tipos || tipos.has(e.tipo))
+        .sort((a, b) => a.fecha.localeCompare(b.fecha));
+    },
+    [eventos, today, template.tiposEvento]
   );
 
   const personasMap = useMemo(() => new Map(personas.map((p: any) => [p.id, p])), [personas]);
