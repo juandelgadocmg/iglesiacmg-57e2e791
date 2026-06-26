@@ -118,7 +118,53 @@ export default function IsoTemplateEditorDialog({ open, onOpenChange, ministerio
                 Limpiar rango
               </Button>
             )}
+
+            {/* Fechas específicas adicionales */}
+            <div className="pt-2 border-t mt-2">
+              <div className="flex items-center justify-between mb-1">
+                <Label className="text-xs">Fechas específicas adicionales</Label>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-7 text-xs"
+                  onClick={() => setF("fechasIncluidas", [...(form.fechasIncluidas || []), ""])}
+                >
+                  <Plus className="h-3 w-3 mr-1" />Agregar fecha
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground mb-2">
+                Estas fechas se SUMAN al rango (si existe). Útil para incluir una reunión puntual sin perder las asignaciones ya guardadas.
+              </p>
+              <div className="space-y-1.5">
+                {(form.fechasIncluidas || []).map((f, i) => (
+                  <div key={i} className="flex items-center gap-2">
+                    <Input
+                      type="date"
+                      value={f || ""}
+                      onChange={(e) => {
+                        const arr = [...(form.fechasIncluidas || [])];
+                        arr[i] = e.target.value;
+                        setF("fechasIncluidas", arr);
+                      }}
+                      className="flex-1"
+                    />
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="h-8 w-8 text-destructive"
+                      onClick={() => setF("fechasIncluidas", (form.fechasIncluidas || []).filter((_, j) => j !== i))}
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                ))}
+                {(!form.fechasIncluidas || form.fechasIncluidas.length === 0) && (
+                  <p className="text-xs text-muted-foreground italic">Sin fechas adicionales.</p>
+                )}
+              </div>
+            </div>
           </section>
+
 
 
           {/* Estaciones */}
