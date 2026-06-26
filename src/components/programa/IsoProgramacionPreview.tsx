@@ -62,12 +62,16 @@ export default function IsoProgramacionPreview({ open, onOpenChange, ministerio,
   const proxEventos = useMemo(
     () => {
       const tipos = template.tiposEvento && template.tiposEvento.length > 0 ? new Set(template.tiposEvento) : null;
+      const desde = template.fechaInicio || null;
+      const hasta = template.fechaFin || null;
       return eventos
         .filter((e) => e.fecha >= today)
         .filter((e) => !tipos || tipos.has(e.tipo))
+        .filter((e) => !desde || e.fecha >= desde)
+        .filter((e) => !hasta || e.fecha <= hasta)
         .sort((a, b) => a.fecha.localeCompare(b.fecha));
     },
-    [eventos, today, template.tiposEvento]
+    [eventos, today, template.tiposEvento, template.fechaInicio, template.fechaFin]
   );
 
   const personasMap = useMemo(() => new Map(personas.map((p: any) => [p.id, p])), [personas]);

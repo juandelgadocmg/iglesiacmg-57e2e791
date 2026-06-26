@@ -2643,6 +2643,8 @@ export type Database = {
           codigo: string | null
           created_at: string
           estaciones: Json | null
+          fecha_fin: string | null
+          fecha_inicio: string | null
           fecha_vigencia: string | null
           firmas: Json | null
           importante: string | null
@@ -2657,6 +2659,8 @@ export type Database = {
           codigo?: string | null
           created_at?: string
           estaciones?: Json | null
+          fecha_fin?: string | null
+          fecha_inicio?: string | null
           fecha_vigencia?: string | null
           firmas?: Json | null
           importante?: string | null
@@ -2671,6 +2675,8 @@ export type Database = {
           codigo?: string | null
           created_at?: string
           estaciones?: Json | null
+          fecha_fin?: string | null
+          fecha_inicio?: string | null
           fecha_vigencia?: string | null
           firmas?: Json | null
           importante?: string | null
