@@ -2646,6 +2646,7 @@ export type Database = {
           fecha_fin: string | null
           fecha_inicio: string | null
           fecha_vigencia: string | null
+          fechas_incluidas: string[] | null
           firmas: Json | null
           importante: string | null
           ministerio_id: string
@@ -2662,6 +2663,7 @@ export type Database = {
           fecha_fin?: string | null
           fecha_inicio?: string | null
           fecha_vigencia?: string | null
+          fechas_incluidas?: string[] | null
           firmas?: Json | null
           importante?: string | null
           ministerio_id: string
@@ -2678,6 +2680,7 @@ export type Database = {
           fecha_fin?: string | null
           fecha_inicio?: string | null
           fecha_vigencia?: string | null
+          fechas_incluidas?: string[] | null
           firmas?: Json | null
           importante?: string | null
           ministerio_id?: string
