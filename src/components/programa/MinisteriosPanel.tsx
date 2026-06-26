@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Plus, Pencil, Trash2, Users, FileDown } from "lucide-react";
+import { Plus, Pencil, Trash2, Users, FileDown, Settings2 } from "lucide-react";
 import { toast } from "sonner";
 import { useProgMinisterios, useProgCargos, useUpsertMinisterio, useDeleteMinisterio, useUpsertCargo, useDeleteCargo, useProgEventos, useProgAsignaciones, getCargoTipo, type ProgMinisterio, type ProgCargo } from "@/hooks/usePrograma";
 import { usePersonas } from "@/hooks/useDatabase";
@@ -14,6 +14,8 @@ import { findIsoTemplate } from "@/lib/isoMinisterioTemplates";
 import { exportIsoMinisterioPdf, normKey } from "@/lib/exportIsoMinisterioPdf";
 import { FileText, Eye } from "lucide-react";
 import IsoProgramacionPreview from "./IsoProgramacionPreview";
+import IsoTemplateEditorDialog from "./IsoTemplateEditorDialog";
+import { useIsoTemplateOverrides, getEffectiveIsoTemplate } from "@/hooks/useIsoTemplates";
 
 export default function MinisteriosPanel() {
   const { data: ministerios = [] } = useProgMinisterios();
