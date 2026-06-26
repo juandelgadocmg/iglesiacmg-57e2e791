@@ -104,6 +104,27 @@ export default function IsoTemplateEditorDialog({ open, onOpenChange, ministerio
             </div>
           </section>
 
+          {/* Tipos de reunión */}
+          <section className="space-y-2">
+            <h4 className="text-sm font-semibold">Reuniones donde participa el ministerio</h4>
+            <p className="text-xs text-muted-foreground">
+              Selecciona los tipos de reunión donde aparecerá este ministerio. Si no marcas ninguno, aparecerá en todas.
+            </p>
+            {tiposDisponibles.length === 0 ? (
+              <p className="text-xs text-muted-foreground">No hay tipos de reunión registrados aún.</p>
+            ) : (
+              <div className="flex flex-wrap gap-3 pt-1">
+                {tiposDisponibles.map((t) => (
+                  <label key={t} className="flex items-center gap-2 text-sm cursor-pointer">
+                    <Checkbox checked={tiposSel.includes(t)} onCheckedChange={() => toggleTipo(t)} />
+                    <span className="capitalize">{t}</span>
+                  </label>
+                ))}
+              </div>
+            )}
+          </section>
+
+
           {/* Estaciones */}
           <section className="space-y-2">
             <div className="flex items-center justify-between">
