@@ -17,6 +17,7 @@ export interface IsoTemplateOverride {
   tipos_evento: string[] | null;
   fecha_inicio: string | null;
   fecha_fin: string | null;
+  fechas_incluidas: string[] | null;
 }
 
 export function useIsoTemplateOverrides() {
