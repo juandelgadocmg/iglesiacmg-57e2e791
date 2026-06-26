@@ -58,6 +58,7 @@ export default function IsoTemplateEditorDialog({ open, onOpenChange, ministerio
         tipos_evento: form.tiposEvento && form.tiposEvento.length > 0 ? form.tiposEvento : null,
         fecha_inicio: form.fechaInicio || null,
         fecha_fin: form.fechaFin || null,
+        fechas_incluidas: form.fechasIncluidas && form.fechasIncluidas.length > 0 ? form.fechasIncluidas : null,
       });
       toast.success("Formato ISO guardado");
       onOpenChange(false);
