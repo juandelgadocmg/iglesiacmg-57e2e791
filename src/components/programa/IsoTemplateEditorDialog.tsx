@@ -9,6 +9,8 @@ import { toast } from "sonner";
 import type { IsoMinisterioTemplate } from "@/lib/isoMinisterioTemplates";
 import { findIsoTemplate } from "@/lib/isoMinisterioTemplates";
 import { useUpsertIsoTemplate, useDeleteIsoTemplate } from "@/hooks/useIsoTemplates";
+import { useProgEventos } from "@/hooks/usePrograma";
+import { Checkbox } from "@/components/ui/checkbox";
 import type { ProgMinisterio } from "@/hooks/usePrograma";
 
 interface Props {
