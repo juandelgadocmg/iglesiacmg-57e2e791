@@ -2638,6 +2638,56 @@ export type Database = {
           },
         ]
       }
+      prog_iso_templates: {
+        Row: {
+          codigo: string | null
+          created_at: string
+          estaciones: Json | null
+          fecha_vigencia: string | null
+          firmas: Json | null
+          importante: string | null
+          ministerio_id: string
+          responsabilidades: string | null
+          titulo: string | null
+          updated_at: string
+          version: string | null
+        }
+        Insert: {
+          codigo?: string | null
+          created_at?: string
+          estaciones?: Json | null
+          fecha_vigencia?: string | null
+          firmas?: Json | null
+          importante?: string | null
+          ministerio_id: string
+          responsabilidades?: string | null
+          titulo?: string | null
+          updated_at?: string
+          version?: string | null
+        }
+        Update: {
+          codigo?: string | null
+          created_at?: string
+          estaciones?: Json | null
+          fecha_vigencia?: string | null
+          firmas?: Json | null
+          importante?: string | null
+          ministerio_id?: string
+          responsabilidades?: string | null
+          titulo?: string | null
+          updated_at?: string
+          version?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "prog_iso_templates_ministerio_id_fkey"
+            columns: ["ministerio_id"]
+            isOneToOne: true
+            referencedRelation: "prog_ministerios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       prog_ministerios: {
         Row: {
           activo: boolean

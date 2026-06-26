@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Plus, Pencil, Trash2, Users, FileDown } from "lucide-react";
+import { Plus, Pencil, Trash2, Users, FileDown, Settings2 } from "lucide-react";
 import { toast } from "sonner";
 import { useProgMinisterios, useProgCargos, useUpsertMinisterio, useDeleteMinisterio, useUpsertCargo, useDeleteCargo, useProgEventos, useProgAsignaciones, getCargoTipo, type ProgMinisterio, type ProgCargo } from "@/hooks/usePrograma";
 import { usePersonas } from "@/hooks/useDatabase";
@@ -14,6 +14,8 @@ import { findIsoTemplate } from "@/lib/isoMinisterioTemplates";
 import { exportIsoMinisterioPdf, normKey } from "@/lib/exportIsoMinisterioPdf";
 import { FileText, Eye } from "lucide-react";
 import IsoProgramacionPreview from "./IsoProgramacionPreview";
+import IsoTemplateEditorDialog from "./IsoTemplateEditorDialog";
+import { useIsoTemplateOverrides, getEffectiveIsoTemplate } from "@/hooks/useIsoTemplates";
 
 export default function MinisteriosPanel() {
   const { data: ministerios = [] } = useProgMinisterios();
@@ -25,12 +27,16 @@ export default function MinisteriosPanel() {
   const delMin = useDeleteMinisterio();
   const upCar = useUpsertCargo();
   const delCar = useDeleteCargo();
+  const { data: overrides = [] } = useIsoTemplateOverrides();
 
   const [openMin, setOpenMin] = useState(false);
   const [editMin, setEditMin] = useState<Partial<ProgMinisterio>>({});
   const [openCar, setOpenCar] = useState<string | null>(null);
   const [editCar, setEditCar] = useState<Partial<ProgCargo>>({});
   const [previewMin, setPreviewMin] = useState<ProgMinisterio | null>(null);
+  const [editTplMin, setEditTplMin] = useState<ProgMinisterio | null>(null);
+
+  const tplFor = (m: ProgMinisterio) => getEffectiveIsoTemplate(m.id, m.nombre, overrides);
 
   const personasMap = useMemo(() => new Map(personas.map((p: any) => [p.id, p])), [personas]);
   const cargosMap = useMemo(() => new Map(cargos.map((c) => [c.id, c])), [cargos]);
@@ -51,7 +57,7 @@ export default function MinisteriosPanel() {
       .sort((a, b) => a.fecha.localeCompare(b.fecha))
       .filter((e) => asignaciones.some((a) => a.evento_id === e.id && a.ministerio_id === m.id));
 
-    const tpl = findIsoTemplate(m.nombre);
+    const tpl = tplFor(m);
     if (tpl) {
       // === PDF en formato ISO ===
       const asigsPorEv = new Map<string, Map<string, string>>();
@@ -111,7 +117,7 @@ export default function MinisteriosPanel() {
   };
 
   const cargarPlantillaIso = async (m: ProgMinisterio) => {
-    const tpl = findIsoTemplate(m.nombre);
+    const tpl = tplFor(m);
     if (!tpl) return toast.error("Este ministerio no tiene plantilla ISO definida");
     const existentes = new Set(cargos.filter((c) => c.ministerio_id === m.id).map((c) => normKey(c.nombre)));
     let creados = 0;
@@ -150,6 +156,7 @@ export default function MinisteriosPanel() {
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         {ministerios.map((m) => {
           const list = cargos.filter((c) => c.ministerio_id === m.id);
+          const tpl = tplFor(m);
           return (
             <Card key={m.id} className="overflow-hidden">
               <div className="h-1.5" style={{ background: m.color || "#2563eb" }} />
@@ -157,15 +164,16 @@ export default function MinisteriosPanel() {
                 <div className="flex justify-between items-start gap-2">
                   <div className="min-w-0">
                     <CardTitle className="text-base truncate">{m.nombre}</CardTitle>
-                    {findIsoTemplate(m.nombre) && (
-                      <Badge variant="outline" className="mt-1 text-[10px]">ISO {findIsoTemplate(m.nombre)!.codigo}</Badge>
+                    {tpl && (
+                      <Badge variant="outline" className="mt-1 text-[10px]">ISO {tpl.codigo}</Badge>
                     )}
                   </div>
                   <div className="flex gap-1 flex-shrink-0">
-                    {findIsoTemplate(m.nombre) && (
+                    {tpl && (
                       <>
                         <Button size="icon" variant="ghost" className="h-7 w-7" title="Cargar estaciones ISO como cargos" onClick={() => cargarPlantillaIso(m)}><FileText className="h-3.5 w-3.5" /></Button>
                         <Button size="icon" variant="ghost" className="h-7 w-7" title="Vista previa ISO y editar" onClick={() => setPreviewMin(m)}><Eye className="h-3.5 w-3.5" /></Button>
+                        <Button size="icon" variant="ghost" className="h-7 w-7" title="Editar formato ISO" onClick={() => setEditTplMin(m)}><Settings2 className="h-3.5 w-3.5" /></Button>
                       </>
                     )}
                     <Button size="icon" variant="ghost" className="h-7 w-7" title="Descargar PDF de programación" onClick={() => descargarPdfMinisterio(m)}><FileDown className="h-3.5 w-3.5" /></Button>
@@ -212,16 +220,25 @@ export default function MinisteriosPanel() {
         })}
       </div>
 
-      {previewMin && findIsoTemplate(previewMin.nombre) && (
+      {previewMin && tplFor(previewMin) && (
         <IsoProgramacionPreview
           open={!!previewMin}
           onOpenChange={(o) => !o && setPreviewMin(null)}
           ministerio={previewMin}
-          template={findIsoTemplate(previewMin.nombre)!}
+          template={tplFor(previewMin)!}
           liderNombre={(() => {
             const l: any = personasMap.get(previewMin.lider_persona_id || "");
             return l ? `${l.nombres} ${l.apellidos}` : "";
           })()}
+        />
+      )}
+
+      {editTplMin && (
+        <IsoTemplateEditorDialog
+          open={!!editTplMin}
+          onOpenChange={(o) => !o && setEditTplMin(null)}
+          ministerio={editTplMin}
+          template={tplFor(editTplMin) || findIsoTemplate(editTplMin.nombre)!}
         />
       )}
     </div>
