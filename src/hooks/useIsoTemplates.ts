@@ -15,6 +15,8 @@ export interface IsoTemplateOverride {
   responsabilidades: string | null;
   firmas: IsoMinisterioTemplate["firmas"] | null;
   tipos_evento: string[] | null;
+  fecha_inicio: string | null;
+  fecha_fin: string | null;
 }
 
 export function useIsoTemplateOverrides() {
@@ -93,6 +95,8 @@ export function mergeIsoTemplate(
     responsabilidades: override.responsabilidades ?? b.responsabilidades,
     firmas: override.firmas ?? b.firmas,
     tiposEvento: override.tipos_evento ?? b.tiposEvento,
+    fechaInicio: override.fecha_inicio ?? b.fechaInicio ?? null,
+    fechaFin: override.fecha_fin ?? b.fechaFin ?? null,
   };
 }
 

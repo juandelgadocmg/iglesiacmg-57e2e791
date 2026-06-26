@@ -22,6 +22,10 @@ export interface IsoMinisterioTemplate {
   estaciones: string[];
   /** Tipos de evento (prog_eventos.tipo) en los que participa este ministerio. Vacío/undefined = todos. */
   tiposEvento?: string[];
+  /** Fecha inicial (ISO yyyy-mm-dd) del rango de reuniones donde aparece. Vacío = sin límite inferior. */
+  fechaInicio?: string | null;
+  /** Fecha final (ISO yyyy-mm-dd) del rango de reuniones donde aparece. Vacío = sin límite superior. */
+  fechaFin?: string | null;
   /** Texto del bloque "Importante" (puede ser vacío). */
   importante?: string;
   /** Responsabilidades / nota al pie. */
