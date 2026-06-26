@@ -57,7 +57,7 @@ export default function MinisteriosPanel() {
       .sort((a, b) => a.fecha.localeCompare(b.fecha))
       .filter((e) => asignaciones.some((a) => a.evento_id === e.id && a.ministerio_id === m.id));
 
-    const tpl = findIsoTemplate(m.nombre);
+    const tpl = tplFor(m);
     if (tpl) {
       // === PDF en formato ISO ===
       const asigsPorEv = new Map<string, Map<string, string>>();
@@ -117,7 +117,7 @@ export default function MinisteriosPanel() {
   };
 
   const cargarPlantillaIso = async (m: ProgMinisterio) => {
-    const tpl = findIsoTemplate(m.nombre);
+    const tpl = tplFor(m);
     if (!tpl) return toast.error("Este ministerio no tiene plantilla ISO definida");
     const existentes = new Set(cargos.filter((c) => c.ministerio_id === m.id).map((c) => normKey(c.nombre)));
     let creados = 0;
@@ -156,6 +156,7 @@ export default function MinisteriosPanel() {
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         {ministerios.map((m) => {
           const list = cargos.filter((c) => c.ministerio_id === m.id);
+          const tpl = tplFor(m);
           return (
             <Card key={m.id} className="overflow-hidden">
               <div className="h-1.5" style={{ background: m.color || "#2563eb" }} />
@@ -163,15 +164,16 @@ export default function MinisteriosPanel() {
                 <div className="flex justify-between items-start gap-2">
                   <div className="min-w-0">
                     <CardTitle className="text-base truncate">{m.nombre}</CardTitle>
-                    {findIsoTemplate(m.nombre) && (
-                      <Badge variant="outline" className="mt-1 text-[10px]">ISO {findIsoTemplate(m.nombre)!.codigo}</Badge>
+                    {tpl && (
+                      <Badge variant="outline" className="mt-1 text-[10px]">ISO {tpl.codigo}</Badge>
                     )}
                   </div>
                   <div className="flex gap-1 flex-shrink-0">
-                    {findIsoTemplate(m.nombre) && (
+                    {tpl && (
                       <>
                         <Button size="icon" variant="ghost" className="h-7 w-7" title="Cargar estaciones ISO como cargos" onClick={() => cargarPlantillaIso(m)}><FileText className="h-3.5 w-3.5" /></Button>
                         <Button size="icon" variant="ghost" className="h-7 w-7" title="Vista previa ISO y editar" onClick={() => setPreviewMin(m)}><Eye className="h-3.5 w-3.5" /></Button>
+                        <Button size="icon" variant="ghost" className="h-7 w-7" title="Editar formato ISO" onClick={() => setEditTplMin(m)}><Settings2 className="h-3.5 w-3.5" /></Button>
                       </>
                     )}
                     <Button size="icon" variant="ghost" className="h-7 w-7" title="Descargar PDF de programación" onClick={() => descargarPdfMinisterio(m)}><FileDown className="h-3.5 w-3.5" /></Button>
@@ -218,16 +220,25 @@ export default function MinisteriosPanel() {
         })}
       </div>
 
-      {previewMin && findIsoTemplate(previewMin.nombre) && (
+      {previewMin && tplFor(previewMin) && (
         <IsoProgramacionPreview
           open={!!previewMin}
           onOpenChange={(o) => !o && setPreviewMin(null)}
           ministerio={previewMin}
-          template={findIsoTemplate(previewMin.nombre)!}
+          template={tplFor(previewMin)!}
           liderNombre={(() => {
             const l: any = personasMap.get(previewMin.lider_persona_id || "");
             return l ? `${l.nombres} ${l.apellidos}` : "";
           })()}
+        />
+      )}
+
+      {editTplMin && (
+        <IsoTemplateEditorDialog
+          open={!!editTplMin}
+          onOpenChange={(o) => !o && setEditTplMin(null)}
+          ministerio={editTplMin}
+          template={tplFor(editTplMin) || findIsoTemplate(editTplMin.nombre)!}
         />
       )}
     </div>
