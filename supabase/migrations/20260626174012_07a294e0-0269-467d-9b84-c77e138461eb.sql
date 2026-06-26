@@ -1,0 +1,2 @@
+ALTER TABLE public.prog_iso_templates ADD COLUMN IF NOT EXISTS tipos_evento text[] NULL;
+COMMENT ON COLUMN public.prog_iso_templates.tipos_evento IS 'Lista de tipos de evento (prog_eventos.tipo) donde participa el ministerio. NULL o vacío = todos los tipos.';

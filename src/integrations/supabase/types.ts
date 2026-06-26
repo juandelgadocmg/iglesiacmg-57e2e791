@@ -2648,6 +2648,7 @@ export type Database = {
           importante: string | null
           ministerio_id: string
           responsabilidades: string | null
+          tipos_evento: string[] | null
           titulo: string | null
           updated_at: string
           version: string | null
@@ -2661,6 +2662,7 @@ export type Database = {
           importante?: string | null
           ministerio_id: string
           responsabilidades?: string | null
+          tipos_evento?: string[] | null
           titulo?: string | null
           updated_at?: string
           version?: string | null
@@ -2674,6 +2676,7 @@ export type Database = {
           importante?: string | null
           ministerio_id?: string
           responsabilidades?: string | null
+          tipos_evento?: string[] | null
           titulo?: string | null
           updated_at?: string
           version?: string | null

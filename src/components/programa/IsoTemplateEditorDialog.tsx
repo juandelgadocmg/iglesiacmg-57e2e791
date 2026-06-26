@@ -9,6 +9,8 @@ import { toast } from "sonner";
 import type { IsoMinisterioTemplate } from "@/lib/isoMinisterioTemplates";
 import { findIsoTemplate } from "@/lib/isoMinisterioTemplates";
 import { useUpsertIsoTemplate, useDeleteIsoTemplate } from "@/hooks/useIsoTemplates";
+import { useProgEventos } from "@/hooks/usePrograma";
+import { Checkbox } from "@/components/ui/checkbox";
 import type { ProgMinisterio } from "@/hooks/usePrograma";
 
 interface Props {
@@ -22,10 +24,18 @@ interface Props {
 export default function IsoTemplateEditorDialog({ open, onOpenChange, ministerio, template }: Props) {
   const upsert = useUpsertIsoTemplate();
   const remove = useDeleteIsoTemplate();
+  const { data: eventos = [] } = useProgEventos();
 
   const [form, setForm] = useState<IsoMinisterioTemplate>(template);
 
   useEffect(() => { if (open) setForm(template); }, [open, template]);
+
+  const tiposDisponibles = Array.from(new Set(eventos.map((e) => e.tipo).filter(Boolean))).sort();
+  const tiposSel = form.tiposEvento ?? [];
+  const toggleTipo = (t: string) => {
+    const next = tiposSel.includes(t) ? tiposSel.filter((x) => x !== t) : [...tiposSel, t];
+    setF("tiposEvento", next);
+  };
 
   const setF = <K extends keyof IsoMinisterioTemplate>(k: K, v: IsoMinisterioTemplate[K]) =>
     setForm((p) => ({ ...p, [k]: v }));
@@ -55,6 +65,7 @@ export default function IsoTemplateEditorDialog({ open, onOpenChange, ministerio
         importante: form.importante ?? "",
         responsabilidades: form.responsabilidades,
         firmas: form.firmas,
+        tipos_evento: form.tiposEvento && form.tiposEvento.length > 0 ? form.tiposEvento : null,
       });
       toast.success("Formato ISO guardado");
       onOpenChange(false);
@@ -92,6 +103,27 @@ export default function IsoTemplateEditorDialog({ open, onOpenChange, ministerio
               <div className="col-span-2"><Label>Título</Label><Input value={form.titulo} onChange={(e) => setF("titulo", e.target.value)} /></div>
             </div>
           </section>
+
+          {/* Tipos de reunión */}
+          <section className="space-y-2">
+            <h4 className="text-sm font-semibold">Reuniones donde participa el ministerio</h4>
+            <p className="text-xs text-muted-foreground">
+              Selecciona los tipos de reunión donde aparecerá este ministerio. Si no marcas ninguno, aparecerá en todas.
+            </p>
+            {tiposDisponibles.length === 0 ? (
+              <p className="text-xs text-muted-foreground">No hay tipos de reunión registrados aún.</p>
+            ) : (
+              <div className="flex flex-wrap gap-3 pt-1">
+                {tiposDisponibles.map((t) => (
+                  <label key={t} className="flex items-center gap-2 text-sm cursor-pointer">
+                    <Checkbox checked={tiposSel.includes(t)} onCheckedChange={() => toggleTipo(t)} />
+                    <span className="capitalize">{t}</span>
+                  </label>
+                ))}
+              </div>
+            )}
+          </section>
+
 
           {/* Estaciones */}
           <section className="space-y-2">

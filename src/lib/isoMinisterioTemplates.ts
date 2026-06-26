@@ -20,6 +20,8 @@ export interface IsoMinisterioTemplate {
   titulo: string;
   /** Estaciones/columnas del cuadro (en orden). Se crean como cargos del ministerio. */
   estaciones: string[];
+  /** Tipos de evento (prog_eventos.tipo) en los que participa este ministerio. Vacío/undefined = todos. */
+  tiposEvento?: string[];
   /** Texto del bloque "Importante" (puede ser vacío). */
   importante?: string;
   /** Responsabilidades / nota al pie. */
