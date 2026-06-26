@@ -26,6 +26,8 @@ export interface IsoMinisterioTemplate {
   fechaInicio?: string | null;
   /** Fecha final (ISO yyyy-mm-dd) del rango de reuniones donde aparece. Vacío = sin límite superior. */
   fechaFin?: string | null;
+  /** Fechas específicas (yyyy-mm-dd) donde participa el ministerio. Si tiene valores, se SUMAN a los eventos del rango. */
+  fechasIncluidas?: string[] | null;
   /** Texto del bloque "Importante" (puede ser vacío). */
   importante?: string;
   /** Responsabilidades / nota al pie. */

@@ -17,6 +17,7 @@ export interface IsoTemplateOverride {
   tipos_evento: string[] | null;
   fecha_inicio: string | null;
   fecha_fin: string | null;
+  fechas_incluidas: string[] | null;
 }
 
 export function useIsoTemplateOverrides() {
@@ -97,6 +98,7 @@ export function mergeIsoTemplate(
     tiposEvento: override.tipos_evento ?? b.tiposEvento,
     fechaInicio: override.fecha_inicio ?? b.fechaInicio ?? null,
     fechaFin: override.fecha_fin ?? b.fechaFin ?? null,
+    fechasIncluidas: override.fechas_incluidas ?? b.fechasIncluidas ?? null,
   };
 }
 

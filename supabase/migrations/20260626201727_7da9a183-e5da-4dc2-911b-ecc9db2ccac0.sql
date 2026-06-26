@@ -1,0 +1,2 @@
+ALTER TABLE public.prog_iso_templates ADD COLUMN IF NOT EXISTS fechas_incluidas date[] NULL;
+COMMENT ON COLUMN public.prog_iso_templates.fechas_incluidas IS 'Lista de fechas específicas (yyyy-mm-dd) donde participa el ministerio. Si tiene valores, anula el rango Desde/Hasta.';
