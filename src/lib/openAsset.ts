@@ -122,24 +122,36 @@ export async function openAsset(opts: OpenAssetOptions): Promise<void> {
   const blobUrl = URL.createObjectURL(blob);
   const filename = opts.filename || opts.path?.split("/").pop() || "archivo";
 
-  if (opts.download) {
+  // iOS Safari (y varios navegadores móviles) ignoran el atributo `download`
+  // en URLs blob:. En ese caso el click no hace nada visible y el usuario
+  // cree que "no descarga". Detectamos móvil y abrimos en pestaña nueva,
+  // donde el navegador ofrece su propio botón nativo de compartir/guardar.
+  const ua = typeof navigator !== "undefined" ? navigator.userAgent || "" : "";
+  const isIOS = /iP(hone|od|ad)/.test(ua) || (/Mac/.test(ua) && typeof document !== "undefined" && "ontouchend" in document);
+  const isMobile = isIOS || /Android|Mobile|iPhone|iPad|iPod/i.test(ua);
+
+  const triggerDownloadAnchor = () => {
     const a = document.createElement("a");
     a.href = blobUrl;
     a.download = filename;
+    a.rel = "noopener";
     document.body.appendChild(a);
     a.click();
     a.remove();
+  };
+
+  if (opts.download) {
+    if (isMobile) {
+      // En móvil abrimos en pestaña nueva: el navegador mostrará el PDF/archivo
+      // y el usuario puede usar "Guardar" o "Compartir" del sistema.
+      const win = window.open(blobUrl, "_blank", "noopener,noreferrer");
+      if (!win) triggerDownloadAnchor();
+    } else {
+      triggerDownloadAnchor();
+    }
   } else {
     const win = window.open(blobUrl, "_blank", "noopener,noreferrer");
-    if (!win) {
-      // pop-up bloqueado: forzar descarga como fallback
-      const a = document.createElement("a");
-      a.href = blobUrl;
-      a.download = filename;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-    }
+    if (!win) triggerDownloadAnchor();
   }
   setTimeout(() => URL.revokeObjectURL(blobUrl), 60_000);
 }
