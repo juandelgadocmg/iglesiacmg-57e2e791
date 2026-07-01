@@ -116,19 +116,49 @@ export async function fetchAssetBlob(opts: OpenAssetOptions): Promise<Blob | nul
 }
 
 export async function openAsset(opts: OpenAssetOptions): Promise<void> {
-  const blob = await fetchAssetBlob(opts);
-  if (!blob) return;
-
-  const blobUrl = URL.createObjectURL(blob);
-  const filename = opts.filename || opts.path?.split("/").pop() || "archivo";
-
-  // iOS Safari (y varios navegadores móviles) ignoran el atributo `download`
-  // en URLs blob:. En ese caso el click no hace nada visible y el usuario
-  // cree que "no descarga". Detectamos móvil y abrimos en pestaña nueva,
-  // donde el navegador ofrece su propio botón nativo de compartir/guardar.
   const ua = typeof navigator !== "undefined" ? navigator.userAgent || "" : "";
   const isIOS = /iP(hone|od|ad)/.test(ua) || (/Mac/.test(ua) && typeof document !== "undefined" && "ontouchend" in document);
   const isMobile = isIOS || /Android|Mobile|iPhone|iPad|iPod/i.test(ua);
+
+  // Resolver bucket + path
+  let bucket = opts.bucket;
+  let path = opts.path || undefined;
+  if ((!bucket || !path) && opts.url) {
+    const parsed = parseSupabaseUrl(opts.url);
+    if (parsed) {
+      bucket = bucket || parsed.bucket;
+      path = path || parsed.path;
+    }
+  }
+  const filename = opts.filename || path?.split("/").pop() || opts.url?.split("/").pop() || "archivo";
+
+  // Estrategia preferida (funciona en móvil e iOS): signed URL con
+  // response-content-disposition=attachment. El navegador dispara la descarga
+  // nativa al navegar a esa URL, sin depender de blob:.
+  if (bucket && path) {
+    try {
+      const { data: signed, error } = await supabase.storage
+        .from(bucket)
+        .createSignedUrl(path, 60 * 10, opts.download ? { download: filename } : undefined);
+      if (!error && signed?.signedUrl) {
+        if (opts.download && isMobile) {
+          // Navegar en la pestaña actual → el SO muestra el diálogo de guardado.
+          window.location.href = signed.signedUrl;
+        } else {
+          const win = window.open(signed.signedUrl, "_blank", "noopener,noreferrer");
+          if (!win) window.location.href = signed.signedUrl;
+        }
+        return;
+      }
+    } catch {
+      /* cae al fallback blob */
+    }
+  }
+
+  // Fallback: descargar como blob (para URLs no-Storage o si signed falla)
+  const blob = await fetchAssetBlob(opts);
+  if (!blob) return;
+  const blobUrl = URL.createObjectURL(blob);
 
   const triggerDownloadAnchor = () => {
     const a = document.createElement("a");
@@ -142,8 +172,6 @@ export async function openAsset(opts: OpenAssetOptions): Promise<void> {
 
   if (opts.download) {
     if (isMobile) {
-      // En móvil abrimos en pestaña nueva: el navegador mostrará el PDF/archivo
-      // y el usuario puede usar "Guardar" o "Compartir" del sistema.
       const win = window.open(blobUrl, "_blank", "noopener,noreferrer");
       if (!win) triggerDownloadAnchor();
     } else {
