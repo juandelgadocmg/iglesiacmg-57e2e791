@@ -28,6 +28,8 @@ export interface IsoMinisterioTemplate {
   fechaFin?: string | null;
   /** Fechas específicas (yyyy-mm-dd) donde participa el ministerio. Si tiene valores, se SUMAN a los eventos del rango. */
   fechasIncluidas?: string[] | null;
+  /** Nombre del líder escrito manualmente (opcional). Si está definido, prevalece sobre el líder configurado en el ministerio. */
+  liderNombreManual?: string | null;
   /** Texto del bloque "Importante" (puede ser vacío). */
   importante?: string;
   /** Responsabilidades / nota al pie. */
