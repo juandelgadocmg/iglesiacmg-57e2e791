@@ -100,6 +100,7 @@ export function mergeIsoTemplate(
     fechaInicio: override.fecha_inicio ?? b.fechaInicio ?? null,
     fechaFin: override.fecha_fin ?? b.fechaFin ?? null,
     fechasIncluidas: override.fechas_incluidas ?? b.fechasIncluidas ?? null,
+    liderNombreManual: override.lider_nombre_manual ?? b.liderNombreManual ?? null,
   };
 }
 
