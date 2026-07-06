@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,6 +10,8 @@ import type { IsoMinisterioTemplate } from "@/lib/isoMinisterioTemplates";
 import { findIsoTemplate } from "@/lib/isoMinisterioTemplates";
 import { useUpsertIsoTemplate, useDeleteIsoTemplate } from "@/hooks/useIsoTemplates";
 import type { ProgMinisterio } from "@/hooks/usePrograma";
+import { usePersonas } from "@/hooks/useDatabase";
+import SearchableCombobox from "@/components/seminario/SearchableCombobox";
 
 interface Props {
   open: boolean;
@@ -22,10 +24,16 @@ interface Props {
 export default function IsoTemplateEditorDialog({ open, onOpenChange, ministerio, template }: Props) {
   const upsert = useUpsertIsoTemplate();
   const remove = useDeleteIsoTemplate();
+  const { data: personas = [] } = usePersonas();
 
   const [form, setForm] = useState<IsoMinisterioTemplate>(template);
 
   useEffect(() => { if (open) setForm(template); }, [open, template]);
+
+  const personaItems = useMemo(
+    () => personas.map((p: any) => ({ id: p.id, label: `${p.nombres} ${p.apellidos}`, sub: p.telefono || p.email || "" })),
+    [personas]
+  );
 
   const setF = <K extends keyof IsoMinisterioTemplate>(k: K, v: IsoMinisterioTemplate[K]) =>
     setForm((p) => ({ ...p, [k]: v }));
@@ -58,7 +66,8 @@ export default function IsoTemplateEditorDialog({ open, onOpenChange, ministerio
         tipos_evento: form.tiposEvento && form.tiposEvento.length > 0 ? form.tiposEvento : null,
         fecha_inicio: form.fechaInicio || null,
         fecha_fin: form.fechaFin || null,
-        fechas_incluidas: form.fechasIncluidas && form.fechasIncluidas.length > 0 ? form.fechasIncluidas : null,
+        fechas_incluidas: form.fechasIncluidas && form.fechasIncluidas.length > 0 ? form.fechasIncluidas.filter(Boolean) : null,
+        lider_nombre_manual: form.liderNombreManual?.trim() ? form.liderNombreManual.trim() : null,
       });
       toast.success("Formato ISO guardado");
       onOpenChange(false);
@@ -97,73 +106,77 @@ export default function IsoTemplateEditorDialog({ open, onOpenChange, ministerio
             </div>
           </section>
 
-          {/* Rango de fechas */}
+          {/* Líder de Ministerio */}
           <section className="space-y-2">
-            <h4 className="text-sm font-semibold">Rango de fechas donde participa el ministerio</h4>
+            <h4 className="text-sm font-semibold">Líder de Ministerio</h4>
             <p className="text-xs text-muted-foreground">
-              Solo se incluirán las reuniones cuya fecha esté dentro del rango. Deja vacío para no limitar.
+              Puedes escribir el nombre libremente o seleccionar un servidor. Si se deja vacío, se usa el líder configurado en el ministerio.
             </p>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <Label>Desde</Label>
-                <Input type="date" value={form.fechaInicio || ""} onChange={(e) => setF("fechaInicio", e.target.value || null)} />
-              </div>
-              <div>
-                <Label>Hasta</Label>
-                <Input type="date" value={form.fechaFin || ""} onChange={(e) => setF("fechaFin", e.target.value || null)} />
-              </div>
-            </div>
-            {(form.fechaInicio || form.fechaFin) && (
-              <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => { setF("fechaInicio", null); setF("fechaFin", null); }}>
-                Limpiar rango
-              </Button>
-            )}
-
-            {/* Fechas específicas adicionales */}
-            <div className="pt-2 border-t mt-2">
-              <div className="flex items-center justify-between mb-1">
-                <Label className="text-xs">Fechas específicas adicionales</Label>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="h-7 text-xs"
-                  onClick={() => setF("fechasIncluidas", [...(form.fechasIncluidas || []), ""])}
-                >
-                  <Plus className="h-3 w-3 mr-1" />Agregar fecha
-                </Button>
-              </div>
-              <p className="text-xs text-muted-foreground mb-2">
-                Estas fechas se SUMAN al rango (si existe). Útil para incluir una reunión puntual sin perder las asignaciones ya guardadas.
-              </p>
-              <div className="space-y-1.5">
-                {(form.fechasIncluidas || []).map((f, i) => (
-                  <div key={i} className="flex items-center gap-2">
-                    <Input
-                      type="date"
-                      value={f || ""}
-                      onChange={(e) => {
-                        const arr = [...(form.fechasIncluidas || [])];
-                        arr[i] = e.target.value;
-                        setF("fechasIncluidas", arr);
-                      }}
-                      className="flex-1"
-                    />
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      className="h-8 w-8 text-destructive"
-                      onClick={() => setF("fechasIncluidas", (form.fechasIncluidas || []).filter((_, j) => j !== i))}
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </Button>
-                  </div>
-                ))}
-                {(!form.fechasIncluidas || form.fechasIncluidas.length === 0) && (
-                  <p className="text-xs text-muted-foreground italic">Sin fechas adicionales.</p>
-                )}
-              </div>
+            <div className="grid grid-cols-1 gap-2">
+              <Input
+                placeholder="Nombre del líder (texto libre)"
+                value={form.liderNombreManual || ""}
+                onChange={(e) => setF("liderNombreManual", e.target.value)}
+              />
+              <SearchableCombobox
+                items={personaItems}
+                value={null}
+                onChange={(id) => {
+                  const p: any = personas.find((x: any) => x.id === id);
+                  if (p) setF("liderNombreManual", `${p.nombres} ${p.apellidos}`);
+                }}
+                placeholder="…o seleccionar persona"
+              />
             </div>
           </section>
+
+          {/* Fechas de participación (estricto: sólo estas) */}
+          <section className="space-y-2">
+            <div className="flex items-center justify-between">
+              <div>
+                <h4 className="text-sm font-semibold">Fechas de participación</h4>
+                <p className="text-xs text-muted-foreground">
+                  Solo se mostrarán en el programador las fechas que agregues aquí. Si la lista está vacía, no se cargará ninguna reunión.
+                </p>
+              </div>
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-7 text-xs"
+                onClick={() => setF("fechasIncluidas", [...(form.fechasIncluidas || []), ""])}
+              >
+                <Plus className="h-3 w-3 mr-1" />Agregar fecha
+              </Button>
+            </div>
+            <div className="space-y-1.5">
+              {(form.fechasIncluidas || []).map((f, i) => (
+                <div key={i} className="flex items-center gap-2">
+                  <Input
+                    type="date"
+                    value={f || ""}
+                    onChange={(e) => {
+                      const arr = [...(form.fechasIncluidas || [])];
+                      arr[i] = e.target.value;
+                      setF("fechasIncluidas", arr);
+                    }}
+                    className="flex-1"
+                  />
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="h-8 w-8 text-destructive"
+                    onClick={() => setF("fechasIncluidas", (form.fechasIncluidas || []).filter((_, j) => j !== i))}
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+              ))}
+              {(!form.fechasIncluidas || form.fechasIncluidas.length === 0) && (
+                <p className="text-xs text-muted-foreground italic">Aún no se han agregado fechas.</p>
+              )}
+            </div>
+          </section>
+
 
 
 

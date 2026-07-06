@@ -25,7 +25,7 @@ export const ROUTE_PERMISSIONS: Record<string, AppRole[]> = {
   "/dashboard": [],
   "/personas": ["admin", "super_admin", "pastor", "lider", "secretaria", "consolidador_lider", "consolidador"],
   "/grupos": ["admin", "super_admin", "pastor", "lider", "lider_red", "lider_casa_paz"],
-  "/servicios": ["admin", "super_admin", "pastor", "lider", "secretaria"],
+  "/servicios": ["admin", "super_admin", "pastor", "lider", "lider_red", "secretaria"],
   "/finanzas": ["admin", "super_admin", "tesoreria"],
   "/eventos": ["admin", "super_admin", "pastor", "lider", "secretaria"],
   "/academia": ["admin", "super_admin", "pastor", "maestro"],
@@ -101,7 +101,7 @@ const ACTION_PERMISSIONS: Record<ActionPermission, AppRole[]> = {
   "seminario:anuncios_crud":       ["admin", "super_admin", "pastor", "maestro", "seminario_admin", "seminario_docente"],
   "seminario:reportes":            ["admin", "super_admin", "pastor", "seminario_admin"],
   // Programación: control granular por cargo. Cada cargo solo puede ver/confirmar lo que le corresponde.
-  "programa:manage":              ["admin", "super_admin", "pastor"],
+  "programa:manage":              ["admin", "super_admin", "pastor", "lider"],
   "programa:assign":              ["admin", "super_admin", "pastor", "lider"],
   "programa:confirm:pastor":      ["admin", "super_admin", "pastor"],
   "programa:confirm:lider":       ["admin", "super_admin", "pastor", "lider"],

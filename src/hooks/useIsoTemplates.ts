@@ -18,6 +18,7 @@ export interface IsoTemplateOverride {
   fecha_inicio: string | null;
   fecha_fin: string | null;
   fechas_incluidas: string[] | null;
+  lider_nombre_manual: string | null;
 }
 
 export function useIsoTemplateOverrides() {
@@ -99,6 +100,7 @@ export function mergeIsoTemplate(
     fechaInicio: override.fecha_inicio ?? b.fechaInicio ?? null,
     fechaFin: override.fecha_fin ?? b.fechaFin ?? null,
     fechasIncluidas: override.fechas_incluidas ?? b.fechasIncluidas ?? null,
+    liderNombreManual: override.lider_nombre_manual ?? b.liderNombreManual ?? null,
   };
 }
 
