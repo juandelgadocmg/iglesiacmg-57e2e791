@@ -218,7 +218,7 @@ export default function IsoProgramacionPreview({ open, onOpenChange, ministerio,
     exportIsoMinisterioPdf({
       template,
       mes: snap.mes,
-      liderNombre: snap.liderNombre: liderEfectivo,
+      liderNombre: snap.liderNombre,
       eventos: snap.eventos.map((e) => ({ id: e.id, fecha: e.fecha, titulo: e.titulo, hora: e.hora })),
       asignacionesPorEvento: m,
       uniformePorEvento: new Map(snap.eventos.map((e) => [e.id, e.uniforme])),
