@@ -2649,6 +2649,7 @@ export type Database = {
           fechas_incluidas: string[] | null
           firmas: Json | null
           importante: string | null
+          lider_nombre_manual: string | null
           ministerio_id: string
           responsabilidades: string | null
           tipos_evento: string[] | null
@@ -2666,6 +2667,7 @@ export type Database = {
           fechas_incluidas?: string[] | null
           firmas?: Json | null
           importante?: string | null
+          lider_nombre_manual?: string | null
           ministerio_id: string
           responsabilidades?: string | null
           tipos_evento?: string[] | null
@@ -2683,6 +2685,7 @@ export type Database = {
           fechas_incluidas?: string[] | null
           firmas?: Json | null
           importante?: string | null
+          lider_nombre_manual?: string | null
           ministerio_id?: string
           responsabilidades?: string | null
           tipos_evento?: string[] | null
