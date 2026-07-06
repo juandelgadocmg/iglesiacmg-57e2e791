@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,6 +10,8 @@ import type { IsoMinisterioTemplate } from "@/lib/isoMinisterioTemplates";
 import { findIsoTemplate } from "@/lib/isoMinisterioTemplates";
 import { useUpsertIsoTemplate, useDeleteIsoTemplate } from "@/hooks/useIsoTemplates";
 import type { ProgMinisterio } from "@/hooks/usePrograma";
+import { usePersonas } from "@/hooks/useDatabase";
+import SearchableCombobox from "@/components/seminario/SearchableCombobox";
 
 interface Props {
   open: boolean;
