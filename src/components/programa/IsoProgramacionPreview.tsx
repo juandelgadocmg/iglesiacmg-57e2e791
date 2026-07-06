@@ -177,7 +177,7 @@ export default function IsoProgramacionPreview({ open, onOpenChange, ministerio,
       etiqueta,
       definitiva,
       mes,
-      liderNombre,
+      liderNombre: liderEfectivo,
       eventos: proxEventos.map((e) => ({
         id: e.id,
         fecha: e.fecha,
@@ -218,7 +218,7 @@ export default function IsoProgramacionPreview({ open, onOpenChange, ministerio,
     exportIsoMinisterioPdf({
       template,
       mes: snap.mes,
-      liderNombre: snap.liderNombre,
+      liderNombre: snap.liderNombre: liderEfectivo,
       eventos: snap.eventos.map((e) => ({ id: e.id, fecha: e.fecha, titulo: e.titulo, hora: e.hora })),
       asignacionesPorEvento: m,
       uniformePorEvento: new Map(snap.eventos.map((e) => [e.id, e.uniforme])),
@@ -231,7 +231,7 @@ export default function IsoProgramacionPreview({ open, onOpenChange, ministerio,
     exportIsoMinisterioPdf({
       template,
       mes,
-      liderNombre,
+      liderNombre: liderEfectivo,
       eventos: proxEventos.map((e) => ({ id: e.id, fecha: e.fecha, titulo: e.titulo, hora: e.hora })),
       asignacionesPorEvento: asigs,
       uniformePorEvento: new Map(Object.entries(uniformeMap)),
@@ -389,7 +389,7 @@ export default function IsoProgramacionPreview({ open, onOpenChange, ministerio,
                 <Input value={mes} onChange={(e) => setMes(e.target.value)} className="h-7 w-32 text-[12px]" />
               </div>
               <div><span className="font-bold">MINISTERIO:</span> {template.nombreMinisterio}</div>
-              <div><span className="font-bold">LÍDER:</span> {liderNombre || "—"}</div>
+              <div><span className="font-bold">LÍDER:</span> {liderEfectivo || "—"}</div>
             </div>
 
             <div className="bg-white border border-black overflow-x-auto">
