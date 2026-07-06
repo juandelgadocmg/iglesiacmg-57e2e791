@@ -76,11 +76,13 @@ export default function MinisteriosPanel() {
         asigsPorEv.set(e.id, inner);
       });
       const mesActual = new Date().toLocaleDateString("es-CO", { month: "long" });
-      const lider = personasMap.get(m.lider_persona_id || "");
+      const lider: any = personasMap.get(m.lider_persona_id || "");
+      const liderNombreDefault = lider ? `${lider.nombres} ${lider.apellidos}` : "";
+      const liderNombre = tpl.liderNombreManual?.trim() || liderNombreDefault;
       exportIsoMinisterioPdf({
         template: tpl,
         mes: mesActual,
-        liderNombre: lider ? `${(lider as any).nombres} ${(lider as any).apellidos}` : "",
+        liderNombre,
         eventos: proxEventos.map((e) => ({ id: e.id, fecha: e.fecha, titulo: e.titulo, hora: e.hora })),
         asignacionesPorEvento: asigsPorEv,
       });
