@@ -24,10 +24,16 @@ interface Props {
 export default function IsoTemplateEditorDialog({ open, onOpenChange, ministerio, template }: Props) {
   const upsert = useUpsertIsoTemplate();
   const remove = useDeleteIsoTemplate();
+  const { data: personas = [] } = usePersonas();
 
   const [form, setForm] = useState<IsoMinisterioTemplate>(template);
 
   useEffect(() => { if (open) setForm(template); }, [open, template]);
+
+  const personaItems = useMemo(
+    () => personas.map((p: any) => ({ id: p.id, label: `${p.nombres} ${p.apellidos}`, sub: p.telefono || p.email || "" })),
+    [personas]
+  );
 
   const setF = <K extends keyof IsoMinisterioTemplate>(k: K, v: IsoMinisterioTemplate[K]) =>
     setForm((p) => ({ ...p, [k]: v }));
