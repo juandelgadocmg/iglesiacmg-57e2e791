@@ -62,27 +62,20 @@ export default function IsoProgramacionPreview({ open, onOpenChange, ministerio,
   const proxEventos = useMemo(
     () => {
       const tipos = template.tiposEvento && template.tiposEvento.length > 0 ? new Set(template.tiposEvento) : null;
-      const desde = template.fechaInicio || null;
-      const hasta = template.fechaFin || null;
-      const fechasExtra = template.fechasIncluidas && template.fechasIncluidas.length > 0
-        ? new Set(template.fechasIncluidas)
+      const fechas = template.fechasIncluidas && template.fechasIncluidas.length > 0
+        ? new Set(template.fechasIncluidas.filter(Boolean))
         : null;
-      const hayRango = desde || hasta;
+      // Estricto: si no hay fechas configuradas en la plantilla, no se muestra ninguna reunión.
+      if (!fechas) return [];
       return eventos
-        .filter((e) => e.fecha >= today)
+        .filter((e) => fechas.has(e.fecha))
         .filter((e) => !tipos || tipos.has(e.tipo))
-        .filter((e) => {
-          // Si hay fechas específicas: el evento debe estar en esa lista O dentro del rango (si existe)
-          if (fechasExtra && fechasExtra.has(e.fecha)) return true;
-          if (fechasExtra && !hayRango) return false;
-          if (desde && e.fecha < desde) return false;
-          if (hasta && e.fecha > hasta) return false;
-          return true;
-        })
         .sort((a, b) => a.fecha.localeCompare(b.fecha));
     },
-    [eventos, today, template.tiposEvento, template.fechaInicio, template.fechaFin, template.fechasIncluidas]
+    [eventos, template.tiposEvento, template.fechasIncluidas]
   );
+
+  const liderEfectivo = template.liderNombreManual?.trim() || liderNombre;
 
 
   const personasMap = useMemo(() => new Map(personas.map((p: any) => [p.id, p])), [personas]);
