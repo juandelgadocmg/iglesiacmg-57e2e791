@@ -2575,6 +2575,7 @@ export type Database = {
       }
       prog_eventos: {
         Row: {
+          asignacion_texto: string | null
           bloqueo_at: string | null
           created_at: string
           created_by: string | null
@@ -2584,16 +2585,19 @@ export type Database = {
           hora: string | null
           id: string
           lugar: string | null
+          observacion: string | null
           publicado_at: string | null
           reminder_24h_sent_at: string | null
           reminder_2h_sent_at: string | null
           servicio_id: string | null
+          servidor_texto: string | null
           tipo: string
           titulo: string
           uniforme: string | null
           updated_at: string
         }
         Insert: {
+          asignacion_texto?: string | null
           bloqueo_at?: string | null
           created_at?: string
           created_by?: string | null
@@ -2603,16 +2607,19 @@ export type Database = {
           hora?: string | null
           id?: string
           lugar?: string | null
+          observacion?: string | null
           publicado_at?: string | null
           reminder_24h_sent_at?: string | null
           reminder_2h_sent_at?: string | null
           servicio_id?: string | null
+          servidor_texto?: string | null
           tipo?: string
           titulo: string
           uniforme?: string | null
           updated_at?: string
         }
         Update: {
+          asignacion_texto?: string | null
           bloqueo_at?: string | null
           created_at?: string
           created_by?: string | null
@@ -2622,10 +2629,12 @@ export type Database = {
           hora?: string | null
           id?: string
           lugar?: string | null
+          observacion?: string | null
           publicado_at?: string | null
           reminder_24h_sent_at?: string | null
           reminder_2h_sent_at?: string | null
           servicio_id?: string | null
+          servidor_texto?: string | null
           tipo?: string
           titulo?: string
           uniforme?: string | null
