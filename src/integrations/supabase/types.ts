@@ -2590,6 +2590,7 @@ export type Database = {
           servicio_id: string | null
           tipo: string
           titulo: string
+          uniforme: string | null
           updated_at: string
         }
         Insert: {
@@ -2608,6 +2609,7 @@ export type Database = {
           servicio_id?: string | null
           tipo?: string
           titulo: string
+          uniforme?: string | null
           updated_at?: string
         }
         Update: {
@@ -2626,6 +2628,7 @@ export type Database = {
           servicio_id?: string | null
           tipo?: string
           titulo?: string
+          uniforme?: string | null
           updated_at?: string
         }
         Relationships: [

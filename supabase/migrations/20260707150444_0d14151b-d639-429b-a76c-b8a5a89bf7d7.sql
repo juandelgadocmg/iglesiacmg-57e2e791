@@ -1,0 +1,1 @@
+ALTER TABLE public.prog_eventos ADD COLUMN IF NOT EXISTS uniforme text;
