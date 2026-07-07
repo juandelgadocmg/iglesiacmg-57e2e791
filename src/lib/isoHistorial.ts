@@ -12,6 +12,8 @@ export interface IsoSnapshotEvento {
   asignaciones: Record<string, string>;
   uniforme: string;
   observacion: string;
+  servidor?: string;
+  asignacionTexto?: string;
 }
 
 export interface IsoSnapshot {
