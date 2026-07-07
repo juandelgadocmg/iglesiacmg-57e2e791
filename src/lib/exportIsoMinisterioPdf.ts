@@ -285,7 +285,7 @@ export async function exportIsoMinisterioPdf(params: {
   // ===== Firmas (Elaborado / Revisado / Autorizado) — unido al contenido =====
   // Columna de etiquetas (Firma / Nombre / Cargo) angosta = labelW (igual a Código/Versión/Fecha).
   const fRowH = 6.5;
-  const firmLabelW = labelW;
+  const firmLabelW = metaLabelW; // proporcional a Código/Versión/Fecha
   const firmDataW = (contentW - firmLabelW) / 3;
   const firmasBlockH = fRowH * 4;
   ensureSpace(firmasBlockH);
