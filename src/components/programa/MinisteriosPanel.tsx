@@ -79,12 +79,15 @@ export default function MinisteriosPanel() {
       const lider: any = personasMap.get(m.lider_persona_id || "");
       const liderNombreDefault = lider ? `${lider.nombres} ${lider.apellidos}` : "";
       const liderNombre = tpl.liderNombreManual?.trim() || liderNombreDefault;
+      const uniformePorEvento = new Map<string, string>();
+      proxEventos.forEach((e: any) => { if (e.uniforme) uniformePorEvento.set(e.id, e.uniforme); });
       exportIsoMinisterioPdf({
         template: tpl,
         mes: mesActual,
         liderNombre,
         eventos: proxEventos.map((e) => ({ id: e.id, fecha: e.fecha, titulo: e.titulo, hora: e.hora })),
         asignacionesPorEvento: asigsPorEv,
+        uniformePorEvento,
       });
       toast.success(`PDF ISO (${tpl.codigo}) generado para ${m.nombre}`);
       return;
