@@ -218,6 +218,8 @@ export default function IsoProgramacionPreview({ open, onOpenChange, ministerio,
         asignaciones: Object.fromEntries(asigsPorEv.get(e.id) || new Map()),
         uniforme: uniformeMap[e.id] || "",
         observacion: observacionMap[e.id] || "",
+        servidor: servidorMap[e.id] || "",
+        asignacionTexto: asignacionMap[e.id] || "",
       })),
     };
     return snap;
@@ -235,13 +237,19 @@ export default function IsoProgramacionPreview({ open, onOpenChange, ministerio,
     setMes(snap.mes);
     const u: Record<string, string> = {};
     const o: Record<string, string> = {};
+    const s: Record<string, string> = {};
+    const a: Record<string, string> = {};
     snap.eventos.forEach((e) => {
       u[e.id] = e.uniforme;
       o[e.id] = e.observacion;
+      s[e.id] = e.servidor || "";
+      a[e.id] = e.asignacionTexto || "";
     });
     setUniformeMap(u);
     setObservacionMap(o);
-    toast.success("Textos (mes, uniforme, observación) restaurados. Las asignaciones se mantienen como están en la base de datos.");
+    setServidorMap(s);
+    setAsignacionMap(a);
+    toast.success("Textos restaurados. Las asignaciones se mantienen como están en la base de datos.");
   };
 
   const descargarPdfDeSnap = (snap: IsoSnapshot) => {
@@ -255,6 +263,8 @@ export default function IsoProgramacionPreview({ open, onOpenChange, ministerio,
       asignacionesPorEvento: m,
       uniformePorEvento: new Map(snap.eventos.map((e) => [e.id, e.uniforme])),
       observacionPorEvento: new Map(snap.eventos.map((e) => [e.id, e.observacion])),
+      servidorPorEvento: new Map(snap.eventos.map((e) => [e.id, e.servidor || ""])),
+      asignacionPorEvento: new Map(snap.eventos.map((e) => [e.id, e.asignacionTexto || ""])),
     });
   };
 
@@ -268,6 +278,8 @@ export default function IsoProgramacionPreview({ open, onOpenChange, ministerio,
       asignacionesPorEvento: asigs,
       uniformePorEvento: new Map(Object.entries(uniformeMap)),
       observacionPorEvento: new Map(Object.entries(observacionMap)),
+      servidorPorEvento: new Map(Object.entries(servidorMap)),
+      asignacionPorEvento: new Map(Object.entries(asignacionMap)),
     });
   };
 
