@@ -87,19 +87,48 @@ export function exportIsoMinisterioPdf(params: {
     });
   };
 
+  // Altura del bloque de firmas (4 filas * 8mm) que se repite en cada página.
+  const fRowH = 8;
+  const firmasBlockH = fRowH * 4;
+  const firmasGap = 3;
+  // Espacio reservado en la parte inferior para firmas + paginación.
+  const bottomReserve = firmasBlockH + firmasGap + 6;
+
+  /** Dibuja el bloque de firmas (Elaborado / Revisado / Autorizado) como pie de página. */
+  const drawFirmasFooter = () => {
+    const colW = (pageWidth - margin * 2) / 4;
+    const startY = pageHeight - margin - firmasBlockH;
+    const firmRows = [
+      ["", "Elaborado por:", "Revisado por:", "Autorizado por:"],
+      ["Firma", "", "", ""],
+      ["Nombre", template.firmas.elaboradoPor.nombre, template.firmas.revisadoPor.nombre, template.firmas.autorizadoPor.nombre],
+      ["Cargo", template.firmas.elaboradoPor.cargo, template.firmas.revisadoPor.cargo, template.firmas.autorizadoPor.cargo],
+    ];
+    doc.setFontSize(8);
+    firmRows.forEach((row, ri) => {
+      row.forEach((cell, ci) => {
+        const x = margin + colW * ci;
+        const yRow = startY + fRowH * ri;
+        doc.rect(x, yRow, colW, fRowH);
+        doc.setFont(FONT, ri === 0 ? "bold" : "normal");
+        doc.text(cell, x + 1.8, yRow + fRowH / 2 + 1.2);
+      });
+    });
+  };
+
   /** Dibuja el pie de página (paginación) en cada página. */
   const drawFooter = (pageNum: number, totalPages: number) => {
-    doc.setFontSize(9);
+    doc.setFontSize(8);
     doc.setFont(FONT, "italic");
     doc.text(
       `${template.codigo} · v${template.version}`,
       margin,
-      pageHeight - 6
+      pageHeight - margin + 4
     );
     doc.text(
       `Pág ${pageNum}/${totalPages}`,
       pageWidth - margin,
-      pageHeight - 6,
+      pageHeight - margin + 4,
       { align: "right" }
     );
   };
