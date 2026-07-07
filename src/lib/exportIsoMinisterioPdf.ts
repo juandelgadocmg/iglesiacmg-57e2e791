@@ -127,50 +127,51 @@ export async function exportIsoMinisterioPdf(params: {
     doc.text(`Pág ${pageNum}/${totalPages}`, pageWidth - margin, pageHeight - margin + 4, { align: "right" });
   };
 
-  // ===== Página 1: encabezado =====
-  drawHeader(margin);
-  let y = margin + headerH;
-
-  // ===== Bloque MES / MINISTERIO / LÍDER como tabla continua =====
+  // ===== Bloque MES / MINISTERIO / LÍDER (sub-encabezado repetible) =====
   const contentW = pageWidth - margin * 2;
   const rowH1 = 7;
   const labelW = 28;
+  const infoRowsH = rowH1 * 3;
 
-  // Fila MES
-  doc.setFontSize(10);
-  doc.rect(margin, y, labelW, rowH1);
-  doc.setFont(FONT, "bold");
-  doc.text("MES:", margin + 1.8, y + rowH1 / 2 + 1.2);
-  doc.rect(margin + labelW, y, contentW - labelW, rowH1);
-  doc.setFont(FONT, "normal");
-  doc.text(mes.toUpperCase(), margin + labelW + 1.8, y + rowH1 / 2 + 1.2);
-  y += rowH1;
+  const drawInfoRows = (topY: number) => {
+    doc.setFontSize(10);
+    // MES
+    doc.rect(margin, topY, labelW, rowH1);
+    doc.setFont(FONT, "bold");
+    doc.text("MES:", margin + 1.8, topY + rowH1 / 2 + 1.2);
+    doc.rect(margin + labelW, topY, contentW - labelW, rowH1);
+    doc.setFont(FONT, "normal");
+    doc.text(mes.toUpperCase(), margin + labelW + 1.8, topY + rowH1 / 2 + 1.2);
+    // MINISTERIO
+    const y2 = topY + rowH1;
+    doc.rect(margin, y2, labelW, rowH1);
+    doc.setFont(FONT, "bold");
+    doc.text("MINISTERIO:", margin + 1.8, y2 + rowH1 / 2 + 1.2);
+    doc.rect(margin + labelW, y2, contentW - labelW, rowH1);
+    doc.setFont(FONT, "normal");
+    doc.text(
+      doc.splitTextToSize(template.nombreMinisterio, contentW - labelW - 3)[0],
+      margin + labelW + 1.8,
+      y2 + rowH1 / 2 + 1.2
+    );
+    // LÍDER
+    const y3 = topY + rowH1 * 2;
+    doc.rect(margin, y3, labelW, rowH1);
+    doc.setFont(FONT, "bold");
+    doc.text("LÍDER:", margin + 1.8, y3 + rowH1 / 2 + 1.2);
+    doc.rect(margin + labelW, y3, contentW - labelW, rowH1);
+    doc.setFont(FONT, "normal");
+    doc.text(
+      doc.splitTextToSize(liderNombre || "—", contentW - labelW - 3)[0],
+      margin + labelW + 1.8,
+      y3 + rowH1 / 2 + 1.2
+    );
+  };
 
-  // Fila MINISTERIO
-  doc.rect(margin, y, labelW, rowH1);
-  doc.setFont(FONT, "bold");
-  doc.text("MINISTERIO:", margin + 1.8, y + rowH1 / 2 + 1.2);
-  doc.rect(margin + labelW, y, contentW - labelW, rowH1);
-  doc.setFont(FONT, "normal");
-  doc.text(
-    doc.splitTextToSize(template.nombreMinisterio, contentW - labelW - 3)[0],
-    margin + labelW + 1.8,
-    y + rowH1 / 2 + 1.2
-  );
-  y += rowH1;
-
-  // Fila LÍDER
-  doc.rect(margin, y, labelW, rowH1);
-  doc.setFont(FONT, "bold");
-  doc.text("LÍDER:", margin + 1.8, y + rowH1 / 2 + 1.2);
-  doc.rect(margin + labelW, y, contentW - labelW, rowH1);
-  doc.setFont(FONT, "normal");
-  doc.text(
-    doc.splitTextToSize(liderNombre || "—", contentW - labelW - 3)[0],
-    margin + labelW + 1.8,
-    y + rowH1 / 2 + 1.2
-  );
-  y += rowH1;
+  // ===== Página 1: encabezado + info =====
+  drawHeader(margin);
+  drawInfoRows(margin + headerH);
+  let y = margin + headerH + infoRowsH;
 
   // ===== Tabla =====
   const head = [["FECHA", ...template.estaciones.map((e) => e.toUpperCase()), "UNIFORME", "OBSERVACIÓN"]];
