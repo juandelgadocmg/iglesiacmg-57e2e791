@@ -44,6 +44,8 @@ export default function IsoProgramacionPreview({ open, onOpenChange, ministerio,
   const [mes, setMes] = useState(() => new Date().toLocaleDateString("es-CO", { month: "long" }).toUpperCase());
   const [uniformeMap, setUniformeMap] = useState<Record<string, string>>({});
   const [observacionMap, setObservacionMap] = useState<Record<string, string>>({});
+  const [servidorMap, setServidorMap] = useState<Record<string, string>>({});
+  const [asignacionMap, setAsignacionMap] = useState<Record<string, string>>({});
   const [adding, setAdding] = useState<{ eventoId: string; estacion: string } | null>(null);
   const [addValue, setAddValue] = useState("");
 
