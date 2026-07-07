@@ -1,5 +1,24 @@
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+import cmgLogoUrl from "@/assets/cmg-logo-header.jpeg";
+
+let _logoDataUrl: string | null = null;
+async function getLogoDataUrl(): Promise<string | null> {
+  if (_logoDataUrl) return _logoDataUrl;
+  try {
+    const res = await fetch(cmgLogoUrl);
+    const blob = await res.blob();
+    _logoDataUrl = await new Promise<string>((resolve, reject) => {
+      const r = new FileReader();
+      r.onload = () => resolve(r.result as string);
+      r.onerror = reject;
+      r.readAsDataURL(blob);
+    });
+    return _logoDataUrl;
+  } catch {
+    return null;
+  }
+}
 import type { IsoMinisterioTemplate } from "./isoMinisterioTemplates";
 
 export interface IsoPdfEvento {
