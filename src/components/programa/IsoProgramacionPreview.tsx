@@ -17,7 +17,6 @@ import {
   useUpsertAsignacion,
   useDeleteAsignacion,
   useUpsertCargo,
-  useUpsertEvento,
   type ProgMinisterio,
 } from "@/hooks/usePrograma";
 import { usePersonas } from "@/hooks/useDatabase";
@@ -41,13 +40,10 @@ export default function IsoProgramacionPreview({ open, onOpenChange, ministerio,
   const upAsig = useUpsertAsignacion();
   const delAsig = useDeleteAsignacion();
   const upCargo = useUpsertCargo();
-  const upEvento = useUpsertEvento();
 
   const [mes, setMes] = useState(() => new Date().toLocaleDateString("es-CO", { month: "long" }).toUpperCase());
   const [uniformeMap, setUniformeMap] = useState<Record<string, string>>({});
   const [observacionMap, setObservacionMap] = useState<Record<string, string>>({});
-  const [servidorMap, setServidorMap] = useState<Record<string, string>>({});
-  const [asignacionMap, setAsignacionMap] = useState<Record<string, string>>({});
   const [adding, setAdding] = useState<{ eventoId: string; estacion: string } | null>(null);
   const [addValue, setAddValue] = useState("");
 
@@ -78,34 +74,6 @@ export default function IsoProgramacionPreview({ open, onOpenChange, ministerio,
     },
     [eventos, template.tiposEvento, template.fechasIncluidas]
   );
-
-  // Hidratar textos desde los eventos cargados
-  useEffect(() => {
-    if (!open) return;
-    const u: Record<string, string> = {};
-    const o: Record<string, string> = {};
-    const s: Record<string, string> = {};
-    const a: Record<string, string> = {};
-    proxEventos.forEach((e: any) => {
-      if (e.uniforme != null) u[e.id] = e.uniforme;
-      if (e.observacion != null) o[e.id] = e.observacion;
-      if (e.servidor_texto != null) s[e.id] = e.servidor_texto;
-      if (e.asignacion_texto != null) a[e.id] = e.asignacion_texto;
-    });
-    setUniformeMap((prev) => ({ ...u, ...prev }));
-    setObservacionMap((prev) => ({ ...o, ...prev }));
-    setServidorMap((prev) => ({ ...s, ...prev }));
-    setAsignacionMap((prev) => ({ ...a, ...prev }));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, proxEventos.length]);
-
-  const persistEventoField = async (id: string, field: "uniforme" | "observacion" | "servidor_texto" | "asignacion_texto", value: string) => {
-    try {
-      await upEvento.mutateAsync({ id, [field]: value || null } as any);
-    } catch (e: any) {
-      toast.error(e.message || "No se pudo guardar");
-    }
-  };
 
   const liderEfectivo = template.liderNombreManual?.trim() || liderNombre;
 
@@ -218,8 +186,6 @@ export default function IsoProgramacionPreview({ open, onOpenChange, ministerio,
         asignaciones: Object.fromEntries(asigsPorEv.get(e.id) || new Map()),
         uniforme: uniformeMap[e.id] || "",
         observacion: observacionMap[e.id] || "",
-        servidor: servidorMap[e.id] || "",
-        asignacionTexto: asignacionMap[e.id] || "",
       })),
     };
     return snap;
@@ -237,19 +203,13 @@ export default function IsoProgramacionPreview({ open, onOpenChange, ministerio,
     setMes(snap.mes);
     const u: Record<string, string> = {};
     const o: Record<string, string> = {};
-    const s: Record<string, string> = {};
-    const a: Record<string, string> = {};
     snap.eventos.forEach((e) => {
       u[e.id] = e.uniforme;
       o[e.id] = e.observacion;
-      s[e.id] = e.servidor || "";
-      a[e.id] = e.asignacionTexto || "";
     });
     setUniformeMap(u);
     setObservacionMap(o);
-    setServidorMap(s);
-    setAsignacionMap(a);
-    toast.success("Textos restaurados. Las asignaciones se mantienen como están en la base de datos.");
+    toast.success("Textos (mes, uniforme, observación) restaurados. Las asignaciones se mantienen como están en la base de datos.");
   };
 
   const descargarPdfDeSnap = (snap: IsoSnapshot) => {
@@ -263,8 +223,6 @@ export default function IsoProgramacionPreview({ open, onOpenChange, ministerio,
       asignacionesPorEvento: m,
       uniformePorEvento: new Map(snap.eventos.map((e) => [e.id, e.uniforme])),
       observacionPorEvento: new Map(snap.eventos.map((e) => [e.id, e.observacion])),
-      servidorPorEvento: new Map(snap.eventos.map((e) => [e.id, e.servidor || ""])),
-      asignacionPorEvento: new Map(snap.eventos.map((e) => [e.id, e.asignacionTexto || ""])),
     });
   };
 
@@ -278,8 +236,6 @@ export default function IsoProgramacionPreview({ open, onOpenChange, ministerio,
       asignacionesPorEvento: asigs,
       uniformePorEvento: new Map(Object.entries(uniformeMap)),
       observacionPorEvento: new Map(Object.entries(observacionMap)),
-      servidorPorEvento: new Map(Object.entries(servidorMap)),
-      asignacionPorEvento: new Map(Object.entries(asignacionMap)),
     });
   };
 
@@ -440,70 +396,79 @@ export default function IsoProgramacionPreview({ open, onOpenChange, ministerio,
               <table className="w-full text-[11px] border-collapse">
                 <thead className="bg-gray-200">
                   <tr>
-                    <th className="border border-black px-2 py-1 text-center w-40">FECHA</th>
-                    <th className="border border-black px-2 py-1 text-center min-w-[200px]">SERVIDOR</th>
-                    <th className="border border-black px-2 py-1 text-center min-w-[130px]">UNIFORME</th>
-                    <th className="border border-black px-2 py-1 text-center min-w-[220px]">ASIGNACION</th>
-                    <th className="border border-black px-2 py-1 text-center min-w-[160px]">OBSERVACION</th>
+                    <th className="border border-black px-2 py-1 text-left w-40">FECHA</th>
+                    {template.estaciones.map((est) => (
+                      <th key={est} className="border border-black px-2 py-1 text-center min-w-[130px]">
+                        {est.toUpperCase()}
+                      </th>
+                    ))}
+                    <th className="border border-black px-2 py-1 text-center min-w-[120px]">UNIFORME</th>
+                    <th className="border border-black px-2 py-1 text-center min-w-[140px]">OBSERVACIÓN</th>
                   </tr>
                 </thead>
                 <tbody>
                   {proxEventos.length === 0 && (
-                    <tr><td colSpan={5} className="text-center text-muted-foreground py-4 border border-black">Sin eventos programados</td></tr>
+                    <tr><td colSpan={template.estaciones.length + 3} className="text-center text-muted-foreground py-4 border border-black">Sin eventos programados</td></tr>
                   )}
                   {proxEventos.map((e) => {
                     const cells = cellsByEv.get(e.id) || new Map();
-                    // Autogenerar asignación por defecto desde asignaciones por estación
-                    const autoAsig = template.estaciones
-                      .map((est) => {
-                        const arr: Cell[] = cells.get(normKey(est)) || [];
-                        if (arr.length === 0) return null;
-                        return `${arr.map((c) => c.nombre).join(", ")}: ${est}`;
-                      })
-                      .filter(Boolean)
-                      .join("\n");
                     return (
                       <tr key={e.id} className="align-top">
                         <td className="border border-black px-2 py-1 whitespace-nowrap">
                           {formatFecha(e.fecha)}
                           {e.hora && <div className="text-[10px] text-muted-foreground">{e.hora}</div>}
                         </td>
+                        {template.estaciones.map((est) => {
+                          const key = normKey(est);
+                          const arr: Cell[] = cells.get(key) || [];
+                          const isAdding = adding?.eventoId === e.id && adding?.estacion === est;
+                          return (
+                            <td key={est} className="border border-black px-1.5 py-1">
+                              <div className="flex flex-col gap-1">
+                                {arr.map((c) => (
+                                  <Badge key={c.id} variant="secondary" className="justify-between gap-1 font-normal text-[10px] py-0.5">
+                                    <span className="truncate">{c.nombre}</span>
+                                    <button onClick={() => removePersona(c.id)} className="hover:text-destructive">
+                                      <X className="h-3 w-3" />
+                                    </button>
+                                  </Badge>
+                                ))}
+                                {isAdding ? (
+                                  <div className="flex flex-col gap-1">
+                                    <SearchableCombobox
+                                      items={personaItems}
+                                      value={addValue}
+                                      onChange={(id) => { if (id) addPersona(e.id, est, id); }}
+                                      placeholder="Buscar persona…"
+                                      width="w-full"
+                                    />
+                                    <Button size="sm" variant="ghost" className="h-5 text-[10px]" onClick={() => { setAdding(null); setAddValue(""); }}>Cancelar</Button>
+                                  </div>
+                                ) : (
+                                  <button
+                                    className="text-[10px] text-muted-foreground hover:text-primary flex items-center gap-1"
+                                    onClick={() => { setAdding({ eventoId: e.id, estacion: est }); setAddValue(""); }}
+                                  >
+                                    <Plus className="h-3 w-3" /> Agregar
+                                  </button>
+                                )}
+                              </div>
+                            </td>
+                          );
+                        })}
                         <td className="border border-black p-1">
-                          <textarea
-                            value={servidorMap[e.id] || ""}
-                            onChange={(ev) => setServidorMap({ ...servidorMap, [e.id]: ev.target.value })}
-                            onBlur={(ev) => persistEventoField(e.id, "servidor_texto", ev.target.value)}
-                            className="w-full min-h-[60px] text-[11px] p-1 border rounded resize-y"
-                            placeholder="Ej: Laura Goyo-Claudia Diaz-Magda Parra (Mañana)…"
-                          />
-                        </td>
-                        <td className="border border-black p-1">
-                          <textarea
+                          <Input
                             value={uniformeMap[e.id] || ""}
                             onChange={(ev) => setUniformeMap({ ...uniformeMap, [e.id]: ev.target.value })}
-                            onBlur={(ev) => persistEventoField(e.id, "uniforme", ev.target.value)}
-                            className="w-full min-h-[60px] text-[11px] p-1 border rounded resize-y"
+                            className="h-7 text-[11px]"
                             placeholder="Uniforme…"
                           />
                         </td>
                         <td className="border border-black p-1">
-                          <textarea
-                            value={asignacionMap[e.id] ?? autoAsig}
-                            onChange={(ev) => setAsignacionMap({ ...asignacionMap, [e.id]: ev.target.value })}
-                            onBlur={(ev) => persistEventoField(e.id, "asignacion_texto", ev.target.value)}
-                            className="w-full min-h-[60px] text-[11px] p-1 border rounded resize-y whitespace-pre-wrap"
-                            placeholder="Recepcion - Proyecto Nehemias / roles específicos…"
-                          />
-                          {!asignacionMap[e.id] && autoAsig && (
-                            <div className="text-[9px] text-muted-foreground mt-0.5">Autogenerado desde asignaciones · editar para personalizar</div>
-                          )}
-                        </td>
-                        <td className="border border-black p-1">
-                          <textarea
+                          <Input
                             value={observacionMap[e.id] || ""}
                             onChange={(ev) => setObservacionMap({ ...observacionMap, [e.id]: ev.target.value })}
-                            onBlur={(ev) => persistEventoField(e.id, "observacion", ev.target.value)}
-                            className="w-full min-h-[60px] text-[11px] p-1 border rounded resize-y"
+                            className="h-7 text-[11px]"
                             placeholder="Observación…"
                           />
                         </td>
@@ -516,13 +481,12 @@ export default function IsoProgramacionPreview({ open, onOpenChange, ministerio,
 
             {template.importante && (
               <div className="bg-white border border-black p-2 text-[10px]">
-                <span className="font-bold">NOTA: </span>{template.importante}
+                <span className="font-bold">Importante: </span>{template.importante}
               </div>
             )}
             <div className="bg-white border border-black p-2 text-[10px]">
               <span className="font-bold">Responsabilidades: </span>{template.responsabilidades}
             </div>
-
 
             <div className="grid grid-cols-4 bg-white border border-black text-[10px]">
               {["", "Elaborado por:", "Revisado por:", "Autorizado por:"].map((t, i) => (
