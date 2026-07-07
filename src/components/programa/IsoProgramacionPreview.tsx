@@ -41,6 +41,7 @@ export default function IsoProgramacionPreview({ open, onOpenChange, ministerio,
   const upAsig = useUpsertAsignacion();
   const delAsig = useDeleteAsignacion();
   const upCargo = useUpsertCargo();
+  const upEvento = useUpsertEvento();
 
   const [mes, setMes] = useState(() => new Date().toLocaleDateString("es-CO", { month: "long" }).toUpperCase());
   const [uniformeMap, setUniformeMap] = useState<Record<string, string>>({});
