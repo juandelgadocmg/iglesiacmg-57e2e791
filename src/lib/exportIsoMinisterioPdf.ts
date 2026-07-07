@@ -250,7 +250,8 @@ export async function exportIsoMinisterioPdf(params: {
     if (afterY + needed > pageHeight - margin - bottomReserve - 2) {
       doc.addPage();
       drawHeader(margin);
-      afterY = margin + headerH + 2;
+      drawInfoRows(margin + headerH);
+      afterY = margin + headerH + infoRowsH + 2;
     }
   };
 
