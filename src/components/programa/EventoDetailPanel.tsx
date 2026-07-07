@@ -345,6 +345,9 @@ ${fechaFmt}
 🕐 *HORA*
 ${horaFmt}
 
+👕 *UNIFORME*
+${(uniformeVal || (evento as any).uniforme || "Por confirmar")}
+
 ━━━━━━━━━━━━━━━━━━━━
 ✅ *¿Confirmas tu asistencia?*
 Responde a este mensaje para confirmar.
