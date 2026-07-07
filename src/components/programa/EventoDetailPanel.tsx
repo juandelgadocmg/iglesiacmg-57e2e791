@@ -181,6 +181,13 @@ export default function EventoDetailPanel({ evento, onBack, onDelete }: { evento
               <h2 className="text-xl font-bold">{evento.titulo}</h2>
               <p className="text-sm text-muted-foreground">{evento.fecha} · {evento.hora || "—"} · {evento.lugar || "—"}</p>
               {evento.descripcion && <p className="text-sm mt-2">{evento.descripcion}</p>}
+              <div className="mt-3 flex items-end gap-2 max-w-md">
+                <div className="flex-1">
+                  <Label className="text-xs">Uniforme</Label>
+                  <Input value={uniformeVal} onChange={(e) => setUniformeVal(e.target.value)} placeholder="Ej: Camisa blanca, pantalón negro" />
+                </div>
+                <Button size="sm" variant="outline" onClick={guardarUniforme} disabled={bloqueado}>Guardar</Button>
+              </div>
             </div>
             <div className="flex flex-col items-end gap-1">
               <Badge variant={evento.estado === "publicado" ? "default" : "outline"}>{evento.estado}</Badge>
