@@ -211,6 +211,37 @@ export async function exportIsoMinisterioPdf(params: {
 
   let afterY = (doc as any).lastAutoTable.finalY;
 
+  // ===== Rellenar con filas vacías para completar la página =====
+  // Reservamos espacio para Importante + Responsabilidades + Firmas.
+  const impInnerW = contentW - labelW - 3;
+  const importanteH = template.importante
+    ? Math.max(rowH1, doc.splitTextToSize(template.importante, impInnerW).length * 3.6 + 3)
+    : 0;
+  const respH = Math.max(rowH1, doc.splitTextToSize(template.responsabilidades, impInnerW).length * 3.6 + 3);
+  const firmasH = 6.5 * 4;
+  const reservedBelow = importanteH + respH + firmasH;
+
+  const emptyRowH = 7;
+  const numCols = 1 + template.estaciones.length + 2;
+  const colWidths: number[] = [38];
+  const restW = (contentW - 38) / (numCols - 1);
+  for (let i = 1; i < numCols; i++) colWidths.push(restW);
+
+  const availableForEmpty = pageHeight - margin - bottomReserve - afterY - reservedBelow;
+  if (availableForEmpty > emptyRowH) {
+    const numEmpty = Math.floor(availableForEmpty / emptyRowH);
+    doc.setDrawColor(0);
+    doc.setLineWidth(0.2);
+    for (let r = 0; r < numEmpty; r++) {
+      let x = margin;
+      for (let c = 0; c < numCols; c++) {
+        doc.rect(x, afterY, colWidths[c], emptyRowH);
+        x += colWidths[c];
+      }
+      afterY += emptyRowH;
+    }
+  }
+
   const ensureSpace = (needed: number) => {
     if (afterY + needed > pageHeight - margin - bottomReserve - 2) {
       doc.addPage();
@@ -254,7 +285,7 @@ export async function exportIsoMinisterioPdf(params: {
   // ===== Firmas (Elaborado / Revisado / Autorizado) — unido al contenido =====
   // Columna de etiquetas (Firma / Nombre / Cargo) angosta = labelW (igual a Código/Versión/Fecha).
   const fRowH = 6.5;
-  const firmLabelW = labelW;
+  const firmLabelW = metaLabelW; // proporcional a Código/Versión/Fecha
   const firmDataW = (contentW - firmLabelW) / 3;
   const firmasBlockH = fRowH * 4;
   ensureSpace(firmasBlockH);
