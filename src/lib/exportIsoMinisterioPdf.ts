@@ -188,8 +188,8 @@ export function exportIsoMinisterioPdf(params: {
     styles: { font: FONT, fontSize: 8, cellPadding: 1.5, valign: "middle", lineWidth: 0.2, lineColor: [0, 0, 0] },
     headStyles: { fillColor: [220, 220, 220], textColor: 0, fontStyle: "bold", halign: "center" },
     columnStyles: { 0: { cellWidth: 38 } },
-    margin: { left: margin, right: margin, top: margin + headerH + 4, bottom: margin + 8 },
-    // Repite encabezado y pie de página en cada nueva página
+    margin: { left: margin, right: margin, top: margin + headerH + 4, bottom: margin + bottomReserve + 2 },
+    // Repite encabezado en cada nueva página
     didDrawPage: (data) => {
       if (data.pageNumber > 1) {
         drawHeader(margin);
@@ -200,7 +200,7 @@ export function exportIsoMinisterioPdf(params: {
   let afterY = (doc as any).lastAutoTable.finalY + 5;
 
   const ensureSpace = (needed: number) => {
-    if (afterY + needed > pageHeight - margin - 8) {
+    if (afterY + needed > pageHeight - margin - bottomReserve - 2) {
       doc.addPage();
       drawHeader(margin);
       afterY = margin + headerH + 6;
@@ -229,33 +229,14 @@ export function exportIsoMinisterioPdf(params: {
   doc.text(resp, margin + 34, afterY);
   afterY += resp.length * 3.5 + 5;
 
-  // ===== Firmas =====
-  const fRowH = 8;
-  ensureSpace(fRowH * 4 + 2);
-  const colW = (pageWidth - margin * 2) / 4;
-  const firmRows = [
-    ["", "Elaborado por:", "Revisado por:", "Autorizado por:"],
-    ["Firma", "", "", ""],
-    ["Nombre", template.firmas.elaboradoPor.nombre, template.firmas.revisadoPor.nombre, template.firmas.autorizadoPor.nombre],
-    ["Cargo", template.firmas.elaboradoPor.cargo, template.firmas.revisadoPor.cargo, template.firmas.autorizadoPor.cargo],
-  ];
-  doc.setFontSize(9);
-  firmRows.forEach((row, ri) => {
-    row.forEach((cell, ci) => {
-      const x = margin + colW * ci;
-      const yRow = afterY + fRowH * ri;
-      doc.rect(x, yRow, colW, fRowH);
-      doc.setFont(FONT, ri === 0 ? "bold" : "normal");
-      doc.text(cell, x + 1.8, yRow + fRowH / 2 + 1.2);
-    });
-  });
-
-  // ===== Pie de página en TODAS las páginas =====
+  // ===== Firmas + pie de página en TODAS las páginas =====
   const pages = doc.getNumberOfPages();
   for (let i = 1; i <= pages; i++) {
     doc.setPage(i);
+    drawFirmasFooter();
     drawFooter(i, pages);
   }
+
 
   const fname = `${template.codigo}-${template.nombreMinisterio.replace(/\s+/g, "_")}-${mes}.pdf`;
   doc.save(fname);
