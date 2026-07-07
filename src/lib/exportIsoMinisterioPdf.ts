@@ -106,28 +106,30 @@ export function exportIsoMinisterioPdf(params: {
 
   // ===== Página 1 =====
   drawHeader(margin);
-  let y = margin + headerH + 4;
+  let y = margin + headerH + 6;
 
   // Mes / Ministerio / Líder
-  doc.setFontSize(12);
+  doc.setFontSize(11);
   doc.setFont(FONT, "bold");
   doc.rect(margin, y, 24, 7);
   doc.text("MES", margin + 12, y + 4.8, { align: "center" });
-  doc.rect(margin + 24, y, 70, 7);
+  doc.rect(margin + 24, y, 90, 7);
   doc.setFont(FONT, "normal");
   doc.text(mes.toUpperCase(), margin + 26, y + 4.8);
 
-  y += 10;
+  y += 12;
   doc.setFont(FONT, "bold");
   doc.text("MINISTERIO:", margin, y);
   doc.setFont(FONT, "normal");
-  doc.text(template.nombreMinisterio, margin + 32, y);
+  const ministerioMaxW = 120;
+  doc.text(doc.splitTextToSize(template.nombreMinisterio, ministerioMaxW)[0], margin + 32, y);
   doc.setFont(FONT, "bold");
-  doc.text("LÍDER:", margin + 130, y);
+  doc.text("LÍDER:", margin + 160, y);
   doc.setFont(FONT, "normal");
-  doc.text(liderNombre || "—", margin + 148, y);
+  const liderMaxW = pageWidth - margin - (margin + 178);
+  doc.text(doc.splitTextToSize(liderNombre || "—", liderMaxW)[0], margin + 178, y);
 
-  y += 5;
+  y += 6;
 
   // ===== Tabla =====
   const head = [["FECHA", ...template.estaciones.map((e) => e.toUpperCase()), "UNIFORME", "OBSERVACIÓN"]];
