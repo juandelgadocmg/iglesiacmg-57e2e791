@@ -17,6 +17,7 @@ import {
   useUpsertAsignacion,
   useDeleteAsignacion,
   useUpsertCargo,
+  useUpsertEvento,
   type ProgMinisterio,
 } from "@/hooks/usePrograma";
 import { usePersonas } from "@/hooks/useDatabase";
