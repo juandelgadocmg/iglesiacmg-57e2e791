@@ -59,6 +59,14 @@ export default function EventoDetailPanel({ evento, onBack, onDelete }: { evento
   const [remTarget, setRemTarget] = useState<any | null>(null);
   const [bloqueoOpen, setBloqueoOpen] = useState(false);
   const [bloqueoVal, setBloqueoVal] = useState(evento.bloqueo_at ? evento.bloqueo_at.slice(0, 16) : "");
+  const [uniformeVal, setUniformeVal] = useState<string>((evento as any).uniforme || "");
+
+  const guardarUniforme = async () => {
+    try {
+      await upEv.mutateAsync({ id: evento.id, uniforme: uniformeVal || null } as any);
+      toast.success("Uniforme guardado");
+    } catch (e: any) { toast.error(e.message); }
+  };
 
   const isUnavailable = (personaId: string) => disponibilidad.some((d) => d.persona_id === personaId && d.fecha_inicio <= evento.fecha && d.fecha_fin >= evento.fecha);
 
