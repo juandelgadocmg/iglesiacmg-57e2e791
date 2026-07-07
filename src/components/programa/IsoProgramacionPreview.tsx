@@ -79,6 +79,34 @@ export default function IsoProgramacionPreview({ open, onOpenChange, ministerio,
     [eventos, template.tiposEvento, template.fechasIncluidas]
   );
 
+  // Hidratar textos desde los eventos cargados
+  useEffect(() => {
+    if (!open) return;
+    const u: Record<string, string> = {};
+    const o: Record<string, string> = {};
+    const s: Record<string, string> = {};
+    const a: Record<string, string> = {};
+    proxEventos.forEach((e: any) => {
+      if (e.uniforme != null) u[e.id] = e.uniforme;
+      if (e.observacion != null) o[e.id] = e.observacion;
+      if (e.servidor_texto != null) s[e.id] = e.servidor_texto;
+      if (e.asignacion_texto != null) a[e.id] = e.asignacion_texto;
+    });
+    setUniformeMap((prev) => ({ ...u, ...prev }));
+    setObservacionMap((prev) => ({ ...o, ...prev }));
+    setServidorMap((prev) => ({ ...s, ...prev }));
+    setAsignacionMap((prev) => ({ ...a, ...prev }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, proxEventos.length]);
+
+  const persistEventoField = async (id: string, field: "uniforme" | "observacion" | "servidor_texto" | "asignacion_texto", value: string) => {
+    try {
+      await upEvento.mutateAsync({ id, [field]: value || null } as any);
+    } catch (e: any) {
+      toast.error(e.message || "No se pudo guardar");
+    }
+  };
+
   const liderEfectivo = template.liderNombreManual?.trim() || liderNombre;
 
 
