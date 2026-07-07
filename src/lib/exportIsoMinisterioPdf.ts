@@ -204,9 +204,12 @@ export async function exportIsoMinisterioPdf(params: {
     },
     headStyles: { fillColor: [220, 220, 220], textColor: 0, fontStyle: "bold", halign: "left" },
     columnStyles: { 0: { cellWidth: 38 } },
-    margin: { left: margin, right: margin, top: margin + headerH + 2, bottom: margin + bottomReserve + 2 },
+    margin: { left: margin, right: margin, top: margin + headerH + infoRowsH + 2, bottom: margin + bottomReserve + 2 },
     didDrawPage: (data) => {
-      if (data.pageNumber > 1) drawHeader(margin);
+      if (data.pageNumber > 1) {
+        drawHeader(margin);
+        drawInfoRows(margin + headerH);
+      }
     },
   });
 
