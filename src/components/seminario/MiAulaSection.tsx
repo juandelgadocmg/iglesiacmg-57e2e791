@@ -502,7 +502,7 @@ function EvaluacionRow({ ev, entregas, calificacion, inscripcionMateriaId, perso
                   {ultima && (
                     <div className="p-2 bg-muted rounded text-xs space-y-1">
                       <p className="font-medium flex items-center gap-2">Última entrega (v{ultima.version}) {estadoBadge(ultima.estado)}</p>
-                      <a href={ultima.archivo_url} target="_blank" rel="noopener noreferrer" className="text-primary underline truncate block">{ultima.archivo_nombre}</a>
+                      <button type="button" onClick={() => openAsset({ url: ultima.archivo_url, bucket: "sem-entregas", path: ultima.archivo_path, filename: ultima.archivo_nombre })} className="text-primary underline truncate block text-left">{ultima.archivo_nombre}</button>
                       <p className="text-muted-foreground">Enviada: {fmtDateTime(ultima.created_at)}</p>
                       {ultima.retroalimentacion && (
                         <p className="pt-1 border-t mt-1"><span className="font-medium">Retroalimentación: </span>{ultima.retroalimentacion}</p>
