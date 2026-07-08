@@ -510,16 +510,22 @@ function EvaluacionRow({ ev, entregas, calificacion, inscripcionMateriaId, perso
                     </div>
                   )}
                   <div>
-                    <label className="text-xs font-medium">Archivo (máx 50MB)</label>
-                    <Input type="file" onChange={(e) => setFile(e.target.files?.[0] || null)} />
+                    <label className="text-xs font-medium">Archivos (puedes seleccionar varios, máx 50MB c/u)</label>
+                    <Input type="file" multiple onChange={(e) => setFiles(Array.from(e.target.files || []))} />
+                    {files.length > 0 && (
+                      <ul className="mt-1 text-[11px] text-muted-foreground space-y-0.5">
+                        {files.map((f, i) => <li key={i}>• {f.name} ({(f.size / 1024).toFixed(0)} KB)</li>)}
+                      </ul>
+                    )}
                   </div>
                   <div>
                     <label className="text-xs font-medium">Comentario al docente (opcional)</label>
                     <Textarea rows={3} value={comentario} onChange={(e) => setComentario(e.target.value)} />
                   </div>
-                  <Button onClick={handleSubir} disabled={!file || subir.isPending} className="w-full">
-                    {subir.isPending ? "Subiendo..." : "Enviar entrega"}
+                  <Button onClick={handleSubir} disabled={!files.length || subir.isPending} className="w-full">
+                    {subir.isPending ? "Subiendo..." : files.length > 1 ? `Enviar ${files.length} entregas` : "Enviar entrega"}
                   </Button>
+
                 </div>
               </DialogContent>
             </Dialog>
