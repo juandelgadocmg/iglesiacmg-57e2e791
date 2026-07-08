@@ -116,9 +116,18 @@ export default function PersonaFormDialog({ initialData, onClose }: Props) {
     const fd = new FormData(e.currentTarget);
     const nombres = (fd.get("nombres") as string)?.trim();
     const apellidos = (fd.get("apellidos") as string)?.trim();
+    const documento = (fd.get("documento") as string)?.trim();
+    const fechaNac = (fd.get("fecha_nacimiento") as string)?.trim();
+    const telefono = (fd.get("telefono") as string)?.trim();
+    const direccion = (fd.get("direccion") as string)?.trim();
     if (!nombres || !apellidos) { toast.error("Nombres y apellidos son obligatorios"); return; }
+    if (!documento) { toast.error("El documento es obligatorio"); return; }
+    if (!fechaNac) { toast.error("La fecha de nacimiento es obligatoria"); return; }
+    if (!telefono) { toast.error("El teléfono es obligatorio"); return; }
+    if (!direccion) { toast.error("La dirección es obligatoria"); return; }
     if (!isEdit && !aceptaPolitica) { toast.error("Debe aceptar la política de tratamiento de datos"); return; }
     if (tiposSeleccionados.length === 0) { toast.error("Debes seleccionar al menos un tipo de asistente"); return; }
+
 
     const clean = (key: string) => {
       const v = (fd.get(key) as string)?.trim();
@@ -239,8 +248,8 @@ export default function PersonaFormDialog({ initialData, onClose }: Props) {
               </Select>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="documento">Número de documento</Label>
-              <Input id="documento" name="documento" maxLength={30} defaultValue={initialData?.documento || ""} />
+              <Label htmlFor="documento">Número de documento *</Label>
+              <Input id="documento" name="documento" required maxLength={30} defaultValue={initialData?.documento || ""} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="nacionalidad">Nacionalidad</Label>
@@ -258,8 +267,8 @@ export default function PersonaFormDialog({ initialData, onClose }: Props) {
               </Select>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="fecha_nacimiento">Fecha de nacimiento</Label>
-              <Input id="fecha_nacimiento" name="fecha_nacimiento" type="date" defaultValue={initialData?.fecha_nacimiento || ""} />
+              <Label htmlFor="fecha_nacimiento">Fecha de nacimiento *</Label>
+              <Input id="fecha_nacimiento" name="fecha_nacimiento" type="date" required defaultValue={initialData?.fecha_nacimiento || ""} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="estado_civil">Estado civil</Label>
@@ -276,8 +285,8 @@ export default function PersonaFormDialog({ initialData, onClose }: Props) {
               </Select>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="telefono">Teléfono</Label>
-              <Input id="telefono" name="telefono" maxLength={20} defaultValue={initialData?.telefono || ""} />
+              <Label htmlFor="telefono">Teléfono *</Label>
+              <Input id="telefono" name="telefono" required maxLength={20} defaultValue={initialData?.telefono || ""} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="whatsapp">WhatsApp</Label>
@@ -292,8 +301,8 @@ export default function PersonaFormDialog({ initialData, onClose }: Props) {
               <Input id="ocupacion" name="ocupacion" maxLength={100} defaultValue={initialData?.ocupacion || ""} />
             </div>
             <div className="space-y-2 sm:col-span-2">
-              <Label htmlFor="direccion">Dirección</Label>
-              <Input id="direccion" name="direccion" maxLength={255} defaultValue={initialData?.direccion || ""} />
+              <Label htmlFor="direccion">Dirección *</Label>
+              <Input id="direccion" name="direccion" required maxLength={255} defaultValue={initialData?.direccion || ""} />
             </div>
           </div>
 

@@ -46,11 +46,13 @@ interface NuevaPersona {
   fecha_nacimiento: string;
   sexo: string;
   telefono: string;
+  direccion: string;
   fecha_ingreso: string;
   email: string;
   tipo: "menor" | "asistente";
   aceptaTerminos: boolean;
 }
+
 
 interface Props {
   open: boolean;
@@ -82,10 +84,11 @@ function isDayAllowed(_diaReunion: string | null | undefined): boolean {
 
 const emptyNewPerson = (): NuevaPersona => ({
   tipo_documento: "", documento: "", nombres: "", apellidos: "",
-  fecha_nacimiento: "", sexo: "Masculino", telefono: "",
+  fecha_nacimiento: "", sexo: "Masculino", telefono: "", direccion: "",
   fecha_ingreso: format(new Date(), "yyyy-MM-dd"), email: "",
   tipo: "asistente", aceptaTerminos: false,
 });
+
 
 export default function ReporteGrupoFormDialog({ open, onOpenChange, editReporteId }: Props) {
   const [step, setStep] = useState(0);
@@ -280,6 +283,22 @@ export default function ReporteGrupoFormDialog({ open, onOpenChange, editReporte
       toast.error("Nombre y apellido son obligatorios.");
       return;
     }
+    if (!newForm.documento?.trim()) {
+      toast.error("El documento es obligatorio.");
+      return;
+    }
+    if (!newForm.fecha_nacimiento) {
+      toast.error("La fecha de nacimiento es obligatoria.");
+      return;
+    }
+    if (!newForm.telefono?.trim()) {
+      toast.error("El teléfono es obligatorio.");
+      return;
+    }
+    if (!newForm.direccion?.trim()) {
+      toast.error("La dirección es obligatoria.");
+      return;
+    }
     if (!newForm.aceptaTerminos) {
       toast.error("Debe aceptar los términos y condiciones.");
       return;
@@ -306,14 +325,16 @@ export default function ReporteGrupoFormDialog({ open, onOpenChange, editReporte
           apellidos: newForm.apellidos,
           telefono: newForm.telefono || null,
           email: newForm.email || null,
+          direccion: newForm.direccion || null,
           documento: newForm.documento || null,
           tipo_documento: newForm.tipo_documento || null,
           fecha_nacimiento: newForm.fecha_nacimiento || null,
           sexo: newForm.sexo || null,
           fecha_ingreso: newForm.fecha_ingreso || null,
-          tipo_persona: (newForm.tipo === "menor" ? "Visitante" : "CDP") as any,
+          tipo_persona: "CDP" as any,
+          tipos_persona: ["CDP"],
           grupo_id: grupoId,
-        })
+        } as any)
         .select("id, nombres, apellidos, foto_url, tipo_persona")
         .single();
       if (error) throw error;
@@ -331,12 +352,13 @@ export default function ReporteGrupoFormDialog({ open, onOpenChange, editReporte
         nombres: newForm.nombres,
         apellidos: newForm.apellidos,
         foto_url: null,
-        tipo_persona: newForm.tipo === "menor" ? "Visitante" : "CDP",
+        tipo_persona: "CDP",
         presente: true,
         es_nuevo: true,
         motivo_ausencia: "",
         rol: "asistente",
       }]);
+
 
       setShowNewPersonForm(false);
       setNewForm(emptyNewPerson());
@@ -594,7 +616,7 @@ export default function ReporteGrupoFormDialog({ open, onOpenChange, editReporte
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div className="space-y-1.5">
-                <label className="text-sm font-medium">Teléfono móvil</label>
+                <label className="text-sm font-medium">* Teléfono móvil</label>
                 <Input value={newForm.telefono} onChange={(e) => setNewForm({ ...newForm, telefono: e.target.value })} placeholder="📱" />
               </div>
               <div className="space-y-1.5">
@@ -606,6 +628,14 @@ export default function ReporteGrupoFormDialog({ open, onOpenChange, editReporte
                 <Input type="email" value={newForm.email} onChange={(e) => setNewForm({ ...newForm, email: e.target.value })} placeholder="@ E-mail" />
               </div>
             </div>
+
+            <div className="grid grid-cols-1 gap-4">
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium">* Dirección</label>
+                <Input value={newForm.direccion} onChange={(e) => setNewForm({ ...newForm, direccion: e.target.value })} placeholder="Dirección de residencia" />
+              </div>
+            </div>
+
 
             <div className="flex items-start gap-2 p-3 rounded-lg border bg-muted/30">
               <Checkbox
