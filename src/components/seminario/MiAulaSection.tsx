@@ -441,20 +441,24 @@ function RecursoRow({ r }: { r: any }) {
 function EvaluacionRow({ ev, entregas, calificacion, inscripcionMateriaId, personaId }: any) {
   const [open, setOpen] = useState(false);
   const [hist, setHist] = useState(false);
-  const [file, setFile] = useState<File | null>(null);
+  const [files, setFiles] = useState<File[]>([]);
   const [comentario, setComentario] = useState("");
   const subir = useSubirEntrega();
 
   const ultima = entregas[0]; // ordenada desc
   const handleSubir = async () => {
-    if (!file) { toast.error("Selecciona un archivo"); return; }
-    if (file.size > 50 * 1024 * 1024) { toast.error("Máximo 50MB"); return; }
+    if (!files.length) { toast.error("Selecciona al menos un archivo"); return; }
+    const oversize = files.find(f => f.size > 50 * 1024 * 1024);
+    if (oversize) { toast.error(`"${oversize.name}" supera 50MB`); return; }
     try {
-      await subir.mutateAsync({ file, evaluacion_id: ev.id, inscripcion_materia_id: inscripcionMateriaId, persona_id: personaId, comentario });
-      toast.success("Nueva entrega enviada");
-      setOpen(false); setFile(null); setComentario("");
+      for (const f of files) {
+        await subir.mutateAsync({ file: f, evaluacion_id: ev.id, inscripcion_materia_id: inscripcionMateriaId, persona_id: personaId, comentario });
+      }
+      toast.success(files.length > 1 ? `${files.length} entregas enviadas` : "Entrega enviada");
+      setOpen(false); setFiles([]); setComentario("");
     } catch (e: any) { toast.error(e.message); }
   };
+
 
   const vencida = ev.fecha && new Date(ev.fecha) < new Date() && !ultima;
   const estadoBadge = (estado: string) => {
