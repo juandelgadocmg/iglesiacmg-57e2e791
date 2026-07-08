@@ -1,3 +1,4 @@
+import { useSearchParams } from "react-router-dom";
 import logo from "@/assets/logo.jpeg";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -21,8 +22,16 @@ export default function LoginPage() {
   const [view, setView] = useState<ViewMode>("login");
   const navigate = useNavigate();
   const { session } = useAuth();
+  const [searchParams] = useSearchParams();
 
-  if (session) return <Navigate to="/dashboard" replace />;
+  // Same-origin relative path only, to preserve OAuth consent flows.
+  const rawNext = searchParams.get("next") ?? "";
+  const nextPath =
+    rawNext.startsWith("/") && !rawNext.startsWith("//") ? rawNext : "";
+  const postAuthTarget = nextPath || "/dashboard";
+  const postAuthAbsolute = `${window.location.origin}${postAuthTarget}`;
+
+  if (session) return <Navigate to={postAuthTarget} replace />;
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -45,7 +54,7 @@ export default function LoginPage() {
       const { error } = await supabase.auth.signUp({
         email,
         password,
-        options: { emailRedirectTo: window.location.origin },
+        options: { emailRedirectTo: postAuthAbsolute },
       });
       if (error) {
         toast.error(error.message);
@@ -57,7 +66,7 @@ export default function LoginPage() {
       if (error) {
         toast.error("Credenciales incorrectas");
       } else {
-        navigate("/dashboard");
+        navigate(postAuthTarget);
       }
     }
     setLoading(false);
@@ -66,7 +75,7 @@ export default function LoginPage() {
   const handleGoogleLogin = async () => {
     setGoogleLoading(true);
     const { error } = await lovable.auth.signInWithOAuth("google", {
-      redirect_uri: window.location.origin,
+      redirect_uri: postAuthAbsolute,
     });
     if (error) {
       toast.error("Error al iniciar sesión con Google");

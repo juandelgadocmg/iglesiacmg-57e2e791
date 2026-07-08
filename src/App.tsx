@@ -28,6 +28,7 @@ import ChatPage from "@/pages/ChatPage";
 import ResetPasswordPage from "@/pages/ResetPasswordPage";
 import CheckInPage from "@/pages/CheckInPage";
 import VerificarAcademicoPage from "@/pages/VerificarAcademicoPage";
+import OAuthConsentPage from "@/pages/OAuthConsentPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -46,6 +47,7 @@ const App = () => (
             <Route path="/login" element={<LoginPage />} />
             <Route path="/reset-password" element={<ResetPasswordPage />} />
             <Route path="/check-in/:servicioId" element={<CheckInPage />} />
+            <Route path="/.lovable/oauth/consent" element={<OAuthConsentPage />} />
             <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/personas" element={<RoleGuard><PersonasPage /></RoleGuard>} />
