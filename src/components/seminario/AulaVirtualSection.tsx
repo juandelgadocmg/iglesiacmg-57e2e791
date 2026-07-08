@@ -23,6 +23,8 @@ import {
   ChevronLeft, ChevronRight, Search, Send, Pencil,
 } from "lucide-react";
 import { toast } from "sonner";
+
+
 import DeleteConfirmDialog from "@/components/shared/DeleteConfirmDialog";
 import { useCan } from "@/hooks/useCan";
 import { useUserRoles } from "@/hooks/useUserRoles";
@@ -550,11 +552,18 @@ function EntregasDialog({ open, onOpenChange, evaluacion }: any) {
                     <Badge variant={e.estado === "calificada" ? "default" : "secondary"} className="text-[10px]">{(e.estado || "").replace("_", " ")}</Badge>
                   </div>
                   <p className="text-[10px] text-muted-foreground">Enviada: {fmtDateTime(e.created_at)}</p>
-                  {e.archivo_url && (
-                    <a href={e.archivo_url} target="_blank" rel="noopener noreferrer" className="text-xs text-primary underline truncate block">
-                      <Download className="h-3 w-3 inline mr-1" />{e.archivo_nombre}
-                    </a>
+                  {(e.archivo_url || e.archivo_path) && (
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-xs truncate max-w-[240px]">{e.archivo_nombre}</span>
+                      <Button size="sm" variant="outline" onClick={() =>
+                        openAsset({ url: e.archivo_url, bucket: "sem-entregas", path: e.archivo_path, filename: e.archivo_nombre })
+                      }><Eye className="h-3 w-3 mr-1" />Abrir</Button>
+                      <Button size="sm" variant="outline" onClick={() =>
+                        openAsset({ url: e.archivo_url, bucket: "sem-entregas", path: e.archivo_path, filename: e.archivo_nombre, download: true })
+                      }><Download className="h-3 w-3 mr-1" />Descargar</Button>
+                    </div>
                   )}
+
                   {e.comentario && <p className="text-xs"><span className="font-medium">Comentario alumno: </span>{e.comentario}</p>}
                   <Textarea rows={2} placeholder="Retroalimentación al estudiante..." defaultValue={e.retroalimentacion || ""}
                     onBlur={(ev) => { if (ev.target.value !== (e.retroalimentacion || "")) setEstado(e.id, e.estado, ev.target.value); }} />

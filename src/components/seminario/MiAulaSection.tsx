@@ -441,20 +441,24 @@ function RecursoRow({ r }: { r: any }) {
 function EvaluacionRow({ ev, entregas, calificacion, inscripcionMateriaId, personaId }: any) {
   const [open, setOpen] = useState(false);
   const [hist, setHist] = useState(false);
-  const [file, setFile] = useState<File | null>(null);
+  const [files, setFiles] = useState<File[]>([]);
   const [comentario, setComentario] = useState("");
   const subir = useSubirEntrega();
 
   const ultima = entregas[0]; // ordenada desc
   const handleSubir = async () => {
-    if (!file) { toast.error("Selecciona un archivo"); return; }
-    if (file.size > 50 * 1024 * 1024) { toast.error("Máximo 50MB"); return; }
+    if (!files.length) { toast.error("Selecciona al menos un archivo"); return; }
+    const oversize = files.find(f => f.size > 50 * 1024 * 1024);
+    if (oversize) { toast.error(`"${oversize.name}" supera 50MB`); return; }
     try {
-      await subir.mutateAsync({ file, evaluacion_id: ev.id, inscripcion_materia_id: inscripcionMateriaId, persona_id: personaId, comentario });
-      toast.success("Nueva entrega enviada");
-      setOpen(false); setFile(null); setComentario("");
+      for (const f of files) {
+        await subir.mutateAsync({ file: f, evaluacion_id: ev.id, inscripcion_materia_id: inscripcionMateriaId, persona_id: personaId, comentario });
+      }
+      toast.success(files.length > 1 ? `${files.length} entregas enviadas` : "Entrega enviada");
+      setOpen(false); setFiles([]); setComentario("");
     } catch (e: any) { toast.error(e.message); }
   };
+
 
   const vencida = ev.fecha && new Date(ev.fecha) < new Date() && !ultima;
   const estadoBadge = (estado: string) => {
@@ -498,7 +502,7 @@ function EvaluacionRow({ ev, entregas, calificacion, inscripcionMateriaId, perso
                   {ultima && (
                     <div className="p-2 bg-muted rounded text-xs space-y-1">
                       <p className="font-medium flex items-center gap-2">Última entrega (v{ultima.version}) {estadoBadge(ultima.estado)}</p>
-                      <a href={ultima.archivo_url} target="_blank" rel="noopener noreferrer" className="text-primary underline truncate block">{ultima.archivo_nombre}</a>
+                      <button type="button" onClick={() => openAsset({ url: ultima.archivo_url, bucket: "sem-entregas", path: ultima.archivo_path, filename: ultima.archivo_nombre })} className="text-primary underline truncate block text-left">{ultima.archivo_nombre}</button>
                       <p className="text-muted-foreground">Enviada: {fmtDateTime(ultima.created_at)}</p>
                       {ultima.retroalimentacion && (
                         <p className="pt-1 border-t mt-1"><span className="font-medium">Retroalimentación: </span>{ultima.retroalimentacion}</p>
@@ -506,16 +510,22 @@ function EvaluacionRow({ ev, entregas, calificacion, inscripcionMateriaId, perso
                     </div>
                   )}
                   <div>
-                    <label className="text-xs font-medium">Archivo (máx 50MB)</label>
-                    <Input type="file" onChange={(e) => setFile(e.target.files?.[0] || null)} />
+                    <label className="text-xs font-medium">Archivos (puedes seleccionar varios, máx 50MB c/u)</label>
+                    <Input type="file" multiple onChange={(e) => setFiles(Array.from(e.target.files || []))} />
+                    {files.length > 0 && (
+                      <ul className="mt-1 text-[11px] text-muted-foreground space-y-0.5">
+                        {files.map((f, i) => <li key={i}>• {f.name} ({(f.size / 1024).toFixed(0)} KB)</li>)}
+                      </ul>
+                    )}
                   </div>
                   <div>
                     <label className="text-xs font-medium">Comentario al docente (opcional)</label>
                     <Textarea rows={3} value={comentario} onChange={(e) => setComentario(e.target.value)} />
                   </div>
-                  <Button onClick={handleSubir} disabled={!file || subir.isPending} className="w-full">
-                    {subir.isPending ? "Subiendo..." : "Enviar entrega"}
+                  <Button onClick={handleSubir} disabled={!files.length || subir.isPending} className="w-full">
+                    {subir.isPending ? "Subiendo..." : files.length > 1 ? `Enviar ${files.length} entregas` : "Enviar entrega"}
                   </Button>
+
                 </div>
               </DialogContent>
             </Dialog>
@@ -526,7 +536,9 @@ function EvaluacionRow({ ev, entregas, calificacion, inscripcionMateriaId, perso
             <CheckCircle2 className="h-3.5 w-3.5 text-primary" />
             <span>v{ultima.version} · {fmtDateTime(ultima.created_at)}</span>
             {estadoBadge(ultima.estado)}
-            <a href={ultima.archivo_url} target="_blank" rel="noopener noreferrer" className="text-primary underline ml-auto truncate">{ultima.archivo_nombre}</a>
+            <button type="button" onClick={() => openAsset({ url: ultima.archivo_url, bucket: "sem-entregas", path: ultima.archivo_path, filename: ultima.archivo_nombre })} className="text-primary underline ml-auto truncate text-left">{ultima.archivo_nombre}</button>
+            <Button size="sm" variant="ghost" className="h-6 px-2" onClick={() => openAsset({ url: ultima.archivo_url, bucket: "sem-entregas", path: ultima.archivo_path, filename: ultima.archivo_nombre, download: true })}><Download className="h-3 w-3" /></Button>
+
           </div>
         )}
 
@@ -542,7 +554,11 @@ function EvaluacionRow({ ev, entregas, calificacion, inscripcionMateriaId, perso
                     {estadoBadge(e.estado)}
                     <span className="text-muted-foreground">{fmtDateTime(e.created_at)}</span>
                   </div>
-                  <a href={e.archivo_url} target="_blank" rel="noopener noreferrer" className="text-primary underline truncate block">{e.archivo_nombre}</a>
+                  <div className="flex items-center gap-2">
+                    <button type="button" onClick={() => openAsset({ url: e.archivo_url, bucket: "sem-entregas", path: e.archivo_path, filename: e.archivo_nombre })} className="text-primary underline truncate flex-1 text-left">{e.archivo_nombre}</button>
+                    <Button size="sm" variant="ghost" className="h-6 px-2" onClick={() => openAsset({ url: e.archivo_url, bucket: "sem-entregas", path: e.archivo_path, filename: e.archivo_nombre, download: true })}><Download className="h-3 w-3" /></Button>
+                  </div>
+
                   {e.comentario && <p><span className="font-medium">Comentario: </span>{e.comentario}</p>}
                   {e.retroalimentacion && <p className="border-t pt-1"><span className="font-medium">Retroalimentación: </span>{e.retroalimentacion}</p>}
                 </div>

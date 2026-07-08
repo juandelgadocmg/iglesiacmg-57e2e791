@@ -4,14 +4,30 @@ import { useAuth } from "@/hooks/useAuth";
 
 const sb = supabase as any;
 
-// Resolve current persona via email match against auth user
+// Resolve current persona: prefer explicit profiles.persona_id, else match by email (case/trim-insensitive)
 export function useMiPersona() {
   const { user } = useAuth();
   return useQuery({
     queryKey: ["mi-persona", user?.id, user?.email],
-    enabled: !!user?.email,
+    enabled: !!user?.id,
     queryFn: async () => {
-      const email = user!.email!;
+      // 1) Vínculo explícito en profiles.persona_id
+      const { data: prof } = await sb
+        .from("profiles")
+        .select("persona_id")
+        .eq("user_id", user!.id)
+        .maybeSingle();
+      if (prof?.persona_id) {
+        const { data: p } = await sb
+          .from("personas")
+          .select("id,nombres,apellidos,documento,foto_url,email,telefono")
+          .eq("id", prof.persona_id)
+          .maybeSingle();
+        if (p) return p;
+      }
+      // 2) Fallback por email (tolerante a mayúsculas/espacios)
+      const email = (user?.email || "").trim();
+      if (!email) return null;
       const { data, error } = await sb
         .from("personas")
         .select("id,nombres,apellidos,documento,foto_url,email,telefono")
@@ -23,6 +39,7 @@ export function useMiPersona() {
     },
   });
 }
+
 
 // Is current user staff (sees moderation tools)?
 export function useIsSeminarioStaff() {
