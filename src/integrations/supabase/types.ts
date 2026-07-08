@@ -2318,6 +2318,7 @@ export type Database = {
           display_name: string
           grupo_id: string | null
           id: string
+          persona_id: string | null
           red: string | null
           updated_at: string
           user_id: string
@@ -2328,6 +2329,7 @@ export type Database = {
           display_name?: string
           grupo_id?: string | null
           id?: string
+          persona_id?: string | null
           red?: string | null
           updated_at?: string
           user_id: string
@@ -2338,6 +2340,7 @@ export type Database = {
           display_name?: string
           grupo_id?: string | null
           id?: string
+          persona_id?: string | null
           red?: string | null
           updated_at?: string
           user_id?: string
@@ -2348,6 +2351,13 @@ export type Database = {
             columns: ["grupo_id"]
             isOneToOne: false
             referencedRelation: "grupos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "profiles_persona_id_fkey"
+            columns: ["persona_id"]
+            isOneToOne: false
+            referencedRelation: "personas"
             referencedColumns: ["id"]
           },
         ]
