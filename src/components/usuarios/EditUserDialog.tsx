@@ -117,11 +117,6 @@ export default function EditUserDialog({ profile, userRoles, open, onOpenChange,
     );
   };
 
-  const gruposFiltrados = grupos.filter(g => {
-    if (selectedRoles.includes("lider_casa_paz")) return g.tipo === "Casas de paz" || g.tipo === "Grupos encuentro";
-    return true;
-  });
-
   const personaItems = useMemo(() => (personas as any[]).map((p: any) => ({
     id: p.id,
     label: `${p.nombres || ""} ${p.apellidos || ""}`.trim() || "Sin nombre",
