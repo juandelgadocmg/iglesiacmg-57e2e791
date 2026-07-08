@@ -554,7 +554,11 @@ function EvaluacionRow({ ev, entregas, calificacion, inscripcionMateriaId, perso
                     {estadoBadge(e.estado)}
                     <span className="text-muted-foreground">{fmtDateTime(e.created_at)}</span>
                   </div>
-                  <a href={e.archivo_url} target="_blank" rel="noopener noreferrer" className="text-primary underline truncate block">{e.archivo_nombre}</a>
+                  <div className="flex items-center gap-2">
+                    <button type="button" onClick={() => openAsset({ url: e.archivo_url, bucket: "sem-entregas", path: e.archivo_path, filename: e.archivo_nombre })} className="text-primary underline truncate flex-1 text-left">{e.archivo_nombre}</button>
+                    <Button size="sm" variant="ghost" className="h-6 px-2" onClick={() => openAsset({ url: e.archivo_url, bucket: "sem-entregas", path: e.archivo_path, filename: e.archivo_nombre, download: true })}><Download className="h-3 w-3" /></Button>
+                  </div>
+
                   {e.comentario && <p><span className="font-medium">Comentario: </span>{e.comentario}</p>}
                   {e.retroalimentacion && <p className="border-t pt-1"><span className="font-medium">Retroalimentación: </span>{e.retroalimentacion}</p>}
                 </div>
