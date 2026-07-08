@@ -416,7 +416,7 @@ export function usePersonasLite() {
 
       for (let from = 0; ; from += pageSize) {
         const { data, error } = await sb.from("personas")
-          .select("id,nombres,apellidos,documento,foto_url")
+          .select("id,nombres,apellidos,documento,foto_url,email,telefono")
           .order("nombres", { ascending: true })
           .range(from, from + pageSize - 1);
         if (error) throw error;

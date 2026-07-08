@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,11 +6,13 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Pencil, Save, KeyRound, User, ShieldCheck, Home } from "lucide-react";
+import { Pencil, Save, KeyRound, User, ShieldCheck, Home, GraduationCap } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Constants } from "@/integrations/supabase/types";
 import type { Database } from "@/integrations/supabase/types";
+import SearchableCombobox from "@/components/seminario/SearchableCombobox";
+import { usePersonasLite } from "@/hooks/useSeminario";
 
 type AppRole = Database["public"]["Enums"]["app_role"];
 
@@ -62,6 +64,7 @@ interface Profile {
   display_name: string;
   grupo_id?: string | null;
   red?: string | null;
+  persona_id?: string | null;
 }
 
 const REDES = ["Nissi", "Rohi", "Jireh", "Adonai", "Shaddai", "Elohim"];
@@ -75,14 +78,16 @@ interface EditUserDialogProps {
 }
 
 export default function EditUserDialog({ profile, userRoles, open, onOpenChange, onSuccess }: EditUserDialogProps) {
+  const { data: personas = [] } = usePersonasLite();
   const [displayName, setDisplayName]   = useState(profile.display_name || "");
   const [newPassword, setNewPassword]   = useState("");
   const [selectedRoles, setSelectedRoles] = useState<AppRole[]>(userRoles.map(r => r.role));
   const [grupoId, setGrupoId]           = useState(profile.grupo_id || "");
   const [red, setRed]                   = useState(profile.red || "");
+  const [personaId, setPersonaId]       = useState(profile.persona_id || "");
   const [grupos, setGrupos]             = useState<{ id: string; nombre: string; red: string | null; tipo: string }[]>([]);
   const [loading, setLoading]           = useState(false);
-  const [section, setSection]           = useState<"info" | "roles" | "grupo">("info");
+  const [section, setSection]           = useState<"info" | "roles" | "grupo" | "seminario">("info");
 
   const needsGrupo = selectedRoles.some(r => ROLES_CON_GRUPO.includes(r));
   const isLiderRed = selectedRoles.includes("lider_red");
@@ -94,6 +99,7 @@ export default function EditUserDialog({ profile, userRoles, open, onOpenChange,
       setSelectedRoles(userRoles.map(r => r.role));
       setGrupoId(profile.grupo_id || "");
       setRed(profile.red || "");
+      setPersonaId(profile.persona_id || "");
       setSection("info");
     }
   }, [open, profile, userRoles]);
@@ -111,10 +117,13 @@ export default function EditUserDialog({ profile, userRoles, open, onOpenChange,
     );
   };
 
-  const gruposFiltrados = grupos.filter(g => {
-    if (selectedRoles.includes("lider_casa_paz")) return g.tipo === "Casas de paz" || g.tipo === "Grupos encuentro";
-    return true;
-  });
+  const personaItems = useMemo(() => (personas as any[]).map((p: any) => ({
+    id: p.id,
+    label: `${p.nombres || ""} ${p.apellidos || ""}`.trim() || "Sin nombre",
+    sub: [p.documento, p.email, p.telefono].filter(Boolean).join(" · "),
+  })), [personas]);
+
+  const selectedPersona = (personas as any[]).find((p: any) => p.id === personaId);
 
   const handleSave = async () => {
     setLoading(true);
@@ -129,9 +138,10 @@ export default function EditUserDialog({ profile, userRoles, open, onOpenChange,
       // 2. Update grupo_id and red
       const finalGrupoId = (grupoId && grupoId !== "none") ? grupoId : null;
       const finalRed = (isLiderRed && red && red !== "none") ? red : null;
+      const finalPersonaId = (personaId && personaId !== "none") ? personaId : null;
       const { error: grupoErr } = await supabase
         .from("profiles")
-        .update({ grupo_id: finalGrupoId, red: finalRed } as any)
+        .update({ grupo_id: finalGrupoId, red: finalRed, persona_id: finalPersonaId } as any)
         .eq("user_id", profile.user_id);
       if (grupoErr) {
         if (grupoErr.message?.includes("schema cache") || grupoErr.message?.includes("red")) {
@@ -176,6 +186,7 @@ export default function EditUserDialog({ profile, userRoles, open, onOpenChange,
     { key: "info" as const,  label: "Información", icon: User, show: true },
     { key: "roles" as const, label: "Roles",       icon: ShieldCheck, show: true },
     { key: "grupo" as const, label: "Grupo",       icon: Home, show: true },
+    { key: "seminario" as const, label: "Seminario", icon: GraduationCap, show: true },
   ];
 
   return (
@@ -232,6 +243,7 @@ export default function EditUserDialog({ profile, userRoles, open, onOpenChange,
                 <p><span className="font-medium">ID:</span> {profile.user_id.slice(0, 16)}...</p>
                 <p><span className="font-medium">Roles actuales:</span> {userRoles.length === 0 ? "Sin roles" : userRoles.map(r => ROLE_LABELS[r.role]).join(", ")}</p>
                 {profile.grupo_id && <p><span className="font-medium">Grupo asignado:</span> {grupos.find(g => g.id === profile.grupo_id)?.nombre || profile.grupo_id.slice(0,8)}</p>}
+                {selectedPersona && <p><span className="font-medium">Persona vinculada:</span> {selectedPersona.nombres} {selectedPersona.apellidos}</p>}
               </div>
             </div>
           )}
@@ -319,6 +331,33 @@ export default function EditUserDialog({ profile, userRoles, open, onOpenChange,
                 )}
               </div>
               )}
+            </div>
+          )}
+
+          {/* ── SEMINARIO ── */}
+          {section === "seminario" && (
+            <div className="space-y-4 pt-2">
+              <div className="rounded-lg border border-primary/30 bg-primary/5 p-3 text-xs text-muted-foreground">
+                Vincula este usuario con su ficha de persona. Esto permite que los estudiantes vean sus materias aunque el correo de la cuenta y el correo registrado en Personas no coincidan.
+              </div>
+              <div className="space-y-2">
+                <Label>Persona vinculada</Label>
+                <SearchableCombobox
+                  items={personaItems}
+                  value={personaId}
+                  onChange={setPersonaId}
+                  placeholder="Buscar por nombre, documento, correo o teléfono…"
+                  emptyLabel="No hay personas con ese criterio"
+                  width="w-full"
+                />
+                {selectedPersona ? (
+                  <p className="text-xs text-success font-medium">
+                    ✓ Vinculado a {selectedPersona.nombres} {selectedPersona.apellidos}{selectedPersona.documento ? ` · ${selectedPersona.documento}` : ""}
+                  </p>
+                ) : (
+                  <p className="text-xs text-muted-foreground">Selecciona la ficha real del estudiante o deja vacío si no aplica.</p>
+                )}
+              </div>
             </div>
           )}
         </div>
