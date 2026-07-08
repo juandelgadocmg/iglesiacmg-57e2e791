@@ -536,7 +536,9 @@ function EvaluacionRow({ ev, entregas, calificacion, inscripcionMateriaId, perso
             <CheckCircle2 className="h-3.5 w-3.5 text-primary" />
             <span>v{ultima.version} · {fmtDateTime(ultima.created_at)}</span>
             {estadoBadge(ultima.estado)}
-            <a href={ultima.archivo_url} target="_blank" rel="noopener noreferrer" className="text-primary underline ml-auto truncate">{ultima.archivo_nombre}</a>
+            <button type="button" onClick={() => openAsset({ url: ultima.archivo_url, bucket: "sem-entregas", path: ultima.archivo_path, filename: ultima.archivo_nombre })} className="text-primary underline ml-auto truncate text-left">{ultima.archivo_nombre}</button>
+            <Button size="sm" variant="ghost" className="h-6 px-2" onClick={() => openAsset({ url: ultima.archivo_url, bucket: "sem-entregas", path: ultima.archivo_path, filename: ultima.archivo_nombre, download: true })}><Download className="h-3 w-3" /></Button>
+
           </div>
         )}
 
