@@ -23,7 +23,7 @@ import {
   ChevronLeft, ChevronRight, Search, Send, Pencil,
 } from "lucide-react";
 import { toast } from "sonner";
-import { openAsset } from "@/lib/openAsset";
+
 
 import DeleteConfirmDialog from "@/components/shared/DeleteConfirmDialog";
 import { useCan } from "@/hooks/useCan";
