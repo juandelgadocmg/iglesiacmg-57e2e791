@@ -4765,6 +4765,18 @@ export type Database = {
         Args: { _persona_id: string }
         Returns: boolean
       }
+      sem_get_mi_persona: {
+        Args: never
+        Returns: {
+          apellidos: string
+          documento: string
+          email: string
+          foto_url: string
+          id: string
+          nombres: string
+          telefono: string
+        }[]
+      }
       sem_inscripciones_sin_vincular: {
         Args: never
         Returns: {
