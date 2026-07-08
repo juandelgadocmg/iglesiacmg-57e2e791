@@ -616,7 +616,7 @@ export default function ReporteGrupoFormDialog({ open, onOpenChange, editReporte
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div className="space-y-1.5">
-                <label className="text-sm font-medium">Teléfono móvil</label>
+                <label className="text-sm font-medium">* Teléfono móvil</label>
                 <Input value={newForm.telefono} onChange={(e) => setNewForm({ ...newForm, telefono: e.target.value })} placeholder="📱" />
               </div>
               <div className="space-y-1.5">
@@ -628,6 +628,14 @@ export default function ReporteGrupoFormDialog({ open, onOpenChange, editReporte
                 <Input type="email" value={newForm.email} onChange={(e) => setNewForm({ ...newForm, email: e.target.value })} placeholder="@ E-mail" />
               </div>
             </div>
+
+            <div className="grid grid-cols-1 gap-4">
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium">* Dirección</label>
+                <Input value={newForm.direccion} onChange={(e) => setNewForm({ ...newForm, direccion: e.target.value })} placeholder="Dirección de residencia" />
+              </div>
+            </div>
+
 
             <div className="flex items-start gap-2 p-3 rounded-lg border bg-muted/30">
               <Checkbox
