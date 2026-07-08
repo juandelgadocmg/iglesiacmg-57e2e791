@@ -4,28 +4,18 @@ import { useAuth } from "@/hooks/useAuth";
 
 const sb = supabase as any;
 
-// Resolve current persona: prefer explicit profiles.persona_id, else match by email (case/trim-insensitive)
+// Resolve current persona through the secure backend resolver; fallback by email for legacy sessions.
 export function useMiPersona() {
   const { user } = useAuth();
   return useQuery({
     queryKey: ["mi-persona", user?.id, user?.email],
     enabled: !!user?.id,
     queryFn: async () => {
-      // 1) Vínculo explícito en profiles.persona_id
-      const { data: prof } = await sb
-        .from("profiles")
-        .select("persona_id")
-        .eq("user_id", user!.id)
-        .maybeSingle();
-      if (prof?.persona_id) {
-        const { data: p } = await sb
-          .from("personas")
-          .select("id,nombres,apellidos,documento,foto_url,email,telefono")
-          .eq("id", prof.persona_id)
-          .maybeSingle();
-        if (p) return p;
-      }
-      // 2) Fallback por email (tolerante a mayúsculas/espacios)
+      const { data: resolved, error: resolvedError } = await sb.rpc("sem_get_mi_persona");
+      if (resolvedError) throw resolvedError;
+      if (Array.isArray(resolved) && resolved.length > 0) return resolved[0];
+
+      // Fallback por email (tolerante a mayúsculas/espacios)
       const email = (user?.email || "").trim();
       if (!email) return null;
       const { data, error } = await sb
