@@ -4788,6 +4788,7 @@ export type Database = {
       }
       sem_is_staff: { Args: { _uid: string }; Returns: boolean }
       sem_is_tesoreria: { Args: { _uid: string }; Returns: boolean }
+      sem_persona_id_for_user: { Args: { _uid: string }; Returns: string }
       sem_puede_inscribir: {
         Args: { _materia_id: string; _persona_id: string }
         Returns: boolean
@@ -4796,9 +4797,72 @@ export type Database = {
         Args: { _persona_id: string; _programa_id: string }
         Returns: Json
       }
+      sem_reindex_vinculos: {
+        Args: never
+        Returns: {
+          estudiantes_sin_materias: number
+          inscripciones_sin_usuario: number
+          inscripciones_vinculadas: number
+          profiles_vinculados: number
+        }[]
+      }
       sem_resolve_user_id_from_persona: {
         Args: { _persona_id: string }
         Returns: string
+      }
+      sem_user_can_read_recurso: {
+        Args: {
+          _materia_id: string
+          _periodo_id: string
+          _programa_id: string
+          _uid?: string
+        }
+        Returns: boolean
+      }
+      sem_user_enrolled_foro: {
+        Args: { _foro_id: string; _uid?: string }
+        Returns: boolean
+      }
+      sem_user_enrolled_materia: {
+        Args: { _materia_id: string; _uid?: string }
+        Returns: boolean
+      }
+      sem_user_enrolled_oferta: {
+        Args: { _oferta_id: string; _uid?: string }
+        Returns: boolean
+      }
+      sem_user_enrolled_periodo: {
+        Args: { _periodo_id: string; _uid?: string }
+        Returns: boolean
+      }
+      sem_user_enrolled_programa: {
+        Args: { _programa_id: string; _uid?: string }
+        Returns: boolean
+      }
+      sem_user_owns_inscripcion: {
+        Args: { _inscripcion_id: string; _uid?: string }
+        Returns: boolean
+      }
+      sem_user_owns_inscripcion_materia: {
+        Args: { _inscripcion_materia_id: string; _uid?: string }
+        Returns: boolean
+      }
+      sem_usuario_vinculacion_status: {
+        Args: never
+        Returns: {
+          detalle: string
+          display_name: string
+          email: string
+          estado: string
+          has_student_role: boolean
+          inscripciones_count: number
+          materias_count: number
+          persona_documento: string
+          persona_id: string
+          persona_nombre: string
+          roles: string[]
+          user_id: string
+        }[]
       }
     }
     Enums: {
