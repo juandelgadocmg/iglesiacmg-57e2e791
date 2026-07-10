@@ -81,20 +81,26 @@ export function useThreads(filters: ThreadFilters) {
 
   useEffect(() => {
     if (!user?.id) return;
-    const ch = supabase
-      .channel("msg-rt-" + user.id)
-      .on("postgres_changes", { event: "*", schema: "public", table: "msg_messages" }, () => {
+    // Debounce realtime invalidations so bursts of postgres_changes
+    // don't retrigger the unread query dozens of times per second.
+    let t: any = null;
+    const scheduleInvalidate = () => {
+      if (t) return;
+      t = setTimeout(() => {
+        t = null;
         qc.invalidateQueries({ queryKey: ["msg_threads"] });
         qc.invalidateQueries({ queryKey: ["msg_thread"] });
         qc.invalidateQueries({ queryKey: ["msg_unread"] });
-      })
-      .on("postgres_changes", { event: "*", schema: "public", table: "msg_participants", filter: `user_id=eq.${user.id}` }, () => {
-        qc.invalidateQueries({ queryKey: ["msg_threads"] });
-        qc.invalidateQueries({ queryKey: ["msg_unread"] });
-      })
+      }, 250);
+    };
+    const ch = supabase
+      .channel("msg-rt-" + user.id)
+      .on("postgres_changes", { event: "*", schema: "public", table: "msg_messages" }, scheduleInvalidate)
+      .on("postgres_changes", { event: "*", schema: "public", table: "msg_participants", filter: `user_id=eq.${user.id}` }, scheduleInvalidate)
       .subscribe();
-    return () => { supabase.removeChannel(ch); };
+    return () => { if (t) clearTimeout(t); supabase.removeChannel(ch); };
   }, [user?.id, qc]);
+
 
   return useQuery({
     queryKey: ["msg_threads", folder, search, searchField, page, pageSize, dateFrom, dateTo, user?.id],
@@ -230,6 +236,12 @@ export function useUnreadCount() {
   return useQuery({
     queryKey: ["msg_unread", user?.id],
     enabled: !!user?.id,
+    // Keep the badge fresh across tabs / realtime bursts / delayed backends.
+    staleTime: 0,
+    refetchOnWindowFocus: true,
+    refetchOnReconnect: true,
+    refetchInterval: 60_000,
+    refetchIntervalInBackground: false,
     queryFn: async () => {
       const { count } = await supabase
         .from("msg_participants")
@@ -242,6 +254,36 @@ export function useUnreadCount() {
     },
   });
 }
+
+// Look up a thread's current `is_read` for the active user from any cached
+// msg_threads page. Returns null if we don't know (skip optimistic delta then).
+function readThreadFlagFromCache(
+  qc: ReturnType<typeof useQueryClient>,
+  threadId: string,
+): { is_read: boolean; is_archived: boolean; is_deleted: boolean } | null {
+  const caches = qc.getQueriesData<{ rows: ThreadRow[]; total: number }>({ queryKey: ["msg_threads"] });
+  for (const [, data] of caches) {
+    const row = data?.rows?.find((r) => r.id === threadId);
+    if (row) return { is_read: !!row.is_read, is_archived: !!row.is_archived, is_deleted: !!row.is_deleted };
+  }
+  return null;
+}
+
+function computeUnreadDelta(
+  before: { is_read: boolean; is_archived: boolean; is_deleted: boolean },
+  patch: Partial<{ is_read: boolean; is_archived: boolean; is_deleted: boolean }>,
+): number {
+  const after = {
+    is_read: patch.is_read ?? before.is_read,
+    is_archived: patch.is_archived ?? before.is_archived,
+    is_deleted: patch.is_deleted ?? before.is_deleted,
+  };
+  const wasUnread = !before.is_read && !before.is_archived && !before.is_deleted;
+  const isUnread = !after.is_read && !after.is_archived && !after.is_deleted;
+  if (wasUnread === isUnread) return 0;
+  return isUnread ? 1 : -1;
+}
+
 
 export function useThread(threadId: string | null) {
   return useQuery({
@@ -392,7 +434,22 @@ export function useUpdateFlag() {
         .eq("user_id", user!.id);
       if (error) throw error;
     },
-    onSuccess: () => {
+    // Optimistically adjust the unread badge so it feels instant even if the
+    // backend takes a moment to confirm or a realtime event races the response.
+    onMutate: async ({ threadId, patch }) => {
+      await qc.cancelQueries({ queryKey: ["msg_unread"] });
+      const prev = qc.getQueryData<number>(["msg_unread", user?.id]) ?? 0;
+      const before = readThreadFlagFromCache(qc, threadId);
+      if (before) {
+        const delta = computeUnreadDelta(before, patch);
+        if (delta !== 0) qc.setQueryData<number>(["msg_unread", user?.id], Math.max(0, prev + delta));
+      }
+      return { prev };
+    },
+    onError: (_e, _vars, ctx) => {
+      if (ctx?.prev !== undefined) qc.setQueryData(["msg_unread", user?.id], ctx.prev);
+    },
+    onSettled: () => {
       qc.invalidateQueries({ queryKey: ["msg_threads"] });
       qc.invalidateQueries({ queryKey: ["msg_unread"] });
       qc.invalidateQueries({ queryKey: ["msg_thread"] });
@@ -422,13 +479,28 @@ export function useBulkUpdateFlags() {
       const skippedIds = threadIds.filter((id) => !updatedSet.has(id));
       return { updatedIds, skippedIds, error: null as string | null };
     },
-    onSuccess: () => {
+    onMutate: async ({ threadIds, patch }) => {
+      await qc.cancelQueries({ queryKey: ["msg_unread"] });
+      const prev = qc.getQueryData<number>(["msg_unread", user?.id]) ?? 0;
+      let delta = 0;
+      for (const id of threadIds) {
+        const before = readThreadFlagFromCache(qc, id);
+        if (before) delta += computeUnreadDelta(before, patch);
+      }
+      if (delta !== 0) qc.setQueryData<number>(["msg_unread", user?.id], Math.max(0, prev + delta));
+      return { prev };
+    },
+    onError: (_e, _vars, ctx) => {
+      if (ctx?.prev !== undefined) qc.setQueryData(["msg_unread", user?.id], ctx.prev);
+    },
+    onSettled: () => {
       qc.invalidateQueries({ queryKey: ["msg_threads"] });
       qc.invalidateQueries({ queryKey: ["msg_unread"] });
       qc.invalidateQueries({ queryKey: ["msg_thread"] });
     },
   });
 }
+
 
 export function useDrafts() {
   const { user } = useAuth();
