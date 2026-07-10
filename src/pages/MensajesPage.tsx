@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import PageHeader from "@/components/shared/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,14 +6,18 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
-  Inbox, Send, FileText, Star, AlertCircle, Archive, Trash2, Plus, Search, Mail, Bot, ChevronLeft, ChevronRight,
-  ClipboardList, Calendar, BookMarked,
+  Inbox, Send, FileText, Star, AlertCircle, Archive, Trash2, Plus, Search, Mail, MailOpen, Bot,
+  ClipboardList, Calendar, BookMarked, X, ChevronDown,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
-import { useThreads, useDrafts, useDeleteDraft, useUnreadCount, useSystemSenders, type Folder } from "@/hooks/useMensajes";
+import {
+  useThreads, useDrafts, useDeleteDraft, useUnreadCount, useSystemSenders, useBulkUpdateFlags,
+  type Folder, type ThreadRow,
+} from "@/hooks/useMensajes";
 import MensajeComposer from "@/components/mensajes/MensajeComposer";
 import MensajeThreadView from "@/components/mensajes/MensajeThreadView";
 import MensajeTemplatesPanel from "@/components/mensajes/MensajeTemplatesPanel";
@@ -22,6 +26,7 @@ import MensajeAuditPanel from "@/components/mensajes/MensajeAuditPanel";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { format, isToday, isYesterday } from "date-fns";
 import { es } from "date-fns/locale";
+import { toast } from "sonner";
 
 type View = "folder" | "templates" | "scheduled" | "audit";
 
@@ -58,25 +63,85 @@ export default function MensajesPage() {
   const [selected, setSelected] = useState<string | null>(null);
   const [composerOpen, setComposerOpen] = useState(false);
   const [composerInitial, setComposerInitial] = useState<any>(undefined);
+  const [checked, setChecked] = useState<Set<string>>(new Set());
+  const [accumulated, setAccumulated] = useState<ThreadRow[]>([]);
 
-  const { data: threadsResult, isLoading } = useThreads({
+  // Reset accumulation + selection whenever filters change
+  const filterKey = `${folder}|${search}|${searchField}|${dateFrom}|${dateTo}`;
+  useEffect(() => {
+    setAccumulated([]);
+    setChecked(new Set());
+    setPage(0);
+  }, [filterKey]);
+
+  const { data: threadsResult, isLoading, isFetching } = useThreads({
     folder, search, searchField, page, pageSize: PAGE_SIZE,
     dateFrom: dateFrom ? new Date(dateFrom).toISOString() : null,
     dateTo: dateTo ? new Date(dateTo + "T23:59:59").toISOString() : null,
   });
-  const threads = threadsResult?.rows || [];
   const total = threadsResult?.total || 0;
+
+  // Merge new page into accumulated list (dedupe by id, preserve order)
+  useEffect(() => {
+    const rows = threadsResult?.rows;
+    if (!rows) return;
+    setAccumulated((prev) => {
+      if (page === 0) return rows;
+      const seen = new Set(prev.map((r) => r.id));
+      const merged = [...prev];
+      for (const r of rows) if (!seen.has(r.id)) merged.push(r);
+      return merged;
+    });
+  }, [threadsResult, page]);
+
+  const threads = accumulated;
+  const canLoadMore = threads.length < total;
+
   const { data: drafts = [] } = useDrafts();
   const deleteDraft = useDeleteDraft();
   const { data: unread = 0 } = useUnreadCount();
   const { data: sysSenders = [] } = useSystemSenders();
   const sysMap = new Map(sysSenders.map((s) => [s.key, s]));
+  const bulkFlags = useBulkUpdateFlags();
 
   const EXTRA_VIEWS: { id: View; label: string; icon: any }[] = [
     { id: "templates", label: "Plantillas", icon: BookMarked },
     { id: "scheduled", label: "Programados", icon: Calendar },
     { id: "audit", label: "Auditoría", icon: ClipboardList },
   ];
+
+  const toggleCheck = (id: string) => {
+    setChecked((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+  const allVisibleChecked = threads.length > 0 && threads.every((t) => checked.has(t.id));
+  const toggleCheckAll = () => {
+    setChecked((prev) => {
+      if (allVisibleChecked) return new Set();
+      const next = new Set(prev);
+      threads.forEach((t) => next.add(t.id));
+      return next;
+    });
+  };
+
+  const bulkApply = async (patch: Parameters<typeof bulkFlags.mutate>[0]["patch"], label: string, removeFromList = false) => {
+    const ids = Array.from(checked);
+    if (!ids.length) return;
+    try {
+      await bulkFlags.mutateAsync({ threadIds: ids, patch });
+      toast.success(`${ids.length} hilo(s) — ${label}`);
+      if (removeFromList) {
+        setAccumulated((prev) => prev.filter((t) => !checked.has(t.id)));
+      } else {
+        // Merge patch into local rows so UI reflects immediately
+        setAccumulated((prev) => prev.map((t) => checked.has(t.id) ? { ...t, ...patch } as ThreadRow : t));
+      }
+      setChecked(new Set());
+    } catch (e: any) { toast.error(e.message || "Error"); }
+  };
 
   const sidebar = (
     <div className="flex flex-col h-full w-60 border-r bg-muted/30">
@@ -93,7 +158,7 @@ export default function MensajesPage() {
           return (
             <button
               key={f.id}
-              onClick={() => { setView("folder"); setFolder(f.id); setSelected(null); setPage(0); }}
+              onClick={() => { setView("folder"); setFolder(f.id); setSelected(null); }}
               className={cn(
                 "w-full flex items-center gap-2 px-3 py-2 text-sm rounded-md transition-colors",
                 active ? "bg-primary/10 text-primary font-medium" : "text-foreground hover:bg-accent"
@@ -128,7 +193,43 @@ export default function MensajesPage() {
     </div>
   );
 
-  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const bulkBar = folder !== "drafts" && checked.size > 0 && (
+    <div className="flex flex-wrap items-center gap-1 px-3 py-2 border-b bg-primary/5">
+      <span className="text-xs font-medium mr-2">{checked.size} seleccionado(s)</span>
+      <Button size="sm" variant="ghost" onClick={() => bulkApply({ is_read: true }, "marcados como leídos")}>
+        <MailOpen className="h-3.5 w-3.5 mr-1" /> Leído
+      </Button>
+      <Button size="sm" variant="ghost" onClick={() => bulkApply({ is_read: false }, "marcados como no leídos")}>
+        <Mail className="h-3.5 w-3.5 mr-1" /> No leído
+      </Button>
+      {folder !== "archived" && (
+        <Button size="sm" variant="ghost" onClick={() => bulkApply({ is_archived: true }, "archivados", true)}>
+          <Archive className="h-3.5 w-3.5 mr-1" /> Archivar
+        </Button>
+      )}
+      {folder === "archived" && (
+        <Button size="sm" variant="ghost" onClick={() => bulkApply({ is_archived: false }, "restaurados", true)}>
+          <Inbox className="h-3.5 w-3.5 mr-1" /> Restaurar
+        </Button>
+      )}
+      {folder !== "deleted" ? (
+        <Button size="sm" variant="ghost" className="text-destructive hover:text-destructive" onClick={() => bulkApply({ is_deleted: true }, "eliminados", true)}>
+          <Trash2 className="h-3.5 w-3.5 mr-1" /> Eliminar
+        </Button>
+      ) : (
+        <Button size="sm" variant="ghost" onClick={() => bulkApply({ is_deleted: false }, "restaurados", true)}>
+          <Inbox className="h-3.5 w-3.5 mr-1" /> Restaurar
+        </Button>
+      )}
+      <Button size="sm" variant="ghost" onClick={() => bulkApply({ is_important: true }, "marcados como importantes")}>
+        <AlertCircle className="h-3.5 w-3.5 mr-1" /> Importante
+      </Button>
+      <div className="flex-1" />
+      <Button size="sm" variant="ghost" onClick={() => setChecked(new Set())}>
+        <X className="h-3.5 w-3.5" />
+      </Button>
+    </div>
+  );
 
   const listPanel = (
     <div className="flex-1 flex flex-col border-r min-w-0">
@@ -140,10 +241,10 @@ export default function MensajesPage() {
               placeholder="Buscar en mensajes…"
               className="pl-9"
               value={search}
-              onChange={(e) => { setSearch(e.target.value); setPage(0); }}
+              onChange={(e) => setSearch(e.target.value)}
             />
           </div>
-          <Select value={searchField} onValueChange={(v: any) => { setSearchField(v); setPage(0); }}>
+          <Select value={searchField} onValueChange={(v: any) => setSearchField(v)}>
             <SelectTrigger className="w-32 shrink-0"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Todo</SelectItem>
@@ -155,27 +256,25 @@ export default function MensajesPage() {
         </div>
         <div className="flex items-center gap-2 text-xs">
           <label className="text-muted-foreground shrink-0">Desde</label>
-          <Input type="date" value={dateFrom} onChange={(e) => { setDateFrom(e.target.value); setPage(0); }} className="h-8 text-xs" />
+          <Input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} className="h-8 text-xs" />
           <label className="text-muted-foreground shrink-0">Hasta</label>
-          <Input type="date" value={dateTo} onChange={(e) => { setDateTo(e.target.value); setPage(0); }} className="h-8 text-xs" />
+          <Input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} className="h-8 text-xs" />
           {(dateFrom || dateTo) && (
-            <Button size="sm" variant="ghost" className="h-8" onClick={() => { setDateFrom(""); setDateTo(""); setPage(0); }}>Limpiar</Button>
+            <Button size="sm" variant="ghost" className="h-8" onClick={() => { setDateFrom(""); setDateTo(""); }}>Limpiar</Button>
           )}
         </div>
-        {folder !== "drafts" && total > 0 && (
-          <div className="flex items-center justify-between text-xs text-muted-foreground">
-            <span>{page * PAGE_SIZE + 1}–{Math.min((page + 1) * PAGE_SIZE, total)} de {total}</span>
-            <div className="flex gap-1">
-              <Button size="sm" variant="ghost" disabled={page === 0} onClick={() => setPage((p) => Math.max(0, p - 1))}>
-                <ChevronLeft className="h-3.5 w-3.5" />
-              </Button>
-              <Button size="sm" variant="ghost" disabled={page + 1 >= totalPages} onClick={() => setPage((p) => p + 1)}>
-                <ChevronRight className="h-3.5 w-3.5" />
-              </Button>
-            </div>
+        {folder !== "drafts" && (
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <Checkbox
+              checked={allVisibleChecked}
+              onCheckedChange={toggleCheckAll}
+              aria-label="Seleccionar todos"
+            />
+            <span>Seleccionar todos ({threads.length}{total > threads.length ? ` de ${total}` : ""})</span>
           </div>
         )}
       </div>
+      {bulkBar}
       <ScrollArea className="flex-1">
         {folder === "drafts" ? (
           drafts.length === 0 ? (
@@ -202,53 +301,73 @@ export default function MensajesPage() {
               </div>
             ))
           )
-        ) : isLoading ? (
+        ) : isLoading && threads.length === 0 ? (
           <div className="p-6 text-sm text-muted-foreground">Cargando…</div>
         ) : threads.length === 0 ? (
           <div className="p-10 text-center text-sm text-muted-foreground">No hay mensajes en esta carpeta</div>
         ) : (
-          threads.map((t) => {
-            const isActive = selected === t.id;
-            const others = t.participants.filter((p) => p.user_id !== user?.id);
-            const isSystem = !!t.last_message?.is_system;
-            const sys = isSystem ? sysMap.get(t.last_message?.system_sender_key || "") : null;
-            const headline = isSystem
-              ? sys?.display_name || "Sistema"
-              : others.map((o) => o.display_name).filter(Boolean).slice(0, 2).join(", ") || "Yo";
-            return (
-              <button
-                key={t.id}
-                onClick={() => setSelected(t.id)}
-                className={cn(
-                  "w-full text-left px-4 py-3 border-b flex gap-3 transition-colors",
-                  isActive ? "bg-primary/10" : "hover:bg-accent/40",
-                  !t.is_read && !isActive && "bg-blue-50/40 dark:bg-blue-950/20"
-                )}
-              >
-                <Avatar className="h-9 w-9 mt-0.5">
-                  {isSystem ? (
-                    <AvatarFallback className="bg-primary/10 text-primary"><Bot className="h-4 w-4" /></AvatarFallback>
-                  ) : (
-                    <>
-                      <AvatarImage src={others[0]?.avatar_url || undefined} />
-                      <AvatarFallback>{(others[0]?.display_name || "?").slice(0, 2).toUpperCase()}</AvatarFallback>
-                    </>
+          <>
+            {threads.map((t) => {
+              const isActive = selected === t.id;
+              const isChecked = checked.has(t.id);
+              const others = t.participants.filter((p) => p.user_id !== user?.id);
+              const isSystem = !!t.last_message?.is_system;
+              const sys = isSystem ? sysMap.get(t.last_message?.system_sender_key || "") : null;
+              const headline = isSystem
+                ? sys?.display_name || "Sistema"
+                : others.map((o) => o.display_name).filter(Boolean).slice(0, 2).join(", ") || "Yo";
+              return (
+                <div
+                  key={t.id}
+                  className={cn(
+                    "w-full text-left px-3 py-3 border-b flex gap-2 transition-colors",
+                    isActive ? "bg-primary/10" : "hover:bg-accent/40",
+                    isChecked && "bg-primary/5",
+                    !t.is_read && !isActive && "bg-blue-50/40 dark:bg-blue-950/20"
                   )}
-                </Avatar>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <span className={cn("text-sm truncate", !t.is_read ? "font-semibold" : "font-medium")}>{headline}</span>
-                    {isSystem && <Badge variant="outline" className="h-4 text-[9px] px-1">Sistema</Badge>}
-                    {t.is_important && <AlertCircle className="h-3.5 w-3.5 text-orange-500 shrink-0" />}
-                    {t.is_favorite && <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400 shrink-0" />}
-                    <span className="ml-auto text-[11px] text-muted-foreground shrink-0">{formatDate(t.last_message_at)}</span>
+                >
+                  <div className="pt-2" onClick={(e) => e.stopPropagation()}>
+                    <Checkbox checked={isChecked} onCheckedChange={() => toggleCheck(t.id)} aria-label="Seleccionar hilo" />
                   </div>
-                  <div className={cn("text-sm truncate", !t.is_read ? "font-medium" : "text-muted-foreground")}>{t.subject}</div>
-                  <div className="text-xs text-muted-foreground truncate">{t.last_message?.body || "—"}</div>
+                  <button onClick={() => setSelected(t.id)} className="flex-1 flex gap-3 min-w-0 text-left">
+                    <Avatar className="h-9 w-9 mt-0.5 shrink-0">
+                      {isSystem ? (
+                        <AvatarFallback className="bg-primary/10 text-primary"><Bot className="h-4 w-4" /></AvatarFallback>
+                      ) : (
+                        <>
+                          <AvatarImage src={others[0]?.avatar_url || undefined} />
+                          <AvatarFallback>{(others[0]?.display_name || "?").slice(0, 2).toUpperCase()}</AvatarFallback>
+                        </>
+                      )}
+                    </Avatar>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className={cn("text-sm truncate", !t.is_read ? "font-semibold" : "font-medium")}>{headline}</span>
+                        {isSystem && <Badge variant="outline" className="h-4 text-[9px] px-1">Sistema</Badge>}
+                        {t.is_important && <AlertCircle className="h-3.5 w-3.5 text-orange-500 shrink-0" />}
+                        {t.is_favorite && <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400 shrink-0" />}
+                        <span className="ml-auto text-[11px] text-muted-foreground shrink-0">{formatDate(t.last_message_at)}</span>
+                      </div>
+                      <div className={cn("text-sm truncate", !t.is_read ? "font-medium" : "text-muted-foreground")}>{t.subject}</div>
+                      <div className="text-xs text-muted-foreground truncate">{t.last_message?.body || "—"}</div>
+                    </div>
+                  </button>
                 </div>
-              </button>
-            );
-          })
+              );
+            })}
+            {canLoadMore && (
+              <div className="p-3 flex justify-center">
+                <Button size="sm" variant="outline" disabled={isFetching} onClick={() => setPage((p) => p + 1)}>
+                  {isFetching ? "Cargando…" : (<><ChevronDown className="h-3.5 w-3.5 mr-1" /> Cargar más ({total - threads.length} restantes)</>)}
+                </Button>
+              </div>
+            )}
+            {!canLoadMore && threads.length > 0 && (
+              <div className="p-4 text-center text-[11px] text-muted-foreground">
+                Mostrando {threads.length} de {total}
+              </div>
+            )}
+          </>
         )}
       </ScrollArea>
     </div>
@@ -299,7 +418,7 @@ export default function MensajesPage() {
                     key={f.id}
                     size="sm"
                     variant={folder === f.id ? "default" : "outline"}
-                    onClick={() => { setFolder(f.id); setPage(0); }}
+                    onClick={() => setFolder(f.id)}
                   >
                     <f.icon className="h-3.5 w-3.5 mr-1" />
                     {f.label}
