@@ -101,6 +101,7 @@ export default function NotificacionesPreferencias() {
 
   return (
     <div className="space-y-6">
+      <MensajesToastPrefsCard />
       <Card>
         <CardHeader>
           <CardTitle>Mis notificaciones</CardTitle>
