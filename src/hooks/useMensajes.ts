@@ -1,7 +1,10 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { toast } from "sonner";
+import { Mail } from "lucide-react";
+import { createElement } from "react";
 
 export type Folder = "inbox" | "unread" | "sent" | "drafts" | "important" | "archived" | "deleted" | "favorites";
 
