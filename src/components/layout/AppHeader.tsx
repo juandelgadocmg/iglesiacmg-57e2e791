@@ -1,5 +1,5 @@
-import { Search, ChevronRight, Menu, ChevronDown, Check } from "lucide-react";
-import { useLocation } from "react-router-dom";
+import { Search, ChevronRight, Menu, ChevronDown, Check, Mail } from "lucide-react";
+import { useLocation, Link } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,7 @@ import {
 import { useAuth } from "@/hooks/useAuth";
 import { useActiveRole, ROLE_LABELS } from "@/hooks/useActiveRole";
 import NotificationDropdown from "@/components/layout/NotificationDropdown";
+import { useUnreadCount } from "@/hooks/useMensajes";
 
 const breadcrumbMap: Record<string, string> = {
   dashboard: "Dashboard", personas: "Personas", grupos: "Grupos",
@@ -45,6 +46,7 @@ export default function AppHeader({ onMenuClick }: AppHeaderProps) {
   const segments = location.pathname.split("/").filter(Boolean);
   const { user } = useAuth();
   const { activeRole, setActiveRole, allRoles, roleLabel } = useActiveRole();
+  const { data: unreadMsgs = 0 } = useUnreadCount();
   const initials = user?.email?.slice(0, 2).toUpperCase() || "U";
   const hasMultipleRoles = allRoles.length > 1;
 
@@ -72,6 +74,15 @@ export default function AppHeader({ onMenuClick }: AppHeaderProps) {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input placeholder="Buscar..." className="pl-9 w-64 h-9 bg-muted/50 border-0 text-sm" />
         </div>
+
+        <Link to="/mensajes" className="relative p-2 rounded-md hover:bg-muted transition-colors" title="Mensajes">
+          <Mail className="h-[18px] w-[18px] text-muted-foreground" />
+          {unreadMsgs > 0 && (
+            <Badge className="absolute -top-0.5 -right-0.5 h-4 min-w-4 px-1 flex items-center justify-center text-[10px] bg-primary text-primary-foreground border-0">
+              {unreadMsgs > 9 ? "9+" : unreadMsgs}
+            </Badge>
+          )}
+        </Link>
 
         <NotificationDropdown />
 

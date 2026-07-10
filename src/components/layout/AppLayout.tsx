@@ -2,9 +2,11 @@ import { useState } from "react";
 import { Outlet } from "react-router-dom";
 import AppSidebar from "./AppSidebar";
 import AppHeader from "./AppHeader";
+import { useMessageNotifications } from "@/hooks/useMensajes";
 
 export default function AppLayout() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  useMessageNotifications();
 
   return (
     <div className="flex min-h-screen w-full">
@@ -18,3 +20,4 @@ export default function AppLayout() {
     </div>
   );
 }
+

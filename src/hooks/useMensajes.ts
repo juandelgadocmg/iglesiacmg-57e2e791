@@ -1,7 +1,10 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { toast } from "sonner";
+import { Mail } from "lucide-react";
+import { createElement } from "react";
 
 export type Folder = "inbox" | "unread" | "sent" | "drafts" | "important" | "archived" | "deleted" | "favorites";
 
@@ -67,10 +70,12 @@ export interface ThreadFilters {
   searchField?: "all" | "subject" | "from" | "body";
   page?: number;
   pageSize?: number;
+  dateFrom?: string | null;
+  dateTo?: string | null;
 }
 
 export function useThreads(filters: ThreadFilters) {
-  const { folder, search, searchField = "all", page = 0, pageSize = 25 } = filters;
+  const { folder, search, searchField = "all", page = 0, pageSize = 25, dateFrom, dateTo } = filters;
   const { user } = useAuth();
   const qc = useQueryClient();
 
@@ -92,7 +97,7 @@ export function useThreads(filters: ThreadFilters) {
   }, [user?.id, qc]);
 
   return useQuery({
-    queryKey: ["msg_threads", folder, search, searchField, page, pageSize, user?.id],
+    queryKey: ["msg_threads", folder, search, searchField, page, pageSize, dateFrom, dateTo, user?.id],
     enabled: !!user?.id,
     queryFn: async (): Promise<{ rows: ThreadRow[]; total: number }> => {
       if (folder === "drafts") return { rows: [], total: 0 };
@@ -132,6 +137,12 @@ export function useThreads(filters: ThreadFilters) {
       if (s && (searchField === "subject" || searchField === "all")) {
         q = q.ilike("thread.subject", `%${s}%`);
       }
+
+      // Date range filter on thread last_message_at
+      if (dateFrom) q = q.gte("thread.last_message_at", dateFrom);
+      if (dateTo) q = q.lte("thread.last_message_at", dateTo);
+
+
 
       // Pagination
       const from = page * pageSize;
@@ -685,3 +696,58 @@ export function useReadReceipts(threadId: string | null) {
     },
   });
 }
+
+// Global in-app notifier: shows a toast when a new message arrives in a thread
+// where the current user is a participant (and they are not the sender).
+export function useMessageNotifications() {
+  const { user } = useAuth();
+  const qc = useQueryClient();
+  const startedAt = useRef<number>(Date.now());
+  useEffect(() => {
+    if (!user?.id) return;
+    startedAt.current = Date.now();
+    const ch = supabase
+      .channel("msg-notify-" + user.id)
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "msg_messages" }, async (payload: any) => {
+        try {
+          const m = payload.new;
+          if (!m?.thread_id) return;
+          if (m.sender_id === user.id) return;
+          // Confirm current user is participant (RLS-safe via participants query)
+          const { data: part } = await supabase
+            .from("msg_participants")
+            .select("user_id")
+            .eq("thread_id", m.thread_id)
+            .eq("user_id", user.id)
+            .maybeSingle();
+          if (!part) return;
+          const { data: th } = await supabase
+            .from("msg_threads")
+            .select("subject")
+            .eq("id", m.thread_id)
+            .maybeSingle();
+          let senderName = "Sistema";
+          if (m.sender_id) {
+            const { data: p } = await supabase.from("profiles").select("display_name").eq("user_id", m.sender_id).maybeSingle();
+            senderName = p?.display_name || "Usuario";
+          } else if (m.system_sender_key) {
+            const { data: s } = await supabase.from("msg_system_senders").select("display_name").eq("key", m.system_sender_key).maybeSingle();
+            senderName = s?.display_name || "Sistema";
+          }
+          toast(senderName, {
+            description: `${th?.subject || "(sin asunto)"} — ${String(m.body || "").slice(0, 80)}`,
+            icon: createElement(Mail, { className: "h-4 w-4" }),
+            action: {
+              label: "Ver",
+              onClick: () => { window.location.href = "/mensajes"; },
+            },
+          });
+          qc.invalidateQueries({ queryKey: ["msg_unread"] });
+          qc.invalidateQueries({ queryKey: ["msg_threads"] });
+        } catch {}
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, [user?.id, qc]);
+}
+

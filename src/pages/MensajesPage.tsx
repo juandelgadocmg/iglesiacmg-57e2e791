@@ -52,12 +52,18 @@ export default function MensajesPage() {
   const [folder, setFolder] = useState<Folder>("inbox");
   const [search, setSearch] = useState("");
   const [searchField, setSearchField] = useState<"all" | "subject" | "from" | "body">("all");
+  const [dateFrom, setDateFrom] = useState<string>("");
+  const [dateTo, setDateTo] = useState<string>("");
   const [page, setPage] = useState(0);
   const [selected, setSelected] = useState<string | null>(null);
   const [composerOpen, setComposerOpen] = useState(false);
   const [composerInitial, setComposerInitial] = useState<any>(undefined);
 
-  const { data: threadsResult, isLoading } = useThreads({ folder, search, searchField, page, pageSize: PAGE_SIZE });
+  const { data: threadsResult, isLoading } = useThreads({
+    folder, search, searchField, page, pageSize: PAGE_SIZE,
+    dateFrom: dateFrom ? new Date(dateFrom).toISOString() : null,
+    dateTo: dateTo ? new Date(dateTo + "T23:59:59").toISOString() : null,
+  });
   const threads = threadsResult?.rows || [];
   const total = threadsResult?.total || 0;
   const { data: drafts = [] } = useDrafts();
@@ -146,6 +152,15 @@ export default function MensajesPage() {
               <SelectItem value="body">Contenido</SelectItem>
             </SelectContent>
           </Select>
+        </div>
+        <div className="flex items-center gap-2 text-xs">
+          <label className="text-muted-foreground shrink-0">Desde</label>
+          <Input type="date" value={dateFrom} onChange={(e) => { setDateFrom(e.target.value); setPage(0); }} className="h-8 text-xs" />
+          <label className="text-muted-foreground shrink-0">Hasta</label>
+          <Input type="date" value={dateTo} onChange={(e) => { setDateTo(e.target.value); setPage(0); }} className="h-8 text-xs" />
+          {(dateFrom || dateTo) && (
+            <Button size="sm" variant="ghost" className="h-8" onClick={() => { setDateFrom(""); setDateTo(""); setPage(0); }}>Limpiar</Button>
+          )}
         </div>
         {folder !== "drafts" && total > 0 && (
           <div className="flex items-center justify-between text-xs text-muted-foreground">
