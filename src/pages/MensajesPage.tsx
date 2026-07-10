@@ -9,6 +9,10 @@ import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   Inbox, Send, FileText, Star, AlertCircle, Archive, Trash2, Plus, Search, Mail, MailOpen, Bot,
   ClipboardList, Calendar, BookMarked, X, ChevronDown,
 } from "lucide-react";
@@ -127,20 +131,82 @@ export default function MensajesPage() {
     });
   };
 
-  const bulkApply = async (patch: Parameters<typeof bulkFlags.mutate>[0]["patch"], label: string, removeFromList = false) => {
-    const ids = Array.from(checked);
-    if (!ids.length) return;
+  type BulkPatch = Parameters<typeof bulkFlags.mutate>[0]["patch"];
+  const [confirmState, setConfirmState] = useState<null | { title: string; description: string; onConfirm: () => void }>(null);
+
+  const doBulk = async (ids: string[], patch: BulkPatch, label: string, removeFromList: boolean) => {
+    // Snapshot rows for undo (in case removed from view)
+    const snapshot = accumulated.filter((t) => ids.includes(t.id));
     try {
-      await bulkFlags.mutateAsync({ threadIds: ids, patch });
-      toast.success(`${ids.length} hilo(s) — ${label}`);
+      const res: any = await bulkFlags.mutateAsync({ threadIds: ids, patch });
+      const updated: string[] = res?.updatedIds || [];
+      const skipped: string[] = res?.skippedIds || [];
+      const updatedSet = new Set(updated);
       if (removeFromList) {
-        setAccumulated((prev) => prev.filter((t) => !checked.has(t.id)));
+        setAccumulated((prev) => prev.filter((t) => !updatedSet.has(t.id)));
       } else {
-        // Merge patch into local rows so UI reflects immediately
-        setAccumulated((prev) => prev.map((t) => checked.has(t.id) ? { ...t, ...patch } as ThreadRow : t));
+        setAccumulated((prev) => prev.map((t) => (updatedSet.has(t.id) ? ({ ...t, ...patch } as ThreadRow) : t)));
       }
       setChecked(new Set());
-    } catch (e: any) { toast.error(e.message || "Error"); }
+
+      const summary = skipped.length
+        ? `${updated.length} ${label} · ${skipped.length} sin cambios`
+        : `${updated.length} ${label}`;
+
+      if (updated.length > 0) {
+        // Build inverse patch for undo
+        const invert: BulkPatch = {};
+        (Object.keys(patch) as (keyof BulkPatch)[]).forEach((k) => {
+          if (k === "is_read" || k === "is_important" || k === "is_favorite" || k === "is_archived" || k === "is_deleted") {
+            (invert as any)[k] = !(patch as any)[k];
+          }
+        });
+        toast.success(summary, {
+          duration: 6000,
+          action: {
+            label: "Deshacer",
+            onClick: async () => {
+              try {
+                const r: any = await bulkFlags.mutateAsync({ threadIds: updated, patch: invert });
+                const restored: string[] = r?.updatedIds || [];
+                const rSet = new Set(restored);
+                if (removeFromList) {
+                  setAccumulated((prev) => {
+                    const map = new Map(prev.map((t) => [t.id, t]));
+                    for (const s of snapshot) if (rSet.has(s.id) && !map.has(s.id)) map.set(s.id, s);
+                    return Array.from(map.values());
+                  });
+                } else {
+                  setAccumulated((prev) => prev.map((t) => (rSet.has(t.id) ? ({ ...t, ...invert } as ThreadRow) : t)));
+                }
+                toast.success(`Acción deshecha (${restored.length})`);
+              } catch (e: any) {
+                toast.error(e.message || "No se pudo deshacer");
+              }
+            },
+          },
+        });
+      } else {
+        toast.error(`No se aplicaron cambios${skipped.length ? ` (${skipped.length} sin permisos o ya en ese estado)` : ""}`);
+      }
+      if (res?.error) toast.error(res.error);
+    } catch (e: any) {
+      toast.error(e.message || "Error");
+    }
+  };
+
+  const bulkApply = (patch: BulkPatch, label: string, removeFromList = false, confirm?: { title: string; description: string }) => {
+    const ids = Array.from(checked);
+    if (!ids.length) return;
+    if (confirm) {
+      setConfirmState({
+        title: confirm.title,
+        description: confirm.description.replace("{n}", String(ids.length)),
+        onConfirm: () => doBulk(ids, patch, label, removeFromList),
+      });
+      return;
+    }
+    void doBulk(ids, patch, label, removeFromList);
   };
 
   const sidebar = (
@@ -203,21 +269,27 @@ export default function MensajesPage() {
         <Mail className="h-3.5 w-3.5 mr-1" /> No leído
       </Button>
       {folder !== "archived" && (
-        <Button size="sm" variant="ghost" onClick={() => bulkApply({ is_archived: true }, "archivados", true)}>
+        <Button size="sm" variant="ghost" onClick={() => bulkApply({ is_archived: true }, "archivado(s)", true, {
+          title: "¿Archivar seleccionados?",
+          description: "Se archivarán {n} hilo(s). Podrás deshacer esta acción o restaurarlos desde Archivados.",
+        })}>
           <Archive className="h-3.5 w-3.5 mr-1" /> Archivar
         </Button>
       )}
       {folder === "archived" && (
-        <Button size="sm" variant="ghost" onClick={() => bulkApply({ is_archived: false }, "restaurados", true)}>
+        <Button size="sm" variant="ghost" onClick={() => bulkApply({ is_archived: false }, "restaurado(s)", true)}>
           <Inbox className="h-3.5 w-3.5 mr-1" /> Restaurar
         </Button>
       )}
       {folder !== "deleted" ? (
-        <Button size="sm" variant="ghost" className="text-destructive hover:text-destructive" onClick={() => bulkApply({ is_deleted: true }, "eliminados", true)}>
+        <Button size="sm" variant="ghost" className="text-destructive hover:text-destructive" onClick={() => bulkApply({ is_deleted: true }, "eliminado(s)", true, {
+          title: "¿Enviar a Eliminados?",
+          description: "Se moverán {n} hilo(s) a la carpeta Eliminados. Podrás deshacer o restaurarlos desde ahí.",
+        })}>
           <Trash2 className="h-3.5 w-3.5 mr-1" /> Eliminar
         </Button>
       ) : (
-        <Button size="sm" variant="ghost" onClick={() => bulkApply({ is_deleted: false }, "restaurados", true)}>
+        <Button size="sm" variant="ghost" onClick={() => bulkApply({ is_deleted: false }, "restaurado(s)", true)}>
           <Inbox className="h-3.5 w-3.5 mr-1" /> Restaurar
         </Button>
       )}
@@ -434,6 +506,20 @@ export default function MensajesPage() {
         )}
       </div>
       <MensajeComposer open={composerOpen} onOpenChange={setComposerOpen} initial={composerInitial} />
+      <AlertDialog open={!!confirmState} onOpenChange={(o) => !o && setConfirmState(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{confirmState?.title}</AlertDialogTitle>
+            <AlertDialogDescription>{confirmState?.description}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={() => { const fn = confirmState?.onConfirm; setConfirmState(null); fn?.(); }}>
+              Confirmar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
