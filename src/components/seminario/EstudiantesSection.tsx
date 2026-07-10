@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { useProgramas, useSemestres, usePensumMaterias, usePeriodos, useOfertas, useInscripciones, useUpsertInscripcion, useDeleteInscripcion, useInscripcionMaterias, useEnrollMateria, useUnenrollMateria, useUpdateInscripcionMateria, usePersonasLite, useEstudianteHistorial } from "@/hooks/useSeminario";
+import { useProgramas, useSemestres, usePensumMaterias, usePeriodos, useOfertas, useInscripciones, useUpsertInscripcion, useDeleteInscripcion, useInscripcionMaterias, useEnrollMateria, useUnenrollMateria, useUpdateInscripcionMateria, usePersonasLite, useEstudianteHistorial, useReindexSeminarioVinculos } from "@/hooks/useSeminario";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Plus, Trash2, UserPlus, ChevronLeft, FileDown, Award, Video, Search } from "lucide-react";
+import { Plus, Trash2, UserPlus, ChevronLeft, FileDown, Award, Video, Search, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import DeleteConfirmDialog from "@/components/shared/DeleteConfirmDialog";
 import ProgresoPanel from "./ProgresoPanel";
@@ -35,6 +35,7 @@ export default function EstudiantesSection() {
   const { data: inscripcionesPrograma } = useInscripciones(effProg);
   const upsertIns = useUpsertInscripcion();
   const delIns = useDeleteInscripcion();
+  const reindex = useReindexSeminarioVinculos();
   const { data: personas } = usePersonasLite();
   const [creating, setCreating] = useState(false);
   const [selectedIns, setSelectedIns] = useState<any>(null);
@@ -245,6 +246,20 @@ export default function EstudiantesSection() {
     } catch (e: any) { toast.error(e.message); }
   };
 
+  const handleReindex = async () => {
+    try {
+      const r: any = await reindex.mutateAsync();
+      toast.success(
+        `Sincronización lista: ${r?.profiles_vinculados || 0} perfiles y ${r?.inscripciones_vinculadas || 0} inscripciones actualizadas.`
+      );
+      if ((r?.inscripciones_sin_usuario || 0) > 0 || (r?.estudiantes_sin_materias || 0) > 0) {
+        toast.info(`${r?.inscripciones_sin_usuario || 0} inscripciones sin usuario y ${r?.estudiantes_sin_materias || 0} estudiantes sin materias visibles.`);
+      }
+    } catch (e: any) {
+      toast.error(e.message || "No se pudo sincronizar Seminario");
+    }
+  };
+
   if (selectedIns) {
     return <EstudianteDetalle ins={selectedIns} programa={programa} onBack={() => setSelectedIns(null)} />;
   }
@@ -293,6 +308,10 @@ export default function EstudiantesSection() {
               )}
             </>
           )}
+          <Button size="sm" variant="outline" onClick={handleReindex} disabled={reindex.isPending}>
+            <RefreshCw className={`h-4 w-4 mr-1 ${reindex.isPending ? "animate-spin" : ""}`} />
+            Sincronizar vínculos
+          </Button>
           {canMatricular && (
             <Dialog open={creating} onOpenChange={setCreating}>
               <DialogTrigger asChild>

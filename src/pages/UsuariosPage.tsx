@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import PageHeader from "@/components/shared/PageHeader";
 import { supabase } from "@/integrations/supabase/client";
 import { useProfiles, useUserRoles, useAssignRole, useRemoveRole } from "@/hooks/useUsuarios";
+import { useReindexSeminarioVinculos, useSeminarioVinculacionStatus } from "@/hooks/useSeminario";
 import InviteUserDialog from "@/components/usuarios/InviteUserDialog";
 import EditUserDialog from "@/components/usuarios/EditUserDialog";
 import { useQueryClient } from "@tanstack/react-query";
@@ -12,7 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Shield, ShieldCheck, UserCog, Plus, X, Users, Pencil, Home, Trash2, Download } from "lucide-react";
+import { Shield, ShieldCheck, UserCog, Plus, X, Users, Pencil, Home, Trash2, Download, AlertTriangle, GraduationCap, Link2, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { Constants } from "@/integrations/supabase/types";
 import type { Database } from "@/integrations/supabase/types";
@@ -61,8 +62,10 @@ const ROLE_COLORS: Record<AppRole, string> = {
 export default function UsuariosPage() {
   const { data: profiles, isLoading: loadingProfiles } = useProfiles();
   const { data: roles, isLoading: loadingRoles } = useUserRoles();
+  const { data: semVinculos, isLoading: loadingSemVinculos } = useSeminarioVinculacionStatus();
   const assignRole = useAssignRole();
   const removeRole = useRemoveRole();
+  const reindex = useReindexSeminarioVinculos();
   const { user } = useAuth();
   const queryClient = useQueryClient();
 
@@ -73,6 +76,7 @@ export default function UsuariosPage() {
   const handleSuccess = () => {
     queryClient.invalidateQueries({ queryKey: ["profiles"] });
     queryClient.invalidateQueries({ queryKey: ["user_roles"] });
+    queryClient.invalidateQueries({ queryKey: ["sem-vinculacion-status"] });
   };
 
   const isLoading = loadingProfiles || loadingRoles;
@@ -140,6 +144,27 @@ export default function UsuariosPage() {
 
   const totalUsers = profiles?.length || 0;
   const usersWithRoles = new Set((roles || []).map((r) => r.user_id)).size;
+  const semRows = (semVinculos || []) as any[];
+  const semStudents = semRows.filter((r) => r.has_student_role);
+  const semIssues = semStudents.filter((r) => r.estado !== "ok");
+  const semSinPersona = semStudents.filter((r) => r.estado === "sin_persona").length;
+  const semSinMaterias = semStudents.filter((r) => r.estado === "sin_materias").length;
+
+  const profileByUserId = useMemo(() => {
+    const map = new Map<string, any>();
+    (profiles || []).forEach((p: any) => map.set(p.user_id, p));
+    return map;
+  }, [profiles]);
+
+  const handleReindex = async () => {
+    try {
+      const r: any = await reindex.mutateAsync();
+      toast.success(`Sincronización lista: ${r?.profiles_vinculados || 0} perfiles y ${r?.inscripciones_vinculadas || 0} inscripciones actualizadas.`);
+      handleSuccess();
+    } catch (e: any) {
+      toast.error(e.message || "No se pudo sincronizar Seminario");
+    }
+  };
 
   const handleExportExcel = async () => {
     try {
@@ -210,6 +235,82 @@ export default function UsuariosPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Seminario linking status */}
+      <Card className="mb-6">
+        <CardHeader>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <CardTitle className="text-base flex items-center gap-2">
+              <GraduationCap className="h-4 w-4" /> Vinculación Seminario Persona↔Usuario
+            </CardTitle>
+            <Button size="sm" variant="outline" onClick={handleReindex} disabled={reindex.isPending}>
+              <RefreshCw className={`h-4 w-4 mr-1 ${reindex.isPending ? "animate-spin" : ""}`} />
+              Sincronizar vínculos
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {loadingSemVinculos ? (
+            <Skeleton className="h-28 w-full" />
+          ) : (
+            <>
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                <div className="rounded-lg border p-3">
+                  <p className="text-2xl font-bold">{semStudents.length}</p>
+                  <p className="text-xs text-muted-foreground">Estudiantes con rol</p>
+                </div>
+                <div className="rounded-lg border p-3">
+                  <p className="text-2xl font-bold">{semStudents.length - semIssues.length}</p>
+                  <p className="text-xs text-muted-foreground">Listos para ver materias</p>
+                </div>
+                <div className="rounded-lg border p-3">
+                  <p className="text-2xl font-bold">{semSinPersona}</p>
+                  <p className="text-xs text-muted-foreground">Sin persona vinculada</p>
+                </div>
+                <div className="rounded-lg border p-3">
+                  <p className="text-2xl font-bold">{semSinMaterias}</p>
+                  <p className="text-xs text-muted-foreground">Sin materias visibles</p>
+                </div>
+              </div>
+
+              {semIssues.length === 0 ? (
+                <div className="rounded-lg border bg-muted/30 p-3 text-sm text-muted-foreground">
+                  Todos los estudiantes de Seminario tienen persona, inscripción y materias visibles según su matrícula.
+                </div>
+              ) : (
+                <div className="rounded-lg border divide-y overflow-hidden">
+                  {semIssues.map((row) => {
+                    const profile = profileByUserId.get(row.user_id);
+                    return (
+                      <div key={row.user_id} className="p-3 flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+                        <div className="min-w-0 space-y-1">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <AlertTriangle className="h-4 w-4 text-destructive" />
+                            <p className="font-medium text-sm truncate">{row.display_name || row.email || row.user_id}</p>
+                            <Badge variant={row.estado === "ok" ? "default" : "destructive"} className="text-[10px]">
+                              {row.estado === "sin_persona" ? "Sin persona" : row.estado === "sin_inscripcion" ? "Sin inscripción" : "Sin materias visibles"}
+                            </Badge>
+                          </div>
+                          <p className="text-xs text-muted-foreground truncate">{row.email || "Sin correo"}</p>
+                          <p className="text-xs text-muted-foreground">
+                            Persona: {row.persona_nombre || "No vinculada"}{row.persona_documento ? ` · ${row.persona_documento}` : ""} · Inscripciones: {row.inscripciones_count || 0} · Materias: {row.materias_count || 0}
+                          </p>
+                          <p className="text-xs text-muted-foreground">{row.detalle}</p>
+                        </div>
+                        {profile && (
+                          <Button size="sm" variant="outline" className="gap-1.5 shrink-0" onClick={() => setEditingProfile(profile)}>
+                            <Link2 className="h-3.5 w-3.5" /> Corregir vínculo
+                          </Button>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Quick Assign Role */}
       <Card className="mb-6">
