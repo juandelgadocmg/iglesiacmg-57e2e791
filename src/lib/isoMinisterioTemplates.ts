@@ -30,6 +30,8 @@ export interface IsoMinisterioTemplate {
   fechasIncluidas?: string[] | null;
   /** Nombre del líder escrito manualmente (opcional). Si está definido, prevalece sobre el líder configurado en el ministerio. */
   liderNombreManual?: string | null;
+  /** Estaciones que se diligencian con texto libre (concepto/descripción), no con una persona de la membresía. */
+  estacionesTexto?: string[];
   /** Texto del bloque "Importante" (puede ser vacío). */
   importante?: string;
   /** Responsabilidades / nota al pie. */
@@ -181,6 +183,7 @@ export const ISO_TEMPLATES: IsoMinisterioTemplate[] = [
       "Auxiliar 7-11 años",
       "Tema 7-11 años",
     ],
+    estacionesTexto: ["Tema 3-6 años", "Tema 7-11 años"],
     importante: "Preparar material didáctico y devocional con anticipación. Uniforme Kabod completo.",
     responsabilidades: RESPONSABILIDADES_DEFAULT,
     firmas: FIRMAS_DEFAULT,
@@ -199,6 +202,7 @@ export const ISO_TEMPLATES: IsoMinisterioTemplate[] = [
       "Auxiliar",
       "Actividad",
     ],
+    estacionesTexto: ["Tema", "Objetivo", "Texto Bíblico", "Actividad"],
     importante: "Planificador mensual. Cada semana confirmar docente y auxiliar asignados.",
     responsabilidades: RESPONSABILIDADES_DEFAULT,
     firmas: FIRMAS_DEFAULT,

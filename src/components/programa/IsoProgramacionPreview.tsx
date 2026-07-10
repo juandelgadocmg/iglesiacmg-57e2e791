@@ -20,6 +20,7 @@ import {
   type ProgMinisterio,
 } from "@/hooks/usePrograma";
 import { usePersonas } from "@/hooks/useDatabase";
+import { useProgTextos } from "@/hooks/useProgTextos";
 import { readHistorial, saveSnapshot, deleteSnapshot, formatSnapTs, type IsoSnapshot } from "@/lib/isoHistorial";
 
 interface Props {
@@ -41,11 +42,16 @@ export default function IsoProgramacionPreview({ open, onOpenChange, ministerio,
   const delAsig = useDeleteAsignacion();
   const upCargo = useUpsertCargo();
 
+  const textos = useProgTextos(ministerio.id);
+
   const [mes, setMes] = useState(() => new Date().toLocaleDateString("es-CO", { month: "long" }).toUpperCase());
-  const [uniformeMap, setUniformeMap] = useState<Record<string, string>>({});
-  const [observacionMap, setObservacionMap] = useState<Record<string, string>>({});
   const [adding, setAdding] = useState<{ eventoId: string; estacion: string } | null>(null);
   const [addValue, setAddValue] = useState("");
+
+  const estacionesTextoSet = useMemo(
+    () => new Set((template.estacionesTexto || []).map((e) => normKey(e))),
+    [template.estacionesTexto]
+  );
 
   const [historial, setHistorial] = useState<IsoSnapshot[]>([]);
   const [confirmAction, setConfirmAction] = useState<ConfirmAction | null>(null);
@@ -157,13 +163,14 @@ export default function IsoProgramacionPreview({ open, onOpenChange, ministerio,
     }
   };
 
-  /** Construye estructura plana de asignaciones para PDF/snapshot. */
+  /** Construye estructura plana de asignaciones (personas) para PDF/snapshot. */
   const buildAsigsPorEv = () => {
     const m = new Map<string, Map<string, string>>();
     proxEventos.forEach((e) => {
       const inner = new Map<string, string>();
       const cells = cellsByEv.get(e.id) || new Map();
       cells.forEach((arr: Cell[], key: string) => {
+        if (estacionesTextoSet.has(key)) return; // los textos van por otro mapa
         inner.set(key, arr.map((x) => x.nombre).join(", "));
       });
       m.set(e.id, inner);
@@ -171,22 +178,48 @@ export default function IsoProgramacionPreview({ open, onOpenChange, ministerio,
     return m;
   };
 
+  /** Construye mapa evento -> Map(estacionKey -> textoLibre) para estaciones tipo texto. */
+  const buildTextoEstacionPorEv = () => {
+    const m = new Map<string, Map<string, string>>();
+    proxEventos.forEach((e) => {
+      const inner = new Map<string, string>();
+      template.estaciones.forEach((est) => {
+        const key = normKey(est);
+        if (!estacionesTextoSet.has(key)) return;
+        inner.set(key, textos.get(e.id, `estacion:${key}`));
+      });
+      m.set(e.id, inner);
+    });
+    return m;
+  };
+
+  const buildUniformeMap = () => new Map(proxEventos.map((e) => [e.id, textos.get(e.id, "uniforme")]));
+  const buildObservacionMap = () => new Map(proxEventos.map((e) => [e.id, textos.get(e.id, "observacion")]));
+
   const buildSnapshot = (etiqueta: string, definitiva = false) => {
     const asigsPorEv = buildAsigsPorEv();
+    const textosEst = buildTextoEstacionPorEv();
     const snap = {
       etiqueta,
       definitiva,
       mes,
       liderNombre: liderEfectivo,
-      eventos: proxEventos.map((e) => ({
-        id: e.id,
-        fecha: e.fecha,
-        titulo: e.titulo,
-        hora: e.hora,
-        asignaciones: Object.fromEntries(asigsPorEv.get(e.id) || new Map()),
-        uniforme: uniformeMap[e.id] || "",
-        observacion: observacionMap[e.id] || "",
-      })),
+      eventos: proxEventos.map((e) => {
+        const asig = Object.fromEntries(asigsPorEv.get(e.id) || new Map());
+        const txt = textosEst.get(e.id) || new Map();
+        txt.forEach((val, key) => {
+          if (val) asig[key] = val;
+        });
+        return {
+          id: e.id,
+          fecha: e.fecha,
+          titulo: e.titulo,
+          hora: e.hora,
+          asignaciones: asig,
+          uniforme: textos.get(e.id, "uniforme"),
+          observacion: textos.get(e.id, "observacion"),
+        };
+      }),
     };
     return snap;
   };
@@ -201,15 +234,11 @@ export default function IsoProgramacionPreview({ open, onOpenChange, ministerio,
 
   const restaurarTextos = (snap: IsoSnapshot) => {
     setMes(snap.mes);
-    const u: Record<string, string> = {};
-    const o: Record<string, string> = {};
     snap.eventos.forEach((e) => {
-      u[e.id] = e.uniforme;
-      o[e.id] = e.observacion;
+      textos.setValor(e.id, "uniforme", e.uniforme || "");
+      textos.setValor(e.id, "observacion", e.observacion || "");
     });
-    setUniformeMap(u);
-    setObservacionMap(o);
-    toast.success("Textos (mes, uniforme, observación) restaurados. Las asignaciones se mantienen como están en la base de datos.");
+    toast.success("Textos restaurados (mes, uniforme, observación). Las asignaciones y textos de estación se mantienen como están en la base de datos.");
   };
 
   const descargarPdfDeSnap = (snap: IsoSnapshot) => {
@@ -234,8 +263,9 @@ export default function IsoProgramacionPreview({ open, onOpenChange, ministerio,
       liderNombre: liderEfectivo,
       eventos: proxEventos.map((e) => ({ id: e.id, fecha: e.fecha, titulo: e.titulo, hora: e.hora })),
       asignacionesPorEvento: asigs,
-      uniformePorEvento: new Map(Object.entries(uniformeMap)),
-      observacionPorEvento: new Map(Object.entries(observacionMap)),
+      uniformePorEvento: buildUniformeMap(),
+      observacionPorEvento: buildObservacionMap(),
+      textoEstacionPorEvento: buildTextoEstacionPorEv(),
     });
   };
 
@@ -420,8 +450,21 @@ export default function IsoProgramacionPreview({ open, onOpenChange, ministerio,
                         </td>
                         {template.estaciones.map((est) => {
                           const key = normKey(est);
+                          const isTexto = estacionesTextoSet.has(key);
                           const arr: Cell[] = cells.get(key) || [];
                           const isAdding = adding?.eventoId === e.id && adding?.estacion === est;
+                          if (isTexto) {
+                            return (
+                              <td key={est} className="border border-black p-1 align-top">
+                                <textarea
+                                  value={textos.get(e.id, `estacion:${key}`)}
+                                  onChange={(ev) => textos.setValor(e.id, `estacion:${key}`, ev.target.value)}
+                                  className="w-full min-h-[42px] text-[11px] p-1 border rounded resize-y bg-background"
+                                  placeholder={`${est}…`}
+                                />
+                              </td>
+                            );
+                          }
                           return (
                             <td key={est} className="border border-black px-1.5 py-1">
                               <div className="flex flex-col gap-1">
@@ -458,16 +501,16 @@ export default function IsoProgramacionPreview({ open, onOpenChange, ministerio,
                         })}
                         <td className="border border-black p-1">
                           <Input
-                            value={uniformeMap[e.id] || ""}
-                            onChange={(ev) => setUniformeMap({ ...uniformeMap, [e.id]: ev.target.value })}
+                            value={textos.get(e.id, "uniforme")}
+                            onChange={(ev) => textos.setValor(e.id, "uniforme", ev.target.value)}
                             className="h-7 text-[11px]"
                             placeholder="Uniforme…"
                           />
                         </td>
                         <td className="border border-black p-1">
                           <Input
-                            value={observacionMap[e.id] || ""}
-                            onChange={(ev) => setObservacionMap({ ...observacionMap, [e.id]: ev.target.value })}
+                            value={textos.get(e.id, "observacion")}
+                            onChange={(ev) => textos.setValor(e.id, "observacion", ev.target.value)}
                             className="h-7 text-[11px]"
                             placeholder="Observación…"
                           />
