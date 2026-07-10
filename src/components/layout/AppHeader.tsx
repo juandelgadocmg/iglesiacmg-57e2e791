@@ -46,6 +46,7 @@ export default function AppHeader({ onMenuClick }: AppHeaderProps) {
   const segments = location.pathname.split("/").filter(Boolean);
   const { user } = useAuth();
   const { activeRole, setActiveRole, allRoles, roleLabel } = useActiveRole();
+  const { data: unreadMsgs = 0 } = useUnreadCount();
   const initials = user?.email?.slice(0, 2).toUpperCase() || "U";
   const hasMultipleRoles = allRoles.length > 1;
 
