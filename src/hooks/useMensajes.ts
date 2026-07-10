@@ -67,10 +67,12 @@ export interface ThreadFilters {
   searchField?: "all" | "subject" | "from" | "body";
   page?: number;
   pageSize?: number;
+  dateFrom?: string | null;
+  dateTo?: string | null;
 }
 
 export function useThreads(filters: ThreadFilters) {
-  const { folder, search, searchField = "all", page = 0, pageSize = 25 } = filters;
+  const { folder, search, searchField = "all", page = 0, pageSize = 25, dateFrom, dateTo } = filters;
   const { user } = useAuth();
   const qc = useQueryClient();
 
