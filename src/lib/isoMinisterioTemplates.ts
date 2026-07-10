@@ -30,6 +30,8 @@ export interface IsoMinisterioTemplate {
   fechasIncluidas?: string[] | null;
   /** Nombre del líder escrito manualmente (opcional). Si está definido, prevalece sobre el líder configurado en el ministerio. */
   liderNombreManual?: string | null;
+  /** Estaciones que se diligencian con texto libre (concepto/descripción), no con una persona de la membresía. */
+  estacionesTexto?: string[];
   /** Texto del bloque "Importante" (puede ser vacío). */
   importante?: string;
   /** Responsabilidades / nota al pie. */
