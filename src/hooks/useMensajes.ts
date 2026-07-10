@@ -94,7 +94,7 @@ export function useThreads(filters: ThreadFilters) {
   }, [user?.id, qc]);
 
   return useQuery({
-    queryKey: ["msg_threads", folder, search, searchField, page, pageSize, user?.id],
+    queryKey: ["msg_threads", folder, search, searchField, page, pageSize, dateFrom, dateTo, user?.id],
     enabled: !!user?.id,
     queryFn: async (): Promise<{ rows: ThreadRow[]; total: number }> => {
       if (folder === "drafts") return { rows: [], total: 0 };
