@@ -400,6 +400,29 @@ export function useUpdateFlag() {
   });
 }
 
+export function useBulkUpdateFlags() {
+  const { user } = useAuth();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ threadIds, patch }: { threadIds: string[]; patch: Partial<{ is_read: boolean; is_important: boolean; is_favorite: boolean; is_archived: boolean; is_deleted: boolean }> }) => {
+      if (!threadIds.length) return;
+      const body: any = { ...patch };
+      if (patch.is_read) body.last_read_at = new Date().toISOString();
+      const { error } = await supabase
+        .from("msg_participants")
+        .update(body)
+        .in("thread_id", threadIds)
+        .eq("user_id", user!.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["msg_threads"] });
+      qc.invalidateQueries({ queryKey: ["msg_unread"] });
+      qc.invalidateQueries({ queryKey: ["msg_thread"] });
+    },
+  });
+}
+
 export function useDrafts() {
   const { user } = useAuth();
   return useQuery({
