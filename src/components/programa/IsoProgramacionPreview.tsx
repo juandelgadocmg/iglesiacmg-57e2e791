@@ -42,11 +42,16 @@ export default function IsoProgramacionPreview({ open, onOpenChange, ministerio,
   const delAsig = useDeleteAsignacion();
   const upCargo = useUpsertCargo();
 
+  const textos = useProgTextos(ministerio.id);
+
   const [mes, setMes] = useState(() => new Date().toLocaleDateString("es-CO", { month: "long" }).toUpperCase());
-  const [uniformeMap, setUniformeMap] = useState<Record<string, string>>({});
-  const [observacionMap, setObservacionMap] = useState<Record<string, string>>({});
   const [adding, setAdding] = useState<{ eventoId: string; estacion: string } | null>(null);
   const [addValue, setAddValue] = useState("");
+
+  const estacionesTextoSet = useMemo(
+    () => new Set((template.estacionesTexto || []).map((e) => normKey(e))),
+    [template.estacionesTexto]
+  );
 
   const [historial, setHistorial] = useState<IsoSnapshot[]>([]);
   const [confirmAction, setConfirmAction] = useState<ConfirmAction | null>(null);
