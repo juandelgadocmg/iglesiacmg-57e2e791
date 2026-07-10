@@ -743,7 +743,7 @@ export function setMsgToastPrefs(prefs: MsgToastPrefs) {
 }
 
 export function useMsgToastPrefs(): [MsgToastPrefs, (p: MsgToastPrefs) => void] {
-  const [prefs, setPrefs] = (require("react") as typeof import("react")).useState<MsgToastPrefs>(getMsgToastPrefs);
+  const [prefs, setPrefs] = useState<MsgToastPrefs>(getMsgToastPrefs);
   useEffect(() => {
     const handler = () => setPrefs(getMsgToastPrefs());
     window.addEventListener(MSG_PREFS_EVT, handler);
