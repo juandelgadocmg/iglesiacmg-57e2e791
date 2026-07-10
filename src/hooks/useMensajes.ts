@@ -696,3 +696,58 @@ export function useReadReceipts(threadId: string | null) {
     },
   });
 }
+
+// Global in-app notifier: shows a toast when a new message arrives in a thread
+// where the current user is a participant (and they are not the sender).
+export function useMessageNotifications() {
+  const { user } = useAuth();
+  const qc = useQueryClient();
+  const startedAt = useRef<number>(Date.now());
+  useEffect(() => {
+    if (!user?.id) return;
+    startedAt.current = Date.now();
+    const ch = supabase
+      .channel("msg-notify-" + user.id)
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "msg_messages" }, async (payload: any) => {
+        try {
+          const m = payload.new;
+          if (!m?.thread_id) return;
+          if (m.sender_id === user.id) return;
+          // Confirm current user is participant (RLS-safe via participants query)
+          const { data: part } = await supabase
+            .from("msg_participants")
+            .select("user_id")
+            .eq("thread_id", m.thread_id)
+            .eq("user_id", user.id)
+            .maybeSingle();
+          if (!part) return;
+          const { data: th } = await supabase
+            .from("msg_threads")
+            .select("subject")
+            .eq("id", m.thread_id)
+            .maybeSingle();
+          let senderName = "Sistema";
+          if (m.sender_id) {
+            const { data: p } = await supabase.from("profiles").select("display_name").eq("user_id", m.sender_id).maybeSingle();
+            senderName = p?.display_name || "Usuario";
+          } else if (m.system_sender_key) {
+            const { data: s } = await supabase.from("msg_system_senders").select("display_name").eq("key", m.system_sender_key).maybeSingle();
+            senderName = s?.display_name || "Sistema";
+          }
+          toast(senderName, {
+            description: `${th?.subject || "(sin asunto)"} — ${String(m.body || "").slice(0, 80)}`,
+            icon: createElement(Mail, { className: "h-4 w-4" }),
+            action: {
+              label: "Ver",
+              onClick: () => { window.location.href = "/mensajes"; },
+            },
+          });
+          qc.invalidateQueries({ queryKey: ["msg_unread"] });
+          qc.invalidateQueries({ queryKey: ["msg_threads"] });
+        } catch {}
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, [user?.id, qc]);
+}
+
