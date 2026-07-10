@@ -135,6 +135,12 @@ export function useThreads(filters: ThreadFilters) {
         q = q.ilike("thread.subject", `%${s}%`);
       }
 
+      // Date range filter on thread last_message_at
+      if (dateFrom) q = q.gte("thread.last_message_at", dateFrom);
+      if (dateTo) q = q.lte("thread.last_message_at", dateTo);
+
+
+
       // Pagination
       const from = page * pageSize;
       const to = from + pageSize - 1;
