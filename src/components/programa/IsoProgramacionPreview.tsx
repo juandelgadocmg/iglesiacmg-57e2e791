@@ -20,6 +20,7 @@ import {
   type ProgMinisterio,
 } from "@/hooks/usePrograma";
 import { usePersonas } from "@/hooks/useDatabase";
+import { useProgTextos } from "@/hooks/useProgTextos";
 import { readHistorial, saveSnapshot, deleteSnapshot, formatSnapTs, type IsoSnapshot } from "@/lib/isoHistorial";
 
 interface Props {
