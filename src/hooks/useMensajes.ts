@@ -434,7 +434,22 @@ export function useUpdateFlag() {
         .eq("user_id", user!.id);
       if (error) throw error;
     },
-    onSuccess: () => {
+    // Optimistically adjust the unread badge so it feels instant even if the
+    // backend takes a moment to confirm or a realtime event races the response.
+    onMutate: async ({ threadId, patch }) => {
+      await qc.cancelQueries({ queryKey: ["msg_unread"] });
+      const prev = qc.getQueryData<number>(["msg_unread", user?.id]) ?? 0;
+      const before = readThreadFlagFromCache(qc, threadId);
+      if (before) {
+        const delta = computeUnreadDelta(before, patch);
+        if (delta !== 0) qc.setQueryData<number>(["msg_unread", user?.id], Math.max(0, prev + delta));
+      }
+      return { prev };
+    },
+    onError: (_e, _vars, ctx) => {
+      if (ctx?.prev !== undefined) qc.setQueryData(["msg_unread", user?.id], ctx.prev);
+    },
+    onSettled: () => {
       qc.invalidateQueries({ queryKey: ["msg_threads"] });
       qc.invalidateQueries({ queryKey: ["msg_unread"] });
       qc.invalidateQueries({ queryKey: ["msg_thread"] });
@@ -464,13 +479,28 @@ export function useBulkUpdateFlags() {
       const skippedIds = threadIds.filter((id) => !updatedSet.has(id));
       return { updatedIds, skippedIds, error: null as string | null };
     },
-    onSuccess: () => {
+    onMutate: async ({ threadIds, patch }) => {
+      await qc.cancelQueries({ queryKey: ["msg_unread"] });
+      const prev = qc.getQueryData<number>(["msg_unread", user?.id]) ?? 0;
+      let delta = 0;
+      for (const id of threadIds) {
+        const before = readThreadFlagFromCache(qc, id);
+        if (before) delta += computeUnreadDelta(before, patch);
+      }
+      if (delta !== 0) qc.setQueryData<number>(["msg_unread", user?.id], Math.max(0, prev + delta));
+      return { prev };
+    },
+    onError: (_e, _vars, ctx) => {
+      if (ctx?.prev !== undefined) qc.setQueryData(["msg_unread", user?.id], ctx.prev);
+    },
+    onSettled: () => {
       qc.invalidateQueries({ queryKey: ["msg_threads"] });
       qc.invalidateQueries({ queryKey: ["msg_unread"] });
       qc.invalidateQueries({ queryKey: ["msg_thread"] });
     },
   });
 }
+
 
 export function useDrafts() {
   const { user } = useAuth();
