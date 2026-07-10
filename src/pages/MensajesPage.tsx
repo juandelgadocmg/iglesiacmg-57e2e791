@@ -52,12 +52,18 @@ export default function MensajesPage() {
   const [folder, setFolder] = useState<Folder>("inbox");
   const [search, setSearch] = useState("");
   const [searchField, setSearchField] = useState<"all" | "subject" | "from" | "body">("all");
+  const [dateFrom, setDateFrom] = useState<string>("");
+  const [dateTo, setDateTo] = useState<string>("");
   const [page, setPage] = useState(0);
   const [selected, setSelected] = useState<string | null>(null);
   const [composerOpen, setComposerOpen] = useState(false);
   const [composerInitial, setComposerInitial] = useState<any>(undefined);
 
-  const { data: threadsResult, isLoading } = useThreads({ folder, search, searchField, page, pageSize: PAGE_SIZE });
+  const { data: threadsResult, isLoading } = useThreads({
+    folder, search, searchField, page, pageSize: PAGE_SIZE,
+    dateFrom: dateFrom ? new Date(dateFrom).toISOString() : null,
+    dateTo: dateTo ? new Date(dateTo + "T23:59:59").toISOString() : null,
+  });
   const threads = threadsResult?.rows || [];
   const total = threadsResult?.total || 0;
   const { data: drafts = [] } = useDrafts();
