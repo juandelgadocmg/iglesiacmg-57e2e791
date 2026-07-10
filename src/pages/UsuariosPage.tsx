@@ -73,6 +73,12 @@ export default function UsuariosPage() {
   const [selectedRole, setSelectedRole] = useState<AppRole | "">("");
   const [editingProfile, setEditingProfile] = useState<any | null>(null);
 
+  const profileByUserId = useMemo(() => {
+    const map = new Map<string, any>();
+    (profiles || []).forEach((p: any) => map.set(p.user_id, p));
+    return map;
+  }, [profiles]);
+
   const handleSuccess = () => {
     queryClient.invalidateQueries({ queryKey: ["profiles"] });
     queryClient.invalidateQueries({ queryKey: ["user_roles"] });
@@ -149,12 +155,6 @@ export default function UsuariosPage() {
   const semIssues = semStudents.filter((r) => r.estado !== "ok");
   const semSinPersona = semStudents.filter((r) => r.estado === "sin_persona").length;
   const semSinMaterias = semStudents.filter((r) => r.estado === "sin_materias").length;
-
-  const profileByUserId = useMemo(() => {
-    const map = new Map<string, any>();
-    (profiles || []).forEach((p: any) => map.set(p.user_id, p));
-    return map;
-  }, [profiles]);
 
   const handleReindex = async () => {
     try {
