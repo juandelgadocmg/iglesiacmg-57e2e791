@@ -720,15 +720,59 @@ export function useReadReceipts(threadId: string | null) {
   });
 }
 
+// In-app notification preferences (localStorage per browser/user)
+export type MsgToastPrefs = { enabled: boolean; onlyInbox: boolean };
+const MSG_PREFS_KEY = "cmg.msg.toastPrefs.v1";
+const MSG_PREFS_EVT = "cmg:msg:toastPrefs:changed";
+const DEFAULT_PREFS: MsgToastPrefs = { enabled: true, onlyInbox: false };
+
+export function getMsgToastPrefs(): MsgToastPrefs {
+  try {
+    const raw = localStorage.getItem(MSG_PREFS_KEY);
+    if (!raw) return DEFAULT_PREFS;
+    const p = JSON.parse(raw);
+    return { enabled: p.enabled !== false, onlyInbox: !!p.onlyInbox };
+  } catch { return DEFAULT_PREFS; }
+}
+
+export function setMsgToastPrefs(prefs: MsgToastPrefs) {
+  try {
+    localStorage.setItem(MSG_PREFS_KEY, JSON.stringify(prefs));
+    window.dispatchEvent(new CustomEvent(MSG_PREFS_EVT));
+  } catch {}
+}
+
+export function useMsgToastPrefs(): [MsgToastPrefs, (p: MsgToastPrefs) => void] {
+  const [prefs, setPrefs] = (require("react") as typeof import("react")).useState<MsgToastPrefs>(getMsgToastPrefs);
+  useEffect(() => {
+    const handler = () => setPrefs(getMsgToastPrefs());
+    window.addEventListener(MSG_PREFS_EVT, handler);
+    window.addEventListener("storage", handler);
+    return () => {
+      window.removeEventListener(MSG_PREFS_EVT, handler);
+      window.removeEventListener("storage", handler);
+    };
+  }, []);
+  return [prefs, (p) => { setMsgToastPrefs(p); setPrefs(p); }];
+}
+
 // Global in-app notifier: shows a toast when a new message arrives in a thread
 // where the current user is a participant (and they are not the sender).
 export function useMessageNotifications() {
   const { user } = useAuth();
   const qc = useQueryClient();
-  const startedAt = useRef<number>(Date.now());
+  const prefsRef = useRef<MsgToastPrefs>(getMsgToastPrefs());
+  useEffect(() => {
+    const refresh = () => { prefsRef.current = getMsgToastPrefs(); };
+    window.addEventListener(MSG_PREFS_EVT, refresh);
+    window.addEventListener("storage", refresh);
+    return () => {
+      window.removeEventListener(MSG_PREFS_EVT, refresh);
+      window.removeEventListener("storage", refresh);
+    };
+  }, []);
   useEffect(() => {
     if (!user?.id) return;
-    startedAt.current = Date.now();
     const ch = supabase
       .channel("msg-notify-" + user.id)
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "msg_messages" }, async (payload: any) => {
@@ -736,14 +780,26 @@ export function useMessageNotifications() {
           const m = payload.new;
           if (!m?.thread_id) return;
           if (m.sender_id === user.id) return;
-          // Confirm current user is participant (RLS-safe via participants query)
+          // Always invalidate counters, even if toast is disabled
+          qc.invalidateQueries({ queryKey: ["msg_unread"] });
+          qc.invalidateQueries({ queryKey: ["msg_threads"] });
+
+          const prefs = prefsRef.current;
+          if (!prefs.enabled) return;
+
+          // Confirm current user is participant (RLS-safe)
           const { data: part } = await supabase
             .from("msg_participants")
-            .select("user_id")
+            .select("role, is_archived, is_deleted")
             .eq("thread_id", m.thread_id)
             .eq("user_id", user.id)
             .maybeSingle();
           if (!part) return;
+          if (prefs.onlyInbox) {
+            // "Inbox" = user is recipient (role != 'from') and not archived/deleted
+            if ((part as any).role === "from" || (part as any).is_archived || (part as any).is_deleted) return;
+          }
+
           const { data: th } = await supabase
             .from("msg_threads")
             .select("subject")
@@ -765,12 +821,11 @@ export function useMessageNotifications() {
               onClick: () => { window.location.href = "/mensajes"; },
             },
           });
-          qc.invalidateQueries({ queryKey: ["msg_unread"] });
-          qc.invalidateQueries({ queryKey: ["msg_threads"] });
         } catch {}
       })
       .subscribe();
     return () => { supabase.removeChannel(ch); };
   }, [user?.id, qc]);
 }
+
 
