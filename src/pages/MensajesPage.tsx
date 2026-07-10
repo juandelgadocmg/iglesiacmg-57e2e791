@@ -131,20 +131,82 @@ export default function MensajesPage() {
     });
   };
 
-  const bulkApply = async (patch: Parameters<typeof bulkFlags.mutate>[0]["patch"], label: string, removeFromList = false) => {
-    const ids = Array.from(checked);
-    if (!ids.length) return;
+  type BulkPatch = Parameters<typeof bulkFlags.mutate>[0]["patch"];
+  const [confirmState, setConfirmState] = useState<null | { title: string; description: string; onConfirm: () => void }>(null);
+
+  const doBulk = async (ids: string[], patch: BulkPatch, label: string, removeFromList: boolean) => {
+    // Snapshot rows for undo (in case removed from view)
+    const snapshot = accumulated.filter((t) => ids.includes(t.id));
     try {
-      await bulkFlags.mutateAsync({ threadIds: ids, patch });
-      toast.success(`${ids.length} hilo(s) — ${label}`);
+      const res: any = await bulkFlags.mutateAsync({ threadIds: ids, patch });
+      const updated: string[] = res?.updatedIds || [];
+      const skipped: string[] = res?.skippedIds || [];
+      const updatedSet = new Set(updated);
       if (removeFromList) {
-        setAccumulated((prev) => prev.filter((t) => !checked.has(t.id)));
+        setAccumulated((prev) => prev.filter((t) => !updatedSet.has(t.id)));
       } else {
-        // Merge patch into local rows so UI reflects immediately
-        setAccumulated((prev) => prev.map((t) => checked.has(t.id) ? { ...t, ...patch } as ThreadRow : t));
+        setAccumulated((prev) => prev.map((t) => (updatedSet.has(t.id) ? ({ ...t, ...patch } as ThreadRow) : t)));
       }
       setChecked(new Set());
-    } catch (e: any) { toast.error(e.message || "Error"); }
+
+      const summary = skipped.length
+        ? `${updated.length} ${label} · ${skipped.length} sin cambios`
+        : `${updated.length} ${label}`;
+
+      if (updated.length > 0) {
+        // Build inverse patch for undo
+        const invert: BulkPatch = {};
+        (Object.keys(patch) as (keyof BulkPatch)[]).forEach((k) => {
+          if (k === "is_read" || k === "is_important" || k === "is_favorite" || k === "is_archived" || k === "is_deleted") {
+            (invert as any)[k] = !(patch as any)[k];
+          }
+        });
+        toast.success(summary, {
+          duration: 6000,
+          action: {
+            label: "Deshacer",
+            onClick: async () => {
+              try {
+                const r: any = await bulkFlags.mutateAsync({ threadIds: updated, patch: invert });
+                const restored: string[] = r?.updatedIds || [];
+                const rSet = new Set(restored);
+                if (removeFromList) {
+                  setAccumulated((prev) => {
+                    const map = new Map(prev.map((t) => [t.id, t]));
+                    for (const s of snapshot) if (rSet.has(s.id) && !map.has(s.id)) map.set(s.id, s);
+                    return Array.from(map.values());
+                  });
+                } else {
+                  setAccumulated((prev) => prev.map((t) => (rSet.has(t.id) ? ({ ...t, ...invert } as ThreadRow) : t)));
+                }
+                toast.success(`Acción deshecha (${restored.length})`);
+              } catch (e: any) {
+                toast.error(e.message || "No se pudo deshacer");
+              }
+            },
+          },
+        });
+      } else {
+        toast.error(`No se aplicaron cambios${skipped.length ? ` (${skipped.length} sin permisos o ya en ese estado)` : ""}`);
+      }
+      if (res?.error) toast.error(res.error);
+    } catch (e: any) {
+      toast.error(e.message || "Error");
+    }
+  };
+
+  const bulkApply = (patch: BulkPatch, label: string, removeFromList = false, confirm?: { title: string; description: string }) => {
+    const ids = Array.from(checked);
+    if (!ids.length) return;
+    if (confirm) {
+      setConfirmState({
+        title: confirm.title,
+        description: confirm.description.replace("{n}", String(ids.length)),
+        onConfirm: () => doBulk(ids, patch, label, removeFromList),
+      });
+      return;
+    }
+    void doBulk(ids, patch, label, removeFromList);
   };
 
   const sidebar = (
