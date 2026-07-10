@@ -1,0 +1,2 @@
+DROP POLICY IF EXISTS threads_insert_self ON public.msg_threads;
+CREATE POLICY threads_insert_self ON public.msg_threads FOR INSERT TO authenticated WITH CHECK (auth.uid() IS NOT NULL AND created_by = auth.uid());
