@@ -236,6 +236,12 @@ export function useUnreadCount() {
   return useQuery({
     queryKey: ["msg_unread", user?.id],
     enabled: !!user?.id,
+    // Keep the badge fresh across tabs / realtime bursts / delayed backends.
+    staleTime: 0,
+    refetchOnWindowFocus: true,
+    refetchOnReconnect: true,
+    refetchInterval: 60_000,
+    refetchIntervalInBackground: false,
     queryFn: async () => {
       const { count } = await supabase
         .from("msg_participants")
@@ -248,6 +254,36 @@ export function useUnreadCount() {
     },
   });
 }
+
+// Look up a thread's current `is_read` for the active user from any cached
+// msg_threads page. Returns null if we don't know (skip optimistic delta then).
+function readThreadFlagFromCache(
+  qc: ReturnType<typeof useQueryClient>,
+  threadId: string,
+): { is_read: boolean; is_archived: boolean; is_deleted: boolean } | null {
+  const caches = qc.getQueriesData<{ rows: ThreadRow[]; total: number }>({ queryKey: ["msg_threads"] });
+  for (const [, data] of caches) {
+    const row = data?.rows?.find((r) => r.id === threadId);
+    if (row) return { is_read: !!row.is_read, is_archived: !!row.is_archived, is_deleted: !!row.is_deleted };
+  }
+  return null;
+}
+
+function computeUnreadDelta(
+  before: { is_read: boolean; is_archived: boolean; is_deleted: boolean },
+  patch: Partial<{ is_read: boolean; is_archived: boolean; is_deleted: boolean }>,
+): number {
+  const after = {
+    is_read: patch.is_read ?? before.is_read,
+    is_archived: patch.is_archived ?? before.is_archived,
+    is_deleted: patch.is_deleted ?? before.is_deleted,
+  };
+  const wasUnread = !before.is_read && !before.is_archived && !before.is_deleted;
+  const isUnread = !after.is_read && !after.is_archived && !after.is_deleted;
+  if (wasUnread === isUnread) return 0;
+  return isUnread ? 1 : -1;
+}
+
 
 export function useThread(threadId: string | null) {
   return useQuery({
