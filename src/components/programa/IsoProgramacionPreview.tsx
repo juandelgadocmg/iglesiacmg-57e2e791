@@ -450,8 +450,21 @@ export default function IsoProgramacionPreview({ open, onOpenChange, ministerio,
                         </td>
                         {template.estaciones.map((est) => {
                           const key = normKey(est);
+                          const isTexto = estacionesTextoSet.has(key);
                           const arr: Cell[] = cells.get(key) || [];
                           const isAdding = adding?.eventoId === e.id && adding?.estacion === est;
+                          if (isTexto) {
+                            return (
+                              <td key={est} className="border border-black p-1 align-top">
+                                <textarea
+                                  value={textos.get(e.id, `estacion:${key}`)}
+                                  onChange={(ev) => textos.setValor(e.id, `estacion:${key}`, ev.target.value)}
+                                  className="w-full min-h-[42px] text-[11px] p-1 border rounded resize-y bg-background"
+                                  placeholder={`${est}…`}
+                                />
+                              </td>
+                            );
+                          }
                           return (
                             <td key={est} className="border border-black px-1.5 py-1">
                               <div className="flex flex-col gap-1">
@@ -488,16 +501,16 @@ export default function IsoProgramacionPreview({ open, onOpenChange, ministerio,
                         })}
                         <td className="border border-black p-1">
                           <Input
-                            value={uniformeMap[e.id] || ""}
-                            onChange={(ev) => setUniformeMap({ ...uniformeMap, [e.id]: ev.target.value })}
+                            value={textos.get(e.id, "uniforme")}
+                            onChange={(ev) => textos.setValor(e.id, "uniforme", ev.target.value)}
                             className="h-7 text-[11px]"
                             placeholder="Uniforme…"
                           />
                         </td>
                         <td className="border border-black p-1">
                           <Input
-                            value={observacionMap[e.id] || ""}
-                            onChange={(ev) => setObservacionMap({ ...observacionMap, [e.id]: ev.target.value })}
+                            value={textos.get(e.id, "observacion")}
+                            onChange={(ev) => textos.setValor(e.id, "observacion", ev.target.value)}
                             className="h-7 text-[11px]"
                             placeholder="Observación…"
                           />
