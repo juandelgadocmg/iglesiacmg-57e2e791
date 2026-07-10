@@ -81,20 +81,26 @@ export function useThreads(filters: ThreadFilters) {
 
   useEffect(() => {
     if (!user?.id) return;
-    const ch = supabase
-      .channel("msg-rt-" + user.id)
-      .on("postgres_changes", { event: "*", schema: "public", table: "msg_messages" }, () => {
+    // Debounce realtime invalidations so bursts of postgres_changes
+    // don't retrigger the unread query dozens of times per second.
+    let t: any = null;
+    const scheduleInvalidate = () => {
+      if (t) return;
+      t = setTimeout(() => {
+        t = null;
         qc.invalidateQueries({ queryKey: ["msg_threads"] });
         qc.invalidateQueries({ queryKey: ["msg_thread"] });
         qc.invalidateQueries({ queryKey: ["msg_unread"] });
-      })
-      .on("postgres_changes", { event: "*", schema: "public", table: "msg_participants", filter: `user_id=eq.${user.id}` }, () => {
-        qc.invalidateQueries({ queryKey: ["msg_threads"] });
-        qc.invalidateQueries({ queryKey: ["msg_unread"] });
-      })
+      }, 250);
+    };
+    const ch = supabase
+      .channel("msg-rt-" + user.id)
+      .on("postgres_changes", { event: "*", schema: "public", table: "msg_messages" }, scheduleInvalidate)
+      .on("postgres_changes", { event: "*", schema: "public", table: "msg_participants", filter: `user_id=eq.${user.id}` }, scheduleInvalidate)
       .subscribe();
-    return () => { supabase.removeChannel(ch); };
+    return () => { if (t) clearTimeout(t); supabase.removeChannel(ch); };
   }, [user?.id, qc]);
+
 
   return useQuery({
     queryKey: ["msg_threads", folder, search, searchField, page, pageSize, dateFrom, dateTo, user?.id],
