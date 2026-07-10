@@ -325,7 +325,7 @@ export function useSendMessage() {
         threadId = t.id;
         const rows = [
           { thread_id: threadId, user_id: user.id, role: "from", is_read: true, last_read_at: new Date().toISOString() },
-          ...recipients.map((uid) => ({ thread_id: threadId!, user_id: uid, role: "to" })),
+          ...recipients.map((uid) => ({ thread_id: threadId!, user_id: uid, role: "to", is_read: false, last_read_at: null })),
         ];
         const { error: pe } = await supabase.from("msg_participants").insert(rows);
         if (pe) throw pe;
