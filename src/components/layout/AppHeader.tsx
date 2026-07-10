@@ -1,5 +1,5 @@
-import { Search, ChevronRight, Menu, ChevronDown, Check } from "lucide-react";
-import { useLocation } from "react-router-dom";
+import { Search, ChevronRight, Menu, ChevronDown, Check, Mail } from "lucide-react";
+import { useLocation, Link } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,7 @@ import {
 import { useAuth } from "@/hooks/useAuth";
 import { useActiveRole, ROLE_LABELS } from "@/hooks/useActiveRole";
 import NotificationDropdown from "@/components/layout/NotificationDropdown";
+import { useUnreadCount } from "@/hooks/useMensajes";
 
 const breadcrumbMap: Record<string, string> = {
   dashboard: "Dashboard", personas: "Personas", grupos: "Grupos",
