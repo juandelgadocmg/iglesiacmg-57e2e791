@@ -66,10 +66,19 @@ export default function MiAulaSection() {
 
   if (!persona) {
     return (
-      <Card><CardContent className="p-6 text-center space-y-2">
-        <AlertCircle className="h-8 w-8 mx-auto text-muted-foreground" />
-        <p className="font-medium">No encontramos tu ficha de estudiante</p>
-        <p className="text-sm text-muted-foreground">Tu correo {user?.email} no está vinculado a una persona. Solicita a tu administrador que lo registre.</p>
+      <Card><CardContent className="p-6 text-center space-y-4">
+        <AlertCircle className="h-9 w-9 mx-auto text-muted-foreground" />
+        <div className="space-y-1">
+          <p className="font-semibold">Tu usuario aún no está vinculado a una persona de Seminario</p>
+          <p className="text-sm text-muted-foreground">
+            Por eso tus materias no se pueden cargar todavía para la cuenta {user?.email || "actual"}.
+          </p>
+        </div>
+        <div className="rounded-md border bg-muted/40 p-3 text-left text-xs text-muted-foreground space-y-1">
+          <p className="font-medium text-foreground">Instrucción para el administrador</p>
+          <p>Ir a <strong>Usuarios → Editar usuario → Seminario → Persona vinculada</strong> y seleccionar tu ficha correcta.</p>
+          <p>Después puede ejecutar <strong>Sincronizar vínculos</strong> en el módulo de Seminario para reindexar tus inscripciones.</p>
+        </div>
       </CardContent></Card>
     );
   }

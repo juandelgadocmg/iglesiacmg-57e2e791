@@ -429,6 +429,37 @@ export function usePersonasLite() {
   });
 }
 
+// ─────────────────────────── VINCULACIÓN USUARIO ↔ PERSONA ───────────────────────────
+export function useSeminarioVinculacionStatus() {
+  return useQuery({
+    queryKey: ["sem-vinculacion-status"],
+    queryFn: async () => {
+      const { data, error } = await sb.rpc("sem_usuario_vinculacion_status");
+      if (error) throw error;
+      return data || [];
+    },
+  });
+}
+
+export function useReindexSeminarioVinculos() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async () => {
+      const { data, error } = await sb.rpc("sem_reindex_vinculos");
+      if (error) throw error;
+      return Array.isArray(data) ? data[0] : data;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["profiles"] });
+      qc.invalidateQueries({ queryKey: ["sem-vinculacion-status"] });
+      qc.invalidateQueries({ queryKey: ["sem-inscripciones"] });
+      qc.invalidateQueries({ queryKey: ["sem-insc-materias"] });
+      qc.invalidateQueries({ queryKey: ["mi-persona"] });
+      qc.invalidateQueries({ queryKey: ["mis-ofertas"] });
+    },
+  });
+}
+
 // ════════════════════════════════════════════════════════════════════
 // ─────────────── FASE 2: Docentes, Evaluaciones, Calificaciones,
 //                 Asistencia, Aula Virtual, Biblioteca, Reportes,
