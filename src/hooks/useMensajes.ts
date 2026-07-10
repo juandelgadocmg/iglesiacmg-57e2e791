@@ -405,15 +405,22 @@ export function useBulkUpdateFlags() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ threadIds, patch }: { threadIds: string[]; patch: Partial<{ is_read: boolean; is_important: boolean; is_favorite: boolean; is_archived: boolean; is_deleted: boolean }> }) => {
-      if (!threadIds.length) return;
+      if (!threadIds.length) return { updatedIds: [] as string[], skippedIds: [] as string[], error: null as string | null };
       const body: any = { ...patch };
       if (patch.is_read) body.last_read_at = new Date().toISOString();
-      const { error } = await supabase
+      // RLS on msg_participants only allows updating rows where user_id = auth.uid();
+      // the .eq(user_id) is defense-in-depth so a stale threadIds list can never affect other participants.
+      const { data, error } = await supabase
         .from("msg_participants")
         .update(body)
         .in("thread_id", threadIds)
-        .eq("user_id", user!.id);
-      if (error) throw error;
+        .eq("user_id", user!.id)
+        .select("thread_id");
+      if (error) return { updatedIds: [] as string[], skippedIds: threadIds, error: error.message };
+      const updatedIds = (data || []).map((r: any) => r.thread_id as string);
+      const updatedSet = new Set(updatedIds);
+      const skippedIds = threadIds.filter((id) => !updatedSet.has(id));
+      return { updatedIds, skippedIds, error: null as string | null };
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["msg_threads"] });
