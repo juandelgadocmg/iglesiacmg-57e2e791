@@ -2583,6 +2583,54 @@ export type Database = {
           },
         ]
       }
+      prog_evento_textos: {
+        Row: {
+          campo: string
+          created_at: string
+          evento_id: string
+          id: string
+          ministerio_id: string
+          updated_at: string
+          updated_by: string | null
+          valor: string
+        }
+        Insert: {
+          campo: string
+          created_at?: string
+          evento_id: string
+          id?: string
+          ministerio_id: string
+          updated_at?: string
+          updated_by?: string | null
+          valor?: string
+        }
+        Update: {
+          campo?: string
+          created_at?: string
+          evento_id?: string
+          id?: string
+          ministerio_id?: string
+          updated_at?: string
+          updated_by?: string | null
+          valor?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "prog_evento_textos_evento_id_fkey"
+            columns: ["evento_id"]
+            isOneToOne: false
+            referencedRelation: "prog_eventos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "prog_evento_textos_ministerio_id_fkey"
+            columns: ["ministerio_id"]
+            isOneToOne: false
+            referencedRelation: "prog_ministerios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       prog_eventos: {
         Row: {
           asignacion_texto: string | null
