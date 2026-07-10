@@ -153,6 +153,15 @@ export default function MensajesPage() {
             </SelectContent>
           </Select>
         </div>
+        <div className="flex items-center gap-2 text-xs">
+          <label className="text-muted-foreground shrink-0">Desde</label>
+          <Input type="date" value={dateFrom} onChange={(e) => { setDateFrom(e.target.value); setPage(0); }} className="h-8 text-xs" />
+          <label className="text-muted-foreground shrink-0">Hasta</label>
+          <Input type="date" value={dateTo} onChange={(e) => { setDateTo(e.target.value); setPage(0); }} className="h-8 text-xs" />
+          {(dateFrom || dateTo) && (
+            <Button size="sm" variant="ghost" className="h-8" onClick={() => { setDateFrom(""); setDateTo(""); setPage(0); }}>Limpiar</Button>
+          )}
+        </div>
         {folder !== "drafts" && total > 0 && (
           <div className="flex items-center justify-between text-xs text-muted-foreground">
             <span>{page * PAGE_SIZE + 1}–{Math.min((page + 1) * PAGE_SIZE, total)} de {total}</span>
