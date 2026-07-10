@@ -506,6 +506,20 @@ export default function MensajesPage() {
         )}
       </div>
       <MensajeComposer open={composerOpen} onOpenChange={setComposerOpen} initial={composerInitial} />
+      <AlertDialog open={!!confirmState} onOpenChange={(o) => !o && setConfirmState(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{confirmState?.title}</AlertDialogTitle>
+            <AlertDialogDescription>{confirmState?.description}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={() => { const fn = confirmState?.onConfirm; setConfirmState(null); fn?.(); }}>
+              Confirmar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
