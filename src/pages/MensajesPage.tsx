@@ -269,21 +269,27 @@ export default function MensajesPage() {
         <Mail className="h-3.5 w-3.5 mr-1" /> No leído
       </Button>
       {folder !== "archived" && (
-        <Button size="sm" variant="ghost" onClick={() => bulkApply({ is_archived: true }, "archivados", true)}>
+        <Button size="sm" variant="ghost" onClick={() => bulkApply({ is_archived: true }, "archivado(s)", true, {
+          title: "¿Archivar seleccionados?",
+          description: "Se archivarán {n} hilo(s). Podrás deshacer esta acción o restaurarlos desde Archivados.",
+        })}>
           <Archive className="h-3.5 w-3.5 mr-1" /> Archivar
         </Button>
       )}
       {folder === "archived" && (
-        <Button size="sm" variant="ghost" onClick={() => bulkApply({ is_archived: false }, "restaurados", true)}>
+        <Button size="sm" variant="ghost" onClick={() => bulkApply({ is_archived: false }, "restaurado(s)", true)}>
           <Inbox className="h-3.5 w-3.5 mr-1" /> Restaurar
         </Button>
       )}
       {folder !== "deleted" ? (
-        <Button size="sm" variant="ghost" className="text-destructive hover:text-destructive" onClick={() => bulkApply({ is_deleted: true }, "eliminados", true)}>
+        <Button size="sm" variant="ghost" className="text-destructive hover:text-destructive" onClick={() => bulkApply({ is_deleted: true }, "eliminado(s)", true, {
+          title: "¿Enviar a Eliminados?",
+          description: "Se moverán {n} hilo(s) a la carpeta Eliminados. Podrás deshacer o restaurarlos desde ahí.",
+        })}>
           <Trash2 className="h-3.5 w-3.5 mr-1" /> Eliminar
         </Button>
       ) : (
-        <Button size="sm" variant="ghost" onClick={() => bulkApply({ is_deleted: false }, "restaurados", true)}>
+        <Button size="sm" variant="ghost" onClick={() => bulkApply({ is_deleted: false }, "restaurado(s)", true)}>
           <Inbox className="h-3.5 w-3.5 mr-1" /> Restaurar
         </Button>
       )}
