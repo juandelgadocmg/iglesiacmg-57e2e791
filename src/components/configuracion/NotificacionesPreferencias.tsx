@@ -11,6 +11,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { CheckCircle2, XCircle, Send } from "lucide-react";
+import MensajesToastPrefsCard from "@/components/configuracion/MensajesToastPrefsCard";
 
 const ROLES = ["admin", "super_admin", "pastor", "lider_red", "maestro", "tesoreria", "seminario_admin", "seminario_docente"];
 
