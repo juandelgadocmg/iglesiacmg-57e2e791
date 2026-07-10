@@ -75,6 +75,15 @@ export default function AppHeader({ onMenuClick }: AppHeaderProps) {
           <Input placeholder="Buscar..." className="pl-9 w-64 h-9 bg-muted/50 border-0 text-sm" />
         </div>
 
+        <Link to="/mensajes" className="relative p-2 rounded-md hover:bg-muted transition-colors" title="Mensajes">
+          <Mail className="h-[18px] w-[18px] text-muted-foreground" />
+          {unreadMsgs > 0 && (
+            <Badge className="absolute -top-0.5 -right-0.5 h-4 min-w-4 px-1 flex items-center justify-center text-[10px] bg-primary text-primary-foreground border-0">
+              {unreadMsgs > 9 ? "9+" : unreadMsgs}
+            </Badge>
+          )}
+        </Link>
+
         <NotificationDropdown />
 
         {/* User + role switcher */}
