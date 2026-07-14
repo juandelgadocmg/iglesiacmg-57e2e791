@@ -218,10 +218,18 @@ export async function exportIsoMinisterioPdf(params: {
     body.push(["Sin eventos programados", ...template.estaciones.map(() => ""), "", ""]);
   }
 
+  // Anchos fijos: FECHA fija + resto repartido en partes iguales entre las demás columnas
+  const numColsTotal = 1 + template.estaciones.length + 2;
+  const fechaColW = 38;
+  const restColW = (contentW - fechaColW) / (numColsTotal - 1);
+  const fixedColumnStyles: Record<number, { cellWidth: number }> = { 0: { cellWidth: fechaColW } };
+  for (let i = 1; i < numColsTotal; i++) fixedColumnStyles[i] = { cellWidth: restColW };
+
   autoTable(doc, {
     startY: y,
     head,
     body,
+    tableWidth: contentW,
     styles: {
       font: FONT,
       fontSize: 8,
@@ -233,7 +241,7 @@ export async function exportIsoMinisterioPdf(params: {
       overflow: "linebreak",
     },
     headStyles: { fillColor: [220, 220, 220], textColor: 0, fontStyle: "bold", halign: "left" },
-    columnStyles: { 0: { cellWidth: 38 } },
+    columnStyles: fixedColumnStyles,
     margin: {
       left: margin,
       right: margin,
