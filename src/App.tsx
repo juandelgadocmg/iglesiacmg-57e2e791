@@ -29,6 +29,7 @@ import ResetPasswordPage from "@/pages/ResetPasswordPage";
 import CheckInPage from "@/pages/CheckInPage";
 import VerificarAcademicoPage from "@/pages/VerificarAcademicoPage";
 import OAuthConsentPage from "@/pages/OAuthConsentPage";
+import SeguridadPage from "@/pages/SeguridadPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -64,6 +65,7 @@ const App = () => (
               <Route path="/usuarios" element={<RoleGuard><UsuariosPage /></RoleGuard>} />
               <Route path="/mensajes" element={<MensajesPage />} />
               <Route path="/configuracion" element={<RoleGuard><ConfiguracionPage /></RoleGuard>} />
+              <Route path="/seguridad" element={<RoleGuard><SeguridadPage /></RoleGuard>} />
               <Route path="/chat" element={<ChatPage />} />
               <Route path="/verificar-academico/:id" element={<VerificarAcademicoPage />} />
             </Route>

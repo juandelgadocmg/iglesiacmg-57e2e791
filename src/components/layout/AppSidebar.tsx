@@ -17,7 +17,7 @@ import {
   LayoutDashboard, Users, UsersRound, Church,
   DollarSign, CalendarDays, GraduationCap, BookMarked,
   Award, BarChart3, Settings, UserCog, ChevronLeft, ChevronRight,
-  LogOut, HandHeart, MessageCircle, Mail
+  LogOut, HandHeart, MessageCircle, Mail, ShieldCheck
 } from "lucide-react";
 
 const menuItems = [
@@ -35,6 +35,7 @@ const menuItems = [
   { label: "Reportes", icon: BarChart3, path: "/reportes" },
   { label: "Usuarios", icon: UserCog, path: "/usuarios" },
   { label: "Configuración", icon: Settings, path: "/configuracion" },
+  { label: "Seguridad", icon: ShieldCheck, path: "/seguridad" },
   { label: "Chat IA", icon: MessageCircle, path: "/chat" },
 ];
 
