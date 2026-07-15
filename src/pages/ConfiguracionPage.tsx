@@ -118,11 +118,20 @@ export default function ConfiguracionPage() {
   };
 
   const handleSave = async () => {
+    if (form.discipulando_url && !isValidUrl(form.discipulando_url)) {
+      toast.error("La URL de Discipulando Naciones no es válida");
+      return;
+    }
+    if (form.discipulando_logo_url && !isValidUrl(form.discipulando_logo_url)) {
+      toast.error("La URL del logo no es válida");
+      return;
+    }
     try {
       // Convertir campos numéricos
       const payload: Record<string, any> = { ...form };
       payload.tesoreria_cdp_tolerancia_pct = Number(form.tesoreria_cdp_tolerancia_pct) || 0;
       payload.tesoreria_cdp_tolerancia_abs = Number(form.tesoreria_cdp_tolerancia_abs) || 0;
+      payload.tesoreria_cdp_dias_mora = parseInt(form.tesoreria_cdp_dias_mora) || 7;
       payload.tesoreria_cdp_dias_mora = parseInt(form.tesoreria_cdp_dias_mora) || 7;
       await updateConfig.mutateAsync(payload);
       toast.success("Configuración guardada correctamente");
