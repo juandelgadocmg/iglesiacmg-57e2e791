@@ -142,6 +142,18 @@ export default function ConfiguracionPage() {
                   <Input value={form.sitio_web || ""} onChange={e => set("sitio_web", e.target.value)} placeholder="https://www.iglesia.com" />
                 </div>
                 <div className="space-y-2 sm:col-span-2">
+                  <Label>URL de Discipulando Naciones (logo del encabezado)</Label>
+                  <Input
+                    type="url"
+                    value={form.discipulando_url || ""}
+                    onChange={e => set("discipulando_url", e.target.value)}
+                    placeholder="https://discipulandonaciones.lovable.app"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Enlace al que dirige el logo de Discipulando Naciones ubicado en el encabezado, junto al ícono de mensajes.
+                  </p>
+                </div>
+                <div className="space-y-2 sm:col-span-2">
                   <Label>Dirección</Label>
                   <Input value={form.direccion || ""} onChange={e => set("direccion", e.target.value)} placeholder="Dirección completa" />
                 </div>
