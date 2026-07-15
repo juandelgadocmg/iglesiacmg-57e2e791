@@ -1,4 +1,5 @@
-import { Search, ChevronRight, Menu, ChevronDown, Check, Mail } from "lucide-react";
+import { useState } from "react";
+import { Search, ChevronRight, Menu, ChevronDown, Check, Mail, BookOpenText } from "lucide-react";
 import { useLocation, Link } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -8,11 +9,15 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
   DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useAuth } from "@/hooks/useAuth";
 import { useActiveRole, ROLE_LABELS } from "@/hooks/useActiveRole";
 import NotificationDropdown from "@/components/layout/NotificationDropdown";
 import { useUnreadCount } from "@/hooks/useMensajes";
+import { useConfiguracion } from "@/hooks/useConfiguracion";
 import discipulandoLogoAsset from "@/assets/discipulando-naciones-logo.png.asset.json";
+
+const DEFAULT_DISCIPULANDO_URL = "https://discipulandonaciones.lovable.app";
 
 const breadcrumbMap: Record<string, string> = {
   dashboard: "Dashboard", personas: "Personas", grupos: "Grupos",
@@ -48,8 +53,12 @@ export default function AppHeader({ onMenuClick }: AppHeaderProps) {
   const { user } = useAuth();
   const { activeRole, setActiveRole, allRoles, roleLabel } = useActiveRole();
   const { data: unreadMsgs = 0 } = useUnreadCount();
+  const { data: config } = useConfiguracion();
+  const [logoFailed, setLogoFailed] = useState(false);
   const initials = user?.email?.slice(0, 2).toUpperCase() || "U";
   const hasMultipleRoles = allRoles.length > 1;
+  const discipulandoUrl =
+    (config as any)?.discipulando_url?.trim() || DEFAULT_DISCIPULANDO_URL;
 
   return (
     <header className="h-14 md:h-16 border-b bg-card flex items-center justify-between px-3 md:px-6 sticky top-0 z-20">
@@ -76,22 +85,37 @@ export default function AppHeader({ onMenuClick }: AppHeaderProps) {
           <Input placeholder="Buscar..." className="pl-9 w-64 h-9 bg-muted/50 border-0 text-sm" />
         </div>
 
-        <a
-          href="https://discipulandonaciones.lovable.app"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="p-1 rounded-md hover:bg-muted transition-colors flex items-center"
-          title="Discipulando Naciones"
-        >
-          <img
-            src={discipulandoLogoAsset.url}
-            alt="Discipulando Naciones"
-            width={110}
-            height={32}
-            loading="lazy"
-            className="h-8 w-auto object-contain"
-          />
-        </a>
+        <TooltipProvider delayDuration={200}>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <a
+                href={discipulandoUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="Abrir Discipulando Naciones en una nueva pestaña"
+                className="shrink-0 inline-flex items-center justify-center h-9 px-1.5 rounded-md hover:bg-muted transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+              >
+                {logoFailed ? (
+                  <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-foreground/80">
+                    <BookOpenText className="h-4 w-4" aria-hidden="true" />
+                    <span className="hidden sm:inline">Discipulando</span>
+                  </span>
+                ) : (
+                  <img
+                    src={discipulandoLogoAsset.url}
+                    alt="Discipulando Naciones"
+                    width={110}
+                    height={32}
+                    loading="lazy"
+                    onError={() => setLogoFailed(true)}
+                    className="h-7 md:h-8 w-auto object-contain select-none dark:brightness-0 dark:invert"
+                  />
+                )}
+              </a>
+            </TooltipTrigger>
+            <TooltipContent side="bottom">Discipulando Naciones</TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
 
         <Link to="/mensajes" className="relative p-2 rounded-md hover:bg-muted transition-colors" title="Mensajes">
           <Mail className="h-[18px] w-[18px] text-muted-foreground" />
