@@ -12,7 +12,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useActiveRole, ROLE_LABELS } from "@/hooks/useActiveRole";
 import NotificationDropdown from "@/components/layout/NotificationDropdown";
 import { useUnreadCount } from "@/hooks/useMensajes";
-import discipulandoLogo from "@/assets/discipulando-naciones-logo.png";
+import discipulandoLogoAsset from "@/assets/discipulando-naciones-logo.png.asset.json";
 
 const breadcrumbMap: Record<string, string> = {
   dashboard: "Dashboard", personas: "Personas", grupos: "Grupos",
@@ -84,12 +84,12 @@ export default function AppHeader({ onMenuClick }: AppHeaderProps) {
           title="Discipulando Naciones"
         >
           <img
-            src={discipulandoLogo}
+            src={discipulandoLogoAsset.url}
             alt="Discipulando Naciones"
-            width={28}
-            height={28}
+            width={110}
+            height={32}
             loading="lazy"
-            className="h-7 w-7 object-contain"
+            className="h-8 w-auto object-contain"
           />
         </a>
 
