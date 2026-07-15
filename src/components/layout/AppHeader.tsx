@@ -105,11 +105,14 @@ export default function AppHeader({ onMenuClick }: AppHeaderProps) {
                   </span>
                 ) : (
                   <img
-                    src={discipulandoLogoAsset.url}
+                    src={logoSrc}
+                    key={logoSrc}
                     alt="Discipulando Naciones"
                     width={110}
                     height={32}
                     loading="lazy"
+                    decoding="async"
+                    fetchPriority="low"
                     onError={() => setLogoFailed(true)}
                     className="h-7 md:h-8 w-auto object-contain select-none dark:brightness-0 dark:invert"
                   />
