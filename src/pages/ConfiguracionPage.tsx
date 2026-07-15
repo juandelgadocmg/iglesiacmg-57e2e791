@@ -40,6 +40,9 @@ export default function ConfiguracionPage() {
   const { data: config, isLoading } = useConfiguracion();
   const updateConfig = useUpdateConfiguracion();
   const [form, setForm] = useState<Record<string, string>>({});
+  const [uploadingLogo, setUploadingLogo] = useState(false);
+  const [logoPreviewError, setLogoPreviewError] = useState(false);
+  const logoFileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (config) {
