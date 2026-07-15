@@ -12,6 +12,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useActiveRole, ROLE_LABELS } from "@/hooks/useActiveRole";
 import NotificationDropdown from "@/components/layout/NotificationDropdown";
 import { useUnreadCount } from "@/hooks/useMensajes";
+import discipulandoLogo from "@/assets/discipulando-naciones-logo.png";
 
 const breadcrumbMap: Record<string, string> = {
   dashboard: "Dashboard", personas: "Personas", grupos: "Grupos",
