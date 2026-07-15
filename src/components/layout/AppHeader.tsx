@@ -53,8 +53,12 @@ export default function AppHeader({ onMenuClick }: AppHeaderProps) {
   const { user } = useAuth();
   const { activeRole, setActiveRole, allRoles, roleLabel } = useActiveRole();
   const { data: unreadMsgs = 0 } = useUnreadCount();
+  const { data: config } = useConfiguracion();
+  const [logoFailed, setLogoFailed] = useState(false);
   const initials = user?.email?.slice(0, 2).toUpperCase() || "U";
   const hasMultipleRoles = allRoles.length > 1;
+  const discipulandoUrl =
+    (config as any)?.discipulando_url?.trim() || DEFAULT_DISCIPULANDO_URL;
 
   return (
     <header className="h-14 md:h-16 border-b bg-card flex items-center justify-between px-3 md:px-6 sticky top-0 z-20">
