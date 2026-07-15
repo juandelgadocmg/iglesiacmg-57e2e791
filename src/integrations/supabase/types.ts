@@ -3147,6 +3147,45 @@ export type Database = {
           },
         ]
       }
+      security_audit_log: {
+        Row: {
+          actor_email: string | null
+          actor_user_id: string | null
+          changed: Json
+          created_at: string
+          id: string
+          new_row: Json | null
+          old_row: Json | null
+          operation: string
+          row_id: string | null
+          table_name: string
+        }
+        Insert: {
+          actor_email?: string | null
+          actor_user_id?: string | null
+          changed?: Json
+          created_at?: string
+          id?: string
+          new_row?: Json | null
+          old_row?: Json | null
+          operation: string
+          row_id?: string | null
+          table_name: string
+        }
+        Update: {
+          actor_email?: string | null
+          actor_user_id?: string | null
+          changed?: Json
+          created_at?: string
+          id?: string
+          new_row?: Json | null
+          old_row?: Json | null
+          operation?: string
+          row_id?: string | null
+          table_name?: string
+        }
+        Relationships: []
+      }
       sem_anuncios: {
         Row: {
           autor_user_id: string | null
