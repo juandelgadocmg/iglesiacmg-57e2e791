@@ -10,7 +10,10 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "test:rls": "psql \"$SUPABASE_DB_URL\" -v ON_ERROR_STOP=1 -f supabase/tests/rls/run_all.sql",
+    "test:e2e": "playwright test -c playwright.config.ts",
+    "test:security": "bun run test:rls && bun run test:e2e"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
