@@ -202,6 +202,59 @@ export default function ConfiguracionPage() {
                   </p>
                 </div>
                 <div className="space-y-2 sm:col-span-2">
+                  <Label>Logo de Discipulando Naciones</Label>
+                  <div className="flex flex-col sm:flex-row items-start gap-4 p-3 border rounded-md bg-muted/30">
+                    <div className="shrink-0 h-16 w-32 flex items-center justify-center bg-background border rounded-md overflow-hidden">
+                      {form.discipulando_logo_url && !logoPreviewError ? (
+                        <img
+                          src={form.discipulando_logo_url}
+                          alt="Vista previa del logo"
+                          className="max-h-full max-w-full object-contain"
+                          onError={() => setLogoPreviewError(true)}
+                        />
+                      ) : (
+                        <span className="text-xs text-muted-foreground flex items-center gap-1">
+                          {logoPreviewError ? <AlertCircle className="h-3.5 w-3.5 text-destructive" /> : <ImageIcon className="h-3.5 w-3.5" />}
+                          {logoPreviewError ? "No accesible" : "Logo por defecto"}
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex-1 space-y-2 w-full">
+                      <div className="flex flex-wrap gap-2">
+                        <input
+                          ref={logoFileRef}
+                          type="file"
+                          accept="image/png,image/jpeg,image/svg+xml,image/webp"
+                          className="hidden"
+                          onChange={e => { const f = e.target.files?.[0]; if (f) handleLogoUpload(f); }}
+                        />
+                        <Button type="button" variant="outline" size="sm" disabled={uploadingLogo} onClick={() => logoFileRef.current?.click()}>
+                          <Upload className="h-3.5 w-3.5 mr-1.5" />
+                          {uploadingLogo ? "Subiendo..." : "Subir logo"}
+                        </Button>
+                        {form.discipulando_logo_url && (
+                          <Button type="button" variant="ghost" size="sm" onClick={() => { set("discipulando_logo_url", ""); setLogoPreviewError(false); }}>
+                            <X className="h-3.5 w-3.5 mr-1.5" /> Quitar
+                          </Button>
+                        )}
+                      </div>
+                      <Input
+                        type="url"
+                        value={form.discipulando_logo_url || ""}
+                        onChange={e => { set("discipulando_logo_url", e.target.value); setLogoPreviewError(false); }}
+                        placeholder="O pega la URL de una imagen (https://...)"
+                        aria-invalid={!!form.discipulando_logo_url && !isValidUrl(form.discipulando_logo_url)}
+                      />
+                      {form.discipulando_logo_url && !isValidUrl(form.discipulando_logo_url) && (
+                        <p className="text-xs text-destructive flex items-center gap-1"><AlertCircle className="h-3 w-3" /> URL inválida</p>
+                      )}
+                      <p className="text-xs text-muted-foreground">
+                        PNG, JPG, SVG o WebP · máximo 2 MB. Si no se define, se usará el logo por defecto.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                <div className="space-y-2 sm:col-span-2">
                   <Label>Dirección</Label>
                   <Input value={form.direccion || ""} onChange={e => set("direccion", e.target.value)} placeholder="Dirección completa" />
                 </div>
