@@ -83,6 +83,40 @@ export default function ConfiguracionPage() {
 
   const set = (key: string, value: string) => setForm(prev => ({ ...prev, [key]: value }));
 
+  const isValidUrl = (v: string) => {
+    if (!v) return true;
+    try { new URL(v); return true; } catch { return false; }
+  };
+
+  const handleLogoUpload = async (file: File) => {
+    if (!file.type.startsWith("image/")) {
+      toast.error("El archivo debe ser una imagen (PNG, JPG, SVG, WebP)");
+      return;
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error("La imagen no debe superar 2 MB");
+      return;
+    }
+    setUploadingLogo(true);
+    try {
+      const ext = file.name.split(".").pop() || "png";
+      const path = `discipulando/logo-${Date.now()}.${ext}`;
+      const { error: upErr } = await supabase.storage.from("banners").upload(path, file, {
+        cacheControl: "31536000", upsert: false,
+      });
+      if (upErr) throw upErr;
+      const { data: urlData } = supabase.storage.from("banners").getPublicUrl(path);
+      set("discipulando_logo_url", urlData.publicUrl);
+      setLogoPreviewError(false);
+      toast.success("Logo subido. Recuerda guardar los cambios.");
+    } catch (e: any) {
+      toast.error(e?.message || "Error al subir el logo");
+    } finally {
+      setUploadingLogo(false);
+      if (logoFileRef.current) logoFileRef.current.value = "";
+    }
+  };
+
   const handleSave = async () => {
     try {
       // Convertir campos numéricos
