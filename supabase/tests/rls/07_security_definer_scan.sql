@@ -19,8 +19,8 @@ BEGIN;
 
 CREATE TEMP TABLE _sd_whitelist (name text PRIMARY KEY) ON COMMIT DROP;
 
--- Copia la whitelist a la tabla temporal. Se ignoran comentarios y espacios.
-\copy _sd_whitelist(name) FROM 'supabase/tests/rls/security_definer_whitelist.txt' WITH (FORMAT csv, DELIMITER E'\t', QUOTE E'\b')
+-- Carga la whitelist (formato texto: una entrada por línea, sin comillas).
+\copy _sd_whitelist(name) FROM 'supabase/tests/rls/security_definer_whitelist.txt'
 DELETE FROM _sd_whitelist WHERE name IS NULL OR btrim(name) = '' OR left(btrim(name),1) = '#';
 UPDATE _sd_whitelist SET name = btrim(name);
 
