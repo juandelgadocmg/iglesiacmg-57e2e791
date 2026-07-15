@@ -60,6 +60,8 @@ export default function AppHeader({ onMenuClick }: AppHeaderProps) {
   const hasMultipleRoles = allRoles.length > 1;
   const discipulandoUrl =
     (config as any)?.discipulando_url?.trim() || DEFAULT_DISCIPULANDO_URL;
+  const customLogoUrl = (config as any)?.discipulando_logo_url?.trim() || "";
+  const logoSrc = customLogoUrl || DEFAULT_LOGO_SRC;
 
   return (
     <header className="h-14 md:h-16 border-b bg-card flex items-center justify-between px-3 md:px-6 sticky top-0 z-20">
