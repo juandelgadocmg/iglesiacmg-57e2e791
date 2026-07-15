@@ -83,7 +83,6 @@ export default function SeguridadPage() {
       <PageHeader
         title="Auditoría de seguridad"
         description="Cambios sensibles registrados por triggers en la base de datos."
-        icon={ShieldCheck}
       />
 
       <div className="bg-card border rounded-lg p-4 mb-4 grid gap-3 md:grid-cols-6">
