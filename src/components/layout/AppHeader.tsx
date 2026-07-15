@@ -84,7 +84,7 @@ export default function AppHeader({ onMenuClick }: AppHeaderProps) {
           title="Discipulando Naciones"
         >
           <img
-            src={discipulandoLogo}
+            src={discipulandoLogoAsset.url}
             alt="Discipulando Naciones"
             width={28}
             height={28}
