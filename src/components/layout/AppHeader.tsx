@@ -86,10 +86,10 @@ export default function AppHeader({ onMenuClick }: AppHeaderProps) {
           <img
             src={discipulandoLogoAsset.url}
             alt="Discipulando Naciones"
-            width={28}
-            height={28}
+            width={110}
+            height={32}
             loading="lazy"
-            className="h-7 w-7 object-contain"
+            className="h-8 w-auto object-contain"
           />
         </a>
 
