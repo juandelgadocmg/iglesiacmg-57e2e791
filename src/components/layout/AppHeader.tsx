@@ -63,6 +63,8 @@ export default function AppHeader({ onMenuClick }: AppHeaderProps) {
   const customLogoUrl = (config as any)?.discipulando_logo_url?.trim() || "";
   const logoSrc = customLogoUrl || DEFAULT_LOGO_SRC;
 
+  useEffect(() => { setLogoFailed(false); }, [logoSrc]);
+
   return (
     <header className="h-14 md:h-16 border-b bg-card flex items-center justify-between px-3 md:px-6 sticky top-0 z-20">
       {/* Breadcrumb */}
