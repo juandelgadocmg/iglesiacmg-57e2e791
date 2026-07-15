@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Search, ChevronRight, Menu, ChevronDown, Check, Mail, BookOpenText } from "lucide-react";
 import { useLocation, Link } from "react-router-dom";
 import { Input } from "@/components/ui/input";
@@ -18,6 +18,7 @@ import { useConfiguracion } from "@/hooks/useConfiguracion";
 import discipulandoLogoAsset from "@/assets/discipulando-naciones-logo.png.asset.json";
 
 const DEFAULT_DISCIPULANDO_URL = "https://discipulandonaciones.lovable.app";
+const DEFAULT_LOGO_SRC = discipulandoLogoAsset.url;
 
 const breadcrumbMap: Record<string, string> = {
   dashboard: "Dashboard", personas: "Personas", grupos: "Grupos",
@@ -59,6 +60,10 @@ export default function AppHeader({ onMenuClick }: AppHeaderProps) {
   const hasMultipleRoles = allRoles.length > 1;
   const discipulandoUrl =
     (config as any)?.discipulando_url?.trim() || DEFAULT_DISCIPULANDO_URL;
+  const customLogoUrl = (config as any)?.discipulando_logo_url?.trim() || "";
+  const logoSrc = customLogoUrl || DEFAULT_LOGO_SRC;
+
+  useEffect(() => { setLogoFailed(false); }, [logoSrc]);
 
   return (
     <header className="h-14 md:h-16 border-b bg-card flex items-center justify-between px-3 md:px-6 sticky top-0 z-20">
@@ -102,11 +107,14 @@ export default function AppHeader({ onMenuClick }: AppHeaderProps) {
                   </span>
                 ) : (
                   <img
-                    src={discipulandoLogoAsset.url}
+                    src={logoSrc}
+                    key={logoSrc}
                     alt="Discipulando Naciones"
                     width={110}
                     height={32}
                     loading="lazy"
+                    decoding="async"
+                    fetchPriority="low"
                     onError={() => setLogoFailed(true)}
                     className="h-7 md:h-8 w-auto object-contain select-none dark:brightness-0 dark:invert"
                   />

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import PageHeader from "@/components/shared/PageHeader";
 import { useConfiguracion, useUpdateConfiguracion } from "@/hooks/useConfiguracion";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -9,8 +9,9 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Church, Globe, Clock, Save, BookOpen, ImageIcon, Video, Radio, DollarSign, Bell } from "lucide-react";
+import { Church, Globe, Clock, Save, BookOpen, ImageIcon, Video, Radio, DollarSign, Bell, Upload, X, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 // Lazy-load sub-pages as tab content
 import BannersPage from "@/pages/BannersPage";
@@ -39,6 +40,9 @@ export default function ConfiguracionPage() {
   const { data: config, isLoading } = useConfiguracion();
   const updateConfig = useUpdateConfiguracion();
   const [form, setForm] = useState<Record<string, string>>({});
+  const [uploadingLogo, setUploadingLogo] = useState(false);
+  const [logoPreviewError, setLogoPreviewError] = useState(false);
+  const logoFileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (config) {
@@ -52,6 +56,7 @@ export default function ConfiguracionPage() {
         pais: config.pais || "",
         sitio_web: config.sitio_web || "",
         discipulando_url: (config as any).discipulando_url || "",
+        discipulando_logo_url: (config as any).discipulando_logo_url || "",
         descripcion: config.descripcion || "",
         horario_servicios: config.horario_servicios || "",
         moneda: config.moneda || "USD",
@@ -78,12 +83,55 @@ export default function ConfiguracionPage() {
 
   const set = (key: string, value: string) => setForm(prev => ({ ...prev, [key]: value }));
 
+  const isValidUrl = (v: string) => {
+    if (!v) return true;
+    try { new URL(v); return true; } catch { return false; }
+  };
+
+  const handleLogoUpload = async (file: File) => {
+    if (!file.type.startsWith("image/")) {
+      toast.error("El archivo debe ser una imagen (PNG, JPG, SVG, WebP)");
+      return;
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error("La imagen no debe superar 2 MB");
+      return;
+    }
+    setUploadingLogo(true);
+    try {
+      const ext = file.name.split(".").pop() || "png";
+      const path = `discipulando/logo-${Date.now()}.${ext}`;
+      const { error: upErr } = await supabase.storage.from("banners").upload(path, file, {
+        cacheControl: "31536000", upsert: false,
+      });
+      if (upErr) throw upErr;
+      const { data: urlData } = supabase.storage.from("banners").getPublicUrl(path);
+      set("discipulando_logo_url", urlData.publicUrl);
+      setLogoPreviewError(false);
+      toast.success("Logo subido. Recuerda guardar los cambios.");
+    } catch (e: any) {
+      toast.error(e?.message || "Error al subir el logo");
+    } finally {
+      setUploadingLogo(false);
+      if (logoFileRef.current) logoFileRef.current.value = "";
+    }
+  };
+
   const handleSave = async () => {
+    if (form.discipulando_url && !isValidUrl(form.discipulando_url)) {
+      toast.error("La URL de Discipulando Naciones no es válida");
+      return;
+    }
+    if (form.discipulando_logo_url && !isValidUrl(form.discipulando_logo_url)) {
+      toast.error("La URL del logo no es válida");
+      return;
+    }
     try {
       // Convertir campos numéricos
       const payload: Record<string, any> = { ...form };
       payload.tesoreria_cdp_tolerancia_pct = Number(form.tesoreria_cdp_tolerancia_pct) || 0;
       payload.tesoreria_cdp_tolerancia_abs = Number(form.tesoreria_cdp_tolerancia_abs) || 0;
+      payload.tesoreria_cdp_dias_mora = parseInt(form.tesoreria_cdp_dias_mora) || 7;
       payload.tesoreria_cdp_dias_mora = parseInt(form.tesoreria_cdp_dias_mora) || 7;
       await updateConfig.mutateAsync(payload);
       toast.success("Configuración guardada correctamente");
@@ -152,6 +200,59 @@ export default function ConfiguracionPage() {
                   <p className="text-xs text-muted-foreground">
                     Enlace al que dirige el logo de Discipulando Naciones ubicado en el encabezado, junto al ícono de mensajes.
                   </p>
+                </div>
+                <div className="space-y-2 sm:col-span-2">
+                  <Label>Logo de Discipulando Naciones</Label>
+                  <div className="flex flex-col sm:flex-row items-start gap-4 p-3 border rounded-md bg-muted/30">
+                    <div className="shrink-0 h-16 w-32 flex items-center justify-center bg-background border rounded-md overflow-hidden">
+                      {form.discipulando_logo_url && !logoPreviewError ? (
+                        <img
+                          src={form.discipulando_logo_url}
+                          alt="Vista previa del logo"
+                          className="max-h-full max-w-full object-contain"
+                          onError={() => setLogoPreviewError(true)}
+                        />
+                      ) : (
+                        <span className="text-xs text-muted-foreground flex items-center gap-1">
+                          {logoPreviewError ? <AlertCircle className="h-3.5 w-3.5 text-destructive" /> : <ImageIcon className="h-3.5 w-3.5" />}
+                          {logoPreviewError ? "No accesible" : "Logo por defecto"}
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex-1 space-y-2 w-full">
+                      <div className="flex flex-wrap gap-2">
+                        <input
+                          ref={logoFileRef}
+                          type="file"
+                          accept="image/png,image/jpeg,image/svg+xml,image/webp"
+                          className="hidden"
+                          onChange={e => { const f = e.target.files?.[0]; if (f) handleLogoUpload(f); }}
+                        />
+                        <Button type="button" variant="outline" size="sm" disabled={uploadingLogo} onClick={() => logoFileRef.current?.click()}>
+                          <Upload className="h-3.5 w-3.5 mr-1.5" />
+                          {uploadingLogo ? "Subiendo..." : "Subir logo"}
+                        </Button>
+                        {form.discipulando_logo_url && (
+                          <Button type="button" variant="ghost" size="sm" onClick={() => { set("discipulando_logo_url", ""); setLogoPreviewError(false); }}>
+                            <X className="h-3.5 w-3.5 mr-1.5" /> Quitar
+                          </Button>
+                        )}
+                      </div>
+                      <Input
+                        type="url"
+                        value={form.discipulando_logo_url || ""}
+                        onChange={e => { set("discipulando_logo_url", e.target.value); setLogoPreviewError(false); }}
+                        placeholder="O pega la URL de una imagen (https://...)"
+                        aria-invalid={!!form.discipulando_logo_url && !isValidUrl(form.discipulando_logo_url)}
+                      />
+                      {form.discipulando_logo_url && !isValidUrl(form.discipulando_logo_url) && (
+                        <p className="text-xs text-destructive flex items-center gap-1"><AlertCircle className="h-3 w-3" /> URL inválida</p>
+                      )}
+                      <p className="text-xs text-muted-foreground">
+                        PNG, JPG, SVG o WebP · máximo 2 MB. Si no se define, se usará el logo por defecto.
+                      </p>
+                    </div>
+                  </div>
                 </div>
                 <div className="space-y-2 sm:col-span-2">
                   <Label>Dirección</Label>
