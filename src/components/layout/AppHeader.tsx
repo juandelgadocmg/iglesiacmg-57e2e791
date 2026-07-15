@@ -76,6 +76,23 @@ export default function AppHeader({ onMenuClick }: AppHeaderProps) {
           <Input placeholder="Buscar..." className="pl-9 w-64 h-9 bg-muted/50 border-0 text-sm" />
         </div>
 
+        <a
+          href="https://discipulandonaciones.lovable.app"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="p-1 rounded-md hover:bg-muted transition-colors flex items-center"
+          title="Discipulando Naciones"
+        >
+          <img
+            src={discipulandoLogo}
+            alt="Discipulando Naciones"
+            width={28}
+            height={28}
+            loading="lazy"
+            className="h-7 w-7 object-contain"
+          />
+        </a>
+
         <Link to="/mensajes" className="relative p-2 rounded-md hover:bg-muted transition-colors" title="Mensajes">
           <Mail className="h-[18px] w-[18px] text-muted-foreground" />
           {unreadMsgs > 0 && (
