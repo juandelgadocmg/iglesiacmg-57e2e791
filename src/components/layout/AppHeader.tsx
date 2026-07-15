@@ -85,22 +85,37 @@ export default function AppHeader({ onMenuClick }: AppHeaderProps) {
           <Input placeholder="Buscar..." className="pl-9 w-64 h-9 bg-muted/50 border-0 text-sm" />
         </div>
 
-        <a
-          href="https://discipulandonaciones.lovable.app"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="p-1 rounded-md hover:bg-muted transition-colors flex items-center"
-          title="Discipulando Naciones"
-        >
-          <img
-            src={discipulandoLogoAsset.url}
-            alt="Discipulando Naciones"
-            width={110}
-            height={32}
-            loading="lazy"
-            className="h-8 w-auto object-contain"
-          />
-        </a>
+        <TooltipProvider delayDuration={200}>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <a
+                href={discipulandoUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="Abrir Discipulando Naciones en una nueva pestaña"
+                className="shrink-0 inline-flex items-center justify-center h-9 px-1.5 rounded-md hover:bg-muted transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+              >
+                {logoFailed ? (
+                  <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-foreground/80">
+                    <BookOpenText className="h-4 w-4" aria-hidden="true" />
+                    <span className="hidden sm:inline">Discipulando</span>
+                  </span>
+                ) : (
+                  <img
+                    src={discipulandoLogoAsset.url}
+                    alt="Discipulando Naciones"
+                    width={110}
+                    height={32}
+                    loading="lazy"
+                    onError={() => setLogoFailed(true)}
+                    className="h-7 md:h-8 w-auto object-contain select-none dark:brightness-0 dark:invert"
+                  />
+                )}
+              </a>
+            </TooltipTrigger>
+            <TooltipContent side="bottom">Discipulando Naciones</TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
 
         <Link to="/mensajes" className="relative p-2 rounded-md hover:bg-muted transition-colors" title="Mensajes">
           <Mail className="h-[18px] w-[18px] text-muted-foreground" />
