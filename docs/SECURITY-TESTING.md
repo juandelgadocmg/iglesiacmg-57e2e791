@@ -29,25 +29,35 @@ ORDER BY created_at DESC
 LIMIT 50;
 ```
 
-## 2. Pruebas RLS por rol (SQL)
+## 2. Pruebas RLS por rol + scanner SECURITY DEFINER (SQL)
 
 En `supabase/tests/rls/` hay una suite que simula cada rol (anon, autenticado
 sin rol, admin, tesorería, estudiante de seminario) y verifica que las policies
 bloqueen o permitan el acceso correspondiente. Se ejecuta con `psql` dentro de
 transacciones que hacen `ROLLBACK`, por lo que **no** deja datos ni cambios.
 
+El paso `07_security_definer_scan.sql` recorre todas las funciones
+`SECURITY DEFINER` del schema `public` y falla el build si alguna es
+ejecutable por `PUBLIC`/`authenticated` **sin** una barrera interna
+(`has_role()`, `sem_is_staff()`, `sem_is_tesoreria()`, `auth.uid()` o
+`RAISE EXCEPTION`). Las funciones utilitarias intencionalmente abiertas
+(triggers, `update_updated_at_column`, workers de cron) están en una lista
+blanca dentro del mismo archivo.
+
 ```bash
 export SUPABASE_DB_URL="postgresql://postgres:...@db.<ref>.supabase.co:5432/postgres"
 bun run test:rls
 ```
 
-Ver `supabase/tests/rls/README.md` para detalles.
+## 3. E2E · intentos de acceso no autorizado + Storage (Playwright)
 
-## 3. E2E · intentos de acceso no autorizado (Playwright)
+Tres suites en `tests/e2e/`:
 
-`tests/e2e/security-access.spec.ts` usa el mismo cliente Supabase que el
-navegador (con la anon key pública) para intentar leer/escribir tablas
-protegidas y confirmar que RLS los bloquea.
+| Archivo                       | Qué verifica                                                                 |
+| ----------------------------- | ---------------------------------------------------------------------------- |
+| `security-access.spec.ts`     | Anon no puede leer/escribir tablas críticas (15 tablas + inserts sensibles)  |
+| `storage-buckets.spec.ts`     | Buckets públicos vs privados: lectura/escritura anon, paths inválidos, MIME  |
+| `audit-log.spec.ts`           | `security_audit_log` bloqueado a anon; verificación opcional con admin real  |
 
 ```bash
 export SUPABASE_URL="https://<ref>.supabase.co"
