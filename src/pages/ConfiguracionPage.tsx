@@ -51,6 +51,7 @@ export default function ConfiguracionPage() {
         ciudad: config.ciudad || "",
         pais: config.pais || "",
         sitio_web: config.sitio_web || "",
+        discipulando_url: (config as any).discipulando_url || "",
         descripcion: config.descripcion || "",
         horario_servicios: config.horario_servicios || "",
         moneda: config.moneda || "USD",
