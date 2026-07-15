@@ -1,0 +1,90 @@
+name: Security
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  rls-sql-tests:
+    name: Pruebas RLS por rol (psql)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Instalar psql
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client
+
+      - name: Verificar secreto
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          if [ -z "$SUPABASE_DB_URL" ]; then
+            echo "::error::Falta el secret SUPABASE_DB_URL"
+            exit 1
+          fi
+
+      - name: Ejecutar suite RLS
+        env:
+          PGSSLMODE: require
+        run: |
+          psql "${{ secrets.SUPABASE_DB_URL }}" \
+            -v ON_ERROR_STOP=1 \
+            -f supabase/tests/rls/run_all.sql
+
+  supabase-linter:
+    name: Linter Supabase (RLS, Storage, SECURITY DEFINER)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Instalar Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Ejecutar db lint
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_ID: ${{ secrets.SUPABASE_PROJECT_ID }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        run: |
+          if [ -z "$SUPABASE_ACCESS_TOKEN" ] || [ -z "$SUPABASE_PROJECT_ID" ]; then
+            echo "::warning::Faltan secrets SUPABASE_ACCESS_TOKEN / SUPABASE_PROJECT_ID; se omite db lint remoto."
+            exit 0
+          fi
+          supabase link --project-ref "$SUPABASE_PROJECT_ID"
+          # Nivel warning como umbral: falla ante nuevos hallazgos.
+          supabase db lint --level warning --linked
+
+  e2e-unauthorized-access:
+    name: E2E · intentos de acceso no autorizado
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+
+      - name: Instalar dependencias
+        run: bun install --frozen-lockfile
+
+      - name: Instalar Playwright
+        run: bunx playwright install --with-deps chromium
+
+      - name: Ejecutar pruebas E2E
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+          E2E_LOW_PRIV_EMAIL: ${{ secrets.E2E_LOW_PRIV_EMAIL }}
+          E2E_LOW_PRIV_PASSWORD: ${{ secrets.E2E_LOW_PRIV_PASSWORD }}
+        run: |
+          if [ -z "$SUPABASE_URL" ] || [ -z "$SUPABASE_ANON_KEY" ]; then
+            echo "::error::Faltan secrets SUPABASE_URL / SUPABASE_ANON_KEY"
+            exit 1
+          fi
+          bunx playwright test -c playwright.config.ts
