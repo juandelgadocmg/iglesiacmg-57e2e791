@@ -18,6 +18,7 @@ import { useConfiguracion } from "@/hooks/useConfiguracion";
 import discipulandoLogoAsset from "@/assets/discipulando-naciones-logo.png.asset.json";
 
 const DEFAULT_DISCIPULANDO_URL = "https://discipulandonaciones.lovable.app";
+const DEFAULT_LOGO_SRC = discipulandoLogoAsset.url;
 
 const breadcrumbMap: Record<string, string> = {
   dashboard: "Dashboard", personas: "Personas", grupos: "Grupos",
