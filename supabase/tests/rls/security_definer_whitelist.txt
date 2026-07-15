@@ -1,0 +1,30 @@
+# Whitelist de funciones SECURITY DEFINER justificadas
+# Una función por línea. Líneas vacías o que comienzan con '#' se ignoran.
+# El scanner en 07_security_definer_scan.sql las omite del análisis.
+#
+# Toda entrada debe llevar un comentario explicando por qué es segura.
+
+# Triggers / utilitarios sin superficie de ataque directa
+update_updated_at_column
+handle_new_user
+prevent_duplicate_reporte_grupo_fecha
+audit_sensitive_change
+audit_profile_link_change
+cita_consejeria_intercesion
+sync_grupo_miembros_from_persona
+sem_inscripciones_set_user_id
+sem_sync_inscripciones_from_profile
+prevent_profile_persona_self_update
+sem_set_periodo_ingreso
+sem_audit_inscripcion_changes
+sem_msg_calificacion
+sem_msg_nueva_evaluacion
+sem_msg_welcome_inscripcion
+sem_msg_zoom_sesion
+msg_after_message_insert
+
+# Workers de cron / colas (invocados por pg_cron, no expuestos vía Data API)
+email_queue_wake
+email_queue_dispatch
+prog_send_reminders
+msg_process_scheduled

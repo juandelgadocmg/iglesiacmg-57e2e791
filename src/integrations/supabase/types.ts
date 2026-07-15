@@ -4786,6 +4786,15 @@ export type Database = {
         }
         Returns: boolean
       }
+      log_storage_event: {
+        Args: {
+          _bucket: string
+          _details?: Json
+          _operation: string
+          _path: string
+        }
+        Returns: undefined
+      }
       move_to_dlq: {
         Args: {
           dlq_name: string
