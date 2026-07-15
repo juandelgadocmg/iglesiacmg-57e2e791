@@ -407,6 +407,7 @@ export type Database = {
           created_at: string
           descripcion: string | null
           direccion: string | null
+          discipulando_logo_url: string | null
           discipulando_url: string | null
           email: string | null
           horario_servicios: string | null
@@ -435,6 +436,7 @@ export type Database = {
           created_at?: string
           descripcion?: string | null
           direccion?: string | null
+          discipulando_logo_url?: string | null
           discipulando_url?: string | null
           email?: string | null
           horario_servicios?: string | null
@@ -463,6 +465,7 @@ export type Database = {
           created_at?: string
           descripcion?: string | null
           direccion?: string | null
+          discipulando_logo_url?: string | null
           discipulando_url?: string | null
           email?: string | null
           horario_servicios?: string | null

@@ -1,0 +1,1 @@
+ALTER TABLE public.configuracion_iglesia ADD COLUMN IF NOT EXISTS discipulando_logo_url text;
