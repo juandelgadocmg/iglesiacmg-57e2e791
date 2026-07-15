@@ -1,4 +1,5 @@
-import { Search, ChevronRight, Menu, ChevronDown, Check, Mail } from "lucide-react";
+import { useState } from "react";
+import { Search, ChevronRight, Menu, ChevronDown, Check, Mail, BookOpenText } from "lucide-react";
 import { useLocation, Link } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -8,11 +9,15 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
   DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useAuth } from "@/hooks/useAuth";
 import { useActiveRole, ROLE_LABELS } from "@/hooks/useActiveRole";
 import NotificationDropdown from "@/components/layout/NotificationDropdown";
 import { useUnreadCount } from "@/hooks/useMensajes";
+import { useConfiguracion } from "@/hooks/useConfiguracion";
 import discipulandoLogoAsset from "@/assets/discipulando-naciones-logo.png.asset.json";
+
+const DEFAULT_DISCIPULANDO_URL = "https://discipulandonaciones.lovable.app";
 
 const breadcrumbMap: Record<string, string> = {
   dashboard: "Dashboard", personas: "Personas", grupos: "Grupos",
