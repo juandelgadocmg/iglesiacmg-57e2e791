@@ -1,57 +1,60 @@
 import { useState, useMemo, useEffect } from "react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
-import PageHeader from "@/components/shared/PageHeader";
-import StatusBadge from "@/components/shared/StatusBadge";
-import PersonaFormDialog from "@/components/forms/PersonaFormDialog";
-import DeleteConfirmDialog from "@/components/shared/DeleteConfirmDialog";
-import MetricCard from "@/components/shared/MetricCard";
-import { usePersonas, useDeletePersona } from "@/hooks/useDatabase";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
-  Pencil, Users, UserPlus, Search, Phone, Mail, MapPin,
-  Church, Calendar
+  Users, UserPlus, Search, Phone, Mail, Filter, X, ChevronLeft, ChevronRight,
+  Cake, UsersRound, Sparkles, UserX, Pencil, Trash2, Star, ArrowUpDown, MoreHorizontal,
+  MessageSquare,
 } from "lucide-react";
 import { toast } from "sonner";
-import { format, parseISO } from "date-fns";
-import { es } from "date-fns/locale";
+import PersonaFormDialog from "@/components/forms/PersonaFormDialog";
+import DeleteConfirmDialog from "@/components/shared/DeleteConfirmDialog";
 import ExportDropdown from "@/components/shared/ExportDropdown";
 import ExportPersonasDialog from "@/components/forms/ExportPersonasDialog";
 import ImportPersonasDialog from "@/components/forms/ImportPersonasDialog";
+import PersonaQuickView from "@/components/persona/PersonaQuickView";
+import { usePersonas, useDeletePersona } from "@/hooks/useDatabase";
 import { useUserRoles } from "@/hooks/useUserRoles";
 import { canPerform } from "@/lib/permissions";
 import { useActiveRole } from "@/hooks/useActiveRole";
+import { useContextDock } from "@/components/layout/context-dock/ContextDock";
+import { useRecentEntities } from "@/hooks/useRecentEntities";
+import { useUserPins } from "@/hooks/useUserPins";
+import { cn } from "@/lib/utils";
+import { format } from "date-fns";
 
-const TIPOS = [
-  "Todos", "Miembro", "Visitante", "Líder", "Servidor", "CDP",
-  "Iglesia Virtual", "Estudiante Seminario", "Discípulo",
-  "Maestro Seminario", "Miembro No Activo", "Líder Casa de Paz",
-  "Líder de Red", "Mentor", "Pastor Principal",
+type Segment = {
+  id: string;
+  label: string;
+  icon: any;
+  filter: (p: any) => boolean;
+};
+
+const norm = (s: any) => String(s ?? "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+const onlyDigits = (s: any) => String(s ?? "").replace(/\D/g, "");
+const getTipos = (p: any) => [p.tipo_persona, ...(Array.isArray(p.tipos_persona) ? p.tipos_persona : [])].filter(Boolean);
+const hasTipo = (p: any, tipo: string) => getTipos(p).some((t: string) => norm(t) === norm(tipo));
+
+const SMART_SEGMENTS: Segment[] = [
+  { id: "todos",       label: "Todas las personas", icon: Users,     filter: () => true },
+  { id: "nuevos",      label: "Nuevos (30 días)",   icon: Sparkles,  filter: (p) => p.created_at && (Date.now() - new Date(p.created_at).getTime()) < 30 * 86400000 },
+  { id: "sin-grupo",   label: "Sin grupo",          icon: UserX,     filter: (p) => !(p.grupo_id || p.grupos?.id) },
+  { id: "cumples",     label: "Cumpleaños del mes", icon: Cake,      filter: (p) => p.fecha_nacimiento && new Date(p.fecha_nacimiento).getMonth() === new Date().getMonth() },
+  { id: "inactivos",   label: "Inactivos",          icon: UserX,     filter: (p) => p.estado_iglesia === "Inactivo" },
 ];
 
-const tipoColor: Record<string, string> = {
-  Miembro: "bg-primary/10 text-primary",
-  Visitante: "bg-info/10 text-info",
-  Líder: "bg-accent/10 text-accent",
-  Servidor: "bg-success/10 text-success",
-  CDP: "bg-warning/10 text-warning",
-  "Iglesia Virtual": "bg-muted text-muted-foreground",
-  "Estudiante Seminario": "bg-info/10 text-info",
-  "Discípulo": "bg-primary/10 text-primary",
-  "Maestro Seminario": "bg-accent/10 text-accent",
-  "Miembro No Activo": "bg-destructive/10 text-destructive",
-  "Líder Casa de Paz": "bg-success/10 text-success",
-  "Líder de Red": "bg-accent/10 text-accent",
-  "Mentor": "bg-primary/10 text-primary",
-  "Pastor Principal": "bg-accent/10 text-accent",
-};
+const TIPO_SEGMENTS: Segment[] = [
+  "Miembro","Visitante","Líder","Servidor","CDP","Discípulo",
+  "Líder Casa de Paz","Líder de Red","Maestro Seminario","Estudiante Seminario",
+].map((t) => ({ id: `tipo:${t}`, label: t, icon: UsersRound, filter: (p) => hasTipo(p, t) }));
+
+const PAGE_SIZE = 20;
 
 export default function PersonasPage() {
   const navigate = useNavigate();
@@ -61,348 +64,397 @@ export default function PersonasPage() {
   const [editing, setEditing] = useState<any>(null);
   const { roles } = useUserRoles();
   const { activeRole } = useActiveRole();
-  const canEdit   = canPerform(roles, "personas:edit");
+  const canEdit = canPerform(roles, "personas:edit");
   const canCreate = canPerform(roles, "personas:create");
   const canDelete = canPerform(roles, "personas:delete");
-  const [search, setSearch] = useState("");
-  const [tipoFilter, setTipoFilter] = useState("Todos");
-  const [estadoFilter, setEstadoFilter] = useState("all");
-  const [grupoFilter, setGrupoFilter] = useState("all");
-  const [ministerioFilter, setMinisterioFilter] = useState("all");
-  const [altaDesde, setAltaDesde] = useState<string>("");
-  const [altaHasta, setAltaHasta] = useState<string>("");
-  const [mesCumple, setMesCumple] = useState<string>("all");
-  const [showAdvanced, setShowAdvanced] = useState(false);
-  const [page, setPage] = useState(1);
-  const pageSize = 9;
+  const dock = useContextDock();
+  const { push: pushRecent } = useRecentEntities();
+  const { pins, toggle } = useUserPins();
 
-  // Apply filter from dashboard navigation state
+  const [segment, setSegment] = useState<string>("todos");
+  const [search, setSearch] = useState("");
+  const [estado, setEstado] = useState<string>("all");
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [page, setPage] = useState(1);
+  const [sortBy, setSortBy] = useState<"nombre" | "recientes">("recientes");
+
   useEffect(() => {
     const state = location.state as any;
     if (state?.estadoFilter) {
-      setEstadoFilter(state.estadoFilter.toLowerCase() === "inactivo" ? "Inactivo" : state.estadoFilter);
-      // Clear state so refresh doesn't re-apply
+      setEstado(state.estadoFilter === "Inactivo" ? "Inactivo" : state.estadoFilter);
       window.history.replaceState({}, "");
     }
   }, []);
 
-  const norm = (s: any) =>
-    String(s ?? "")
-      .toLowerCase()
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "");
-  const onlyDigits = (s: any) => String(s ?? "").replace(/\D/g, "");
-  const getPersonaTipos = (p: any) => {
-    const tipos = [p.tipo_persona, ...(Array.isArray(p.tipos_persona) ? p.tipos_persona : [])]
-      .filter(Boolean)
-      .map((tipo: string) => String(tipo).trim());
-    return [...new Set(tipos)];
-  };
-  const hasTipo = (p: any, tipo: string) => getPersonaTipos(p).some((t: string) => norm(t) === norm(tipo));
+  const activeSegment = useMemo(
+    () => [...SMART_SEGMENTS, ...TIPO_SEGMENTS].find((s) => s.id === segment) || SMART_SEGMENTS[0],
+    [segment]
+  );
 
   const filtered = useMemo(() => {
     if (!personas) return [];
     const q = norm(search.trim());
     const qDigits = onlyDigits(search);
-    return personas.filter((p: any) => {
-      if (tipoFilter !== "Todos" && !hasTipo(p, tipoFilter)) return false;
-      if (estadoFilter !== "all" && p.estado_iglesia !== estadoFilter) return false;
-      if (grupoFilter !== "all") {
-        const gid = p.grupo_id || p.grupos?.id;
-        if (grupoFilter === "__none__" ? !!gid : gid !== grupoFilter) return false;
-      }
-      if (ministerioFilter !== "all" && norm(p.ministerio) !== norm(ministerioFilter)) return false;
-      if (altaDesde && (!p.created_at || p.created_at.slice(0, 10) < altaDesde)) return false;
-      if (altaHasta && (!p.created_at || p.created_at.slice(0, 10) > altaHasta)) return false;
-      if (mesCumple !== "all") {
-        const bd = p.fecha_nacimiento;
-        if (!bd) return false;
-        const m = String(new Date(bd).getMonth() + 1).padStart(2, "0");
-        if (m !== mesCumple) return false;
-      }
+    let list = personas.filter((p: any) => {
+      if (!activeSegment.filter(p)) return false;
+      if (estado !== "all" && p.estado_iglesia !== estado) return false;
       if (q) {
-        const haystack = norm(
-          `${p.nombres ?? ""} ${p.apellidos ?? ""} ${p.email ?? ""} ${p.documento ?? ""} ${p.ocupacion ?? ""} ${p.direccion ?? ""}`
-        );
+        const hay = norm(`${p.nombres ?? ""} ${p.apellidos ?? ""} ${p.email ?? ""} ${p.documento ?? ""}`);
         const phones = `${onlyDigits(p.telefono)} ${onlyDigits(p.whatsapp)}`;
-        const matchText = haystack.includes(q);
-        const matchPhone = qDigits.length >= 3 && phones.includes(qDigits);
-        if (!matchText && !matchPhone) return false;
+        if (!hay.includes(q) && !(qDigits.length >= 3 && phones.includes(qDigits))) return false;
       }
       return true;
     });
-  }, [personas, search, tipoFilter, estadoFilter, grupoFilter, ministerioFilter, altaDesde, altaHasta, mesCumple]);
+    if (sortBy === "nombre") {
+      list = [...list].sort((a: any, b: any) =>
+        `${a.nombres} ${a.apellidos}`.localeCompare(`${b.nombres} ${b.apellidos}`, "es")
+      );
+    } else {
+      list = [...list].sort((a: any, b: any) =>
+        (b.created_at || "").localeCompare(a.created_at || "")
+      );
+    }
+    return list;
+  }, [personas, activeSegment, estado, search, sortBy]);
 
-  // Distinct groups & ministerios for filter selects
-  const gruposOptions = useMemo(() => {
-    const map = new Map<string, string>();
-    (personas || []).forEach((p: any) => {
-      const id = p.grupo_id || p.grupos?.id;
-      const name = p.grupos?.nombre;
-      if (id && name && !map.has(id)) map.set(id, name);
-    });
-    return Array.from(map.entries()).sort((a, b) => a[1].localeCompare(b[1]));
-  }, [personas]);
-  const ministeriosOptions = useMemo(() => {
-    const set = new Set<string>();
-    (personas || []).forEach((p: any) => { if (p.ministerio) set.add(p.ministerio); });
-    return Array.from(set).sort();
-  }, [personas]);
+  useEffect(() => setPage(1), [segment, search, estado, sortBy]);
 
-  // Reset page on filter change
-  const filterKey = `${search}-${tipoFilter}-${estadoFilter}-${grupoFilter}-${ministerioFilter}-${altaDesde}-${altaHasta}-${mesCumple}`;
-  useEffect(() => setPage(1), [filterKey]);
-  const activeAdvanced = [grupoFilter, ministerioFilter].filter(v => v !== "all").length +
-    (altaDesde ? 1 : 0) + (altaHasta ? 1 : 0) + (mesCumple !== "all" ? 1 : 0);
-  const resetAdvanced = () => {
-    setGrupoFilter("all"); setMinisterioFilter("all"); setAltaDesde(""); setAltaHasta(""); setMesCumple("all");
+  const pageItems = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+
+  const openQuickView = (p: any) => {
+    pushRecent({ id: `persona:${p.id}`, kind: "persona", label: `${p.nombres} ${p.apellidos}`, to: `/personas/${p.id}` });
+    dock.open(`${p.nombres} ${p.apellidos}`, <PersonaQuickView persona={p} onEdit={(pe) => { dock.close(); setEditing({ ...pe }); }} />);
   };
-
-  const counts = useMemo(() => {
-    if (!personas) return {} as Record<string, number>;
-    const c: Record<string, number> = { total: personas.length };
-    TIPOS.filter(t => t !== "Todos").forEach(t => {
-      c[t] = personas.filter((p: any) => hasTipo(p, t)).length;
-    });
-    return c;
-  }, [personas]);
 
   const handleDelete = async (id: string) => {
     try { await deletePersona.mutateAsync(id); toast.success("Persona eliminada"); }
     catch { toast.error("Error al eliminar"); }
   };
 
-  const tableData = (personas || []).map(p => ({
-    ...p,
-    grupoNombre: (p as any).grupos?.nombre || "",
-  }));
+  const toggleSelect = (id: string) =>
+    setSelected((s) => {
+      const n = new Set(s);
+      n.has(id) ? n.delete(id) : n.add(id);
+      return n;
+    });
+  const toggleAllPage = () => {
+    const allSelected = pageItems.every((p: any) => selected.has(p.id));
+    setSelected((s) => {
+      const n = new Set(s);
+      pageItems.forEach((p: any) => allSelected ? n.delete(p.id) : n.add(p.id));
+      return n;
+    });
+  };
+
+  const segmentCount = (seg: Segment) => (personas || []).filter(seg.filter).length;
+  const tableData = (personas || []).map((p: any) => ({ ...p, grupoNombre: p.grupos?.nombre || "" }));
 
   if (isLoading) {
     return (
-      <div className="animate-fade-in space-y-4">
-        <Skeleton className="h-10 w-48" />
-        <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
-          {[...Array(5)].map((_, i) => <Skeleton key={i} className="h-24" />)}
+      <div className="flex gap-6 h-[calc(100vh-8rem)]">
+        <Skeleton className="w-56 h-full" />
+        <div className="flex-1 space-y-3">
+          <Skeleton className="h-10 w-full" />
+          <Skeleton className="h-96 w-full" />
         </div>
-        <Skeleton className="h-[400px] w-full" />
       </div>
     );
   }
 
   return (
-    <div className="animate-fade-in space-y-6">
-      <PageHeader
-        title="Personas"
-        description={
-          activeRole === "consolidador_lider" ? "Toda la membresía — puedes crear y editar personas" :
-          activeRole === "lider_red" ? "Personas de tu red" :
-          "Gestión de miembros, visitantes, líderes y servidores"
-        }
-      >
-        <ExportDropdown title="Personas" filename="personas" columns={[
-          { header: "Nombres", key: "nombres" }, { header: "Apellidos", key: "apellidos" },
-          { header: "Teléfono", key: "telefono" }, { header: "Email", key: "email" },
-          { header: "Tipo", key: "tipo_persona" }, { header: "Grupo", key: "grupoNombre" },
-          { header: "Estado", key: "estado_iglesia" },
-        ]} data={tableData} />
-        <ExportPersonasDialog />
-        {canCreate && <ImportPersonasDialog />}
-        {canCreate && <PersonaFormDialog />}
-      </PageHeader>
+    <div className="flex gap-4 md:gap-6 h-[calc(100vh-6.5rem)] min-h-[560px]">
+      {editing && <PersonaFormDialog initialData={editing} onClose={() => setEditing(null)} />}
 
-      {canEdit && editing && <PersonaFormDialog initialData={editing} onClose={() => setEditing(null)} />}
-
-      {/* Metrics */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
-        <MetricCard title="Total" value={counts.total || 0} icon={Users} />
-        <MetricCard title="Miembros" value={counts["Miembro"] || 0} icon={Church} variant="default" />
-        <MetricCard title="Visitantes" value={counts["Visitante"] || 0} icon={UserPlus} variant="info" />
-        <MetricCard title="Discípulos" value={counts["Discípulo"] || 0} icon={Users} variant="accent" />
-        <MetricCard title="Líderes CDP" value={counts["Líder Casa de Paz"] || 0} icon={Users} variant="success" />
-        <MetricCard title="Líderes Red" value={counts["Líder de Red"] || 0} icon={Users} variant="accent" />
-      </div>
-
-      {/* Filters */}
-      <div className="space-y-3">
-        <div className="flex flex-col sm:flex-row gap-3">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input placeholder="Buscar por nombre, apellido, documento, email o teléfono..." value={search} onChange={e => setSearch(e.target.value)} className="pl-10" />
+      {/* Rail izquierdo — segmentos */}
+      <aside className="hidden lg:flex w-56 shrink-0 flex-col rounded-xl border bg-card overflow-hidden">
+        <div className="px-3 py-3 border-b">
+          <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">Vistas</div>
+          <div className="text-[11px] text-muted-foreground mt-0.5">
+            {activeRole === "lider_red" ? "Personas de tu red" : "Toda la comunidad"}
           </div>
-          <Select value={estadoFilter} onValueChange={setEstadoFilter}>
-            <SelectTrigger className="w-40"><SelectValue placeholder="Estado" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos</SelectItem>
-              <SelectItem value="Activo">Activo</SelectItem>
-              <SelectItem value="Inactivo">Inactivo</SelectItem>
-              <SelectItem value="En proceso">En proceso</SelectItem>
-            </SelectContent>
-          </Select>
-          <Button variant="outline" size="sm" className="gap-1.5" onClick={() => setShowAdvanced(v => !v)}>
-            Filtros avanzados
-            {activeAdvanced > 0 && (
-              <span className="ml-1 inline-flex items-center justify-center h-5 min-w-5 px-1 rounded-full bg-accent text-accent-foreground text-[10px] font-bold">{activeAdvanced}</span>
-            )}
-          </Button>
+        </div>
+        <div className="flex-1 overflow-y-auto p-1.5 space-y-0.5">
+          {SMART_SEGMENTS.map((s) => (
+            <SegmentBtn key={s.id} seg={s} active={segment === s.id} count={segmentCount(s)} onClick={() => setSegment(s.id)} />
+          ))}
+          <div className="px-2 py-2 text-[10px] uppercase tracking-wider font-bold text-muted-foreground/70">Por tipo</div>
+          {TIPO_SEGMENTS.map((s) => (
+            <SegmentBtn key={s.id} seg={s} active={segment === s.id} count={segmentCount(s)} onClick={() => setSegment(s.id)} />
+          ))}
+          {pins.filter((p) => p.kind === "persona").length > 0 && (
+            <>
+              <div className="px-2 py-2 text-[10px] uppercase tracking-wider font-bold text-muted-foreground/70">Anclados</div>
+              {pins.filter((p) => p.kind === "persona").slice(0, 6).map((p) => (
+                <button
+                  key={p.id}
+                  onClick={() => navigate(p.to)}
+                  className="w-full flex items-center gap-2 h-8 px-2.5 rounded-md text-[12.5px] text-muted-foreground hover:text-foreground hover:bg-muted"
+                >
+                  <Star className="h-3 w-3 text-amber-500 shrink-0 fill-amber-400" />
+                  <span className="flex-1 truncate text-left">{p.label}</span>
+                </button>
+              ))}
+            </>
+          )}
+        </div>
+      </aside>
+
+      {/* Panel central */}
+      <section className="flex-1 flex flex-col min-w-0 rounded-xl border bg-card overflow-hidden">
+        {/* Toolbar */}
+        <div className="flex items-center gap-2 px-3 md:px-4 py-2.5 border-b bg-background/40">
+          <div className="flex items-center gap-2 min-w-0">
+            <activeSegment.icon className="h-4 w-4 text-primary shrink-0" />
+            <h2 className="text-[14px] font-semibold truncate">{activeSegment.label}</h2>
+            <Badge variant="secondary" className="text-[10px] shrink-0">{filtered.length}</Badge>
+          </div>
+          <div className="flex-1" />
+          <div className="hidden md:flex items-center gap-2">
+            <div className="relative">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+              <Input
+                placeholder="Buscar…"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="pl-8 h-8 w-56 text-[12.5px]"
+              />
+              {search && (
+                <button onClick={() => setSearch("")} className="absolute right-1.5 top-1/2 -translate-y-1/2 p-0.5 rounded hover:bg-muted">
+                  <X className="h-3 w-3 text-muted-foreground" />
+                </button>
+              )}
+            </div>
+            <Select value={estado} onValueChange={setEstado}>
+              <SelectTrigger className="h-8 w-32 text-[12.5px]"><Filter className="h-3 w-3 mr-1" /><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos estados</SelectItem>
+                <SelectItem value="Activo">Activo</SelectItem>
+                <SelectItem value="Inactivo">Inactivo</SelectItem>
+                <SelectItem value="En proceso">En proceso</SelectItem>
+              </SelectContent>
+            </Select>
+            <Button size="sm" variant="ghost" className="h-8 gap-1 text-[12px]"
+              onClick={() => setSortBy((s) => s === "nombre" ? "recientes" : "nombre")}>
+              <ArrowUpDown className="h-3 w-3" />
+              {sortBy === "nombre" ? "A–Z" : "Recientes"}
+            </Button>
+          </div>
+          <div className="flex items-center gap-1">
+            <ExportDropdown title="Personas" filename="personas" columns={[
+              { header: "Nombres", key: "nombres" }, { header: "Apellidos", key: "apellidos" },
+              { header: "Teléfono", key: "telefono" }, { header: "Email", key: "email" },
+              { header: "Tipo", key: "tipo_persona" }, { header: "Grupo", key: "grupoNombre" },
+              { header: "Estado", key: "estado_iglesia" },
+            ]} data={tableData} />
+            <ExportPersonasDialog />
+            {canCreate && <ImportPersonasDialog />}
+            {canCreate && <PersonaFormDialog />}
+          </div>
         </div>
 
-        {showAdvanced && (
-          <div className="surface-card p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 animate-fade-in">
-            <div>
-              <label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Grupo</label>
-              <Select value={grupoFilter} onValueChange={setGrupoFilter}>
-                <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todos los grupos</SelectItem>
-                  <SelectItem value="__none__">Sin grupo</SelectItem>
-                  {gruposOptions.map(([id, name]) => (
-                    <SelectItem key={id} value={id}>{name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+        {/* Mobile search bar */}
+        <div className="md:hidden flex items-center gap-2 px-3 py-2 border-b">
+          <div className="relative flex-1">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+            <Input placeholder="Buscar…" value={search} onChange={(e) => setSearch(e.target.value)} className="pl-8 h-8 text-[12.5px]" />
+          </div>
+          <Select value={segment} onValueChange={setSegment}>
+            <SelectTrigger className="h-8 w-40 text-[12.5px]"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              {[...SMART_SEGMENTS, ...TIPO_SEGMENTS].map((s) => (
+                <SelectItem key={s.id} value={s.id}>{s.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Table */}
+        <div className="flex-1 overflow-auto">
+          {filtered.length === 0 ? (
+            <div className="h-full flex flex-col items-center justify-center py-16 text-center px-6">
+              <UsersRound className="h-10 w-10 text-muted-foreground/40 mb-3" />
+              <p className="text-[14px] font-medium">Sin resultados</p>
+              <p className="text-[12px] text-muted-foreground mt-1">Ajusta la vista o los filtros para ver más personas.</p>
+              {canCreate && (
+                <div className="mt-4">
+                  <PersonaFormDialog />
+                </div>
+              )}
             </div>
-            <div>
-              <label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Ministerio / Rol</label>
-              <Select value={ministerioFilter} onValueChange={setMinisterioFilter}>
-                <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todos</SelectItem>
-                  {ministeriosOptions.map((m) => (
-                    <SelectItem key={m} value={m}>{m}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+          ) : (
+            <table className="w-full text-[13px]">
+              <thead className="sticky top-0 bg-card z-10 border-b">
+                <tr className="text-left text-[10.5px] uppercase tracking-wider text-muted-foreground font-semibold">
+                  <th className="w-8 px-3 py-2.5">
+                    <Checkbox
+                      checked={pageItems.length > 0 && pageItems.every((p: any) => selected.has(p.id))}
+                      onCheckedChange={toggleAllPage}
+                      aria-label="Seleccionar página"
+                    />
+                  </th>
+                  <th className="px-2 py-2.5">Persona</th>
+                  <th className="px-2 py-2.5 hidden md:table-cell">Tipo</th>
+                  <th className="px-2 py-2.5 hidden lg:table-cell">Grupo</th>
+                  <th className="px-2 py-2.5 hidden md:table-cell">Contacto</th>
+                  <th className="px-2 py-2.5 hidden xl:table-cell">Alta</th>
+                  <th className="w-16 px-2 py-2.5"></th>
+                </tr>
+              </thead>
+              <tbody>
+                {pageItems.map((p: any) => {
+                  const tipos = getTipos(p);
+                  const isSel = selected.has(p.id);
+                  const pinnedId = `persona:${p.id}`;
+                  const pinned = pins.some((x) => x.id === pinnedId);
+                  return (
+                    <tr
+                      key={p.id}
+                      className={cn(
+                        "border-b last:border-0 hover:bg-muted/40 cursor-pointer group",
+                        isSel && "bg-primary/5"
+                      )}
+                      onClick={() => openQuickView(p)}
+                      onDoubleClick={() => navigate(`/personas/${p.id}`)}
+                    >
+                      <td className="px-3 py-2" onClick={(e) => e.stopPropagation()}>
+                        <Checkbox checked={isSel} onCheckedChange={() => toggleSelect(p.id)} />
+                      </td>
+                      <td className="px-2 py-2">
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <Avatar className="h-7 w-7 shrink-0">
+                            <AvatarFallback className="text-[10px] bg-primary/10 text-primary font-semibold">
+                              {p.nombres?.[0]}{p.apellidos?.[0]}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="min-w-0">
+                            <div className="font-medium truncate flex items-center gap-1.5">
+                              {p.nombres} {p.apellidos}
+                              {pinned && <Star className="h-3 w-3 fill-amber-400 text-amber-500 shrink-0" />}
+                            </div>
+                            <div className="text-[11px] text-muted-foreground truncate md:hidden">
+                              {tipos[0] || "—"} · {p.estado_iglesia || ""}
+                            </div>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-2 py-2 hidden md:table-cell">
+                        <div className="flex flex-wrap gap-1">
+                          {tipos.slice(0, 2).map((t) => (
+                            <Badge key={t} variant="secondary" className="text-[10px] px-1.5 py-0">{t}</Badge>
+                          ))}
+                          {tipos.length > 2 && <span className="text-[10px] text-muted-foreground">+{tipos.length - 2}</span>}
+                        </div>
+                      </td>
+                      <td className="px-2 py-2 hidden lg:table-cell text-muted-foreground text-[12px] truncate max-w-[160px]">
+                        {p.grupos?.nombre || "—"}
+                      </td>
+                      <td className="px-2 py-2 hidden md:table-cell">
+                        <div className="flex items-center gap-2 text-[11.5px] text-muted-foreground">
+                          {p.telefono && (
+                            <span className="inline-flex items-center gap-1"><Phone className="h-3 w-3" />{p.telefono}</span>
+                          )}
+                          {p.email && (
+                            <span className="inline-flex items-center gap-1 truncate max-w-[140px]" title={p.email}><Mail className="h-3 w-3" />{p.email}</span>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-2 py-2 hidden xl:table-cell text-[11.5px] text-muted-foreground">
+                        {p.created_at ? format(new Date(p.created_at), "dd/MM/yy") : "—"}
+                      </td>
+                      <td className="px-2 py-2" onClick={(e) => e.stopPropagation()}>
+                        <div className="flex items-center justify-end gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <button
+                            title={pinned ? "Desanclar" : "Anclar"}
+                            onClick={() => toggle({ id: pinnedId, kind: "persona", label: `${p.nombres} ${p.apellidos}`, to: `/personas/${p.id}` })}
+                            className="p-1 rounded hover:bg-muted"
+                          >
+                            <Star className={cn("h-3.5 w-3.5", pinned ? "fill-amber-400 text-amber-500" : "text-muted-foreground")} />
+                          </button>
+                          {p.telefono && (
+                            <a
+                              title="WhatsApp"
+                              href={`https://web.whatsapp.com/send?phone=${(p.telefono || "").replace(/\D/g, "")}`}
+                              target="_blank" rel="noopener noreferrer"
+                              className="p-1 rounded hover:bg-muted text-emerald-600"
+                            >
+                              <MessageSquare className="h-3.5 w-3.5" />
+                            </a>
+                          )}
+                          {canEdit && (
+                            <button title="Editar" onClick={() => setEditing({ ...p })} className="p-1 rounded hover:bg-muted">
+                              <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
+                            </button>
+                          )}
+                          {canDelete && (
+                            <DeleteConfirmDialog
+                              onConfirm={() => handleDelete(p.id)}
+                              title="¿Eliminar persona?"
+                              description={`Se eliminará a ${p.nombres} ${p.apellidos} permanentemente.`}
+                            />
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          )}
+        </div>
+
+        {/* Footer paginación */}
+        {filtered.length > 0 && (
+          <div className="flex items-center justify-between gap-2 px-3 py-2 border-t bg-background/40 text-[11.5px] text-muted-foreground">
+            <span>
+              {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, filtered.length)} de {filtered.length}
+              {selected.size > 0 && <span className="ml-3 text-primary font-medium">· {selected.size} seleccionadas</span>}
+            </span>
+            <div className="flex items-center gap-1">
+              <Button size="sm" variant="ghost" className="h-7 px-2" disabled={page === 1} onClick={() => setPage((p) => p - 1)}>
+                <ChevronLeft className="h-3.5 w-3.5" />
+              </Button>
+              <span className="tabular-nums px-1">{page} / {totalPages}</span>
+              <Button size="sm" variant="ghost" className="h-7 px-2" disabled={page >= totalPages} onClick={() => setPage((p) => p + 1)}>
+                <ChevronRight className="h-3.5 w-3.5" />
+              </Button>
             </div>
-            <div>
-              <label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Alta desde</label>
-              <Input type="date" value={altaDesde} onChange={e => setAltaDesde(e.target.value)} className="mt-1" />
-            </div>
-            <div>
-              <label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Alta hasta</label>
-              <Input type="date" value={altaHasta} onChange={e => setAltaHasta(e.target.value)} className="mt-1" />
-            </div>
-            <div>
-              <label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Mes de cumpleaños</label>
-              <Select value={mesCumple} onValueChange={setMesCumple}>
-                <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todos</SelectItem>
-                  {["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"].map((n, i) => (
-                    <SelectItem key={n} value={String(i + 1).padStart(2, "0")}>{n}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            {activeAdvanced > 0 && (
-              <div className="sm:col-span-2 lg:col-span-5 flex justify-end">
-                <Button variant="ghost" size="sm" onClick={resetAdvanced}>Limpiar filtros</Button>
-              </div>
-            )}
           </div>
         )}
-      </div>
+      </section>
 
-      <Tabs value={tipoFilter} onValueChange={setTipoFilter}>
-        <TabsList className="flex flex-wrap h-auto gap-1">
-          {TIPOS.map(t => (
-            <TabsTrigger key={t} value={t} className="text-xs">
-              {t} ({t === "Todos" ? counts.total || 0 : counts[t] || 0})
-            </TabsTrigger>
-          ))}
-        </TabsList>
-      </Tabs>
-
-      {/* Profile Cards */}
-      {filtered.length === 0 ? (
-        <div className="text-center py-12 text-muted-foreground">No se encontraron personas.</div>
-      ) : (
-        <>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {filtered.slice((page - 1) * pageSize, page * pageSize).map((p: any) => (
-              <Card key={p.id} className="overflow-hidden hover:shadow-md transition-shadow group cursor-pointer" onClick={() => navigate(`/personas/${p.id}`)}>
-                <CardContent className="p-0">
-                  <div className={`h-2 ${tipoColor[(p.tipos_persona?.[0] || p.tipo_persona)]?.includes("primary") ? "bg-primary" : tipoColor[(p.tipos_persona?.[0] || p.tipo_persona)]?.includes("info") ? "bg-info" : tipoColor[(p.tipos_persona?.[0] || p.tipo_persona)]?.includes("accent") ? "bg-accent" : "bg-success"}`} />
-                  <div className="p-4 space-y-3">
-                    <div className="flex items-start gap-3">
-                      <Avatar className="h-12 w-12">
-                        <AvatarFallback className={`text-sm font-bold ${tipoColor[(p.tipos_persona?.[0] || p.tipo_persona)] || "bg-muted text-muted-foreground"}`}>
-                          {p.nombres?.[0]}{p.apellidos?.[0]}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div className="flex-1 min-w-0">
-                        <p className="font-semibold text-foreground truncate">{p.nombres} {p.apellidos}</p>
-                        <div className="flex items-center gap-2 mt-1">
-                          {(() => {
-                            const tipos = getPersonaTipos(p).length ? getPersonaTipos(p) : ["Miembro"];
-                            return tipos.map((tipo: string) => (
-                              <Badge key={tipo} variant="secondary" className={`text-[10px] ${tipoColor[tipo] || ""}`}>{tipo}</Badge>
-                            ));
-                          })()}
-                          <StatusBadge status={p.estado_iglesia} />
-                        </div>
-                      </div>
-                    </div>
-                    <div className="space-y-1.5 text-xs text-muted-foreground">
-                      {p.telefono && (
-                        <div className="flex items-center gap-2">
-                          <Phone className="h-3 w-3" />
-                          <span>{p.telefono}</span>
-                          <a
-                            href={`https://web.whatsapp.com/send?phone=${(p.telefono || "").replace(/\D/g, "")}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            onClick={e => e.stopPropagation()}
-                            className="inline-flex items-center text-success hover:text-success/80"
-                            title="Enviar WhatsApp"
-                          >
-                            <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
-                          </a>
-                        </div>
-                      )}
-                      {p.email && <div className="flex items-center gap-2 truncate"><Mail className="h-3 w-3 shrink-0" /> <span className="truncate">{p.email}</span></div>}
-                      {(p as any).grupos?.nombre && <div className="flex items-center gap-2"><Users className="h-3 w-3" /> {(p as any).grupos.nombre}</div>}
-                      {p.direccion && <div className="flex items-center gap-2 truncate"><MapPin className="h-3 w-3 shrink-0" /> <span className="truncate">{p.direccion}</span></div>}
-                      {p.fecha_nacimiento && <div className="flex items-center gap-2"><Calendar className="h-3 w-3" /> {format(parseISO(p.fecha_nacimiento), "dd MMM yyyy", { locale: es })}</div>}
-                    </div>
-                    <div className="flex items-center gap-1 pt-1 border-t opacity-0 group-hover:opacity-100 transition-opacity">
-                      {canEdit && (
-                        <Button variant="ghost" size="sm" className="h-7 text-xs gap-1" onClick={(e) => { e.stopPropagation(); setEditing({ ...p }); }}>
-                          <Pencil className="h-3 w-3" /> Editar
-                        </Button>
-                      )}
-                      {canDelete && (
-                        <div className="ml-auto" onClick={e => e.stopPropagation()}>
-                          <DeleteConfirmDialog onConfirm={() => handleDelete(p.id)} title="¿Eliminar persona?" description={`Se eliminará a ${p.nombres} ${p.apellidos} permanentemente.`} />
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-
-          {/* Pagination */}
-          {filtered.length > pageSize && (
-            <div className="flex items-center justify-between pt-4 flex-wrap gap-2">
-              <p className="text-xs md:text-sm text-muted-foreground">
-                {(page - 1) * pageSize + 1} - {Math.min(page * pageSize, filtered.length)} de {filtered.length}
-              </p>
-              <div className="flex items-center gap-1 md:gap-2">
-                <Button variant="outline" size="sm" disabled={page === 1} onClick={() => setPage(p => p - 1)} className="h-8 px-2 md:px-3">
-                  <ChevronLeft className="h-4 w-4" /> <span className="hidden md:inline">Anterior</span>
-                </Button>
-                <span className="text-xs md:text-sm font-medium">
-                  {page}/{Math.ceil(filtered.length / pageSize)}
-                </span>
-                <Button variant="outline" size="sm" disabled={page >= Math.ceil(filtered.length / pageSize)} onClick={() => setPage(p => p + 1)} className="h-8 px-2 md:px-3">
-                  <span className="hidden md:inline">Siguiente</span> <ChevronRight className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-          )}
-        </>
+      {/* Barra flotante de acciones bulk */}
+      {selected.size > 0 && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-30 flex items-center gap-2 rounded-full border bg-card shadow-lg px-3 py-2">
+          <span className="text-[12px] font-medium px-1">{selected.size} seleccionadas</span>
+          <div className="w-px h-5 bg-border" />
+          <Button size="sm" variant="ghost" className="h-7 gap-1 text-[12px]" onClick={() => setSelected(new Set())}>
+            Limpiar
+          </Button>
+          <Button size="sm" variant="ghost" className="h-7 gap-1 text-[12px]"
+            onClick={() => toast.info("Acción masiva próximamente")}>
+            <MoreHorizontal className="h-3.5 w-3.5" /> Acción
+          </Button>
+        </div>
       )}
     </div>
+  );
+}
+
+function SegmentBtn({ seg, active, count, onClick }: { seg: Segment; active: boolean; count: number; onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      className={cn(
+        "w-full flex items-center gap-2 h-8 px-2.5 rounded-md text-[12.5px] transition-colors",
+        active
+          ? "bg-primary/10 text-primary font-medium"
+          : "text-muted-foreground hover:text-foreground hover:bg-muted"
+      )}
+    >
+      <seg.icon className={cn("h-3.5 w-3.5 shrink-0", active && "text-primary")} />
+      <span className="flex-1 text-left truncate">{seg.label}</span>
+      <span className={cn("text-[10.5px] tabular-nums", active ? "text-primary" : "text-muted-foreground/70")}>{count}</span>
+    </button>
   );
 }
