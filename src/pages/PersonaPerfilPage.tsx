@@ -1029,16 +1029,33 @@ export default function PersonaPerfilPage() {
                     </SelectContent>
                   </Select>
                 </div>
-                <Button
-                  className="w-full gap-2"
-                  disabled={!qrCheckinServicio || !(persona as any).qr_code}
-                  onClick={() => setQrCheckinOpen(true)}
-                >
-                  <QrCode className="h-4 w-4" /> Realizar check-in
-                </Button>
+                <div className="grid grid-cols-1 gap-2">
+                  <Button
+                    className="w-full gap-2"
+                    disabled={!qrCheckinServicio || !(persona as any).qr_code}
+                    onClick={() => setQrCheckinOpen(true)}
+                  >
+                    <QrCode className="h-4 w-4" /> Check-in manual
+                  </Button>
+                  <PersonaQrCameraCheckin
+                    expectedCode={(persona as any).qr_code || ""}
+                    personaNombre={`${persona.nombres} ${persona.apellidos}`}
+                    onMatch={() => {
+                      if (!qrCheckinServicio) {
+                        toast.error("Selecciona primero un servicio");
+                        return;
+                      }
+                      setQrCheckinOpen(true);
+                    }}
+                  />
+                </div>
                 {!(persona as any).qr_code && (
                   <p className="text-[11px] text-destructive">Esta persona aún no tiene código QR generado.</p>
                 )}
+                {!qrCheckinServicio && (persona as any).qr_code && (
+                  <p className="text-[11px] text-muted-foreground">Selecciona un servicio para habilitar el check-in.</p>
+                )}
+
               </CardContent>
             </Card>
           </div>
