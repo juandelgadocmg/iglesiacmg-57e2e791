@@ -20,6 +20,8 @@ import PageSkeleton from "@/components/shared/PageSkeleton";
 import EmptyState from "@/components/shared/EmptyState";
 import certLideresAsset from "@/assets/cert-lideres-cdp.png.asset.json";
 import certBautismoAsset from "@/assets/cert-bautismo.png.asset.json";
+import CertDownloadDialog from "@/components/certificados/CertDownloadDialog";
+import { logCertExport } from "@/lib/logCertExport";
 
 const TIPO_META: Record<string, { color: string; bg: string; ring: string }> = {
   "Membresía":              { color: "#3b82f6", bg: "from-blue-500/10 to-blue-500/5", ring: "ring-blue-500/30" },
