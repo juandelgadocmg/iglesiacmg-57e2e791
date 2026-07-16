@@ -358,25 +358,59 @@ export default function PersonaPerfilPage() {
               </div>
             </div>
 
-            <Button variant="secondary" size="sm" className="gap-1.5 shrink-0" onClick={() => setEditing(true)}>
-              <Pencil className="h-3.5 w-3.5" /> Editar
-            </Button>
+            <div className="flex flex-col gap-2 shrink-0">
+              <div className="flex gap-2">
+                <Button variant="secondary" size="sm" className="gap-1.5" onClick={() => setEditing(true)}>
+                  <Pencil className="h-3.5 w-3.5" /> Editar
+                </Button>
+                <Button variant="secondary" size="sm" className="gap-1.5" onClick={registrarAsistencia}>
+                  <ClipboardCheck className="h-3.5 w-3.5" /> Asistencia
+                </Button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="secondary" size="icon" className="h-8 w-8">
+                      <MoreHorizontal className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-56">
+                    <DropdownMenuLabel>Acciones rápidas</DropdownMenuLabel>
+                    <DropdownMenuItem onClick={generarCertificado}>
+                      <Award className="h-4 w-4 mr-2" /> Generar certificado
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={registrarAsistencia}>
+                      <ClipboardCheck className="h-4 w-4 mr-2" /> Registrar asistencia
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuLabel>Exportar</DropdownMenuLabel>
+                    <DropdownMenuItem onClick={handleExportPDF}>
+                      <FileText className="h-4 w-4 mr-2" /> Ficha completa (PDF)
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={handleExportCSV}>
+                      <Download className="h-4 w-4 mr-2" /> Historial (CSV)
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+            </div>
           </div>
         </div>
       </div>
 
       {/* Tabs */}
-      <Tabs defaultValue="info" className="space-y-6">
-        <TabsList>
-          <TabsTrigger value="info" className="gap-1.5"><User className="h-3.5 w-3.5" /> Información</TabsTrigger>
+      <Tabs defaultValue="resumen" className="space-y-6">
+        <TabsList className="flex flex-wrap h-auto gap-1">
+          <TabsTrigger value="resumen" className="gap-1.5"><User className="h-3.5 w-3.5" /> Resumen</TabsTrigger>
+          <TabsTrigger value="grupos" className="gap-1.5"><Users className="h-3.5 w-3.5" /> Grupos</TabsTrigger>
+          <TabsTrigger value="asistencia" className="gap-1.5"><Clock className="h-3.5 w-3.5" /> Asistencia</TabsTrigger>
+          <TabsTrigger value="finanzas" className="gap-1.5"><DollarSign className="h-3.5 w-3.5" /> Finanzas</TabsTrigger>
+          <TabsTrigger value="actividad" className="gap-1.5"><Activity className="h-3.5 w-3.5" /> Actividad</TabsTrigger>
           <TabsTrigger value="familia" className="gap-1.5"><HeartHandshake className="h-3.5 w-3.5" /> Familia</TabsTrigger>
           <TabsTrigger value="procesos" className="gap-1.5"><Heart className="h-3.5 w-3.5" /> Crecimiento</TabsTrigger>
-          <TabsTrigger value="asistencia" className="gap-1.5"><Clock className="h-3.5 w-3.5" /> Asistencia</TabsTrigger>
           <TabsTrigger value="qr" className="gap-1.5"><QrCode className="h-3.5 w-3.5" /> QR</TabsTrigger>
         </TabsList>
 
-        {/* Info tab */}
-        <TabsContent value="info">
+        {/* Resumen (formerly info) */}
+        <TabsContent value="resumen">
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
             {/* Personal */}
             <Card>
