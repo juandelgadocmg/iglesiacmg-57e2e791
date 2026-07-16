@@ -51,10 +51,47 @@ async function loadImageDataUrl(url: string): Promise<string> {
   });
 }
 
-function generateCertificatePDF(cert: any, config: any) {
+async function generateCertificatePDF(cert: any, config: any) {
   const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "letter" });
   const w = doc.internal.pageSize.getWidth();
   const h = doc.internal.pageSize.getHeight();
+
+  const templateUrl = TEMPLATE_MAP[cert.tipo];
+  if (templateUrl) {
+    // ===== Plantilla oficial CMG / FEL Institute =====
+    try {
+      const dataUrl = await loadImageDataUrl(templateUrl);
+      doc.addImage(dataUrl, "PNG", 0, 0, w, h, undefined, "FAST");
+
+      // Nombre del líder / miembro sobre la línea horizontal de la plantilla.
+      // Coordenadas calibradas a las plantillas subidas (letter landscape).
+      doc.setFont("times", "italic");
+      doc.setTextColor(30, 30, 30);
+      const nameY = cert.tipo === "Bautismo" ? 170 : 175;
+      // Ajuste automático de tamaño según longitud del nombre
+      const nombre = cert.personaNombre || "—";
+      let fontSize = 26;
+      if (nombre.length > 28) fontSize = 22;
+      if (nombre.length > 38) fontSize = 18;
+      doc.setFontSize(fontSize);
+      doc.text(nombre, w / 2, nameY, { align: "center" });
+
+      // Código y fecha discretos en el pie
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(7);
+      doc.setTextColor(120, 120, 120);
+      const fechaStr = cert.fecha_emision ? format(parseISO(cert.fecha_emision), "dd/MM/yyyy") : "";
+      doc.text(`Código de verificación: ${cert.codigo}   ·   Emitido: ${fechaStr}`, w / 2, h - 5, { align: "center" });
+
+      doc.save(`Certificado_${nombre.replace(/\s/g, "_")}_${cert.tipo}.pdf`);
+      return;
+    } catch (e) {
+      // Si la plantilla falla, seguimos con el diseño genérico.
+      console.warn("No se pudo cargar la plantilla, usando diseño genérico", e);
+    }
+  }
+
+  // ===== Diseño genérico (resto de tipos o fallback) =====
   doc.setDrawColor(59, 130, 246); doc.setLineWidth(2); doc.rect(10, 10, w - 20, h - 20);
   doc.setLineWidth(0.5); doc.rect(14, 14, w - 28, h - 28);
   doc.setFontSize(28); doc.setFont("helvetica", "bold"); doc.setTextColor(59, 130, 246);
