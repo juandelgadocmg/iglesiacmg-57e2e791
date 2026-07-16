@@ -105,10 +105,21 @@ export default function PersonasPage() {
     const q = norm(search.trim());
     const qDigits = onlyDigits(search);
     return personas.filter((p: any) => {
-      if (tipoFilter !== "Todos") {
-        if (!hasTipo(p, tipoFilter)) return false;
-      }
+      if (tipoFilter !== "Todos" && !hasTipo(p, tipoFilter)) return false;
       if (estadoFilter !== "all" && p.estado_iglesia !== estadoFilter) return false;
+      if (grupoFilter !== "all") {
+        const gid = p.grupo_id || p.grupos?.id;
+        if (grupoFilter === "__none__" ? !!gid : gid !== grupoFilter) return false;
+      }
+      if (ministerioFilter !== "all" && norm(p.ministerio) !== norm(ministerioFilter)) return false;
+      if (altaDesde && (!p.created_at || p.created_at.slice(0, 10) < altaDesde)) return false;
+      if (altaHasta && (!p.created_at || p.created_at.slice(0, 10) > altaHasta)) return false;
+      if (mesCumple !== "all") {
+        const bd = p.fecha_nacimiento;
+        if (!bd) return false;
+        const m = String(new Date(bd).getMonth() + 1).padStart(2, "0");
+        if (m !== mesCumple) return false;
+      }
       if (q) {
         const haystack = norm(
           `${p.nombres ?? ""} ${p.apellidos ?? ""} ${p.email ?? ""} ${p.documento ?? ""} ${p.ocupacion ?? ""} ${p.direccion ?? ""}`
@@ -120,11 +131,32 @@ export default function PersonasPage() {
       }
       return true;
     });
-  }, [personas, search, tipoFilter, estadoFilter]);
+  }, [personas, search, tipoFilter, estadoFilter, grupoFilter, ministerioFilter, altaDesde, altaHasta, mesCumple]);
+
+  // Distinct groups & ministerios for filter selects
+  const gruposOptions = useMemo(() => {
+    const map = new Map<string, string>();
+    (personas || []).forEach((p: any) => {
+      const id = p.grupo_id || p.grupos?.id;
+      const name = p.grupos?.nombre;
+      if (id && name && !map.has(id)) map.set(id, name);
+    });
+    return Array.from(map.entries()).sort((a, b) => a[1].localeCompare(b[1]));
+  }, [personas]);
+  const ministeriosOptions = useMemo(() => {
+    const set = new Set<string>();
+    (personas || []).forEach((p: any) => { if (p.ministerio) set.add(p.ministerio); });
+    return Array.from(set).sort();
+  }, [personas]);
 
   // Reset page on filter change
-  const filterKey = `${search}-${tipoFilter}-${estadoFilter}`;
+  const filterKey = `${search}-${tipoFilter}-${estadoFilter}-${grupoFilter}-${ministerioFilter}-${altaDesde}-${altaHasta}-${mesCumple}`;
   useEffect(() => setPage(1), [filterKey]);
+  const activeAdvanced = [grupoFilter, ministerioFilter].filter(v => v !== "all").length +
+    (altaDesde ? 1 : 0) + (altaHasta ? 1 : 0) + (mesCumple !== "all" ? 1 : 0);
+  const resetAdvanced = () => {
+    setGrupoFilter("all"); setMinisterioFilter("all"); setAltaDesde(""); setAltaHasta(""); setMesCumple("all");
+  };
 
   const counts = useMemo(() => {
     if (!personas) return {} as Record<string, number>;
