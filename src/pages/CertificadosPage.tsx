@@ -121,6 +121,37 @@ async function generateCertificatePDF(cert: any, config: any) {
 function DiplomaPreview({ cert, config, scale = "sm" }: { cert: any; config: any; scale?: "sm" | "lg" }) {
   const meta = tipoMeta(cert.tipo);
   const isLg = scale === "lg";
+  const templateUrl = TEMPLATE_MAP[cert.tipo];
+
+  // ===== Vista previa con plantilla oficial (Bautismo / Líderes CDP) =====
+  if (templateUrl) {
+    return (
+      <div className="relative w-full aspect-[11/8.5] rounded-lg overflow-hidden border shadow-sm bg-white">
+        <img
+          src={templateUrl}
+          alt={`Plantilla ${cert.tipo}`}
+          className="absolute inset-0 w-full h-full object-cover select-none"
+          loading="lazy"
+          decoding="async"
+        />
+        {/* Nombre sobre la línea de la plantilla — posición proporcional */}
+        <div
+          className="absolute left-0 right-0 flex justify-center pointer-events-none"
+          style={{ top: cert.tipo === "Bautismo" ? "78%" : "80%" }}
+        >
+          <p
+            className={cn(
+              "font-serif italic text-foreground/90 px-3 truncate max-w-[70%] text-center",
+              isLg ? "text-xl md:text-2xl" : "text-[10px]"
+            )}
+          >
+            {cert.personaNombre || "—"}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div
       className={cn(
