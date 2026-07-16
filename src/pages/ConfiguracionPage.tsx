@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import PageHeader from "@/components/shared/PageHeader";
+import ModuleHero from "@/components/shell/ModuleHero";
 import { useConfiguracion, useUpdateConfiguracion } from "@/hooks/useConfiguracion";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
