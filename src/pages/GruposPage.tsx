@@ -33,6 +33,8 @@ import PageSkeleton from "@/components/shared/PageSkeleton";
 import EmptyState from "@/components/shared/EmptyState";
 import ErrorState from "@/components/shared/ErrorState";
 import { GrupoInfoCard, GrupoCardsSkeletonGrid } from "@/components/grupos/GrupoInfoCard";
+import PlanificacionBulkBar from "@/components/grupos/PlanificacionBulkBar";
+import { Checkbox } from "@/components/ui/checkbox";
 
 const ReportesGruposContent = lazy(() => import("@/pages/ReportesGruposPage"));
 const MapaGruposContent = lazy(() => import("@/pages/MapaGruposPage"));
@@ -106,6 +108,7 @@ export default function GruposPage() {
   const { data: planificaciones, error: planError, refetch: refetchPlan, isLoading: loadingPlan } = usePlanificaciones();
   const deletePlan = useDeletePlanificacion();
   const [viewingPlan, setViewingPlan] = useState<any>(null);
+  const [selectedPlanIds, setSelectedPlanIds] = useState<string[]>([]);
   const { roles } = useUserRoles();
   const { user } = useAuth();
   const { activeRole } = useActiveRole();
@@ -417,7 +420,9 @@ export default function GruposPage() {
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
               <div>
                 <h2 className="text-xl font-semibold">Hojas de Planeación</h2>
-                <p className="text-sm text-muted-foreground">Planificación semanal de Casas de Paz</p>
+                <p className="text-sm text-muted-foreground">
+                  Planificación semanal de Casas de Paz — usa las casillas para acciones masivas.
+                </p>
               </div>
               {canCreateGrupo && (
                 <Button onClick={() => setShowPlanForm(true)} className="gap-2 w-full sm:w-auto">
@@ -442,41 +447,78 @@ export default function GruposPage() {
                 ) : undefined}
               />
             ) : (
-              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-                {planificaciones.map((p: any) => (
-                  <GrupoInfoCard
-                    key={p.id}
-                    onClick={() => setViewingPlan(p)}
-                    title={p.lider_nombre}
-                    subtitle={`${p.red || "Sin red"} · ${p.casa_de_paz || "Sin casa de paz"}`}
-                    badge={{ label: "Plan", tone: "info" }}
-                    metaDate={{ label: "Creada", value: new Date(p.created_at).toLocaleDateString() }}
-                    summaryTitle="Resumen semanal"
-                    summary={[
-                      { label: "Personas invitadas", value: p.personas_invitadas || 0 },
-                      { label: "Fecha ayuno", value: p.fecha_ayuno || "—" },
-                      { label: "Evangelización", value: p.fecha_evangelizacion || "—" },
-                    ]}
-                    actions={
-                      <>
-                        <Button size="sm" variant="outline" className="gap-1" onClick={() => setViewingPlan(p)}>
-                          <Eye className="h-3.5 w-3.5" /> Ver
-                        </Button>
-                        {canDeleteGrupo && (
-                          <DeleteConfirmDialog
-                            onConfirm={async () => { try { await deletePlan.mutateAsync(p.id); toast.success("Eliminada"); } catch { toast.error("Error"); } }}
-                            trigger={
-                              <Button size="sm" variant="ghost" className="ml-auto text-destructive">
-                                <Trash2 className="h-3.5 w-3.5" />
-                              </Button>
-                            }
-                          />
-                        )}
-                      </>
-                    }
+              <>
+                {canEditGrupo && (
+                  <PlanificacionBulkBar
+                    selectedIds={selectedPlanIds}
+                    onClear={() => setSelectedPlanIds([])}
                   />
-                ))}
-              </div>
+                )}
+                <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                  {planificaciones.map((p: any) => {
+                    const checked = selectedPlanIds.includes(p.id);
+                    const toggle = () =>
+                      setSelectedPlanIds((prev) =>
+                        prev.includes(p.id) ? prev.filter((x) => x !== p.id) : [...prev, p.id]
+                      );
+                    return (
+                      <GrupoInfoCard
+                        key={p.id}
+                        onClick={() => setViewingPlan(p)}
+                        title={p.lider_nombre}
+                        subtitle={`${p.red || "Sin red"} · ${p.casa_de_paz || "Sin casa de paz"}`}
+                        badge={{
+                          label: (p.evaluacion_equipo as any)?.asistencia_confirmada ? "Confirmada" : "Plan",
+                          tone: (p.evaluacion_equipo as any)?.asistencia_confirmada ? "success" : "info",
+                        }}
+                        metaDate={{ label: "Creada", value: new Date(p.created_at).toLocaleDateString() }}
+                        summaryTitle="Resumen semanal"
+                        summary={[
+                          { label: "Personas invitadas", value: p.personas_invitadas || 0 },
+                          { label: "Fecha ayuno", value: p.fecha_ayuno || "—" },
+                          { label: "Evangelización", value: p.fecha_evangelizacion || "—" },
+                        ]}
+                        actions={
+                          <>
+                            {canEditGrupo && (
+                              <label
+                                className="inline-flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <Checkbox
+                                  checked={checked}
+                                  onCheckedChange={toggle}
+                                  onKeyDown={(e) => {
+                                    if (e.key === " " || e.key === "Enter") {
+                                      e.preventDefault();
+                                      toggle();
+                                    }
+                                  }}
+                                  aria-label={`Seleccionar planificación de ${p.lider_nombre}`}
+                                />
+                                Seleccionar
+                              </label>
+                            )}
+                            <Button size="sm" variant="outline" className="gap-1" onClick={() => setViewingPlan(p)}>
+                              <Eye className="h-3.5 w-3.5" /> Ver
+                            </Button>
+                            {canDeleteGrupo && (
+                              <DeleteConfirmDialog
+                                onConfirm={async () => { try { await deletePlan.mutateAsync(p.id); toast.success("Eliminada"); } catch { toast.error("Error"); } }}
+                                trigger={
+                                  <Button size="sm" variant="ghost" className="ml-auto text-destructive">
+                                    <Trash2 className="h-3.5 w-3.5" />
+                                  </Button>
+                                }
+                              />
+                            )}
+                          </>
+                        }
+                      />
+                    );
+                  })}
+                </div>
+              </>
             )}
           </div>
         </TabsContent>
