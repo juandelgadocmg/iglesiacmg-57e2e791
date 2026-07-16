@@ -76,11 +76,14 @@ export default function EvaluacionesSection() {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <div>
-          <h2 className="text-lg font-semibold">Evaluaciones</h2>
-          <p className="text-xs text-muted-foreground">Define quices, parciales, finales y trabajos por materia</p>
-        </div>
+      <SectionHero
+        icon={ClipHeroIcon}
+        eyebrow="Grading · Esquema"
+        title="Evaluaciones"
+        description="Define quices, parciales, finales y trabajos por materia."
+        gradient="from-amber-500 via-orange-500 to-rose-500"
+      />
+      <div className="flex flex-wrap items-center justify-end gap-2">
         <div className="flex gap-2 flex-wrap">
           <Select value={effProg} onValueChange={setProgramaId}>
             <SelectTrigger className="w-44"><SelectValue placeholder="Programa" /></SelectTrigger>
