@@ -189,10 +189,17 @@ export function GrupoInfoCardSkeleton() {
 /** Grilla de skeletons homogénea. */
 export function GrupoCardsSkeletonGrid({ count = 6 }: { count?: number }) {
   return (
-    <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+    <div
+      role="status"
+      aria-live="polite"
+      aria-busy="true"
+      aria-label="Cargando tarjetas de grupo"
+      className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3"
+    >
       {Array.from({ length: count }).map((_, i) => (
         <GrupoInfoCardSkeleton key={i} />
       ))}
+      <span className="sr-only">Cargando…</span>
     </div>
   );
 }
