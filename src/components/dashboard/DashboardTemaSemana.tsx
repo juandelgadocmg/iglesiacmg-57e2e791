@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import jsPDF from "jspdf";
 import { format, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
+import { useUserRoles } from "@/hooks/useUserRoles";
 
 interface Props {
   titulo?: string | null;
@@ -14,6 +15,9 @@ interface Props {
 
 export default function DashboardTemaSemana({ titulo, descripcion, url, pdfUrl, fechaFin }: Props) {
   const navigate = useNavigate();
+  const { roles } = useUserRoles();
+  const canEdit = (roles as string[])?.some((r) => ["admin", "super_admin", "pastor"].includes(r));
+
 
   const isEmpty = !titulo && !descripcion;
   const vigenteHasta = fechaFin ? (() => { try { return format(parseISO(fechaFin), "d MMM", { locale: es }); } catch { return null; } })() : null;
