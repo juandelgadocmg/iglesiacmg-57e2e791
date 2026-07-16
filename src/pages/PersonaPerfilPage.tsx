@@ -1152,8 +1152,90 @@ export default function PersonaPerfilPage() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Elegir servicio antes de confirmar asistencia */}
+      <Dialog open={askServicio} onOpenChange={setAskServicio}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <ClipboardCheck className="h-4 w-4" /> Registrar asistencia
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <p className="text-sm text-muted-foreground">
+              Selecciona el servicio para registrar la asistencia de {persona.nombres} {persona.apellidos}.
+            </p>
+            <Select value={servicioParaAsistir} onValueChange={setServicioParaAsistir}>
+              <SelectTrigger><SelectValue placeholder="Elige un servicio" /></SelectTrigger>
+              <SelectContent>
+                {(servicios || []).slice(0, 30).map((s: any) => (
+                  <SelectItem key={s.id} value={s.id}>
+                    {s.nombre}{s.fecha ? " · " + s.fecha : ""}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setAskServicio(false)}>Cancelar</Button>
+            <Button disabled={!servicioParaAsistir} onClick={confirmarServicioAsistencia}>Continuar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Confirmación + auditoría de asistencia rápida */}
+      <AlertDialog open={!!confirmAsist} onOpenChange={(o) => !o && setConfirmAsist(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Registrar asistencia?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Se marcará como <span className="font-semibold">presente</span> a{" "}
+              <span className="font-semibold">{persona.nombres} {persona.apellidos}</span> en{" "}
+              <span className="font-semibold">{confirmAsist?.nombreServicio}</span>.
+              Esta acción se registra en el log de auditoría.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={ejecutarRegistroAsistencia} disabled={upsertAsistencia.isPending}>
+              {upsertAsistencia.isPending ? "Registrando…" : "Confirmar"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Confirmación check-in QR */}
+      <AlertDialog open={qrCheckinOpen} onOpenChange={setQrCheckinOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <QrCode className="h-4 w-4" /> Confirmar check-in QR
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Se registrará el check-in QR de <span className="font-semibold">{persona.nombres} {persona.apellidos}</span>{" "}
+              en el servicio seleccionado. Queda constancia en la bitácora de auditoría.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={ejecutarCheckInQR} disabled={upsertAsistencia.isPending}>
+              {upsertAsistencia.isPending ? "Procesando…" : "Confirmar check-in"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Vista previa de exportaciones */}
+      <PersonaExportPreviewDialog
+        open={exportPreview !== null}
+        onOpenChange={(o) => !o && setExportPreview(null)}
+        kind={exportPreview ?? "pdf"}
+        persona={persona}
+        timeline={timeline}
+      />
     </div>
   );
+
 }
 
 function InfoRow({ label, value, icon }: { label: string; value: string; icon?: React.ReactNode }) {
