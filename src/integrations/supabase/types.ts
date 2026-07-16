@@ -229,6 +229,132 @@ export type Database = {
           },
         ]
       }
+      cert_export_log: {
+        Row: {
+          actor_email: string | null
+          actor_user_id: string | null
+          browser_cache_hit: boolean
+          contexto: Json
+          created_at: string
+          id: string
+          persona_id: string | null
+          template_asset_id: string | null
+          template_asset_url: string | null
+          template_id: string | null
+          template_version: number | null
+          tipo: Database["public"]["Enums"]["cert_template_tipo"]
+          user_agent: string | null
+        }
+        Insert: {
+          actor_email?: string | null
+          actor_user_id?: string | null
+          browser_cache_hit?: boolean
+          contexto?: Json
+          created_at?: string
+          id?: string
+          persona_id?: string | null
+          template_asset_id?: string | null
+          template_asset_url?: string | null
+          template_id?: string | null
+          template_version?: number | null
+          tipo: Database["public"]["Enums"]["cert_template_tipo"]
+          user_agent?: string | null
+        }
+        Update: {
+          actor_email?: string | null
+          actor_user_id?: string | null
+          browser_cache_hit?: boolean
+          contexto?: Json
+          created_at?: string
+          id?: string
+          persona_id?: string | null
+          template_asset_id?: string | null
+          template_asset_url?: string | null
+          template_id?: string | null
+          template_version?: number | null
+          tipo?: Database["public"]["Enums"]["cert_template_tipo"]
+          user_agent?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cert_export_log_persona_id_fkey"
+            columns: ["persona_id"]
+            isOneToOne: false
+            referencedRelation: "personas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cert_export_log_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "cert_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cert_templates: {
+        Row: {
+          activo: boolean
+          asset_filename: string | null
+          asset_id: string | null
+          asset_size: number | null
+          asset_url: string
+          created_at: string
+          created_by: string | null
+          created_by_email: string | null
+          descripcion: string | null
+          es_default: boolean
+          id: string
+          nombre: string
+          preview_url: string | null
+          storage_bucket: string | null
+          storage_path: string | null
+          tipo: Database["public"]["Enums"]["cert_template_tipo"]
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          activo?: boolean
+          asset_filename?: string | null
+          asset_id?: string | null
+          asset_size?: number | null
+          asset_url: string
+          created_at?: string
+          created_by?: string | null
+          created_by_email?: string | null
+          descripcion?: string | null
+          es_default?: boolean
+          id?: string
+          nombre: string
+          preview_url?: string | null
+          storage_bucket?: string | null
+          storage_path?: string | null
+          tipo: Database["public"]["Enums"]["cert_template_tipo"]
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          activo?: boolean
+          asset_filename?: string | null
+          asset_id?: string | null
+          asset_size?: number | null
+          asset_url?: string
+          created_at?: string
+          created_by?: string | null
+          created_by_email?: string | null
+          descripcion?: string | null
+          es_default?: boolean
+          id?: string
+          nombre?: string
+          preview_url?: string | null
+          storage_bucket?: string | null
+          storage_path?: string | null
+          tipo?: Database["public"]["Enums"]["cert_template_tipo"]
+          updated_at?: string
+          version?: number
+        }
+        Relationships: []
+      }
       certificados: {
         Row: {
           codigo: string
@@ -5163,6 +5289,11 @@ export type Database = {
         | "seminario_admin"
         | "seminario_docente"
         | "seminario_estudiante"
+      cert_template_tipo:
+        | "lideres_cdp"
+        | "bautismo"
+        | "seminario_diploma"
+        | "academia"
       estado_iglesia: "Activo" | "Inactivo" | "En proceso"
       tipo_finanza: "Ingreso" | "Gasto"
       tipo_grupo:
@@ -5344,6 +5475,12 @@ export const Constants = {
         "seminario_admin",
         "seminario_docente",
         "seminario_estudiante",
+      ],
+      cert_template_tipo: [
+        "lideres_cdp",
+        "bautismo",
+        "seminario_diploma",
+        "academia",
       ],
       estado_iglesia: ["Activo", "Inactivo", "En proceso"],
       tipo_finanza: ["Ingreso", "Gasto"],

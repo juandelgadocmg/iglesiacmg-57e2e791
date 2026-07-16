@@ -10,7 +10,9 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Church, Globe, Clock, Save, BookOpen, ImageIcon, Video, Radio, DollarSign, Bell, Upload, X, AlertCircle, ShieldCheck } from "lucide-react";
+import { Church, Globe, Clock, Save, BookOpen, ImageIcon, Video, Radio, DollarSign, Bell, Upload, X, AlertCircle, ShieldCheck, Award, History } from "lucide-react";
+import CertTemplatesManager from "@/components/configuracion/CertTemplatesManager";
+import CertExportHistory from "@/components/configuracion/CertExportHistory";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -197,6 +199,8 @@ export default function ConfiguracionPage() {
           <TabsTrigger value="senal" className="gap-1.5"><Radio className="h-3.5 w-3.5" /> Señal en Vivo</TabsTrigger>
           <TabsTrigger value="notificaciones" className="gap-1.5"><Bell className="h-3.5 w-3.5" /> Notificaciones</TabsTrigger>
           <TabsTrigger value="permisos" className="gap-1.5"><ShieldCheck className="h-3.5 w-3.5" /> Permisos</TabsTrigger>
+          <TabsTrigger value="certificados" className="gap-1.5"><Award className="h-3.5 w-3.5" /> Plantillas de Certificados</TabsTrigger>
+          <TabsTrigger value="cert-historial" className="gap-1.5"><History className="h-3.5 w-3.5" /> Historial de Certificados</TabsTrigger>
         </TabsList>
 
         <TabsContent value="general">
@@ -437,6 +441,14 @@ export default function ConfiguracionPage() {
 
         <TabsContent value="permisos">
           <PermisosMatriz />
+        </TabsContent>
+
+        <TabsContent value="certificados">
+          <CertTemplatesManager />
+        </TabsContent>
+
+        <TabsContent value="cert-historial">
+          <CertExportHistory />
         </TabsContent>
       </Tabs>
     </div>

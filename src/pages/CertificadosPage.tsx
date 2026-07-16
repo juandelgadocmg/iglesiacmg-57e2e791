@@ -20,6 +20,8 @@ import PageSkeleton from "@/components/shared/PageSkeleton";
 import EmptyState from "@/components/shared/EmptyState";
 import certLideresAsset from "@/assets/cert-lideres-cdp.png.asset.json";
 import certBautismoAsset from "@/assets/cert-bautismo.png.asset.json";
+import CertDownloadDialog from "@/components/certificados/CertDownloadDialog";
+import { logCertExport } from "@/lib/logCertExport";
 
 const TIPO_META: Record<string, { color: string; bg: string; ring: string }> = {
   "Membresía":              { color: "#3b82f6", bg: "from-blue-500/10 to-blue-500/5", ring: "ring-blue-500/30" },
@@ -51,12 +53,12 @@ async function loadImageDataUrl(url: string): Promise<string> {
   });
 }
 
-async function generateCertificatePDF(cert: any, config: any) {
+async function generateCertificatePDF(cert: any, config: any, overrideTemplateUrl?: string) {
   const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "letter" });
   const w = doc.internal.pageSize.getWidth();
   const h = doc.internal.pageSize.getHeight();
 
-  const templateUrl = TEMPLATE_MAP[cert.tipo];
+  const templateUrl = overrideTemplateUrl || TEMPLATE_MAP[cert.tipo];
   if (templateUrl) {
     // ===== Plantilla oficial CMG / FEL Institute =====
     try {
@@ -216,6 +218,11 @@ export default function CertificadosPage() {
   const [tipoFilter, setTipoFilter] = useState<string>("all");
   const [view, setView] = useState<"grid" | "table">("grid");
   const [selected, setSelected] = useState<any>(null);
+  const [downloadCert, setDownloadCert] = useState<any>(null);
+  const downloadTipoKey: "bautismo" | "lideres_cdp" | null =
+    downloadCert?.tipo === "Bautismo" ? "bautismo"
+    : downloadCert?.tipo === "Líderes de Casas de Paz" ? "lideres_cdp"
+    : null;
 
   const certs = useMemo(
     () => (certificados || []).map((c: any) => ({
@@ -257,8 +264,19 @@ export default function CertificadosPage() {
     if (selected?.id === id) setSelected(null);
   };
   const handleDownload = async (cert: any) => {
+    // Para tipos con plantilla configurable, abrir el diálogo con selector + vista previa
+    if (cert.tipo === "Bautismo" || cert.tipo === "Líderes de Casas de Paz") {
+      setDownloadCert(cert);
+      return;
+    }
     try {
       await generateCertificatePDF(cert, config);
+      await logCertExport({
+        tipo: "academia",
+        template: null,
+        persona_id: cert.persona_id,
+        contexto: { codigo: cert.codigo, tipo_original: cert.tipo, persona_nombre: cert.personaNombre },
+      });
       toast.success("Certificado descargado");
     } catch (e: any) {
       toast.error("No se pudo generar el PDF", { description: e?.message });
@@ -541,6 +559,20 @@ export default function CertificadosPage() {
             />
           </div>
         </aside>
+      )}
+
+      {downloadCert && downloadTipoKey && (
+        <CertDownloadDialog
+          open={!!downloadCert}
+          onOpenChange={(v) => !v && setDownloadCert(null)}
+          tipo={downloadTipoKey}
+          personaId={downloadCert.persona_id}
+          personaNombre={downloadCert.personaNombre}
+          contexto={{ codigo: downloadCert.codigo, tipo_original: downloadCert.tipo }}
+          onDownload={async (template) => {
+            await generateCertificatePDF(downloadCert, config, template?.asset_url);
+          }}
+        />
       )}
     </div>
   );
