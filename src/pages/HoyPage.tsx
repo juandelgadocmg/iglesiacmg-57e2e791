@@ -159,8 +159,10 @@ export default function HoyPage() {
                 {roleLabel && <Badge variant="secondary" className="rounded-full">{roleLabel}</Badge>}
                 <span className="text-sm text-muted-foreground">Panel de comando</span>
               </div>
+              </div>
             </div>
             <div className="grid grid-cols-4 gap-2 md:gap-3 min-w-[280px]">
+
               <KpiRing icon={Users} label="Personas" value={totalPersonas} loading={personasLoading} tone="text-primary" />
               <KpiRing icon={CalendarDays} label="Hoy" value={eventosHoy.length} loading={eventosLoading} tone="text-emerald-600" />
               <KpiRing icon={HandHeart} label="Petic." value={peticionesAbiertas.length} tone="text-rose-600" />
