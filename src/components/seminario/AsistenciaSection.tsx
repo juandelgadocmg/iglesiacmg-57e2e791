@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Save, UserCheck, UserPlus, UserMinus } from "lucide-react";
+import SectionHero from "@/components/shell/SectionHero";
 import { toast } from "sonner";
 import { useCan } from "@/hooks/useCan";
 import { logSemAudit } from "@/lib/seminarioAudit";
