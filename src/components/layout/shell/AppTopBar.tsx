@@ -134,6 +134,40 @@ export default function AppTopBar({ onMenuClick }: { onMenuClick?: () => void })
             </DropdownMenu>
           ) : null}
 
+          <TooltipProvider delayDuration={200}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <a
+                  href={discipulandoUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label="Abrir Discipulando Naciones en una nueva pestaña"
+                  className="shrink-0 inline-flex items-center justify-center h-8 px-1.5 rounded-md hover:bg-muted transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  {logoFailed ? (
+                    <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-foreground/80">
+                      <BookOpenText className="h-4 w-4" aria-hidden="true" />
+                      <span className="hidden sm:inline">Discipulando</span>
+                    </span>
+                  ) : (
+                    <img
+                      src={logoSrc}
+                      key={logoSrc}
+                      alt="Discipulando Naciones"
+                      width={100}
+                      height={28}
+                      loading="lazy"
+                      decoding="async"
+                      onError={() => setLogoFailed(true)}
+                      className="h-6 md:h-7 w-auto object-contain select-none dark:brightness-0 dark:invert"
+                    />
+                  )}
+                </a>
+              </TooltipTrigger>
+              <TooltipContent side="bottom">Discipulando Naciones</TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+
           <QuickCreateMenu />
 
           <Link to="/mensajes" className="relative p-2 rounded-md hover:bg-muted" title="Mensajes">
