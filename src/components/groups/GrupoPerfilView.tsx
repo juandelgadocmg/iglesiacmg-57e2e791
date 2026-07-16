@@ -789,10 +789,12 @@ function PlanificacionTab({ grupoId, readOnly = false }: { grupoId: string; read
           ))}
         </div>
       ) : (
-        <div className="text-center py-12 text-muted-foreground">
-          <FileText className="h-10 w-10 mx-auto mb-2 opacity-50" />
-          <p>No hay planificaciones registradas.</p>
-        </div>
+        <EmptyState
+          icon={FileText}
+          title="Sin planificaciones registradas"
+          description="Crea la primera hoja de planeación semanal para este grupo."
+          action={!readOnly ? <Button size="sm" onClick={() => setShowPlanForm(true)}><UserPlus className="h-4 w-4 mr-1" />Nueva planificación</Button> : undefined}
+        />
       )}
 
       <PlanificacionGrupoFormDialog open={showPlanForm} onOpenChange={setShowPlanForm} />
