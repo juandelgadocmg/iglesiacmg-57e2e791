@@ -307,11 +307,14 @@ export default function CertificadosPage() {
         </div>
 
         {filtered.length === 0 && (
-          <div className="rounded-xl border bg-card p-16 text-center">
-            <Award className="h-10 w-10 mx-auto text-muted-foreground/40" />
-            <p className="text-sm text-muted-foreground mt-3">No se encontraron certificados</p>
-          </div>
+          <EmptyState
+            icon={Award}
+            title="No se encontraron certificados"
+            description={search || tipoFilter !== "all" ? "Ajusta la búsqueda o el filtro de tipo." : "Emite el primer certificado para verlo aquí."}
+            action={<CertificadoIglesiaFormDialog />}
+          />
         )}
+
 
         {view === "grid" && filtered.length > 0 && (
           <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
