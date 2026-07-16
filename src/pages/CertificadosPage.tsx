@@ -51,12 +51,12 @@ async function loadImageDataUrl(url: string): Promise<string> {
   });
 }
 
-async function generateCertificatePDF(cert: any, config: any) {
+async function generateCertificatePDF(cert: any, config: any, overrideTemplateUrl?: string) {
   const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "letter" });
   const w = doc.internal.pageSize.getWidth();
   const h = doc.internal.pageSize.getHeight();
 
-  const templateUrl = TEMPLATE_MAP[cert.tipo];
+  const templateUrl = overrideTemplateUrl || TEMPLATE_MAP[cert.tipo];
   if (templateUrl) {
     // ===== Plantilla oficial CMG / FEL Institute =====
     try {
