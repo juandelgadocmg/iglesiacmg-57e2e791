@@ -42,7 +42,6 @@ import { useState, useMemo, useRef } from "react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
-import { Shield as ShieldIcon } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 
 const tipoColor: Record<string, string> = {
