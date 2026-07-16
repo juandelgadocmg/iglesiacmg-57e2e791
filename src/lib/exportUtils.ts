@@ -100,6 +100,120 @@ export function exportToCSV({ columns, data, filename }: ExportOptions) {
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
+export interface DetailedPDFSection {
+  label: string;
+  value: string | number | null | undefined;
+  /** true = ocupa toda la fila (útil para observaciones largas) */
+  fullWidth?: boolean;
+}
+
+export interface DetailedPDFRecord {
+  title: string;
+  subtitle?: string;
+  badge?: string;
+  sections: DetailedPDFSection[];
+  footer?: string;
+}
+
+/**
+ * PDF detallado — una página por registro. Ideal para reportes de grupo,
+ * consejerías, planificaciones, etc. Cabecera con logo textual, cuerpo en
+ * dos columnas y footer con timestamp.
+ */
+export function exportToPDFDetailed({
+  title, filename, records, headerNote,
+}: {
+  title: string;
+  filename: string;
+  records: DetailedPDFRecord[];
+  headerNote?: string;
+}) {
+  const doc = new jsPDF({ unit: "mm", format: "a4" });
+  const pageW = doc.internal.pageSize.getWidth();
+  const pageH = doc.internal.pageSize.getHeight();
+  const marginX = 14;
+  const fecha = new Date().toLocaleString("es-CO");
+
+  records.forEach((rec, idx) => {
+    if (idx > 0) doc.addPage();
+
+    // Header band
+    doc.setFillColor(30, 41, 59);
+    doc.rect(0, 0, pageW, 22, "F");
+    doc.setTextColor(255);
+    doc.setFontSize(14);
+    doc.text(title, marginX, 14);
+    doc.setFontSize(9);
+    doc.text(`Página ${idx + 1} de ${records.length}`, pageW - marginX, 14, { align: "right" });
+
+    // Title + badge
+    doc.setTextColor(0);
+    doc.setFontSize(16);
+    doc.text(rec.title, marginX, 34);
+    if (rec.subtitle) {
+      doc.setFontSize(10);
+      doc.setTextColor(100);
+      doc.text(rec.subtitle, marginX, 40);
+    }
+    if (rec.badge) {
+      doc.setFillColor(230, 236, 245);
+      doc.setTextColor(30, 41, 59);
+      const w = doc.getTextWidth(rec.badge) + 8;
+      doc.roundedRect(pageW - marginX - w, 30, w, 7, 2, 2, "F");
+      doc.setFontSize(9);
+      doc.text(rec.badge, pageW - marginX - w / 2, 35, { align: "center" });
+    }
+
+    // Divider
+    doc.setDrawColor(220);
+    doc.line(marginX, 45, pageW - marginX, 45);
+
+    // Body — two columns
+    doc.setTextColor(0);
+    const colW = (pageW - marginX * 2) / 2;
+    let yLeft = 52, yRight = 52;
+    rec.sections.forEach((s) => {
+      const value = s.value == null || s.value === "" ? "—" : String(s.value);
+      if (s.fullWidth) {
+        const y = Math.max(yLeft, yRight);
+        doc.setFontSize(9);
+        doc.setTextColor(110);
+        doc.text(s.label.toUpperCase(), marginX, y);
+        doc.setFontSize(10);
+        doc.setTextColor(0);
+        const lines = doc.splitTextToSize(value, pageW - marginX * 2);
+        doc.text(lines, marginX, y + 5);
+        const consumed = 6 + lines.length * 5;
+        yLeft = yRight = y + consumed + 4;
+        return;
+      }
+      const useLeft = yLeft <= yRight;
+      const x = useLeft ? marginX : marginX + colW;
+      let y = useLeft ? yLeft : yRight;
+      doc.setFontSize(9);
+      doc.setTextColor(110);
+      doc.text(s.label.toUpperCase(), x, y);
+      doc.setFontSize(10);
+      doc.setTextColor(0);
+      const lines = doc.splitTextToSize(value, colW - 4);
+      doc.text(lines, x, y + 5);
+      const consumed = 6 + lines.length * 5 + 4;
+      if (useLeft) yLeft += consumed; else yRight += consumed;
+    });
+
+    // Footer
+    doc.setFontSize(8);
+    doc.setTextColor(140);
+    const footerParts = [`Generado: ${fecha}`];
+    if (headerNote) footerParts.push(headerNote);
+    if (rec.footer) footerParts.push(rec.footer);
+    doc.text(footerParts.join("  ·  "), marginX, pageH - 8);
+  });
+
+  doc.save(`${filename}.pdf`);
+}
+
+
 export function exportGroupProfilePDF(grupo: {
   nombre: string;
   tipo: string;
