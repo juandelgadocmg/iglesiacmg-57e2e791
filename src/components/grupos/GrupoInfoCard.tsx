@@ -99,8 +99,9 @@ export function GrupoInfoCard({
         <div className="text-sm text-muted-foreground space-y-0.5">
           {metaDate && (
             <div>
-              <CalendarIcon className="inline h-3.5 w-3.5 mr-1" />
-              {metaDate.label}: {metaDate.value}
+              <CalendarIcon aria-hidden className="inline h-3.5 w-3.5 mr-1" />
+              <span className="sr-only">{metaDate.label}: </span>
+              <span aria-hidden>{metaDate.label}: </span>{metaDate.value}
             </div>
           )}
           {metaSecondary && (
