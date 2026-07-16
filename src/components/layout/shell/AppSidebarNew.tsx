@@ -15,9 +15,10 @@ import {
   Home, Users, UsersRound, Church, CalendarDays, GraduationCap, BookMarked,
   Award, DollarSign, BarChart3, HandHeart, MessageCircle, Mail, Settings,
   UserCog, ShieldCheck, ChevronLeft, ChevronRight, LogOut, Star, Clock,
-  ChevronDown, Sparkles,
+  ChevronDown, Sparkles, BookOpenText, ExternalLink,
 } from "lucide-react";
 import { useUnreadCount } from "@/hooks/useMensajes";
+import { useDiscipulando } from "@/hooks/useDiscipulando";
 
 type Item = { label: string; icon: any; to: string; badgeKey?: "mensajes" };
 
@@ -74,6 +75,7 @@ function Content({ onNav }: { onNav?: () => void }) {
   const { pins } = useUserPins();
   const { items: recents } = useRecentEntities();
   const { data: unread = 0 } = useUnreadCount();
+  const { open: openDiscipulando } = useDiscipulando();
 
   const effective = activeRole ? [activeRole as any] : roles;
   const canShow = (to: string) => canAccess(effective, to.split("?")[0]);
@@ -237,6 +239,24 @@ function Content({ onNav }: { onNav?: () => void }) {
 
       {/* Footer */}
       <div className="border-t border-sidebar-border p-2 space-y-0.5">
+        <button
+          onClick={() => { openDiscipulando(); onNav?.(); }}
+          title={showCollapsed ? "Discipulando Naciones" : undefined}
+          className={cn(
+            "group w-full flex items-center gap-2.5 h-8 rounded-md text-[12.5px] font-medium",
+            "text-muted-foreground hover:text-foreground",
+            "hover:bg-gradient-to-r hover:from-primary/10 hover:to-transparent",
+            showCollapsed ? "justify-center px-0" : "px-2.5"
+          )}
+        >
+          <BookOpenText className="h-4 w-4 text-primary shrink-0" />
+          {!showCollapsed && (
+            <>
+              <span className="flex-1 truncate text-left">Discipulando</span>
+              <ExternalLink className="h-3 w-3 opacity-0 group-hover:opacity-60 transition-opacity" />
+            </>
+          )}
+        </button>
         {!isMobile && (
           <button
             onClick={() => setCollapsed(!collapsed)}
