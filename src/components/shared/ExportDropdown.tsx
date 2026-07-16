@@ -7,7 +7,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { exportToPDF, exportToExcel } from "@/lib/exportUtils";
+import { exportToPDF, exportToExcel, exportToCSV } from "@/lib/exportUtils";
 
 interface ExportColumn {
   header: string;
@@ -22,9 +22,9 @@ interface ExportDropdownProps {
 }
 
 export default function ExportDropdown({ title, filename, columns, data }: ExportDropdownProps) {
-  const handleExport = async (format: "pdf" | "excel") => {
-    const label = format === "pdf" ? "PDF" : "Excel";
-    const ext = format === "pdf" ? "pdf" : "xlsx";
+  const handleExport = async (format: "pdf" | "excel" | "csv") => {
+    const label = format === "pdf" ? "PDF" : format === "excel" ? "Excel" : "CSV";
+    const ext = format === "pdf" ? "pdf" : format === "excel" ? "xlsx" : "csv";
 
     if (!data || data.length === 0) {
       toast.warning(`No hay datos para exportar a ${label}`, {
@@ -38,11 +38,9 @@ export default function ExportDropdown({ title, filename, columns, data }: Expor
     });
 
     try {
-      if (format === "pdf") {
-        await exportToPDF({ title, columns, data, filename });
-      } else {
-        await exportToExcel({ title, columns, data, filename });
-      }
+      if (format === "pdf") await exportToPDF({ title, columns, data, filename });
+      else if (format === "excel") await exportToExcel({ title, columns, data, filename });
+      else await exportToCSV({ title, columns, data, filename });
       toast.success(`${label} generado correctamente`, {
         id: loadingId,
         description: `Archivo: ${filename}.${ext}`,
@@ -69,12 +67,9 @@ export default function ExportDropdown({ title, filename, columns, data }: Expor
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
-        <DropdownMenuItem onClick={() => handleExport("pdf")}>
-          Exportar a PDF
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => handleExport("excel")}>
-          Exportar a Excel
-        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => handleExport("pdf")}>Exportar a PDF</DropdownMenuItem>
+        <DropdownMenuItem onClick={() => handleExport("excel")}>Exportar a Excel</DropdownMenuItem>
+        <DropdownMenuItem onClick={() => handleExport("csv")}>Exportar a CSV</DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   );
