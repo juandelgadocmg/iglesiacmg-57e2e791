@@ -45,6 +45,7 @@ import { es } from "date-fns/locale";
 import { useState, useMemo, useRef } from "react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { useUrlParam } from "@/hooks/useUrlParam";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { QRCodeSVG } from "qrcode.react";
 
@@ -93,6 +94,7 @@ export default function PersonaPerfilPage() {
   const [exportPreview, setExportPreview] = useState<null | "pdf" | "csv">(null);
   const [qrCheckinOpen, setQrCheckinOpen] = useState(false);
   const [qrCheckinServicio, setQrCheckinServicio] = useState<string>("");
+  const [activeTab, setActiveTab] = useUrlParam("tab", "resumen");
   const { data: servicios } = useServicios();
   const upsertAsistencia = useUpsertAsistencia();
 
@@ -477,7 +479,7 @@ export default function PersonaPerfilPage() {
       </section>
 
       {/* ============ TABS ============ */}
-      <Tabs defaultValue="resumen" className="space-y-6">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
         <div className="sticky top-0 z-20 -mx-2 px-2 bg-background/85 backdrop-blur-lg border-b border-border/60">
           <TabsList className="h-auto p-0 bg-transparent gap-1 overflow-x-auto flex-nowrap w-full justify-start rounded-none">
             {[
@@ -611,7 +613,7 @@ export default function PersonaPerfilPage() {
             <SectionCard
               icon={<Activity className="h-4 w-4" />}
               title="Actividad reciente"
-              right={<Button variant="ghost" size="sm" className="gap-1" onClick={() => (document.querySelector('[role="tab"][value="actividad"]') as HTMLElement)?.click()}>Ver toda <ChevronRight className="h-3.5 w-3.5" /></Button>}
+              right={<Button variant="ghost" size="sm" className="gap-1" onClick={() => setActiveTab("actividad")}>Ver toda <ChevronRight className="h-3.5 w-3.5" /></Button>}
             >
               <PersonaActivityTimeline events={timeline.slice(0, 6)} />
             </SectionCard>
