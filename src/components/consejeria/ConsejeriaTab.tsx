@@ -24,6 +24,7 @@ import { format, parseISO, startOfWeek, addDays, isSameDay } from "date-fns";
 import { es } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import ExportDropdown from "@/components/shared/ExportDropdown";
+import SectionHero from "@/components/shell/SectionHero";
 
 const CITAS_EXPORT_COLUMNS = [
   { header: "Fecha", key: "fecha" },
