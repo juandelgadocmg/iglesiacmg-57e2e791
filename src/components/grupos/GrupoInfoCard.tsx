@@ -137,7 +137,7 @@ export function GrupoInfoCard({
                 )}
               >
                 <span className="flex items-center gap-1">
-                  {Icon && <Icon className={cn("h-3.5 w-3.5", row.iconClassName)} />}
+                  {Icon && <Icon aria-hidden className={cn("h-3.5 w-3.5", row.iconClassName)} />}
                   {row.label}
                 </span>
                 <span className={cn(!row.emphasis && "font-medium")}>{row.value}</span>
