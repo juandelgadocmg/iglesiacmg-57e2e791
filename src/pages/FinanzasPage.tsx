@@ -64,6 +64,42 @@ export default function FinanzasPage() {
   const saldo = ingresos - gastos;
   const fmt = (n: number) => `$${n.toLocaleString("es", { minimumFractionDigits: 2 })}`;
 
+  // Previous month comparison (last 30d vs prior 30d) + sparkline (last 6 months)
+  const now = new Date();
+  const day = 24 * 60 * 60 * 1000;
+  const iso = (d: Date) => d.toISOString().slice(0, 10);
+  const from30 = iso(new Date(now.getTime() - 30 * day));
+  const from60 = iso(new Date(now.getTime() - 60 * day));
+  const to30 = iso(now);
+  const inRange = (f: any, a: string, b: string) => f.fecha >= a && f.fecha <= b;
+  const ingCurr = data.filter(f => f.tipo === "Ingreso" && inRange(f, from30, to30)).reduce((s, f) => s + Number(f.monto), 0);
+  const ingPrev = data.filter(f => f.tipo === "Ingreso" && inRange(f, from60, from30)).reduce((s, f) => s + Number(f.monto), 0);
+  const gasCurr = data.filter(f => f.tipo === "Gasto" && inRange(f, from30, to30)).reduce((s, f) => s + Number(f.monto), 0);
+  const gasPrev = data.filter(f => f.tipo === "Gasto" && inRange(f, from60, from30)).reduce((s, f) => s + Number(f.monto), 0);
+  const pctChange = (curr: number, prev: number) => {
+    if (prev === 0) return curr > 0 ? { value: "+100%", positive: true } : { value: "0%", positive: true };
+    const p = Math.round(((curr - prev) / prev) * 100);
+    return { value: `${p >= 0 ? "+" : ""}${p}%`, positive: p >= 0 };
+  };
+  const ingTrend = pctChange(ingCurr, ingPrev);
+  const gasTrend = pctChange(gasCurr, gasPrev);
+  const saldoTrend = pctChange(ingCurr - gasCurr, ingPrev - gasPrev);
+  const monthSeries = (tipo: string) => {
+    const arr: number[] = [];
+    for (let i = 5; i >= 0; i--) {
+      const start = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const end = new Date(now.getFullYear(), now.getMonth() - i + 1, 0);
+      const total = data.filter(f => f.tipo === tipo && f.fecha >= iso(start) && f.fecha <= iso(end))
+        .reduce((s, f) => s + Number(f.monto), 0);
+      arr.push(total);
+    }
+    return arr;
+  };
+  const ingSpark = monthSeries("Ingreso");
+  const gasSpark = monthSeries("Gasto");
+  const saldoSpark = ingSpark.map((v, i) => v - (gasSpark[i] || 0));
+
+
   // Reportes: group by category
   const ingresosCats = (categorias || []).filter(c => c.tipo === "Ingreso");
   const egresosCats = (categorias || []).filter(c => c.tipo === "Gasto");
