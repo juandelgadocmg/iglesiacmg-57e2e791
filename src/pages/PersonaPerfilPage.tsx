@@ -96,6 +96,17 @@ export default function PersonaPerfilPage() {
   const [procesoObservacion, setProcesoObservacion] = useState("");
   const [procesoFecha, setProcesoFecha] = useState<Date | undefined>(undefined);
   const [procesoEstado, setProcesoEstado] = useState("No Realizado");
+  // Confirm asistencia
+  const [confirmAsist, setConfirmAsist] = useState<null | { servicioId: string; nombreServicio: string }>(null);
+  const [servicioParaAsistir, setServicioParaAsistir] = useState<string>("");
+  const [askServicio, setAskServicio] = useState(false);
+  // Export previews
+  const [exportPreview, setExportPreview] = useState<null | "pdf" | "csv">(null);
+  // QR check-in
+  const [qrCheckinOpen, setQrCheckinOpen] = useState(false);
+  const [qrCheckinServicio, setQrCheckinServicio] = useState<string>("");
+  const { data: servicios } = useServicios();
+  const upsertAsistencia = useUpsertAsistencia();
 
   const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
