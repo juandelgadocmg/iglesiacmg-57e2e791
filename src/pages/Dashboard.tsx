@@ -56,24 +56,27 @@ export default function Dashboard() {
     };
   }, [peticiones]);
 
-  const growthTrend = useMemo(() => {
-    if (!personas) return [];
+  const growthSeries = useMemo(() => {
+    if (!personas) return { data: [] as { month: string; count: number }[], series: [] as number[], mom: null as null | { value: string; positive: boolean } };
     const now = new Date();
-    const months: { month: string; count: number }[] = [];
+    const data: { month: string; count: number }[] = [];
     for (let i = 5; i >= 0; i--) {
       const d = subMonths(now, i);
-      const m = d.getMonth();
-      const y = d.getFullYear();
+      const m = d.getMonth(); const y = d.getFullYear();
       const count = (personas as any[]).filter(p => {
-        try {
-          const created = parseISO(p.created_at);
-          return created.getMonth() === m && created.getFullYear() === y;
-        } catch { return false; }
+        try { const created = parseISO(p.created_at); return created.getMonth() === m && created.getFullYear() === y; } catch { return false; }
       }).length;
-      months.push({ month: format(d, "MMM", { locale: es }), count });
+      data.push({ month: format(d, "MMM", { locale: es }), count });
     }
-    return months;
+    const series = data.map(d => d.count);
+    const current = series[series.length - 1] ?? 0;
+    const prev = series[series.length - 2] ?? 0;
+    const diff = current - prev;
+    const pct = prev === 0 ? (current > 0 ? 100 : 0) : Math.round((diff / prev) * 100);
+    const mom = { value: `${diff >= 0 ? "+" : ""}${pct}%`, positive: diff >= 0 };
+    return { data, series, mom };
   }, [personas]);
+  const growthTrend = growthSeries.data;
 
   const calendarEvents = useMemo(() => {
     if (!stats?.eventos) return [];
@@ -155,13 +158,39 @@ export default function Dashboard() {
         <DashboardBannerCarousel banners={banners} />
       )}
 
-      {/* KPIs */}
+      {/* KPIs — Bento with sparklines + MoM */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <MetricCard title="Total Miembros" value={totalMiembros} icon={Users} variant="default" trend={nuevos > 0 ? { value: `+${nuevos} este mes`, positive: true } : undefined} />
-        <MetricCard title="Peticiones Activas" value={peticionStats.pendientes + peticionStats.enOracion} icon={HandHeart} variant="accent" />
-        <MetricCard title="Respondidas" value={peticionStats.respondidas} icon={CheckCircle2} variant="success" />
-        <MetricCard title="Cursos Activos" value={cursos?.filter(c => c.estado === "Activo").length || 0} icon={GraduationCap} variant="info" />
+        <MetricCard
+          title="Total Miembros"
+          value={totalMiembros}
+          icon={Users}
+          variant="default"
+          sparkline={growthSeries.series}
+          trend={growthSeries.mom || (nuevos > 0 ? { value: `+${nuevos} este mes`, positive: true } : undefined)}
+        />
+        <MetricCard
+          title="Peticiones Activas"
+          value={peticionStats.pendientes + peticionStats.enOracion}
+          icon={HandHeart}
+          variant="accent"
+          subtitle={`${peticionStats.pendientes} pendientes · ${peticionStats.enOracion} en oración`}
+        />
+        <MetricCard
+          title="Respondidas"
+          value={peticionStats.respondidas}
+          icon={CheckCircle2}
+          variant="success"
+          subtitle="Peticiones cerradas"
+        />
+        <MetricCard
+          title="Cursos Activos"
+          value={cursos?.filter(c => c.estado === "Activo").length || 0}
+          icon={GraduationCap}
+          variant="info"
+          subtitle={`${matriculas?.length || 0} matrículas`}
+        />
       </div>
+
 
       {/* Row 2: Calendar + Alert Cards + Tema */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">

@@ -64,6 +64,42 @@ export default function FinanzasPage() {
   const saldo = ingresos - gastos;
   const fmt = (n: number) => `$${n.toLocaleString("es", { minimumFractionDigits: 2 })}`;
 
+  // Previous month comparison (last 30d vs prior 30d) + sparkline (last 6 months)
+  const now = new Date();
+  const day = 24 * 60 * 60 * 1000;
+  const iso = (d: Date) => d.toISOString().slice(0, 10);
+  const from30 = iso(new Date(now.getTime() - 30 * day));
+  const from60 = iso(new Date(now.getTime() - 60 * day));
+  const to30 = iso(now);
+  const inRange = (f: any, a: string, b: string) => f.fecha >= a && f.fecha <= b;
+  const ingCurr = data.filter(f => f.tipo === "Ingreso" && inRange(f, from30, to30)).reduce((s, f) => s + Number(f.monto), 0);
+  const ingPrev = data.filter(f => f.tipo === "Ingreso" && inRange(f, from60, from30)).reduce((s, f) => s + Number(f.monto), 0);
+  const gasCurr = data.filter(f => f.tipo === "Gasto" && inRange(f, from30, to30)).reduce((s, f) => s + Number(f.monto), 0);
+  const gasPrev = data.filter(f => f.tipo === "Gasto" && inRange(f, from60, from30)).reduce((s, f) => s + Number(f.monto), 0);
+  const pctChange = (curr: number, prev: number) => {
+    if (prev === 0) return curr > 0 ? { value: "+100%", positive: true } : { value: "0%", positive: true };
+    const p = Math.round(((curr - prev) / prev) * 100);
+    return { value: `${p >= 0 ? "+" : ""}${p}%`, positive: p >= 0 };
+  };
+  const ingTrend = pctChange(ingCurr, ingPrev);
+  const gasTrend = pctChange(gasCurr, gasPrev);
+  const saldoTrend = pctChange(ingCurr - gasCurr, ingPrev - gasPrev);
+  const monthSeries = (tipo: string) => {
+    const arr: number[] = [];
+    for (let i = 5; i >= 0; i--) {
+      const start = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const end = new Date(now.getFullYear(), now.getMonth() - i + 1, 0);
+      const total = data.filter(f => f.tipo === tipo && f.fecha >= iso(start) && f.fecha <= iso(end))
+        .reduce((s, f) => s + Number(f.monto), 0);
+      arr.push(total);
+    }
+    return arr;
+  };
+  const ingSpark = monthSeries("Ingreso");
+  const gasSpark = monthSeries("Gasto");
+  const saldoSpark = ingSpark.map((v, i) => v - (gasSpark[i] || 0));
+
+
   // Reportes: group by category
   const ingresosCats = (categorias || []).filter(c => c.tipo === "Ingreso");
   const egresosCats = (categorias || []).filter(c => c.tipo === "Gasto");
@@ -117,20 +153,11 @@ export default function FinanzasPage() {
 
       {editing && <FinanzaFormDialog initialData={editing} onClose={() => setEditing(null)} />}
 
-      {/* Summary Cards */}
-      <div className="grid grid-cols-3 gap-2 sm:gap-4 mb-6">
-        <div className="bg-card rounded-xl border p-3 sm:p-5">
-          <p className="text-[10px] sm:text-xs font-medium text-muted-foreground mb-1">Ingresos</p>
-          <p className="text-base sm:text-2xl font-bold text-emerald-600">{fmt(ingresos)}</p>
-        </div>
-        <div className="bg-card rounded-xl border p-3 sm:p-5">
-          <p className="text-[10px] sm:text-xs font-medium text-muted-foreground mb-1">Egresos</p>
-          <p className="text-base sm:text-2xl font-bold text-rose-600">{fmt(gastos)}</p>
-        </div>
-        <div className="bg-card rounded-xl border p-3 sm:p-5">
-          <p className="text-[10px] sm:text-xs font-medium text-muted-foreground mb-1">Saldo</p>
-          <p className="text-base sm:text-2xl font-bold text-foreground">{fmt(saldo)}</p>
-        </div>
+      {/* Executive KPI Grid — MoM comparisons + sparklines */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+        <MetricCard title="Ingresos (periodo)" value={fmt(ingresos)} icon={TrendingUp} variant="success" trend={ingTrend} sparkline={ingSpark} subtitle="Últimos 30 días vs prev." />
+        <MetricCard title="Egresos (periodo)" value={fmt(gastos)} icon={TrendingDown} variant="accent" trend={{ value: gasTrend.value, positive: !gasTrend.positive }} sparkline={gasSpark} subtitle="Últimos 30 días vs prev." />
+        <MetricCard title="Saldo" value={fmt(saldo)} icon={Wallet} variant="default" trend={saldoTrend} sparkline={saldoSpark} subtitle="Balance neto" />
       </div>
 
       <Tabs defaultValue="movimientos" className="space-y-4">
