@@ -2,13 +2,13 @@ import { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import {
   GraduationCap, Wallet, BarChart3, Users, Settings2, ShieldCheck,
-  Award, ScrollText, Coins, KeyRound, LucideIcon
+  Award, ScrollText, Coins, KeyRound, BookOpenCheck, LucideIcon
 } from "lucide-react";
 
 export type ModuleVariant =
   | "academia" | "finanzas" | "reportes" | "usuarios"
   | "configuracion" | "seguridad" | "certificados"
-  | "auditoria" | "roles" | "tesoreria";
+  | "auditoria" | "roles" | "tesoreria" | "seminario";
 
 type Kpi = { label: string; value: ReactNode; hint?: string; tone?: "ok" | "warn" | "bad" | "info" };
 
@@ -167,6 +167,26 @@ const VARIANTS: Record<ModuleVariant, {
     tag: "Treasury Ops",
     inspiredBy: "Modern Treasury",
     pattern: <div />
+  },
+  seminario: {
+    icon: BookOpenCheck,
+    gradient: "from-blue-900 via-indigo-700 to-purple-600",
+    chip: "bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 ring-indigo-500/20",
+    ring: "ring-indigo-500/30",
+    tag: "Seminario Bíblico · SIS",
+    inspiredBy: "Canvas · Coursera · Notion",
+    pattern: (
+      <svg className="absolute inset-0 w-full h-full opacity-[0.09]" viewBox="0 0 400 200" preserveAspectRatio="none">
+        <defs>
+          <pattern id="g-sem" width="40" height="40" patternUnits="userSpaceOnUse">
+            <path d="M0 20h40M20 0v40" stroke="currentColor" strokeWidth="0.4"/>
+            <circle cx="20" cy="20" r="1.2" fill="currentColor"/>
+          </pattern>
+        </defs>
+        <rect width="400" height="200" fill="url(#g-sem)"/>
+        <path d="M10 170 Q100 120 200 150 T390 110" stroke="currentColor" strokeWidth="1" fill="none"/>
+      </svg>
+    )
   }
 };
 
