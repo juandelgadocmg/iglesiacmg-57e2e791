@@ -225,9 +225,13 @@ export default function CertificadosPage() {
     toast.success("Certificado eliminado");
     if (selected?.id === id) setSelected(null);
   };
-  const handleDownload = (cert: any) => {
-    generateCertificatePDF(cert, config);
-    toast.success("Certificado descargado");
+  const handleDownload = async (cert: any) => {
+    try {
+      await generateCertificatePDF(cert, config);
+      toast.success("Certificado descargado");
+    } catch (e: any) {
+      toast.error("No se pudo generar el PDF", { description: e?.message });
+    }
   };
 
   const exportData = filtered.map((c) => ({
