@@ -227,27 +227,33 @@ export default function ReportesPage() {
 
       {/* Área principal */}
       <div className="flex-1 min-w-0 p-3 md:p-6 space-y-6">
-        <div className="flex items-start justify-between gap-3 flex-wrap">
-          <div>
-            <h1 className="text-xl md:text-2xl font-semibold tracking-tight">
-              {DOMAINS.find((d) => d.id === domain)?.label}
-            </h1>
-            <p className="text-[13px] text-muted-foreground mt-0.5">
-              {filtered.length} reportes disponibles · Datos actualizados en tiempo real
-            </p>
-          </div>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm" className="h-8 gap-1.5">
-                <Download className="h-3.5 w-3.5" /> Exportar resumen
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={handleExportPDF}><FileText className="h-4 w-4 mr-2" />PDF ejecutivo</DropdownMenuItem>
-              <DropdownMenuItem onClick={handleExportExcel}><FileSpreadsheet className="h-4 w-4 mr-2" />Excel</DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
+        <ModuleHero
+          variant="reportes"
+          title={DOMAINS.find((d) => d.id === domain)?.label || "Reportes"}
+          eyebrow={`${filtered.length} reportes disponibles`}
+          description="Analítica ejecutiva multidominio con drill-down, alertas inteligentes y exportación auditable."
+          status={{ label: "Datos en tiempo real", tone: "ok" }}
+          kpis={domain === "todos" ? [
+            { label: "Personas activas", value: stats?.totalPersonas || 0, hint: `+${stats?.nuevosEsteMes || 0} este mes`, tone: "info" },
+            { label: "Ingresos mes", value: fmt(stats?.ingresosMes || 0), hint: `Balance ${fmt(balance)}`, tone: balance >= 0 ? "ok" : "bad" },
+            { label: "Matrículas", value: matriculas?.length || 0, hint: `${cursos?.filter((c) => c.estado === "Activo").length || 0} cursos activos`, tone: "warn" },
+            { label: "Certificados", value: certificados?.length || 0, hint: "Emitidos histórico", tone: "info" },
+          ] : []}
+          actions={
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" className="h-8 gap-1.5">
+                  <Download className="h-3.5 w-3.5" /> Exportar resumen
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={handleExportPDF}><FileText className="h-4 w-4 mr-2" />PDF ejecutivo</DropdownMenuItem>
+                <DropdownMenuItem onClick={handleExportExcel}><FileSpreadsheet className="h-4 w-4 mr-2" />Excel</DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          }
+        />
+
 
         {/* Snapshot ejecutivo — visible solo en "Todos" */}
         {domain === "todos" && (
