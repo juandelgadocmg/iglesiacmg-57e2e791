@@ -345,10 +345,15 @@ function CalendarView({ grupos, onOpen }: { grupos: any[]; onOpen: (id: string) 
 
 function EmptyState() {
   return (
-    <div className="rounded-xl border border-dashed bg-muted/20 py-16 text-center">
-      <Users className="h-10 w-10 text-muted-foreground/40 mx-auto mb-3" />
-      <p className="text-[14px] font-medium">Sin grupos</p>
-      <p className="text-[12px] text-muted-foreground mt-1">Ajusta los filtros o crea un nuevo grupo.</p>
+    <div className="rounded-2xl border border-dashed border-border/70 bg-card/60 px-8 py-14 flex flex-col items-center justify-center text-center animate-fade-in">
+      <div className="h-12 w-12 rounded-2xl bg-gradient-to-br from-accent/10 via-accent/5 to-transparent ring-1 ring-accent/15 flex items-center justify-center mb-4">
+        <Users className="h-5 w-5 text-accent" strokeWidth={1.75} />
+      </div>
+      <h3 className="font-semibold text-[15px] text-foreground">Sin grupos</h3>
+      <p className="text-[13px] text-muted-foreground max-w-md mt-1.5">
+        Ajusta los filtros para ampliar la búsqueda o crea un nuevo grupo desde el panel principal.
+      </p>
     </div>
   );
 }
+
