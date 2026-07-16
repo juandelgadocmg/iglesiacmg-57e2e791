@@ -127,7 +127,15 @@ export default function HoyPage() {
           </div>
         </div>
 
+        {/* BANNERS (Pastores / anuncios) — col-span-6 */}
+        {banners.length > 0 && (
+          <div className="col-span-6">
+            <DashboardBannerCarousel banners={banners as any} />
+          </div>
+        )}
+
         {/* PRÓXIMA REUNIÓN — col-span-4 row-span-2 */}
+
         <BentoCard className="col-span-6 md:col-span-4 md:row-span-2 relative overflow-hidden bg-gradient-to-br from-primary/10 via-card to-card">
           <div className="absolute top-0 right-0 w-40 h-40 rounded-full bg-primary/10 blur-2xl" />
           <div className="relative h-full flex flex-col">
