@@ -223,20 +223,83 @@ export default function PersonasPage() {
       </div>
 
       {/* Filters */}
-      <div className="flex flex-col sm:flex-row gap-3">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input placeholder="Buscar por nombre, apellido, documento, email o teléfono..." value={search} onChange={e => setSearch(e.target.value)} className="pl-10" />
+      <div className="space-y-3">
+        <div className="flex flex-col sm:flex-row gap-3">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input placeholder="Buscar por nombre, apellido, documento, email o teléfono..." value={search} onChange={e => setSearch(e.target.value)} className="pl-10" />
+          </div>
+          <Select value={estadoFilter} onValueChange={setEstadoFilter}>
+            <SelectTrigger className="w-40"><SelectValue placeholder="Estado" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos</SelectItem>
+              <SelectItem value="Activo">Activo</SelectItem>
+              <SelectItem value="Inactivo">Inactivo</SelectItem>
+              <SelectItem value="En proceso">En proceso</SelectItem>
+            </SelectContent>
+          </Select>
+          <Button variant="outline" size="sm" className="gap-1.5" onClick={() => setShowAdvanced(v => !v)}>
+            Filtros avanzados
+            {activeAdvanced > 0 && (
+              <span className="ml-1 inline-flex items-center justify-center h-5 min-w-5 px-1 rounded-full bg-accent text-accent-foreground text-[10px] font-bold">{activeAdvanced}</span>
+            )}
+          </Button>
         </div>
-        <Select value={estadoFilter} onValueChange={setEstadoFilter}>
-          <SelectTrigger className="w-40"><SelectValue placeholder="Estado" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todos</SelectItem>
-            <SelectItem value="Activo">Activo</SelectItem>
-            <SelectItem value="Inactivo">Inactivo</SelectItem>
-            <SelectItem value="En proceso">En proceso</SelectItem>
-          </SelectContent>
-        </Select>
+
+        {showAdvanced && (
+          <div className="surface-card p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 animate-fade-in">
+            <div>
+              <label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Grupo</label>
+              <Select value={grupoFilter} onValueChange={setGrupoFilter}>
+                <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos los grupos</SelectItem>
+                  <SelectItem value="__none__">Sin grupo</SelectItem>
+                  {gruposOptions.map(([id, name]) => (
+                    <SelectItem key={id} value={id}>{name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Ministerio / Rol</label>
+              <Select value={ministerioFilter} onValueChange={setMinisterioFilter}>
+                <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos</SelectItem>
+                  {ministeriosOptions.map((m) => (
+                    <SelectItem key={m} value={m}>{m}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Alta desde</label>
+              <Input type="date" value={altaDesde} onChange={e => setAltaDesde(e.target.value)} className="mt-1" />
+            </div>
+            <div>
+              <label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Alta hasta</label>
+              <Input type="date" value={altaHasta} onChange={e => setAltaHasta(e.target.value)} className="mt-1" />
+            </div>
+            <div>
+              <label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Mes de cumpleaños</label>
+              <Select value={mesCumple} onValueChange={setMesCumple}>
+                <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos</SelectItem>
+                  {["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"].map((n, i) => (
+                    <SelectItem key={n} value={String(i + 1).padStart(2, "0")}>{n}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            {activeAdvanced > 0 && (
+              <div className="sm:col-span-2 lg:col-span-5 flex justify-end">
+                <Button variant="ghost" size="sm" onClick={resetAdvanced}>Limpiar filtros</Button>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       <Tabs value={tipoFilter} onValueChange={setTipoFilter}>
