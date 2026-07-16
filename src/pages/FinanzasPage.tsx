@@ -142,14 +142,70 @@ export default function FinanzasPage() {
   const COLORS_INGRESO = ["#22c55e", "#16a34a", "#15803d", "#166534", "#14532d"];
   const COLORS_EGRESO = ["#ef4444", "#dc2626", "#b91c1c", "#991b1b", "#7f1d1d", "#f97316", "#ea580c", "#c2410c"];
 
+  const setPreset = (preset: "mes" | "trim" | "ytd" | "365") => {
+    const d = new Date();
+    if (preset === "mes") {
+      setPeriodoDesde(iso(new Date(d.getFullYear(), d.getMonth(), 1)));
+      setPeriodoHasta(iso(new Date(d.getFullYear(), d.getMonth() + 1, 0)));
+    } else if (preset === "trim") {
+      const q = Math.floor(d.getMonth() / 3);
+      setPeriodoDesde(iso(new Date(d.getFullYear(), q * 3, 1)));
+      setPeriodoHasta(iso(new Date(d.getFullYear(), q * 3 + 3, 0)));
+    } else if (preset === "ytd") {
+      setPeriodoDesde(iso(new Date(d.getFullYear(), 0, 1)));
+      setPeriodoHasta(iso(d));
+    } else {
+      setPeriodoDesde(iso(new Date(d.getTime() - 365 * day)));
+      setPeriodoHasta(iso(d));
+    }
+  };
+  const presets: { key: "mes" | "trim" | "ytd" | "365"; label: string }[] = [
+    { key: "mes", label: "Este mes" },
+    { key: "trim", label: "Trimestre" },
+    { key: "ytd", label: "YTD" },
+    { key: "365", label: "365 días" },
+  ];
+  const isPresetActive = (k: "mes" | "trim" | "ytd" | "365") => {
+    const d = new Date();
+    const cmp = (a: string, b: string) => a === b;
+    if (k === "mes") return cmp(periodoDesde, iso(new Date(d.getFullYear(), d.getMonth(), 1))) && cmp(periodoHasta, iso(new Date(d.getFullYear(), d.getMonth() + 1, 0)));
+    if (k === "ytd") return cmp(periodoDesde, iso(new Date(d.getFullYear(), 0, 1))) && cmp(periodoHasta, iso(d));
+    return false;
+  };
+
   return (
     <div className="animate-fade-in">
-      <PageHeader title="Finanzas" description="Panel financiero de la iglesia">
-        <ExportDropdown title="Finanzas" filename="finanzas" columns={[
-          { header: "Tipo", key: "tipo" }, { header: "Categoría", key: "categoria_nombre" },
-          { header: "Monto", key: "monto" }, { header: "Fecha", key: "fecha" },
-        ]} data={filteredData} />
-      </PageHeader>
+      <div className="flex items-start justify-between gap-3 flex-wrap mb-4">
+        <div>
+          <h1 className="text-xl md:text-2xl font-semibold tracking-tight">Finanzas</h1>
+          <p className="text-[13px] text-muted-foreground mt-0.5">
+            Panel financiero · Periodo {new Date(periodoDesde).toLocaleDateString("es")} — {new Date(periodoHasta).toLocaleDateString("es")}
+          </p>
+        </div>
+        <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex items-center gap-1 rounded-lg border bg-card p-0.5">
+            {presets.map((p) => (
+              <button
+                key={p.key}
+                onClick={() => setPreset(p.key)}
+                className={`px-2.5 py-1 text-[12px] rounded-md transition-colors ${isPresetActive(p.key) ? "bg-primary text-primary-foreground" : "hover:bg-muted text-muted-foreground"}`}
+              >
+                {p.label}
+              </button>
+            ))}
+          </div>
+          <div className="flex items-center gap-1 bg-muted/50 rounded-lg px-2 py-1">
+            <Input type="date" value={periodoDesde} onChange={(e) => setPeriodoDesde(e.target.value)} className="h-7 w-32 text-[11.5px] border-0 bg-transparent" />
+            <span className="text-muted-foreground text-xs">→</span>
+            <Input type="date" value={periodoHasta} onChange={(e) => setPeriodoHasta(e.target.value)} className="h-7 w-32 text-[11.5px] border-0 bg-transparent" />
+          </div>
+          <ExportDropdown title="Finanzas" filename="finanzas" columns={[
+            { header: "Tipo", key: "tipo" }, { header: "Categoría", key: "categoria_nombre" },
+            { header: "Monto", key: "monto" }, { header: "Fecha", key: "fecha" },
+          ]} data={filteredData} />
+          <FinanzaFormDialog />
+        </div>
+      </div>
 
       {editing && <FinanzaFormDialog initialData={editing} onClose={() => setEditing(null)} />}
 
@@ -171,16 +227,7 @@ export default function FinanzasPage() {
         {/* TAB MOVIMIENTOS */}
         <TabsContent value="movimientos">
           <div className="space-y-4">
-            <div className="flex flex-col sm:flex-row flex-wrap items-start sm:items-center gap-3">
-              <div className="flex flex-wrap items-center gap-2 bg-muted/50 rounded-lg px-3 py-1.5 text-sm w-full sm:w-auto">
-                <span className="text-muted-foreground text-xs">📅 Periodo:</span>
-                <Input type="date" value={periodoDesde} onChange={e => setPeriodoDesde(e.target.value)} className="h-7 w-full sm:w-36 text-xs" />
-                <span className="text-muted-foreground hidden sm:inline">a</span>
-                <Input type="date" value={periodoHasta} onChange={e => setPeriodoHasta(e.target.value)} className="h-7 w-full sm:w-36 text-xs" />
-              </div>
-              <div className="flex-1" />
-              <FinanzaFormDialog />
-            </div>
+
 
             <DataTable
               data={filteredData} searchKey="descripcion" searchPlaceholder="Buscar movimiento..."
