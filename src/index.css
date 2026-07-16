@@ -322,7 +322,7 @@
   }
 }
 
-/* Custom scrollbar — Linear/Notion style */
+/* ── Custom scrollbar — Linear/Notion style ─────────────── */
 ::-webkit-scrollbar {
   width: 10px;
   height: 10px;
@@ -335,16 +335,114 @@
   border: 2px solid transparent;
   background-clip: padding-box;
   border-radius: 8px;
+  transition: background 150ms;
 }
 ::-webkit-scrollbar-thumb:hover {
   background: hsl(215 15% 65%);
   background-clip: padding-box;
   border: 2px solid transparent;
 }
+.dark ::-webkit-scrollbar-thumb {
+  background: hsl(215 15% 28%);
+  background-clip: padding-box;
+}
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: hsl(215 15% 40%);
+  background-clip: padding-box;
+}
+* { scrollbar-color: hsl(215 15% 82%) transparent; scrollbar-width: thin; }
+.dark * { scrollbar-color: hsl(215 15% 28%) transparent; }
 
-/* Fade-in animation for page enter */
+/* ── Text selection ─────────────────────────────────────── */
+::selection {
+  background: hsl(var(--accent) / 0.28);
+  color: hsl(var(--foreground));
+}
+
+/* ── Remove mobile tap highlight ────────────────────────── */
+html { -webkit-tap-highlight-color: transparent; }
+
+/* ── Fade-in animation for page enter ───────────────────── */
 @keyframes fade-in {
   from { opacity: 0; transform: translateY(6px); }
   to { opacity: 1; transform: translateY(0); }
 }
-main > * { animation: fade-in 0.3s ease-out; }
+main > * { animation: fade-in 0.3s var(--ease-standard); }
+
+/* ── Skeleton shimmer (premium loading) ─────────────────── */
+@keyframes doxa-shimmer {
+  0% { background-position: -400px 0; }
+  100% { background-position: 400px 0; }
+}
+.skeleton-shimmer {
+  background: linear-gradient(
+    90deg,
+    hsl(var(--muted)) 0%,
+    hsl(var(--muted-foreground) / 0.08) 50%,
+    hsl(var(--muted)) 100%
+  );
+  background-size: 800px 100%;
+  animation: doxa-shimmer 1.4s linear infinite;
+}
+
+/* ── Focus ring — enterprise-grade ──────────────────────── */
+:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px hsl(var(--background)), 0 0 0 4px hsl(var(--ring) / 0.55);
+  border-radius: 8px;
+}
+button:focus-visible,
+a:focus-visible,
+[role="button"]:focus-visible {
+  transition: box-shadow 120ms var(--ease-standard);
+}
+
+/* ── Kbd chip (enterprise shortcut hint) ────────────────── */
+.kbd {
+  display: inline-flex;
+  align-items: center;
+  gap: 1px;
+  min-height: 18px;
+  padding: 1px 5px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 10.5px;
+  font-weight: 600;
+  color: hsl(var(--muted-foreground));
+  background: hsl(var(--muted));
+  border: 1px solid hsl(var(--border));
+  border-bottom-width: 2px;
+  border-radius: 5px;
+  line-height: 1;
+}
+
+/* ── Subtle hover utility — Linear/Vercel ───────────────── */
+.subtle-hover {
+  transition: background-color 120ms var(--ease-standard),
+              border-color 120ms var(--ease-standard),
+              color 120ms var(--ease-standard);
+}
+
+/* ── Prefers reduced motion ─────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+  main > * { animation: none !important; }
+}
+
+/* ── Print — clean auditable exports ────────────────────── */
+@media print {
+  header, aside, nav, [data-print="hide"] { display: none !important; }
+  main { padding: 0 !important; }
+  * { box-shadow: none !important; }
+}
+
+/* ── Smooth scroll for in-page anchors ──────────────────── */
+html { scroll-behavior: smooth; }
+
+/* ── Better underline offset for links ──────────────────── */
+a { text-underline-offset: 2px; }
+

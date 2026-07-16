@@ -70,9 +70,10 @@ export default function AppHeader({ onMenuClick }: AppHeaderProps) {
 
       {/* Breadcrumb */}
       <div className="flex items-center gap-1.5 text-sm min-w-0">
-        <Button variant="ghost" size="icon" className="md:hidden shrink-0 h-8 w-8" onClick={onMenuClick}>
+        <Button variant="ghost" size="icon" className="md:hidden shrink-0 h-8 w-8" onClick={onMenuClick} aria-label="Abrir menú de navegación">
           <Menu className="h-5 w-5" />
         </Button>
+
         <span className="text-muted-foreground hidden md:inline">CMG</span>
         {segments.map((seg, i) => (
           <span key={i} className={`flex items-center gap-1.5 ${i < segments.length - 1 ? "hidden md:flex" : "flex"}`}>

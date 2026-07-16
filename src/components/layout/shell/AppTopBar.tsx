@@ -67,9 +67,10 @@ export default function AppTopBar({ onMenuClick }: { onMenuClick?: () => void })
   return (
     <>
       <header className="h-14 flex items-center gap-3 px-3 md:px-5 border-b bg-background/80 backdrop-blur sticky top-0 z-20">
-        <Button variant="ghost" size="icon" className="md:hidden h-8 w-8" onClick={onMenuClick}>
+        <Button variant="ghost" size="icon" className="md:hidden h-8 w-8" onClick={onMenuClick} aria-label="Abrir menú de navegación">
           <Menu className="h-5 w-5" />
         </Button>
+
 
         {/* Breadcrumbs */}
         <div className="hidden md:flex items-center gap-1.5 text-[13px] min-w-0">
