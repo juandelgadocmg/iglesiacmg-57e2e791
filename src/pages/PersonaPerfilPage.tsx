@@ -1187,7 +1187,83 @@ export default function PersonaPerfilPage() {
               <PersonaActivityTimeline events={timeline} />
             </CardContent>
           </Card>
+
+          {canSeeAudit && (
+            <Card className="mt-4">
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <Shield className="h-4 w-4 text-primary" /> Auditoría de acciones
+                  </CardTitle>
+                  <Badge variant="outline" className="text-xs">
+                    {auditoriaPersona?.length || 0} eventos
+                  </Badge>
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Registros firmados de check-ins, marcaje de asistencia, exportaciones y certificados generados desde el perfil.
+                </p>
+              </CardHeader>
+              <CardContent>
+                {auditoriaLoading ? (
+                  <div className="space-y-2">
+                    <Skeleton className="h-10 w-full" />
+                    <Skeleton className="h-10 w-full" />
+                  </div>
+                ) : (auditoriaPersona && auditoriaPersona.length > 0) ? (
+                  <div className="divide-y">
+                    {auditoriaPersona.map((row: any) => {
+                      const op = String(row.operation || "").toUpperCase();
+                      const badgeClass =
+                        op === "CHECKIN" ? "bg-success/10 text-success border-success/30" :
+                        op === "ATTENDANCE_MARK" ? "bg-primary/10 text-primary border-primary/30" :
+                        op.startsWith("EXPORT") ? "bg-info/10 text-info border-info/30" :
+                        op === "CERTIFICATE_ISSUED" ? "bg-accent/10 text-accent border-accent/30" :
+                        "bg-muted text-muted-foreground";
+                      const label =
+                        op === "CHECKIN" ? "Check-in QR" :
+                        op === "ATTENDANCE_MARK" ? "Asistencia marcada" :
+                        op === "EXPORT_FICHA" ? "Exportó ficha" :
+                        op === "EXPORT_HISTORIAL" ? "Exportó historial" :
+                        op === "CERTIFICATE_ISSUED" ? "Certificado emitido" :
+                        op;
+                      const detalle = row.changed
+                        ? Object.entries(row.changed as any)
+                            .filter(([k]) => k !== "persona_id")
+                            .map(([k, v]) => `${k}: ${typeof v === "object" ? JSON.stringify(v) : v}`)
+                            .join(" · ")
+                        : "";
+                      return (
+                        <div key={row.id} className="flex items-start justify-between gap-3 py-2.5">
+                          <div className="flex items-start gap-3 min-w-0">
+                            <Badge variant="outline" className={cn("shrink-0 text-[10px] uppercase", badgeClass)}>
+                              {label}
+                            </Badge>
+                            <div className="min-w-0">
+                              <p className="text-xs text-foreground truncate">
+                                {row.actor_email || "Sistema"}
+                              </p>
+                              {detalle && (
+                                <p className="text-[11px] text-muted-foreground truncate">{detalle}</p>
+                              )}
+                            </div>
+                          </div>
+                          <span className="text-[11px] text-muted-foreground whitespace-nowrap">
+                            {row.created_at ? format(parseISO(row.created_at), "d MMM · HH:mm", { locale: es }) : ""}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground text-center py-6">
+                    Aún no hay acciones auditadas para esta persona.
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
+
       </Tabs>
 
       {/* Elegir servicio antes de confirmar asistencia */}
