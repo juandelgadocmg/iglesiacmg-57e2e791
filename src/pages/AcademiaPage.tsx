@@ -221,6 +221,15 @@ function PanelAcademicoSection({
 
   return (
     <div className="space-y-5">
+      <ModuleHero
+        variant="academia"
+        title="Panel Académico"
+        eyebrow="LMS · Formación integral"
+        description="Escuelas, periodos, estudiantes y certificaciones — un espacio inspirado en Canvas LMS para gestionar la formación pastoral."
+        status={{ label: `${counts.periodosAbiertos} periodo${counts.periodosAbiertos === 1 ? "" : "s"} abierto${counts.periodosAbiertos === 1 ? "" : "s"}`, tone: counts.periodosAbiertos > 0 ? "ok" : "warn" }}
+        kpis={kpis.map(k => ({ label: k.title, value: k.value, tone: "info" as const }))}
+      />
+
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {kpis.map((k) => (
           <button
@@ -236,6 +245,7 @@ function PanelAcademicoSection({
           </button>
         ))}
       </div>
+
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <section className="lg:col-span-2 rounded-xl border bg-card">
