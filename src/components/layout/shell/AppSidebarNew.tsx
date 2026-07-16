@@ -15,9 +15,10 @@ import {
   Home, Users, UsersRound, Church, CalendarDays, GraduationCap, BookMarked,
   Award, DollarSign, BarChart3, HandHeart, MessageCircle, Mail, Settings,
   UserCog, ShieldCheck, ChevronLeft, ChevronRight, LogOut, Star, Clock,
-  ChevronDown, Sparkles,
+  ChevronDown, Sparkles, BookOpenText, ExternalLink,
 } from "lucide-react";
 import { useUnreadCount } from "@/hooks/useMensajes";
+import { useDiscipulando } from "@/hooks/useDiscipulando";
 
 type Item = { label: string; icon: any; to: string; badgeKey?: "mensajes" };
 
