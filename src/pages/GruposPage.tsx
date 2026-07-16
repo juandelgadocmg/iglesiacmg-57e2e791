@@ -14,7 +14,7 @@ import PlanificacionGrupoFormDialog from "@/components/forms/PlanificacionGrupoF
 import { usePlanificaciones, useDeletePlanificacion } from "@/hooks/usePlanificaciones";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Users, Pencil, Plus, ClipboardList, Network, DollarSign, TrendingUp, BarChart3, FileText, Trash2, Eye, ChevronDown } from "lucide-react";
+import { Users, Pencil, Plus, ClipboardList, Network, DollarSign, TrendingUp, BarChart3, FileText, Trash2, Eye, ChevronDown, Calendar as CalendarIcon } from "lucide-react";
 import { useGrupos, useDeleteGrupo } from "@/hooks/useDatabase";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -415,11 +415,11 @@ export default function GruposPage() {
         </TabsContent>
 
         <TabsContent value="planificacion">
-          <div className="space-y-4">
+          <div className="space-y-6">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
               <div>
-                <h3 className="text-base sm:text-lg font-semibold">Hojas de Planeación</h3>
-                <p className="text-xs sm:text-sm text-muted-foreground">Planificación semanal de Casas de Paz</p>
+                <h2 className="text-xl font-semibold">Hojas de Planeación</h2>
+                <p className="text-sm text-muted-foreground">Planificación semanal de Casas de Paz</p>
               </div>
               {canCreateGrupo && (
                 <Button onClick={() => setShowPlanForm(true)} className="gap-2 w-full sm:w-auto">
@@ -429,30 +429,62 @@ export default function GruposPage() {
             </div>
 
             {planificaciones && planificaciones.length > 0 ? (
-              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                 {planificaciones.map((p: any) => (
-                  <div key={p.id} className="rounded-xl border bg-card p-4 space-y-2 cursor-pointer hover:border-primary/40 transition-colors" onClick={() => setViewingPlan(p)}>
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <p className="font-semibold text-sm">{p.lider_nombre}</p>
-                        <p className="text-xs text-muted-foreground">Red: {p.red || "—"} · {p.casa_de_paz || "—"}</p>
+                  <div
+                    key={p.id}
+                    className="rounded-xl border bg-card p-5 space-y-3 shadow-sm hover:shadow-md transition-shadow cursor-pointer"
+                    onClick={() => setViewingPlan(p)}
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-semibold text-foreground truncate">{p.lider_nombre}</h3>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          {p.red || "Sin red"} · {p.casa_de_paz || "Sin casa de paz"}
+                        </p>
                       </div>
-                      <div className="flex items-center gap-1" onClick={e => e.stopPropagation()}>
-                        <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => setViewingPlan(p)}>
-                          <Eye className="h-3.5 w-3.5" />
-                        </Button>
-                        {canDeleteGrupo && (
-                          <DeleteConfirmDialog
-                            onConfirm={async () => { try { await deletePlan.mutateAsync(p.id); toast.success("Eliminada"); } catch { toast.error("Error"); } }}
-                            trigger={<Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" aria-label="Eliminar"><Trash2 className="h-3.5 w-3.5" /></Button>}
-                          />
-                        )}
+                      <Badge variant="outline" className="shrink-0">Plan</Badge>
+                    </div>
+
+                    <div className="text-sm text-muted-foreground space-y-0.5">
+                      <div>
+                        <CalendarIcon className="inline h-3.5 w-3.5 mr-1" />
+                        Creada: {new Date(p.created_at).toLocaleDateString()}
                       </div>
                     </div>
-                    <p className="text-[10px] text-muted-foreground">{new Date(p.created_at).toLocaleDateString()}</p>
-                    <div className="text-xs space-y-0.5">
-                      <p>Invitados: {p.personas_invitadas}</p>
-                      <p>Ayuno: {p.fecha_ayuno || "—"}</p>
+
+                    <div className="bg-muted/50 rounded-lg p-3 space-y-1.5">
+                      <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                        Resumen semanal
+                      </p>
+                      <div className="flex justify-between text-sm">
+                        <span>Personas invitadas</span>
+                        <span className="font-medium">{p.personas_invitadas || 0}</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span>Fecha ayuno</span>
+                        <span className="font-medium">{p.fecha_ayuno || "—"}</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span>Evangelización</span>
+                        <span className="font-medium">{p.fecha_evangelizacion || "—"}</span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 pt-1" onClick={(e) => e.stopPropagation()}>
+                      <Button size="sm" variant="outline" className="gap-1" onClick={() => setViewingPlan(p)}>
+                        <Eye className="h-3.5 w-3.5" /> Ver
+                      </Button>
+                      {canDeleteGrupo && (
+                        <DeleteConfirmDialog
+                          onConfirm={async () => { try { await deletePlan.mutateAsync(p.id); toast.success("Eliminada"); } catch { toast.error("Error"); } }}
+                          trigger={
+                            <Button size="sm" variant="ghost" className="ml-auto text-destructive">
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+                          }
+                        />
+                      )}
                     </div>
                   </div>
                 ))}
