@@ -43,9 +43,7 @@ export default function AppTopBar({ onMenuClick }: { onMenuClick?: () => void })
 
   const sedes: string[] = (config as any)?.sedes || ["Principal"];
   const [sede, setSede] = useState<string>(sedes[0] || "Principal");
-  const discipulandoUrl = (config as any)?.discipulando_url?.trim() || DEFAULT_DISCIPULANDO_URL;
-  const customLogoUrl = (config as any)?.discipulando_logo_url?.trim() || "";
-  const logoSrc = customLogoUrl || DEFAULT_LOGO_SRC;
+  const { url: discipulandoUrl, logo: logoSrc, open: openDiscipulando } = useDiscipulando();
   const [logoFailed, setLogoFailed] = useState(false);
   useEffect(() => { setLogoFailed(false); }, [logoSrc]);
 
