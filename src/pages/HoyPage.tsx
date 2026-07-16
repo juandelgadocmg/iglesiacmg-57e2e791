@@ -21,7 +21,12 @@ import { useUnreadCount } from "@/hooks/useMensajes";
 import { useRecentEntities } from "@/hooks/useRecentEntities";
 import { useConfiguracion } from "@/hooks/useConfiguracion";
 import { useTemaSemanaVigente } from "@/hooks/useTemaSemana";
+import { useActiveBanners } from "@/hooks/useBanners";
+import { useActiveVideos } from "@/hooks/useVideosIglesia";
 import DashboardTemaSemana from "@/components/dashboard/DashboardTemaSemana";
+import DashboardBannerCarousel from "@/components/dashboard/DashboardBannerCarousel";
+import DashboardVideoSection from "@/components/dashboard/DashboardVideoSection";
+
 import { cn } from "@/lib/utils";
 
 function greeting() {
