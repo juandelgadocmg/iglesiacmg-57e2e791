@@ -472,7 +472,7 @@ export default function PersonaPerfilPage() {
                     <DropdownMenuItem onClick={generarCertificado}>
                       <Award className="h-4 w-4 mr-2" /> Generar certificado
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={registrarAsistencia}>
+                    <DropdownMenuItem onClick={openRegistrarAsistencia}>
                       <ClipboardCheck className="h-4 w-4 mr-2" /> Registrar asistencia
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
