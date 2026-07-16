@@ -175,6 +175,8 @@ export default function ReportesGruposPage() {
       {/* Report Cards */}
       {isLoading ? (
         <GrupoCardsSkeletonGrid count={6} />
+      ) : error ? (
+        <ErrorState error={error} onRetry={() => refetch()} />
       ) : filtered.length === 0 ? (
         reportes && reportes.length > 0 ? (
           <EmptyState
