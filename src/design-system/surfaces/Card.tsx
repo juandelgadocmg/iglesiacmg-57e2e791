@@ -37,7 +37,7 @@ export const Card = React.forwardRef<HTMLDivElement, CardProps>(
 );
 Card.displayName = "DoxaCard";
 
-export interface SectionCardProps extends CardProps {
+export interface SectionCardProps extends Omit<CardProps, "title"> {
   title?: React.ReactNode;
   description?: React.ReactNode;
   actions?: React.ReactNode;
