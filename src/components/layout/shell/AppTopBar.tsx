@@ -132,10 +132,9 @@ export default function AppTopBar({ onMenuClick }: { onMenuClick?: () => void })
           <TooltipProvider delayDuration={200}>
             <Tooltip>
               <TooltipTrigger asChild>
-                <a
-                  href={discipulandoUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
+                <button
+                  type="button"
+                  onClick={() => openDiscipulando()}
                   aria-label="Abrir Discipulando Naciones en una nueva pestaña"
                   className="shrink-0 inline-flex items-center justify-center h-8 px-1.5 rounded-md hover:bg-muted transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
@@ -157,7 +156,7 @@ export default function AppTopBar({ onMenuClick }: { onMenuClick?: () => void })
                       className="h-6 md:h-7 w-auto object-contain select-none dark:brightness-0 dark:invert"
                     />
                   )}
-                </a>
+                </button>
               </TooltipTrigger>
               <TooltipContent side="bottom">Discipulando Naciones</TooltipContent>
             </Tooltip>
