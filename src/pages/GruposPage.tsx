@@ -255,42 +255,77 @@ export default function GruposPage() {
     return <GrupoPerfilView grupoId={selectedGrupoId} onBack={() => setSelectedGrupoId(null)} />;
   }
 
+  const gruposFiltrados = selectedRed
+    ? tableData.filter((g: any) => g.red === selectedRed)
+    : tableData;
+
+  const totalMiembrosRed = selectedRed
+    ? gruposFiltrados.reduce((s: number, g: any) => s + (g.miembrosCount || 0), 0)
+    : 0;
+
   return (
-    <div className="animate-fade-in">
-      <PageHeader title="Grupos" description="Administración de células, ministerios, reportes y visualizaciones">
-        <ExportDropdown title="Grupos" filename="grupos" columns={[
-          { header: "Nombre", key: "nombre" }, { header: "Tipo", key: "tipo" },
-          { header: "Red", key: "red" }, { header: "Líder", key: "liderNombre" },
-          { header: "Día", key: "dia_reunion" }, { header: "Miembros", key: "miembrosCount" },
-          { header: "Estado", key: "estado" },
-        ]} data={tableData} />
-        {canCreateGrupo && <GrupoFormDialog />}
-      </PageHeader>
+    <div className="animate-fade-in -m-3 md:-m-6 flex min-h-[calc(100vh-3.5rem)]">
+      <GruposRedRail
+        grupos={tableData}
+        selectedRed={selectedRed}
+        selectedGrupoId={null}
+        onSelectAll={() => setSelectedRed(null)}
+        onSelectRed={(r) => setSelectedRed(r)}
+        onSelectGrupo={(id) => setSelectedGrupoId(id)}
+      />
 
-      {canEditGrupo && editing && <GrupoFormDialog initialData={editing} onClose={() => setEditing(null)} />}
+      <div className="flex-1 min-w-0 p-3 md:p-6 space-y-4">
+        <div className="flex items-start justify-between gap-3 flex-wrap">
+          <div>
+            <h1 className="text-xl md:text-2xl font-semibold tracking-tight">
+              {selectedRed ? `Red ${selectedRed}` : "Grupos"}
+            </h1>
+            <p className="text-[13px] text-muted-foreground mt-0.5">
+              {selectedRed
+                ? `${gruposFiltrados.length} grupos · ${totalMiembrosRed} miembros`
+                : "Redes, casas de paz y planificación pastoral"}
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <ExportDropdown title="Grupos" filename="grupos" columns={[
+              { header: "Nombre", key: "nombre" }, { header: "Tipo", key: "tipo" },
+              { header: "Red", key: "red" }, { header: "Líder", key: "liderNombre" },
+              { header: "Día", key: "dia_reunion" }, { header: "Miembros", key: "miembrosCount" },
+              { header: "Estado", key: "estado" },
+            ]} data={gruposFiltrados} />
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" className="h-8 gap-1.5">
+                  <FileText className="h-3.5 w-3.5" /> Herramientas <ChevronDown className="h-3 w-3 opacity-60" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuItem onClick={() => setActiveTab("reporte")}><ClipboardList className="h-4 w-4 mr-2" />Iniciar reporte semanal</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setActiveTab("reportes")}>Reportes históricos</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setActiveTab("planificacion")}><FileText className="h-4 w-4 mr-2" />Planificación CDP</DropdownMenuItem>
+                {canManageTesoreriaCDP && <DropdownMenuItem onClick={() => setActiveTab("tesoreria-cdp")}><DollarSign className="h-4 w-4 mr-2" />Tesorería CDP</DropdownMenuItem>}
+                <DropdownMenuItem onClick={() => setActiveTab("mapa")}>Mapa geográfico</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setActiveTab("organigrama")}>Organigrama ministerial</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setActiveTab("jerarquia")}>Vista jerárquica</DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+            {canCreateGrupo && <GrupoFormDialog />}
+          </div>
+        </div>
 
-      <Tabs defaultValue="lista" className="space-y-4">
-        <TabsList className="flex-wrap h-auto gap-1">
-          <TabsTrigger value="lista" className="text-xs sm:text-sm">Grupos</TabsTrigger>
-          <TabsTrigger value="jerarquia" className="text-xs sm:text-sm">Jerarquía</TabsTrigger>
-          <TabsTrigger value="dashboard" className="gap-1 text-xs sm:text-sm">
-            <BarChart3 className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Dashboard</span> Redes
-          </TabsTrigger>
-          <TabsTrigger value="reporte" className="gap-1 text-xs sm:text-sm">
-            <ClipboardList className="h-3.5 w-3.5" /> Reporte
-          </TabsTrigger>
-          <TabsTrigger value="reportes" className="text-xs sm:text-sm">Reportes</TabsTrigger>
-          {canManageTesoreriaCDP && (
-            <TabsTrigger value="tesoreria-cdp" className="gap-1 text-xs sm:text-sm">
-              <DollarSign className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Tesorería</span> CDP
+        {canEditGrupo && editing && <GrupoFormDialog initialData={editing} onClose={() => setEditing(null)} />}
+
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+          <TabsList className="h-9">
+            <TabsTrigger value="lista" className="text-[12.5px]">
+              {selectedRed ? "Grupos de la red" : "Todos los grupos"}
             </TabsTrigger>
-          )}
-          <TabsTrigger value="mapa" className="text-xs sm:text-sm">Mapa</TabsTrigger>
-          <TabsTrigger value="organigrama" className="text-xs sm:text-sm">Organigrama</TabsTrigger>
-          <TabsTrigger value="planificacion" className="gap-1 text-xs sm:text-sm">
-            <FileText className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Planificación</span><span className="sm:hidden">Plan</span>
-          </TabsTrigger>
-        </TabsList>
+            {!selectedRed && (
+              <TabsTrigger value="dashboard" className="gap-1 text-[12.5px]">
+                <BarChart3 className="h-3.5 w-3.5" /> Dashboard redes
+              </TabsTrigger>
+            )}
+          </TabsList>
 
         <TabsContent value="lista">
           <DataTable

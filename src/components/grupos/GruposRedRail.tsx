@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { ChevronDown, ChevronRight, Network, Users, Search, Home, Star, Pin } from "lucide-react";
+import { ChevronDown, ChevronRight, Network, Users, Search, Home, Star } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { useUserPins } from "@/hooks/useUserPins";
