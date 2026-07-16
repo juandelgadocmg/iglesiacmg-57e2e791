@@ -432,11 +432,15 @@ export default function GrupoPerfilView({ grupoId, onBack, readOnly = false }: P
             </div>
 
             {/* Members list */}
-            {loadingMiembros ? <Skeleton className="h-[300px]" /> : filteredMembers.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">
-                <Users className="h-12 w-12 mx-auto mb-2 opacity-30" />
-                <p>No se encontraron integrantes</p>
-              </div>
+            {loadingMiembros ? (
+              <Skeleton className="h-[300px]" aria-label="Cargando integrantes" />
+            ) : filteredMembers.length === 0 ? (
+              <EmptyState
+                icon={Users}
+                title="No se encontraron integrantes"
+                description={memberSearch || memberFilterRol !== "todos" || memberFilterEstado !== "todos" ? "Prueba ajustar los filtros de búsqueda." : "Aún no hay personas asignadas a este grupo."}
+                variant="compact"
+              />
             ) : (
               <>
                 {equipoMembers.length > 0 && (
