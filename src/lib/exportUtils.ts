@@ -76,6 +76,30 @@ export function exportToExcel({ title, columns, data, filename }: ExportOptions)
   }
 }
 
+/** CSV export — RFC 4180 quoting, UTF-8 with BOM so Excel opens accents correctly. */
+export function exportToCSV({ columns, data, filename }: ExportOptions) {
+  const escape = (val: any): string => {
+    if (val === null || val === undefined) return "";
+    const s = String(val);
+    if (/[",\n\r]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
+    return s;
+  };
+  const rows = [
+    columns.map((c) => escape(c.header)).join(","),
+    ...data.map((row) => columns.map((c) => escape(row[c.key])).join(",")),
+  ];
+  const csv = "\uFEFF" + rows.join("\r\n");
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `${filename}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
 export function exportGroupProfilePDF(grupo: {
   nombre: string;
   tipo: string;

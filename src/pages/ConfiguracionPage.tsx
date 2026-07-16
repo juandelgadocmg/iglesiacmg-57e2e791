@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Church, Globe, Clock, Save, BookOpen, ImageIcon, Video, Radio, DollarSign, Bell, Upload, X, AlertCircle } from "lucide-react";
+import { Church, Globe, Clock, Save, BookOpen, ImageIcon, Video, Radio, DollarSign, Bell, Upload, X, AlertCircle, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -19,6 +19,7 @@ import BannersPage from "@/pages/BannersPage";
 import VideosPage from "@/pages/VideosPage";
 import SenalEnVivoPage from "@/pages/SenalEnVivoPage";
 import NotificacionesPreferencias from "@/components/configuracion/NotificacionesPreferencias";
+import PermisosMatriz from "@/components/configuracion/PermisosMatriz";
 
 const MONEDAS = [
   { value: "USD", label: "USD - Dólar estadounidense" },
@@ -164,6 +165,7 @@ export default function ConfiguracionPage() {
           <TabsTrigger value="videos" className="gap-1.5"><Video className="h-3.5 w-3.5" /> Videos</TabsTrigger>
           <TabsTrigger value="senal" className="gap-1.5"><Radio className="h-3.5 w-3.5" /> Señal en Vivo</TabsTrigger>
           <TabsTrigger value="notificaciones" className="gap-1.5"><Bell className="h-3.5 w-3.5" /> Notificaciones</TabsTrigger>
+          <TabsTrigger value="permisos" className="gap-1.5"><ShieldCheck className="h-3.5 w-3.5" /> Permisos</TabsTrigger>
         </TabsList>
 
         <TabsContent value="general">
@@ -418,6 +420,10 @@ export default function ConfiguracionPage() {
 
         <TabsContent value="notificaciones">
           <NotificacionesPreferencias />
+        </TabsContent>
+
+        <TabsContent value="permisos">
+          <PermisosMatriz />
         </TabsContent>
       </Tabs>
     </div>

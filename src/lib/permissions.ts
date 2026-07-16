@@ -122,3 +122,111 @@ export function canPerform(userRoles: AppRole[], action: ActionPermission): bool
   if (!allowed || allowed.length === 0) return true;
   return userRoles.some((role) => allowed.includes(role));
 }
+
+/**
+ * canPerform with DB overrides. If an override exists for the (role, action) pair,
+ * it wins over the hardcoded default. Admins/super_admins always bypass.
+ */
+export function canPerformWithOverrides(
+  userRoles: AppRole[],
+  action: ActionPermission,
+  overrides?: Partial<Record<AppRole, boolean>>,
+): boolean {
+  if (userRoles.includes("admin") || userRoles.includes("super_admin")) return true;
+  const defaults = ACTION_PERMISSIONS[action] ?? [];
+  return userRoles.some((role) => {
+    const override = overrides?.[role];
+    if (typeof override === "boolean") return override;
+    return defaults.includes(role);
+  });
+}
+
+/** All app roles, exposed for admin UIs (matrix, filters). */
+export const ALL_ROLES: AppRole[] = [
+  "super_admin", "admin", "pastor", "lider", "secretaria", "tesoreria",
+  "maestro", "consolidador_lider", "consolidador", "lider_intercesion",
+  "lider_red", "lider_casa_paz", "seminario_admin", "seminario_docente",
+  "seminario_estudiante", "consulta",
+];
+
+export const ROLE_LABELS: Record<AppRole, string> = {
+  super_admin: "Super Admin",
+  admin: "Admin",
+  pastor: "Pastor",
+  lider: "Líder",
+  secretaria: "Secretaría",
+  tesoreria: "Tesorería",
+  maestro: "Maestro",
+  consolidador_lider: "Consolidador Líder",
+  consolidador: "Consolidador",
+  lider_intercesion: "Líder Intercesión",
+  lider_red: "Líder de Red",
+  lider_casa_paz: "Líder Casa de Paz",
+  seminario_admin: "Seminario Admin",
+  seminario_docente: "Docente Seminario",
+  seminario_estudiante: "Estudiante Seminario",
+  consulta: "Consulta",
+};
+
+/** Grouped action catalog for the admin permissions matrix. */
+export const ACTION_GROUPS: { module: string; actions: { key: ActionPermission; label: string }[] }[] = [
+  {
+    module: "Personas",
+    actions: [
+      { key: "personas:create", label: "Crear personas" },
+      { key: "personas:edit",   label: "Editar personas" },
+      { key: "personas:delete", label: "Eliminar personas" },
+    ],
+  },
+  {
+    module: "Grupos",
+    actions: [
+      { key: "grupos:create", label: "Crear grupos" },
+      { key: "grupos:edit",   label: "Editar grupos" },
+      { key: "grupos:delete", label: "Eliminar grupos" },
+    ],
+  },
+  {
+    module: "Reportes de grupos",
+    actions: [
+      { key: "reportes_grupos:create", label: "Crear reporte" },
+      { key: "reportes_grupos:edit",   label: "Editar reporte" },
+      { key: "tesoreria_cdp:manage",   label: "Gestionar Tesorería CDP" },
+    ],
+  },
+  {
+    module: "Peticiones",
+    actions: [
+      { key: "peticiones:view",    label: "Ver peticiones" },
+      { key: "peticiones:create",  label: "Crear peticiones" },
+      { key: "peticiones:edit",    label: "Editar peticiones" },
+      { key: "peticiones:respond", label: "Responder / cerrar" },
+    ],
+  },
+  {
+    module: "Seminario",
+    actions: [
+      { key: "seminario:matricular",        label: "Matricular" },
+      { key: "seminario:certificar",        label: "Emitir certificados" },
+      { key: "seminario:zoom",              label: "Zoom / clases en vivo" },
+      { key: "seminario:evaluacion_crud",   label: "Gestionar evaluaciones" },
+      { key: "seminario:calificacion_edit", label: "Editar calificaciones" },
+      { key: "seminario:asistencia_edit",   label: "Editar asistencia" },
+      { key: "seminario:biblioteca_crud",   label: "Biblioteca / recursos" },
+      { key: "seminario:anuncios_crud",     label: "Anuncios" },
+      { key: "seminario:reportes",          label: "Reportes académicos" },
+    ],
+  },
+  {
+    module: "Programación de Reunión",
+    actions: [
+      { key: "programa:manage",              label: "Administrar programación" },
+      { key: "programa:assign",              label: "Asignar servidores" },
+      { key: "programa:confirm:pastor",      label: "Confirmar (pastor)" },
+      { key: "programa:confirm:lider",       label: "Confirmar (líder)" },
+      { key: "programa:confirm:servidor",    label: "Confirmar (servidor)" },
+      { key: "programa:confirm:colaborador", label: "Confirmar (colaborador)" },
+    ],
+  },
+];
+
