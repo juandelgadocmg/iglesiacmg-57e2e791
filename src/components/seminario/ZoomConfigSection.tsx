@@ -80,13 +80,13 @@ export default function ZoomConfigSection() {
 
   return (
     <div className="space-y-4 max-w-3xl">
-      <div className="flex items-center gap-2">
-        <Video className="h-5 w-5 text-primary" />
-        <div>
-          <h2 className="text-lg font-semibold">Configuración Zoom</h2>
-          <p className="text-xs text-muted-foreground">Elige cómo se generan los enlaces de las clases virtuales</p>
-        </div>
-      </div>
+      <SectionHero
+        icon={Settings2}
+        eyebrow="Integrations · Video"
+        title="Configuración Zoom"
+        description="Elige cómo se generan los enlaces de las clases virtuales del seminario."
+        gradient="from-sky-600 via-blue-600 to-indigo-700"
+      />
 
       {/* Modo activo */}
       <Card>
