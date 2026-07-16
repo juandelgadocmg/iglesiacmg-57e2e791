@@ -40,7 +40,7 @@ export default function ReportesGruposPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
 
-  const { data: reportes, isLoading } = useReportesGrupos();
+  const { data: reportes, isLoading, error, refetch } = useReportesGrupos();
   const deleteReporte = useDeleteReporteGrupo();
   const updateReporte = useUpdateReporteGrupo();
   const { data: morosos } = useTesoreriaMora();
