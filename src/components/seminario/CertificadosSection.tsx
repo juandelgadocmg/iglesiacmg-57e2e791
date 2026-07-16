@@ -150,6 +150,18 @@ export default function CertificadosSection() {
           </CardContent>
         </Card>
       )}
+
+      {downloadCert && (
+        <CertDownloadDialog
+          open={!!downloadCert}
+          onOpenChange={(v) => !v && setDownloadCert(null)}
+          tipo="seminario_diploma"
+          personaId={downloadCert.persona_id}
+          personaNombre={`${downloadCert.personas?.nombres || ""} ${downloadCert.personas?.apellidos || ""}`.trim()}
+          contexto={{ codigo: downloadCert.codigo }}
+          onDownload={async () => { await doDescargarKardex(downloadCert); }}
+        />
+      )}
     </div>
   );
 }
