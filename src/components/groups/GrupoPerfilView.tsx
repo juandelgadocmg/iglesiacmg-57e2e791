@@ -517,10 +517,11 @@ export default function GrupoPerfilView({ grupoId, onBack, readOnly = false }: P
         <TabsContent value="estadisticas">
           <div className="space-y-4">
             {chartData.length === 0 ? (
-              <div className="text-center py-12 text-muted-foreground">
-                <BarChart3 className="h-12 w-12 mx-auto mb-2 opacity-30" />
-                <p>No hay datos de asistencia disponibles</p>
-              </div>
+              <EmptyState
+                icon={BarChart3}
+                title="Sin datos de asistencia"
+                description="Aún no hay reportes suficientes para generar las gráficas de este grupo."
+              />
             ) : (
               <>
                 <div className="rounded-xl border bg-card p-5">
