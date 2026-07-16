@@ -12,9 +12,10 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Plus, Pencil, Trash2, Link2, X, Eye, Video, History } from "lucide-react";
+import { Plus, Pencil, Trash2, Link2, X, Eye, Video, History, FileText } from "lucide-react";
 import { toast } from "sonner";
 import DeleteConfirmDialog from "@/components/shared/DeleteConfirmDialog";
+import SectionHero from "@/components/shell/SectionHero";
 
 export default function MateriasSection({ readOnly = false }: { readOnly?: boolean }) {
   const { data: programas } = useProgramas();
