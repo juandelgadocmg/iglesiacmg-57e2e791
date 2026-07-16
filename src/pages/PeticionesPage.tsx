@@ -1,673 +1,289 @@
 import { useState, useMemo } from "react";
-import PageHeader from "@/components/shared/PageHeader";
-import StatusBadge from "@/components/shared/StatusBadge";
 import PeticionFormDialog from "@/components/forms/PeticionFormDialog";
-import DeleteConfirmDialog from "@/components/shared/DeleteConfirmDialog";
 import WhatsAppPeticionDialog from "@/components/peticiones/WhatsAppPeticionDialog";
-import { usePeticiones, useDeletePeticion, useUpdatePeticion } from "@/hooks/usePeticiones";
-import { Card, CardContent } from "@/components/ui/card";
+import PeticionesKanban from "@/components/peticiones/PeticionesKanban";
+import PeticionDetailDock from "@/components/peticiones/PeticionDetailDock";
+import { usePeticiones } from "@/hooks/usePeticiones";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import {
-  Search, Pencil, Clock, CheckCircle2,
-  Users, FileText, LayoutGrid, Calendar as CalendarIcon, X, MessageCircle
+  Search, Calendar as CalendarIcon, X, MessageCircle, Flame,
+  AlertTriangle, Sparkles, HeartHandshake
 } from "lucide-react";
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RTooltip } from "recharts";
-import { toast } from "sonner";
-import { format, parseISO, isPast, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear, isWithinInterval } from "date-fns";
+import { format, parseISO, isPast, startOfDay, endOfDay, isWithinInterval } from "date-fns";
 import { es } from "date-fns/locale";
 import ExportDropdown from "@/components/shared/ExportDropdown";
 import { cn } from "@/lib/utils";
 import { fueContactadoPorWhatsApp, ultimoContactoWhatsApp } from "@/lib/whatsapp";
-import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
+import { useContextDock } from "@/components/layout/context-dock/ContextDock";
 
-const ESTADOS = ["Todos", "Pendiente", "En oración", "Respondida", "Archivada"];
-const PIE_COLORS = ["hsl(var(--warning))", "hsl(var(--info))", "hsl(var(--success))", "hsl(var(--muted-foreground))"];
-
-const prioridadColor: Record<string, string> = {
-  Baja: "bg-muted text-muted-foreground",
-  Normal: "bg-info/10 text-info",
-  Alta: "bg-warning/10 text-warning",
-  Urgente: "bg-destructive/10 text-destructive",
-};
-
-const estadoColor: Record<string, string> = {
-  Pendiente: "bg-warning/10 text-warning border-warning/30",
-  "En oración": "bg-info/10 text-info border-info/30",
-  Respondida: "bg-success/10 text-success border-success/30",
-  Archivada: "bg-muted text-muted-foreground border-border",
-};
-
-type ViewMode = "panel" | "gestionar";
+const PRIORIDADES = ["Baja", "Normal", "Alta", "Urgente"];
 
 export default function PeticionesPage() {
   const { data: peticiones, isLoading } = usePeticiones();
-  const deletePeticion = useDeletePeticion();
-  const updatePeticion = useUpdatePeticion();
+  const dock = useContextDock();
+
   const [search, setSearch] = useState("");
-  const [tab, setTab] = useState("Todos");
   const [editing, setEditing] = useState<any>(null);
-  const [viewMode, setViewMode] = useState<ViewMode>("panel");
   const [fechaDesde, setFechaDesde] = useState<Date | undefined>(undefined);
   const [fechaHasta, setFechaHasta] = useState<Date | undefined>(undefined);
   const [waPeticion, setWaPeticion] = useState<any | null>(null);
   const [soloContactadasWA, setSoloContactadasWA] = useState(false);
+  const [prioridadFilter, setPrioridadFilter] = useState<string[]>([]);
+  const [smartFilter, setSmartFilter] = useState<"todos" | "urgentes" | "vencidas" | "sin_wa" | "nuevas">("todos");
 
   const filtered = useMemo(() => {
     if (!peticiones) return [];
     const desde = fechaDesde ? startOfDay(fechaDesde) : null;
     const hasta = fechaHasta ? endOfDay(fechaHasta) : null;
     return peticiones.filter((p: any) => {
-      if (tab !== "Todos" && p.estado !== tab) return false;
       if (search) {
         const q = search.toLowerCase();
-        const matchesSearch = p.titulo.toLowerCase().includes(q) ||
+        const ok = p.titulo?.toLowerCase().includes(q) ||
           p.personas?.nombres?.toLowerCase().includes(q) ||
-          p.personas?.apellidos?.toLowerCase().includes(q);
-        if (!matchesSearch) return false;
+          p.personas?.apellidos?.toLowerCase().includes(q) ||
+          p.descripcion?.toLowerCase().includes(q);
+        if (!ok) return false;
       }
+      if (prioridadFilter.length && !prioridadFilter.includes(p.prioridad)) return false;
       if (desde || hasta) {
         if (!p.created_at) return false;
-        const fecha = parseISO(p.created_at);
-        if (desde && hasta) {
-          if (!isWithinInterval(fecha, { start: desde, end: hasta })) return false;
-        } else if (desde && fecha < desde) return false;
-        else if (hasta && fecha > hasta) return false;
+        const f = parseISO(p.created_at);
+        if (desde && hasta) { if (!isWithinInterval(f, { start: desde, end: hasta })) return false; }
+        else if (desde && f < desde) return false;
+        else if (hasta && f > hasta) return false;
       }
       if (soloContactadasWA && !fueContactadoPorWhatsApp(p.notas_seguimiento)) return false;
+
+      if (smartFilter === "urgentes" && p.prioridad !== "Urgente" && p.prioridad !== "Alta") return false;
+      if (smartFilter === "vencidas") {
+        if (!p.fecha_seguimiento) return false;
+        if (!isPast(parseISO(p.fecha_seguimiento))) return false;
+        if (p.estado === "Respondida" || p.estado === "Archivada") return false;
+      }
+      if (smartFilter === "sin_wa" && (fueContactadoPorWhatsApp(p.notas_seguimiento) || p.estado === "Respondida" || p.estado === "Archivada")) return false;
+      if (smartFilter === "nuevas") {
+        if (!p.created_at) return false;
+        const d = (Date.now() - parseISO(p.created_at).getTime()) / (1000 * 3600 * 24);
+        if (d > 7) return false;
+      }
       return true;
     });
-  }, [peticiones, tab, search, fechaDesde, fechaHasta, soloContactadasWA]);
+  }, [peticiones, search, fechaDesde, fechaHasta, soloContactadasWA, prioridadFilter, smartFilter]);
 
-  // Conteos sobre el listado filtrado por fecha (sin filtrar por tab)
-  const peticionesEnRango = useMemo(() => {
-    if (!peticiones) return [];
-    const desde = fechaDesde ? startOfDay(fechaDesde) : null;
-    const hasta = fechaHasta ? endOfDay(fechaHasta) : null;
-    if (!desde && !hasta) return peticiones;
-    return peticiones.filter((p: any) => {
-      if (!p.created_at) return false;
-      const fecha = parseISO(p.created_at);
-      if (desde && hasta) return isWithinInterval(fecha, { start: desde, end: hasta });
-      if (desde) return fecha >= desde;
-      if (hasta) return fecha <= hasta;
-      return true;
-    });
-  }, [peticiones, fechaDesde, fechaHasta]);
-
-  const counts = useMemo(() => {
+  const smartCounts = useMemo(() => {
+    if (!peticiones) return { total: 0, urgentes: 0, vencidas: 0, sin_wa: 0, nuevas: 0 };
+    const now = Date.now();
     return {
-      pendiente: peticionesEnRango.filter((p: any) => p.estado === "Pendiente").length,
-      enOracion: peticionesEnRango.filter((p: any) => p.estado === "En oración").length,
-      respondida: peticionesEnRango.filter((p: any) => p.estado === "Respondida").length,
-      archivada: peticionesEnRango.filter((p: any) => p.estado === "Archivada").length,
-      total: peticionesEnRango.length,
+      total: peticiones.length,
+      urgentes: peticiones.filter((p: any) => p.prioridad === "Urgente" || p.prioridad === "Alta").length,
+      vencidas: peticiones.filter((p: any) => p.fecha_seguimiento && isPast(parseISO(p.fecha_seguimiento)) && p.estado !== "Respondida" && p.estado !== "Archivada").length,
+      sin_wa: peticiones.filter((p: any) => !fueContactadoPorWhatsApp(p.notas_seguimiento) && p.estado !== "Respondida" && p.estado !== "Archivada").length,
+      nuevas: peticiones.filter((p: any) => p.created_at && (now - parseISO(p.created_at).getTime()) / (1000 * 3600 * 24) <= 7).length,
     };
-  }, [peticionesEnRango]);
+  }, [peticiones]);
 
-  const tipoCounts = useMemo(() => {
-    const map: Record<string, number> = {};
-    peticionesEnRango.forEach((p: any) => {
-      const tipo = p.tipo || "Sin tipo";
-      map[tipo] = (map[tipo] || 0) + 1;
-    });
-    return map;
-  }, [peticionesEnRango]);
-
-  const pieData = [
-    { name: "Pendiente", value: counts.pendiente },
-    { name: "En oración", value: counts.enOracion },
-    { name: "Respondida", value: counts.respondida },
-    { name: "Archivada", value: counts.archivada },
-  ].filter(d => d.value > 0);
-
-  const handleDelete = async (id: string) => {
-    await deletePeticion.mutateAsync(id);
-    toast.success("Petición eliminada");
+  const openDetail = (p: any) => {
+    dock.open(
+      p.titulo,
+      <PeticionDetailDock
+        peticion={p}
+        onEdit={(pp) => { dock.close(); setEditing(pp); }}
+        onWhatsApp={(pp) => setWaPeticion(pp)}
+        onClose={dock.close}
+      />
+    );
   };
 
-  const handleMarkResponded = async (id: string) => {
-    await updatePeticion.mutateAsync({ id, estado: "Respondida", fecha_respuesta: new Date().toISOString().split("T")[0] });
-    toast.success("Petición marcada como respondida");
+  const togglePrioridad = (p: string) => {
+    setPrioridadFilter(prev => prev.includes(p) ? prev.filter(x => x !== p) : [...prev, p]);
   };
-
-  const exportData = (filtered as any[]).map(p => {
-    const contactadoWA = fueContactadoPorWhatsApp(p.notas_seguimiento);
-    const ultContacto = ultimoContactoWhatsApp(p.notas_seguimiento);
-    return {
-      titulo: p.titulo,
-      persona: p.personas ? `${p.personas.nombres} ${p.personas.apellidos}` : "Sin asignar",
-      tipo: p.tipo || "Sin tipo",
-      estado: p.estado,
-      prioridad: p.prioridad,
-      whatsapp_estado: contactadoWA ? "Contactado" : "Pendiente",
-      whatsapp_fecha: ultContacto || "",
-      descripcion: p.descripcion || "",
-      fecha_seguimiento: p.fecha_seguimiento || "",
-      fecha: p.created_at ? format(parseISO(p.created_at), "dd/MM/yyyy") : "",
-    };
-  });
 
   const rangoActivo = fechaDesde || fechaHasta;
   const rangoLabel = useMemo(() => {
     if (!rangoActivo) return "";
-    const d = fechaDesde ? format(fechaDesde, "dd/MM/yyyy") : "...";
-    const h = fechaHasta ? format(fechaHasta, "dd/MM/yyyy") : "...";
-    return `${d} – ${h}`;
+    return `${fechaDesde ? format(fechaDesde, "dd/MM/yyyy") : "..."} – ${fechaHasta ? format(fechaHasta, "dd/MM/yyyy") : "..."}`;
   }, [fechaDesde, fechaHasta, rangoActivo]);
 
-  const exportTitle = rangoActivo
-    ? `Peticiones de Oración (${rangoLabel})`
-    : "Peticiones de Oración";
-  const exportFilename = rangoActivo
-    ? `peticiones-oracion-${fechaDesde ? format(fechaDesde, "yyyyMMdd") : "inicio"}-${fechaHasta ? format(fechaHasta, "yyyyMMdd") : "hoy"}`
-    : "peticiones-oracion";
+  const exportData = filtered.map((p: any) => ({
+    titulo: p.titulo,
+    persona: p.personas ? `${p.personas.nombres} ${p.personas.apellidos}` : "Sin asignar",
+    tipo: p.tipo || "Sin tipo",
+    estado: p.estado,
+    prioridad: p.prioridad,
+    whatsapp_estado: fueContactadoPorWhatsApp(p.notas_seguimiento) ? "Contactado" : "Pendiente",
+    whatsapp_fecha: ultimoContactoWhatsApp(p.notas_seguimiento) || "",
+    descripcion: p.descripcion || "",
+    fecha_seguimiento: p.fecha_seguimiento || "",
+    fecha: p.created_at ? format(parseISO(p.created_at), "dd/MM/yyyy") : "",
+  }));
 
   if (isLoading) {
     return (
-      <div className="animate-fade-in space-y-4">
-        <Skeleton className="h-10 w-48" />
-        <Skeleton className="h-[400px] w-full" />
+      <div className="animate-fade-in space-y-4 p-6">
+        <Skeleton className="h-10 w-64" />
+        <Skeleton className="h-[600px] w-full" />
       </div>
     );
   }
 
+  const smartItems = [
+    { id: "todos", label: "Todas", icon: HeartHandshake, count: smartCounts.total, tone: "" },
+    { id: "urgentes", label: "Urgentes / Alta", icon: Flame, count: smartCounts.urgentes, tone: "text-destructive" },
+    { id: "vencidas", label: "Seguimiento vencido", icon: AlertTriangle, count: smartCounts.vencidas, tone: "text-warning" },
+    { id: "sin_wa", label: "Sin contactar por WhatsApp", icon: MessageCircle, count: smartCounts.sin_wa, tone: "text-info" },
+    { id: "nuevas", label: "Nuevas esta semana", icon: Sparkles, count: smartCounts.nuevas, tone: "text-success" },
+  ] as const;
+
   return (
-    <div className="animate-fade-in space-y-6">
-      <PageHeader title="Peticiones de Oración" description="Seguimiento y gestión de peticiones de oración de la congregación">
-        <ExportDropdown
-          title={exportTitle}
-          filename={exportFilename}
-          columns={[
-            { header: "Título", key: "titulo" },
-            { header: "Persona", key: "persona" },
-            { header: "Tipo", key: "tipo" },
-            { header: "Estado", key: "estado" },
-            { header: "Prioridad", key: "prioridad" },
-            { header: "WhatsApp", key: "whatsapp_estado" },
-            { header: "Fecha contacto WA", key: "whatsapp_fecha" },
-            { header: "Descripción", key: "descripcion" },
-            { header: "Seguimiento", key: "fecha_seguimiento" },
-            { header: "Fecha", key: "fecha" },
-          ]}
-          data={exportData}
-        />
-        <PeticionFormDialog />
-      </PageHeader>
-
-      {editing && <PeticionFormDialog initialData={editing} onClose={() => setEditing(null)} />}
-      <WhatsAppPeticionDialog
-        open={!!waPeticion}
-        onOpenChange={(v) => !v && setWaPeticion(null)}
-        peticion={waPeticion}
-      />
-
-      {/* View mode toggle */}
-      <div className="flex items-center gap-2">
-        <Button
-          variant={viewMode === "panel" ? "default" : "outline"}
-          size="sm"
-          className="gap-1.5"
-          onClick={() => setViewMode("panel")}
-        >
-          <FileText className="h-4 w-4" /> Panel
-        </Button>
-        <Button
-          variant={viewMode === "gestionar" ? "default" : "outline"}
-          size="sm"
-          className="gap-1.5"
-          onClick={() => setViewMode("gestionar")}
-        >
-          <LayoutGrid className="h-4 w-4" /> Gestionar
-        </Button>
-      </div>
-
-      {/* Filtro por fecha */}
-      <DateRangeFilter
-        fechaDesde={fechaDesde}
-        fechaHasta={fechaHasta}
-        setFechaDesde={setFechaDesde}
-        setFechaHasta={setFechaHasta}
-        soloContactadasWA={soloContactadasWA}
-        setSoloContactadasWA={setSoloContactadasWA}
-      />
-
-      {(rangoActivo || soloContactadasWA) && (
-        <div className="text-xs text-muted-foreground bg-muted/40 border rounded-md px-3 py-2 space-x-1">
-          <span>Mostrando <strong>{filtered.length}</strong> petición(es)</span>
-          {rangoActivo && <span>del período <strong>{rangoLabel}</strong></span>}
-          {soloContactadasWA && <span className="text-success font-medium">· solo contactadas por WhatsApp</span>}
-          <span>. El informe exportado refleja estos filtros.</span>
+    <div className="animate-fade-in flex h-[calc(100vh-56px)] overflow-hidden">
+      {/* LEFT RAIL */}
+      <aside className="w-60 shrink-0 border-r bg-card/40 p-3 overflow-y-auto hidden lg:block">
+        <div className="mb-4">
+          <p className="text-[10px] uppercase tracking-wide text-muted-foreground font-medium px-2 mb-2">Vistas pastorales</p>
+          <div className="space-y-0.5">
+            {smartItems.map(({ id, label, icon: Icon, count, tone }) => (
+              <button
+                key={id}
+                onClick={() => setSmartFilter(id as any)}
+                className={cn(
+                  "w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm text-left transition-colors",
+                  smartFilter === id ? "bg-primary/10 text-primary font-medium" : "hover:bg-muted text-foreground"
+                )}
+              >
+                <Icon className={cn("h-3.5 w-3.5", smartFilter === id ? "text-primary" : tone || "text-muted-foreground")} />
+                <span className="flex-1 truncate">{label}</span>
+                <Badge variant="secondary" className="h-5 min-w-5 px-1.5 text-[10px]">{count}</Badge>
+              </button>
+            ))}
+          </div>
         </div>
-      )}
 
-      {viewMode === "panel" ? (
-        <PanelView
-          counts={counts}
-          pieData={pieData}
-          tipoCounts={tipoCounts}
-          tab={tab}
-          setTab={setTab}
-          search={search}
-          setSearch={setSearch}
-          filtered={filtered}
-          onWhatsApp={setWaPeticion}
-        />
-      ) : (
-        <GestionarView
-          filtered={filtered}
-          tab={tab}
-          setTab={setTab}
-          search={search}
-          setSearch={setSearch}
-          onEdit={setEditing}
-          onDelete={handleDelete}
-          onMarkResponded={handleMarkResponded}
-          onWhatsApp={setWaPeticion}
-        />
-      )}
-    </div>
-  );
-}
+        <div className="mb-4">
+          <p className="text-[10px] uppercase tracking-wide text-muted-foreground font-medium px-2 mb-2">Prioridad</p>
+          <div className="space-y-0.5">
+            {PRIORIDADES.map(p => (
+              <button
+                key={p}
+                onClick={() => togglePrioridad(p)}
+                className={cn(
+                  "w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm text-left transition-colors",
+                  prioridadFilter.includes(p) ? "bg-muted font-medium" : "hover:bg-muted/60 text-muted-foreground"
+                )}
+              >
+                <span className={cn(
+                  "h-2 w-2 rounded-full",
+                  p === "Urgente" && "bg-destructive",
+                  p === "Alta" && "bg-warning",
+                  p === "Normal" && "bg-info",
+                  p === "Baja" && "bg-muted-foreground"
+                )} />
+                {p}
+              </button>
+            ))}
+            {prioridadFilter.length > 0 && (
+              <Button variant="ghost" size="sm" className="w-full justify-start text-xs h-7 text-muted-foreground" onClick={() => setPrioridadFilter([])}>
+                <X className="h-3 w-3 mr-1" /> Limpiar prioridad
+              </Button>
+            )}
+          </div>
+        </div>
 
-// ============ DATE RANGE FILTER ============
-function DateRangeFilter({ fechaDesde, fechaHasta, setFechaDesde, setFechaHasta, soloContactadasWA, setSoloContactadasWA }: any) {
-  const setPreset = (preset: "hoy" | "semana" | "mes" | "anio") => {
-    const now = new Date();
-    if (preset === "hoy") {
-      setFechaDesde(startOfDay(now));
-      setFechaHasta(endOfDay(now));
-    } else if (preset === "semana") {
-      setFechaDesde(startOfWeek(now, { weekStartsOn: 1 }));
-      setFechaHasta(endOfWeek(now, { weekStartsOn: 1 }));
-    } else if (preset === "mes") {
-      setFechaDesde(startOfMonth(now));
-      setFechaHasta(endOfMonth(now));
-    } else if (preset === "anio") {
-      setFechaDesde(startOfYear(now));
-      setFechaHasta(endOfYear(now));
-    }
-  };
+        <div>
+          <p className="text-[10px] uppercase tracking-wide text-muted-foreground font-medium px-2 mb-2">Contacto</p>
+          <div className="flex items-center justify-between px-2 py-1.5">
+            <Label htmlFor="wa" className="text-sm cursor-pointer flex items-center gap-2">
+              <MessageCircle className="h-3.5 w-3.5 text-success" /> Solo con WA
+            </Label>
+            <Switch id="wa" checked={soloContactadasWA} onCheckedChange={setSoloContactadasWA} />
+          </div>
+        </div>
+      </aside>
 
-  return (
-    <Card>
-      <CardContent className="py-3 flex flex-wrap items-center gap-2">
-        <span className="text-xs font-medium text-muted-foreground mr-2">Filtrar por fecha:</span>
-
-        <Popover>
-          <PopoverTrigger asChild>
-            <Button variant="outline" size="sm" className={cn("gap-1.5 h-8", !fechaDesde && "text-muted-foreground")}>
-              <CalendarIcon className="h-3.5 w-3.5" />
-              {fechaDesde ? format(fechaDesde, "dd MMM yyyy", { locale: es }) : "Desde"}
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-auto p-0" align="start">
-            <Calendar
-              mode="single"
-              selected={fechaDesde}
-              onSelect={setFechaDesde}
-              initialFocus
-              locale={es}
-              className={cn("p-3 pointer-events-auto")}
-            />
-          </PopoverContent>
-        </Popover>
-
-        <span className="text-xs text-muted-foreground">→</span>
-
-        <Popover>
-          <PopoverTrigger asChild>
-            <Button variant="outline" size="sm" className={cn("gap-1.5 h-8", !fechaHasta && "text-muted-foreground")}>
-              <CalendarIcon className="h-3.5 w-3.5" />
-              {fechaHasta ? format(fechaHasta, "dd MMM yyyy", { locale: es }) : "Hasta"}
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-auto p-0" align="start">
-            <Calendar
-              mode="single"
-              selected={fechaHasta}
-              onSelect={setFechaHasta}
-              initialFocus
-              locale={es}
-              className={cn("p-3 pointer-events-auto")}
-            />
-          </PopoverContent>
-        </Popover>
-
-        <div className="h-5 w-px bg-border mx-1" />
-
-        <Button variant="ghost" size="sm" className="h-8 text-xs" onClick={() => setPreset("hoy")}>Hoy</Button>
-        <Button variant="ghost" size="sm" className="h-8 text-xs" onClick={() => setPreset("semana")}>Esta semana</Button>
-        <Button variant="ghost" size="sm" className="h-8 text-xs" onClick={() => setPreset("mes")}>Este mes</Button>
-        <Button variant="ghost" size="sm" className="h-8 text-xs" onClick={() => setPreset("anio")}>Este año</Button>
-
-        <div className="flex items-center gap-2 ml-auto">
-          <div className="flex items-center gap-2 px-2 py-1 rounded-md border bg-success/5">
-            <MessageCircle className="h-3.5 w-3.5 text-success" />
-            <Label htmlFor="solo-wa" className="text-xs cursor-pointer select-none">Solo contactadas por WhatsApp</Label>
-            <Switch id="solo-wa" checked={!!soloContactadasWA} onCheckedChange={setSoloContactadasWA} />
+      {/* MAIN */}
+      <div className="flex-1 flex flex-col overflow-hidden">
+        {/* Header */}
+        <div className="border-b bg-card/60 px-6 py-3 flex flex-wrap items-center gap-3">
+          <div>
+            <h1 className="text-lg font-semibold text-foreground">Peticiones de Oración</h1>
+            <p className="text-xs text-muted-foreground">Kanban pastoral · arrastra para cambiar estado</p>
           </div>
 
-          {(fechaDesde || fechaHasta) && (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-8 text-xs text-destructive gap-1"
-              onClick={() => { setFechaDesde(undefined); setFechaHasta(undefined); }}
-            >
-              <X className="h-3 w-3" /> Limpiar
-            </Button>
-          )}
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
-// ============ WHATSAPP BUTTON ============
-function WhatsAppButton({ peticion, onClick, size = "sm" }: { peticion: any; onClick: (p: any) => void; size?: "sm" | "icon" }) {
-  const numero = peticion?.personas?.whatsapp || peticion?.personas?.telefono;
-  const tienePersona = !!peticion?.personas;
-  const disabled = !tienePersona || !numero;
-  const reason = !tienePersona ? "Petición sin persona asignada" : !numero ? "La persona no tiene WhatsApp ni teléfono" : "";
-  const contactado = fueContactadoPorWhatsApp(peticion?.notas_seguimiento);
-
-  const handleClick = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (disabled) return;
-    onClick(peticion);
-  };
-
-  if (size === "icon") {
-    const icon = (
-      <Button
-        type="button"
-        variant="ghost"
-        size="icon"
-        className={cn("h-8 w-8", contactado ? "text-success" : "text-muted-foreground hover:text-success", "hover:bg-success/10")}
-        disabled={disabled}
-        onClick={handleClick}
-      >
-        <MessageCircle className="h-4 w-4" />
-      </Button>
-    );
-    if (disabled) {
-      return (
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild><span tabIndex={0}>{icon}</span></TooltipTrigger>
-            <TooltipContent>{reason}</TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
-      );
-    }
-    return icon;
-  }
-
-  const btn = (
-    <Button
-      type="button"
-      size="sm"
-      variant="outline"
-      className={cn(
-        "gap-1 text-xs",
-        contactado
-          ? "border-success bg-success/10 text-success hover:bg-success/20"
-          : "border-success/40 text-success hover:bg-success/10"
-      )}
-      disabled={disabled}
-      onClick={handleClick}
-    >
-      <MessageCircle className="h-3.5 w-3.5" />
-      {contactado ? "Reenviar WA" : "WhatsApp"}
-    </Button>
-  );
-  if (disabled) {
-    return (
-      <TooltipProvider>
-        <Tooltip>
-          <TooltipTrigger asChild><span tabIndex={0}>{btn}</span></TooltipTrigger>
-          <TooltipContent>{reason}</TooltipContent>
-        </Tooltip>
-      </TooltipProvider>
-    );
-  }
-  return btn;
-}
-
-// ============ PANEL VIEW ============
-function PanelView({ counts, pieData, tipoCounts, tab, setTab, search, setSearch, filtered, onWhatsApp }: any) {
-  return (
-    <div className="space-y-6">
-      {/* Status tabs with counts */}
-      <Tabs value={tab} onValueChange={setTab}>
-        <TabsList className="w-full justify-start">
-          {ESTADOS.map(e => {
-            const count = e === "Todos" ? counts.total :
-              e === "Pendiente" ? counts.pendiente :
-              e === "En oración" ? counts.enOracion :
-              e === "Respondida" ? counts.respondida : counts.archivada;
-            return (
-              <TabsTrigger key={e} value={e} className="gap-1.5">
-                {e}
-                <Badge variant="secondary" className="h-5 min-w-5 text-[10px] px-1.5">{count}</Badge>
-              </TabsTrigger>
-            );
-          })}
-        </TabsList>
-      </Tabs>
-
-      {/* Metrics + Chart */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <div className="lg:col-span-1">
-          <Card>
-            <CardContent className="pt-4 pb-2">
-              <h3 className="text-sm font-semibold mb-2 text-foreground">Gráfica General</h3>
-              <div className="text-center mb-1">
-                <span className="text-2xl font-bold text-foreground">{counts.total}</span>
-                <p className="text-xs text-muted-foreground">Cantidad Peticiones</p>
-              </div>
-              {pieData.length > 0 ? (
-                <ResponsiveContainer width="100%" height={160}>
-                  <PieChart>
-                    <Pie data={pieData} cx="50%" cy="50%" innerRadius={35} outerRadius={60} dataKey="value" strokeWidth={2} stroke="hsl(var(--card))">
-                      {pieData.map((_: any, i: number) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
-                    </Pie>
-                    <RTooltip formatter={(v: number, name: string) => [v, name]} contentStyle={{ borderRadius: 8, fontSize: 11, border: "1px solid hsl(var(--border))" }} />
-                  </PieChart>
-                </ResponsiveContainer>
-              ) : (
-                <div className="h-[160px] flex items-center justify-center text-muted-foreground text-xs">Sin datos</div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-
-        <div className="lg:col-span-2">
-          <Card>
-            <CardContent className="pt-4">
-              <h3 className="text-sm font-semibold mb-3 text-foreground">Peticiones por Categoría</h3>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Categoría</TableHead>
-                    <TableHead className="text-right">Cantidad</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {Object.entries(tipoCounts).length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={2} className="text-center text-muted-foreground text-sm py-6">
-                        No hay categorías registradas
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    Object.entries(tipoCounts).map(([tipo, count]) => (
-                      <TableRow key={tipo}>
-                        <TableCell className="font-medium">{tipo}</TableCell>
-                        <TableCell className="text-right">
-                          <Badge variant="secondary">{count as number}</Badge>
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-
-      {/* Search */}
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input placeholder="Buscar petición o persona..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10" />
-      </div>
-
-      {/* Data table */}
-      <div className="bg-card border rounded-lg overflow-hidden">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>#</TableHead>
-              <TableHead>Título</TableHead>
-              <TableHead>Persona</TableHead>
-              <TableHead>Tipo</TableHead>
-              <TableHead>Estado</TableHead>
-              <TableHead>Prioridad</TableHead>
-              <TableHead>Fecha</TableHead>
-              <TableHead className="text-right">Acción</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filtered.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={8} className="text-center py-12 text-muted-foreground">No se encontraron peticiones</TableCell>
-              </TableRow>
-            ) : (
-              filtered.map((p: any, i: number) => (
-                <TableRow key={p.id}>
-                  <TableCell className="text-muted-foreground">{i + 1}</TableCell>
-                  <TableCell className="font-medium">{p.titulo}</TableCell>
-                  <TableCell>{p.personas ? `${p.personas.nombres} ${p.personas.apellidos}` : "—"}</TableCell>
-                  <TableCell><Badge variant="outline" className="text-[10px]">{p.tipo || "Sin tipo"}</Badge></TableCell>
-                  <TableCell><StatusBadge status={p.estado} /></TableCell>
-                  <TableCell><Badge className={prioridadColor[p.prioridad] || ""} variant="secondary">{p.prioridad}</Badge></TableCell>
-                  <TableCell className="text-xs text-muted-foreground">{p.created_at ? format(parseISO(p.created_at), "dd/MM/yyyy") : "—"}</TableCell>
-                  <TableCell className="text-right">
-                    <WhatsAppButton peticion={p} onClick={onWhatsApp} size="icon" />
-                  </TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </div>
-
-      <p className="text-xs text-muted-foreground">{filtered.length} de {counts.total} peticiones</p>
-    </div>
-  );
-}
-
-// ============ GESTIONAR VIEW (Card Grid) ============
-function GestionarView({ filtered, tab, setTab, search, setSearch, onEdit, onDelete, onMarkResponded, onWhatsApp }: any) {
-  return (
-    <div className="space-y-6">
-      {/* Status tabs */}
-      <Tabs value={tab} onValueChange={setTab}>
-        <TabsList>
-          {ESTADOS.map(e => <TabsTrigger key={e} value={e}>{e}</TabsTrigger>)}
-        </TabsList>
-      </Tabs>
-
-      {/* Search */}
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input placeholder="Buscar petición o persona..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10" />
-      </div>
-
-      {/* Cards */}
-      {filtered.length === 0 ? (
-        <div className="text-center py-12 text-muted-foreground">No se encontraron peticiones.</div>
-      ) : (
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {filtered.map((p: any) => (
-            <div key={p.id} className={`rounded-xl border-2 bg-card p-5 space-y-3 shadow-sm hover:shadow-md transition-shadow ${estadoColor[p.estado] || "border-border"}`}>
-              <div className="flex items-start justify-between gap-2">
-                <div className="flex-1 min-w-0">
-                  <h3 className="font-semibold text-foreground truncate">{p.titulo}</h3>
-                  {p.personas && (
-                    <p className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1">
-                      <Users className="h-3 w-3" /> {p.personas.nombres} {p.personas.apellidos}
-                    </p>
-                  )}
-                  {p.tipo && (
-                    <Badge variant="outline" className="mt-1 text-[10px]">{p.tipo}</Badge>
-                  )}
-                </div>
-                <StatusBadge status={p.estado} />
-              </div>
-
-              {p.descripcion && <p className="text-sm text-muted-foreground line-clamp-2">{p.descripcion}</p>}
-
-              <div className="flex items-center gap-2 flex-wrap">
-                <Badge className={prioridadColor[p.prioridad] || ""} variant="secondary">{p.prioridad}</Badge>
-                {fueContactadoPorWhatsApp(p.notas_seguimiento) && (
-                  <Badge className="bg-success/15 text-success border-success/40 gap-1" variant="outline">
-                    <MessageCircle className="h-3 w-3" />
-                    WhatsApp {ultimoContactoWhatsApp(p.notas_seguimiento) ? `· ${ultimoContactoWhatsApp(p.notas_seguimiento)}` : ""}
-                  </Badge>
-                )}
-                {p.fecha_seguimiento && (
-                  <span className={`text-xs flex items-center gap-1 ${isPast(parseISO(p.fecha_seguimiento)) ? "text-destructive" : "text-muted-foreground"}`}>
-                    <Clock className="h-3 w-3" />
-                    {format(parseISO(p.fecha_seguimiento), "dd MMM yyyy", { locale: es })}
-                  </span>
-                )}
-                {p.created_at && (
-                  <span className="text-xs text-muted-foreground">
-                    Inicio: {format(parseISO(p.created_at), "dd/MM/yyyy")}
-                  </span>
-                )}
-              </div>
-
-              {p.notas_seguimiento && (
-                <p className="text-xs text-muted-foreground bg-muted/50 rounded-lg p-2 line-clamp-2 whitespace-pre-line">
-                  {p.notas_seguimiento}
-                </p>
-              )}
-
-              <div className="flex items-center gap-1 pt-1 flex-wrap">
-                <WhatsAppButton peticion={p} onClick={onWhatsApp} />
-                {p.estado !== "Respondida" && (
-                  <Button size="sm" className="gap-1 text-xs bg-primary text-primary-foreground" onClick={() => onMarkResponded(p.id)}>
-                    <CheckCircle2 className="h-3.5 w-3.5" /> Respondida
-                  </Button>
-                )}
-                <DeleteConfirmDialog
-                  onConfirm={() => onDelete(p.id)}
-                  title="¿Eliminar petición?"
-                  description={`Se eliminará la petición "${p.titulo}" permanentemente.`}
-                />
-                <Button variant="ghost" size="icon" className="h-8 w-8 ml-auto" onClick={() => onEdit({ ...p })}>
-                  <Pencil className="h-3.5 w-3.5" />
-                </Button>
-              </div>
+          <div className="flex items-center gap-2 flex-1 max-w-md ml-4">
+            <div className="relative flex-1">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+              <Input
+                placeholder="Buscar petición, persona o descripción…"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="pl-8 h-9"
+              />
             </div>
-          ))}
-        </div>
-      )}
+          </div>
 
-      <p className="text-xs text-muted-foreground">1 – {filtered.length} de {filtered.length} registros.</p>
+          <div className="flex items-center gap-2 ml-auto">
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" size="sm" className={cn("gap-1.5 h-9", !fechaDesde && "text-muted-foreground")}>
+                  <CalendarIcon className="h-3.5 w-3.5" />
+                  {fechaDesde ? format(fechaDesde, "dd MMM", { locale: es }) : "Desde"}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="end">
+                <Calendar mode="single" selected={fechaDesde} onSelect={setFechaDesde} initialFocus locale={es} className="p-3 pointer-events-auto" />
+              </PopoverContent>
+            </Popover>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" size="sm" className={cn("gap-1.5 h-9", !fechaHasta && "text-muted-foreground")}>
+                  <CalendarIcon className="h-3.5 w-3.5" />
+                  {fechaHasta ? format(fechaHasta, "dd MMM", { locale: es }) : "Hasta"}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="end">
+                <Calendar mode="single" selected={fechaHasta} onSelect={setFechaHasta} initialFocus locale={es} className="p-3 pointer-events-auto" />
+              </PopoverContent>
+            </Popover>
+            {rangoActivo && (
+              <Button variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground" onClick={() => { setFechaDesde(undefined); setFechaHasta(undefined); }}>
+                <X className="h-4 w-4" />
+              </Button>
+            )}
+
+            <ExportDropdown
+              title={rangoActivo ? `Peticiones (${rangoLabel})` : "Peticiones de Oración"}
+              filename={rangoActivo ? `peticiones-${fechaDesde ? format(fechaDesde, "yyyyMMdd") : "ini"}-${fechaHasta ? format(fechaHasta, "yyyyMMdd") : "hoy"}` : "peticiones-oracion"}
+              columns={[
+                { header: "Título", key: "titulo" }, { header: "Persona", key: "persona" },
+                { header: "Tipo", key: "tipo" }, { header: "Estado", key: "estado" },
+                { header: "Prioridad", key: "prioridad" }, { header: "WhatsApp", key: "whatsapp_estado" },
+                { header: "Fecha contacto WA", key: "whatsapp_fecha" }, { header: "Descripción", key: "descripcion" },
+                { header: "Seguimiento", key: "fecha_seguimiento" }, { header: "Fecha", key: "fecha" },
+              ]}
+              data={exportData}
+            />
+            <PeticionFormDialog />
+          </div>
+        </div>
+
+        {/* Kanban */}
+        <div className="flex-1 overflow-auto p-6 bg-muted/10">
+          <PeticionesKanban peticiones={filtered} onOpen={openDetail} onWhatsApp={setWaPeticion} />
+        </div>
+
+        {editing && <PeticionFormDialog initialData={editing} onClose={() => setEditing(null)} />}
+        <WhatsAppPeticionDialog
+          open={!!waPeticion}
+          onOpenChange={(v) => !v && setWaPeticion(null)}
+          peticion={waPeticion}
+        />
+      </div>
     </div>
   );
 }
