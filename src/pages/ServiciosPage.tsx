@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import ModuleHero from "@/components/shell/ModuleHero";
+import SectionHero from "@/components/shell/SectionHero";
 import DataTable from "@/components/shared/DataTable";
 import StatusBadge from "@/components/shared/StatusBadge";
 import ServicioFormDialog from "@/components/forms/ServicioFormDialog";
@@ -256,23 +257,90 @@ export default function ServiciosPage() {
 
 // ============ REPORTAR REUNIÓN VIEW ============
 function ReportarReunionView({ servicios, personas, onSelectReunion }: any) {
+  const [q, setQ] = useState("");
+  const hoy = new Date().toISOString().slice(0, 10);
+  const list = (servicios || []).filter((s: any) =>
+    !q || s.nombre?.toLowerCase().includes(q.toLowerCase())
+  );
+  const proximas = list.filter((s: any) => (s.fecha || "") >= hoy).sort((a: any, b: any) => (a.fecha || "").localeCompare(b.fecha || ""));
+  const pasadas = list.filter((s: any) => (s.fecha || "") < hoy).sort((a: any, b: any) => (b.fecha || "").localeCompare(a.fecha || ""));
+
+  const ReunionCard = ({ s, upcoming }: any) => (
+    <button
+      onClick={() => onSelectReunion(s)}
+      className={cn(
+        "group relative overflow-hidden text-left p-4 rounded-xl border bg-card transition-all",
+        "hover:-translate-y-0.5 hover:shadow-lg hover:border-rose-500/40",
+      )}
+    >
+      <div className={cn(
+        "absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r",
+        upcoming ? "from-rose-500 to-orange-500" : "from-slate-400 to-slate-300"
+      )} />
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0">
+          <p className="font-semibold truncate">{s.nombre}</p>
+          <p className="text-[11px] text-muted-foreground mt-0.5 flex items-center gap-1">
+            <CalendarDays className="h-3 w-3" /> {s.fecha || "—"}
+            <span className="mx-1">·</span>
+            <ClockIcon className="h-3 w-3" /> {s.hora || "—"}
+          </p>
+        </div>
+        <Badge variant={upcoming ? "default" : "secondary"} className="shrink-0 text-[10px]">
+          {upcoming ? "Próxima" : "Pasada"}
+        </Badge>
+      </div>
+      <div className="mt-3 flex items-center justify-between text-[11px] text-muted-foreground">
+        <span className="inline-flex items-center gap-1">
+          <ClipboardCheck className="h-3 w-3" /> Reportar asistencia
+        </span>
+        <span className="opacity-0 group-hover:opacity-100 transition-opacity text-rose-600 font-medium">Abrir →</span>
+      </div>
+    </button>
+  );
+
   return (
-    <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Seleccionar reunión para reportar</CardTitle>
-        </CardHeader>
-        <CardContent>
+    <div className="space-y-5">
+      <SectionHero
+        icon={FileText}
+        eyebrow="Attendance report"
+        title="Reportar reunión"
+        description="Selecciona la reunión para registrar asistencia, escanear QR y publicar métricas."
+        gradient="from-rose-600 via-pink-500 to-orange-500"
+        stats={[
+          { label: "Próximas", value: proximas.length, tone: "ok" },
+          { label: "Pasadas",  value: pasadas.length,  tone: "info" },
+          { label: "Total",    value: list.length },
+          { label: "Personas", value: personas.length, tone: "info" },
+        ]}
+      />
+
+      <div className="relative max-w-md">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Buscar reunión…" className="pl-9" />
+      </div>
+
+      {proximas.length > 0 && (
+        <div>
+          <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">Próximas</h3>
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-            {servicios.map((s: any) => (
-              <Button key={s.id} variant="outline" className="h-auto p-4 flex flex-col items-start gap-1" onClick={() => onSelectReunion(s)}>
-                <span className="font-semibold text-foreground">{s.nombre}</span>
-                <span className="text-xs text-muted-foreground">{s.fecha} · {s.hora || "—"}</span>
-              </Button>
-            ))}
+            {proximas.map((s: any) => <ReunionCard key={s.id} s={s} upcoming />)}
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      )}
+
+      {pasadas.length > 0 && (
+        <div>
+          <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">Pasadas</h3>
+          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+            {pasadas.slice(0, 12).map((s: any) => <ReunionCard key={s.id} s={s} upcoming={false} />)}
+          </div>
+        </div>
+      )}
+
+      {list.length === 0 && (
+        <Card><CardContent className="p-8 text-center text-sm text-muted-foreground">Sin reuniones para reportar.</CardContent></Card>
+      )}
     </div>
   );
 }
@@ -300,18 +368,19 @@ function ReporteDetalleView({
         ← Volver a reuniones
       </Button>
 
-      {/* Header */}
-      <Card className="border-2 border-primary/20">
-        <CardContent className="p-5">
-          <h2 className="text-xl font-bold text-foreground">REPORTE: {reunion.nombre}</h2>
-          <p className="text-sm text-muted-foreground">Fecha de reunión: {reunion.fecha}</p>
-          <div className="flex gap-4 mt-3 text-sm">
-            <span className="flex items-center gap-1"><Check className="h-4 w-4 text-success" /> Asisten: {totalPresent}</span>
-            <span className="flex items-center gap-1"><Users className="h-4 w-4 text-info" /> Crecim. Preliminar: {totalPresent}</span>
-            <span className="flex items-center gap-1"><X className="h-4 w-4 text-destructive" /> Primerizo/Invitados: 0</span>
-          </div>
-        </CardContent>
-      </Card>
+      <SectionHero
+        icon={ClipboardCheck}
+        eyebrow={`Reporte · ${reunion.fecha || "sin fecha"}`}
+        title={reunion.nombre}
+        description={`Registro de asistencia y consolidación · ${reunion.tipo || "Reunión"} · ${reunion.hora || "—"}`}
+        gradient="from-rose-600 via-pink-500 to-orange-500"
+        stats={[
+          { label: "Presentes", value: totalPresent, tone: "ok" },
+          { label: "Ausentes", value: totalAbsent, tone: totalAbsent > 0 ? "warn" : "info" },
+          { label: "Tasa", value: `${attendanceRate}%`, tone: attendanceRate >= 70 ? "ok" : attendanceRate >= 40 ? "warn" : "bad" },
+          { label: "Personas", value: personas.length },
+        ]}
+      />
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Left: Attendance List */}
