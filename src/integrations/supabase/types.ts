@@ -4882,6 +4882,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      log_grupo_load_failure: {
+        Args: { _error?: string; _grupo_id: string; _section: string }
+        Returns: undefined
+      }
       log_persona_action: {
         Args: { _action: string; _details?: Json; _persona_id: string }
         Returns: undefined
