@@ -176,46 +176,45 @@ export default function FinanzasPage() {
 
   return (
     <div className="animate-fade-in">
-      <div className="flex items-start justify-between gap-3 flex-wrap mb-4">
-        <div>
-          <h1 className="text-xl md:text-2xl font-semibold tracking-tight">Finanzas</h1>
-          <p className="text-[13px] text-muted-foreground mt-0.5">
-            Panel financiero · Periodo {new Date(periodoDesde).toLocaleDateString("es")} — {new Date(periodoHasta).toLocaleDateString("es")}
-          </p>
-        </div>
-        <div className="flex items-center gap-2 flex-wrap">
-          <div className="flex items-center gap-1 rounded-lg border bg-card p-0.5">
-            {presets.map((p) => (
-              <button
-                key={p.key}
-                onClick={() => setPreset(p.key)}
-                className={`px-2.5 py-1 text-[12px] rounded-md transition-colors ${isPresetActive(p.key) ? "bg-primary text-primary-foreground" : "hover:bg-muted text-muted-foreground"}`}
-              >
-                {p.label}
-              </button>
-            ))}
-          </div>
-          <div className="flex items-center gap-1 bg-muted/50 rounded-lg px-2 py-1">
-            <Input type="date" value={periodoDesde} onChange={(e) => setPeriodoDesde(e.target.value)} className="h-7 w-32 text-[11.5px] border-0 bg-transparent" />
-            <span className="text-muted-foreground text-xs">→</span>
-            <Input type="date" value={periodoHasta} onChange={(e) => setPeriodoHasta(e.target.value)} className="h-7 w-32 text-[11.5px] border-0 bg-transparent" />
-          </div>
-          <ExportDropdown title="Finanzas" filename="finanzas" columns={[
-            { header: "Tipo", key: "tipo" }, { header: "Categoría", key: "categoria_nombre" },
-            { header: "Monto", key: "monto" }, { header: "Fecha", key: "fecha" },
-          ]} data={filteredData} />
-          <FinanzaFormDialog />
-        </div>
-      </div>
+      <ModuleHero
+        variant="finanzas"
+        title="Finanzas"
+        eyebrow={`Periodo ${new Date(periodoDesde).toLocaleDateString("es")} — ${new Date(periodoHasta).toLocaleDateString("es")}`}
+        description="Panel financiero unificado: flujo de caja, categorización PUC y conciliación en tiempo real."
+        status={{ label: saldo >= 0 ? "Balance positivo" : "En déficit", tone: saldo >= 0 ? "ok" : "bad" }}
+        kpis={[
+          { label: "Ingresos periodo", value: fmt(ingresos), hint: `MoM ${ingTrend.value}`, tone: "ok" },
+          { label: "Egresos periodo", value: fmt(gastos), hint: `MoM ${gasTrend.value}`, tone: "bad" },
+          { label: "Saldo neto", value: fmt(saldo), hint: `Balance ${saldo >= 0 ? "+" : ""}${fmt(saldo)}`, tone: saldo >= 0 ? "ok" : "warn" },
+          { label: "Movimientos", value: filteredData.length, hint: "Transacciones en periodo", tone: "info" },
+        ]}
+        actions={
+          <>
+            <div className="flex items-center gap-1 rounded-lg border bg-card p-0.5">
+              {presets.map((p) => (
+                <button
+                  key={p.key}
+                  onClick={() => setPreset(p.key)}
+                  className={`px-2.5 py-1 text-[12px] rounded-md transition-colors ${isPresetActive(p.key) ? "bg-primary text-primary-foreground" : "hover:bg-muted text-muted-foreground"}`}
+                >
+                  {p.label}
+                </button>
+              ))}
+            </div>
+            <div className="flex items-center gap-1 bg-muted/50 rounded-lg px-2 py-1">
+              <Input type="date" value={periodoDesde} onChange={(e) => setPeriodoDesde(e.target.value)} className="h-7 w-32 text-[11.5px] border-0 bg-transparent" />
+              <span className="text-muted-foreground text-xs">→</span>
+              <Input type="date" value={periodoHasta} onChange={(e) => setPeriodoHasta(e.target.value)} className="h-7 w-32 text-[11.5px] border-0 bg-transparent" />
+            </div>
+            <ExportDropdown title="Finanzas" filename="finanzas" columns={[
+              { header: "Tipo", key: "tipo" }, { header: "Categoría", key: "categoria_nombre" },
+              { header: "Monto", key: "monto" }, { header: "Fecha", key: "fecha" },
+            ]} data={filteredData} />
+            <FinanzaFormDialog />
+          </>
+        }
+      />
 
-      {editing && <FinanzaFormDialog initialData={editing} onClose={() => setEditing(null)} />}
-
-      {/* Executive KPI Grid — MoM comparisons + sparklines */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-        <MetricCard title="Ingresos (periodo)" value={fmt(ingresos)} icon={TrendingUp} variant="success" trend={ingTrend} sparkline={ingSpark} subtitle="Últimos 30 días vs prev." />
-        <MetricCard title="Egresos (periodo)" value={fmt(gastos)} icon={TrendingDown} variant="accent" trend={{ value: gasTrend.value, positive: !gasTrend.positive }} sparkline={gasSpark} subtitle="Últimos 30 días vs prev." />
-        <MetricCard title="Saldo" value={fmt(saldo)} icon={Wallet} variant="default" trend={saldoTrend} sparkline={saldoSpark} subtitle="Balance neto" />
-      </div>
 
       <Tabs defaultValue="movimientos" className="space-y-4">
         <TabsList className="flex flex-wrap gap-1 h-auto">
