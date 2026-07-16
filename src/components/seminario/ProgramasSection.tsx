@@ -7,9 +7,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Plus, Pencil, Trash2, GraduationCap } from "lucide-react";
+import { Plus, Pencil, Trash2, GraduationCap, BookOpen } from "lucide-react";
 import { toast } from "sonner";
 import DeleteConfirmDialog from "@/components/shared/DeleteConfirmDialog";
+import SectionHero from "@/components/shell/SectionHero";
 
 export default function ProgramasSection() {
   const { data: programas, isLoading } = useProgramas();
