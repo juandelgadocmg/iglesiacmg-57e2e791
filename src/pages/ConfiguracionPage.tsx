@@ -442,6 +442,14 @@ export default function ConfiguracionPage() {
         <TabsContent value="permisos">
           <PermisosMatriz />
         </TabsContent>
+
+        <TabsContent value="certificados">
+          <CertTemplatesManager />
+        </TabsContent>
+
+        <TabsContent value="cert-historial">
+          <CertExportHistory />
+        </TabsContent>
       </Tabs>
     </div>
   );
