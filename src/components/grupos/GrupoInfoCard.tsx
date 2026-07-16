@@ -149,8 +149,9 @@ export function GrupoInfoCard({
 
       {actions && (
         <div
-          className="flex items-center gap-2 pt-1"
+          className="flex flex-wrap items-center gap-2 pt-1"
           onClick={(e) => e.stopPropagation()}
+          onKeyDown={(e) => e.stopPropagation()}
         >
           {actions}
         </div>
