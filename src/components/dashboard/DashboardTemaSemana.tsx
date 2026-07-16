@@ -1,18 +1,22 @@
-import { BookOpen, ExternalLink, Pencil, Download } from "lucide-react";
+import { BookOpen, ExternalLink, Pencil, Download, CalendarClock } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import jsPDF from "jspdf";
+import { format, parseISO } from "date-fns";
+import { es } from "date-fns/locale";
 
 interface Props {
   titulo?: string | null;
   descripcion?: string | null;
   url?: string | null;
   pdfUrl?: string | null;
+  fechaFin?: string | null;
 }
 
-export default function DashboardTemaSemana({ titulo, descripcion, url, pdfUrl }: Props) {
+export default function DashboardTemaSemana({ titulo, descripcion, url, pdfUrl, fechaFin }: Props) {
   const navigate = useNavigate();
 
   const isEmpty = !titulo && !descripcion;
+  const vigenteHasta = fechaFin ? (() => { try { return format(parseISO(fechaFin), "d MMM", { locale: es }); } catch { return null; } })() : null;
 
   const handleDownloadPDF = async () => {
     // Si hay un PDF cargado, descargarlo directamente
@@ -78,6 +82,11 @@ export default function DashboardTemaSemana({ titulo, descripcion, url, pdfUrl }
         <p className="text-sm mt-2 uppercase tracking-wide font-semibold opacity-95">
           {isEmpty ? "Sin tema configurado" : (descripcion || titulo)}
         </p>
+        {vigenteHasta && (
+          <div className="mt-2 inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/15 text-[10.5px] font-medium">
+            <CalendarClock className="h-3 w-3" /> Vigente hasta {vigenteHasta}
+          </div>
+        )}
         <div className="flex items-center justify-center gap-2 mt-4 flex-wrap">
           {(!isEmpty || pdfUrl) && (
             <button

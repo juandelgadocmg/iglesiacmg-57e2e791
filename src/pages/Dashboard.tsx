@@ -9,6 +9,7 @@ import { useReportesGrupos } from "@/hooks/useReportesGrupos";
 import { useActiveBanners } from "@/hooks/useBanners";
 import { useActiveVideos } from "@/hooks/useVideosIglesia";
 import { useConfiguracion } from "@/hooks/useConfiguracion";
+import { useTemaSemanaVigente } from "@/hooks/useTemaSemana";
 import MetricCard from "@/components/shared/MetricCard";
 import StatusBadge from "@/components/shared/StatusBadge";
 import EventCalendar from "@/components/events/EventCalendar";
@@ -43,6 +44,7 @@ export default function Dashboard() {
   const { data: banners } = useActiveBanners();
   const { data: videos } = useActiveVideos();
   const { data: config } = useConfiguracion();
+  const { data: temaVigente } = useTemaSemanaVigente();
 
   const totalMiembros = stats?.totalPersonas || 0;
   const nuevos = stats?.nuevosEsteMes || 0;
@@ -209,11 +211,13 @@ export default function Dashboard() {
         <div className="space-y-4">
           <DashboardAlertCards pendingReportes={alertData.pendingReportes} />
           <DashboardTemaSemana
-            titulo={config?.tema_semana_titulo}
-            descripcion={config?.tema_semana_descripcion}
-            url={config?.tema_semana_url}
-            pdfUrl={(config as any)?.tema_semana_pdf_url}
+            titulo={temaVigente?.titulo ?? config?.tema_semana_titulo}
+            descripcion={temaVigente?.descripcion ?? config?.tema_semana_descripcion}
+            url={temaVigente?.url ?? config?.tema_semana_url}
+            pdfUrl={temaVigente?.pdf_url ?? (config as any)?.tema_semana_pdf_url}
+            fechaFin={temaVigente?.fecha_fin ?? null}
           />
+
 
         </div>
       </div>

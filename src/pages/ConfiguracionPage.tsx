@@ -20,6 +20,7 @@ import VideosPage from "@/pages/VideosPage";
 import SenalEnVivoPage from "@/pages/SenalEnVivoPage";
 import NotificacionesPreferencias from "@/components/configuracion/NotificacionesPreferencias";
 import PermisosMatriz from "@/components/configuracion/PermisosMatriz";
+import TemaSemanaManager from "@/components/configuracion/TemaSemanaManager";
 
 const MONEDAS = [
   { value: "USD", label: "USD - Dólar estadounidense" },
@@ -412,54 +413,9 @@ export default function ConfiguracionPage() {
               </CardContent>
             </Card>
 
-            {/* Tema de la Semana */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base flex items-center gap-2"><BookOpen className="h-4 w-4" /> Tema de la Semana</CardTitle>
-                <CardDescription>Configura el tema semanal que se muestra en el dashboard</CardDescription>
-              </CardHeader>
-              <CardContent className="grid gap-4 sm:grid-cols-2">
-                <div className="space-y-2 sm:col-span-2">
-                  <Label>Título del Tema</Label>
-                  <Input value={form.tema_semana_titulo || ""} onChange={e => set("tema_semana_titulo", e.target.value)} placeholder="Ej: Tema de la semana" />
-                </div>
-                <div className="space-y-2 sm:col-span-2">
-                  <Label>Descripción</Label>
-                  <Input value={form.tema_semana_descripcion || ""} onChange={e => set("tema_semana_descripcion", e.target.value)} placeholder="Ej: LA COMUNIÓN CON EL ESPÍRITU SANTO" />
-                </div>
-                <div className="space-y-2 sm:col-span-2">
-                  <Label>URL del enlace (opcional)</Label>
-                  <Input value={form.tema_semana_url || ""} onChange={e => set("tema_semana_url", e.target.value)} placeholder="https://..." />
-                </div>
-                <div className="space-y-2 sm:col-span-2">
-                  <Label>PDF descargable (opcional)</Label>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <input
-                      ref={temaPdfRef}
-                      type="file"
-                      accept="application/pdf"
-                      className="hidden"
-                      onChange={e => e.target.files?.[0] && handleTemaPdfUpload(e.target.files[0])}
-                    />
-                    <Button type="button" variant="outline" size="sm" onClick={() => temaPdfRef.current?.click()} disabled={uploadingTemaPdf}>
-                      <Upload className="h-4 w-4 mr-1.5" />
-                      {uploadingTemaPdf ? "Subiendo..." : (form.tema_semana_pdf_url ? "Reemplazar PDF" : "Subir PDF")}
-                    </Button>
-                    {form.tema_semana_pdf_url && (
-                      <>
-                        <a href={form.tema_semana_pdf_url} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline truncate max-w-[240px]">
-                          Ver PDF actual
-                        </a>
-                        <Button type="button" variant="ghost" size="sm" onClick={() => set("tema_semana_pdf_url", "")}>
-                          <X className="h-4 w-4" />
-                        </Button>
-                      </>
-                    )}
-                  </div>
-                  <p className="text-xs text-muted-foreground">Máximo 10 MB. Si se sube, el botón "Descargar PDF" del dashboard entregará este archivo.</p>
-                </div>
-              </CardContent>
-            </Card>
+            {/* Tema de la Semana — historial y versión */}
+            <TemaSemanaManager />
+
           </div>
         </TabsContent>
 

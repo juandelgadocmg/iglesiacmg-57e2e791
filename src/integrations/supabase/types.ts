@@ -4653,6 +4653,62 @@ export type Database = {
         }
         Relationships: []
       }
+      tema_semana_versiones: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          created_by_email: string | null
+          descripcion: string | null
+          estado: string
+          fecha_fin: string | null
+          fecha_inicio: string | null
+          id: string
+          parent_version_id: string | null
+          pdf_url: string | null
+          titulo: string | null
+          updated_at: string
+          url: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          created_by_email?: string | null
+          descripcion?: string | null
+          estado?: string
+          fecha_fin?: string | null
+          fecha_inicio?: string | null
+          id?: string
+          parent_version_id?: string | null
+          pdf_url?: string | null
+          titulo?: string | null
+          updated_at?: string
+          url?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          created_by_email?: string | null
+          descripcion?: string | null
+          estado?: string
+          fecha_fin?: string | null
+          fecha_inicio?: string | null
+          id?: string
+          parent_version_id?: string | null
+          pdf_url?: string | null
+          titulo?: string | null
+          updated_at?: string
+          url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tema_semana_versiones_parent_version_id_fkey"
+            columns: ["parent_version_id"]
+            isOneToOne: false
+            referencedRelation: "tema_semana_versiones"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tesoreria_consignacion_historial: {
         Row: {
           cambiado_por: string | null
@@ -5071,6 +5127,21 @@ export type Database = {
           persona_nombre: string
           roles: string[]
           user_id: string
+        }[]
+      }
+      tema_semana_revertir: { Args: { _version_id: string }; Returns: string }
+      tema_semana_vigente: {
+        Args: never
+        Returns: {
+          created_at: string
+          created_by_email: string
+          descripcion: string
+          fecha_fin: string
+          fecha_inicio: string
+          id: string
+          pdf_url: string
+          titulo: string
+          url: string
         }[]
       }
     }
