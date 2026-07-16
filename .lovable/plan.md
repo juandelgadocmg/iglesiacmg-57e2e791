@@ -1,125 +1,132 @@
-## Alcance
 
-Reemplazar todos los `PlaceholderSection` del Seminario por módulos funcionales completos, reutilizando las tablas que ya existen (`sem_evaluaciones`, `sem_calificaciones`, `sem_asistencias`, `sem_recursos`, `sem_ofertas`, `sem_inscripciones`, `sem_inscripcion_materias`, `certificados`). No se inventan tablas nuevas salvo las 2 mínimas indicadas en "Cambios de BD".
+# DOXA Design System — Plan de construcción
 
-## Módulos a entregar (orden de implementación)
+Objetivo: crear el **ADN visual y de componentes** de DOXA como una capa reutilizable, antes de rediseñar ninguna pantalla. Cero cambios en `src/pages/**`. Todo vive en `src/design-system/**`, `src/index.css` y `tailwind.config.ts`.
 
-### 1. Docentes
-Pantalla con la lista de docentes (derivada de `sem_ofertas.docente_persona_id` + `personas` con rol docente). Métricas por docente: nº de materias asignadas, periodo activo, total estudiantes, promedio de notas finales. Detalle: lista de materias, link a su programación.
+## Principios rectores
 
-### 2. Aula Virtual
-Vista por **oferta activa**: cabecera de la materia (docente, horario, aula, modalidad, link Zoom si aplica), tabs:
-- **Estudiantes** matriculados (foto, nombre, estado, nota acumulada)
-- **Recursos** de la materia (lectura de `sem_recursos`, leer-solo aquí)
-- **Anuncios** (texto plano persistido en `sem_anuncios`, ver "Cambios de BD")
-- **Próximas evaluaciones**
+- **Enterprise SaaS**, no dashboard genérico. Inspiración: Linear (densidad + jerarquía), Stripe (tipografía + tablas), Vercel (neutros + acento), Notion (calma tipográfica), HubSpot (data-density), Clerk/Supabase (formularios).
+- **Un solo lenguaje**: cada pantalla futura consume componentes de `@/design-system/*`. Prohibido reinventar variantes locales.
+- **Tokens semánticos HSL** en `index.css`. Nada de `text-white`, `bg-black`, hex sueltos.
+- **Modo claro + oscuro** desde el día 1.
+- **Densidad configurable** (`comfortable` / `compact`) vía atributo en `<html>`.
 
-Filtros por periodo y materia. Acceso: staff Seminario + docente asignado + estudiante matriculado (cada uno con scope distinto).
+## 1. Fundaciones (tokens)
 
-### 3. Evaluaciones
-CRUD sobre `sem_evaluaciones` por oferta: nombre, tipo (quiz, parcial, final, taller, asistencia), peso %, fecha, publicada sí/no, descripción. Validación: suma de pesos por oferta debe poder llegar a 100% (warning si no). Botón "Publicar/Despublicar" para mostrar/ocultar al estudiante.
+Archivos: `src/index.css`, `tailwind.config.ts`, `src/design-system/tokens.ts`.
 
-### 4. Calificaciones (Libreta del docente)
-Matriz por oferta: filas = estudiantes matriculados, columnas = evaluaciones, celdas = nota editable (0–5). Cálculo automático de **definitiva ponderada**. Al guardar:
-- Upsert en `sem_calificaciones`
-- Recalcular `sem_inscripcion_materias.nota_final` y `estado` (aprobada ≥3.0, reprobada <3.0, en_curso si faltan notas)
-- Si todas las materias del programa quedan aprobadas → trigger del módulo Certificados (paso 7)
-Acciones: cerrar período (bloquea edición y dispara recálculo de `sem_inscripciones.promedio_acumulado` y `total_creditos_aprobados`).
+### 1.1 Color
 
-### 5. Asistencia
-Por oferta + fecha:
-- Lista de estudiantes con select (Presente/Tarde/Ausente/Justificado) + observación
-- Upsert masivo en `sem_asistencias`
-- Importar Excel y registro por QR (reusando `QrAttendanceScanner`)
-- Reporte por estudiante: % asistencia por materia y alerta si < 80%
-- Tipo de evaluación "asistencia" en `sem_evaluaciones` puede tomar la nota directo del % asistencia del periodo
+Paleta neutra "graphite" + acento "doxa-blue" + estados. Todo en HSL.
 
-### 6. Biblioteca Digital
-CRUD sobre `sem_recursos` por programa/materia: tipo (PDF, video, link, audio), título, descripción, URL/archivo (bucket `recursos-academicos` existente), restricción (público a estudiantes activos / solo staff / solo docente). Filtros + búsqueda + tarjetas.
+- **Neutros**: `--surface-0..4` (fondos escalonados), `--border-subtle`, `--border`, `--border-strong`, `--fg-default`, `--fg-muted`, `--fg-subtle`, `--fg-onAccent`.
+- **Marca**: `--brand` (azul profundo #3D5AFE-ish), `--brand-hover`, `--brand-active`, `--brand-soft`, `--brand-contrast`.
+- **Semánticos**: `success`, `warning`, `danger`, `info` con variantes `-soft`, `-fg`, `-border`.
+- **Data-viz**: `--chart-1..8` (secuencia perceptualmente uniforme, no arcoíris genérico).
+- **Overlays**: `--scrim`, `--glass`.
 
-### 7. Certificados (Seminario)
-Plantilla nueva en `certificados` con `tipo_certificado='seminario_diploma'`. Generación:
-- **Manual** desde lista de inscripciones aprobadas (botón "Emitir diploma")
-- **Automática** vía edge function `sem-emitir-diploma` invocada cuando se cierra el último semestre con todas las materias aprobadas (la chequea `sem_calificaciones` al guardar nota final)
-- PDF con jsPDF: nombre, programa, total créditos, promedio, fecha, QR a `/verificar-academico/:id` (ya existe)
-- Lista por estudiante con descarga individual + lote (ya implementado en EstudiantesSection — se enlazará desde aquí)
+### 1.2 Tipografía
 
-### 8. Reportes
-Pestañas:
-- **Académico**: promedio por programa/periodo, tasa de aprobación por materia, materias con mayor reprobación
-- **Retención**: estudiantes activos vs retirados por semestre (cohortes)
-- **Asistencia**: promedio de asistencia por materia, top materias con inasistencia
-- **Financiero (mora)**: pendientes de pago > 30 días, monto total por concepto (lee `sem_pagos_inscripcion`)
-- **Kárdex masivo**: selector multi y exporta PDFs (reusa `seminarioPdf.ts`)
+- **Display / UI**: `Geist` (o `Inter Display` como fallback) — pareja moderna tipo Vercel/Linear.
+- **Mono**: `Geist Mono` — para IDs, código, valores tabulares.
+- Escala tipográfica modular (1.125): `xs 12 / sm 13 / base 14 / md 15 / lg 17 / xl 20 / 2xl 24 / 3xl 30 / 4xl 38 / display 48`.
+- Line-height + tracking definidos por rol (`ui`, `body`, `heading`, `numeric`).
 
-Filtros globales por programa, periodo, sede. Exportable a Excel/PDF con `exportUtils.ts`.
+### 1.3 Espaciado y radios
 
-### 9. Dashboard
-KPIs en cards + gráficos (recharts):
-- Estudiantes activos por programa
-- Promedio general acumulado
-- % mora
-- Próximas evaluaciones (próximos 7 días)
-- Materias con asistencia baja
-- Últimos certificados emitidos
+- Escala base 4px: `0, 1, 2, 3, 4, 6, 8, 10, 12, 16, 20, 24`.
+- **Radios**: `xs 4 / sm 6 / md 8 / lg 12 / xl 16 / 2xl 20 / pill 999`. Default de superficies = `lg`.
 
-## Cambios de BD (mínimos)
+### 1.4 Elevación y sombras
 
-Migración única con 2 tablas nuevas y 1 función:
-- `sem_anuncios` (oferta_id, autor_user_id, titulo, mensaje, created_at) + RLS staff+docente escribe / matriculados leen
-- `sem_kardex_cache` opcional (vista materializada para reportes pesados) — solo si Reportes resulta lento
-- Función `sem_recalcular_inscripcion(persona_id, programa_id)` que recalcula promedio/créditos/estado de la inscripción y retorna si completó el programa
+Cinco niveles: `elev-0` plano, `elev-1` card, `elev-2` menú, `elev-3` popover, `elev-4` modal, `elev-5` command palette. Cada una con variante para dark mode (sombras + ring sutil).
 
-GRANTs + RLS en el bloque estándar.
+### 1.5 Estados
 
-## Permisos (extender `permissions.ts`)
+Tokens explícitos para `hover`, `focus-visible`, `active`, `disabled`, `selected`, `loading` — aplicables vía data-attrs y `focus-visible:ring-[--ring-focus]`.
 
-Nuevas acciones:
-- `seminario:evaluacion_crud` — staff + docente asignado
-- `seminario:calificacion_edit` — staff + docente asignado
-- `seminario:asistencia_edit` — staff + docente asignado
-- `seminario:biblioteca_crud` — staff + docente
-- `seminario:certificar` — ya existe
-- `seminario:reportes` — staff
-- `seminario:anuncios_crud` — staff + docente
+### 1.6 Motion
 
-## Arquitectura técnica
+- Duraciones: `fast 120ms`, `base 180ms`, `slow 240ms`, `page 320ms`.
+- Easings: `standard`, `emphasized`, `exit`. Presets `framer-motion` en `motion.ts`.
 
-- Hooks nuevos en `useSeminario.ts` (mismas convenciones: react-query + invalidate al editar). Hooks: `useDocentes`, `useOfertaDetalle`, `useEvaluaciones`, `useCalificacionesMatriz`, `useAsistenciaOferta`, `useRecursos`, `useDiplomaSeminario`, `useReportesAcademicos`, `useDashboardKpis`.
-- Componentes:
-  - `src/components/seminario/DocentesSection.tsx`
-  - `src/components/seminario/AulaVirtualSection.tsx`
-  - `src/components/seminario/EvaluacionesSection.tsx`
-  - `src/components/seminario/CalificacionesSection.tsx`
-  - `src/components/seminario/AsistenciaSection.tsx`
-  - `src/components/seminario/BibliotecaSection.tsx`
-  - `src/components/seminario/CertificadosSection.tsx`
-  - `src/components/seminario/ReportesSection.tsx`
-  - `src/components/seminario/DashboardSection.tsx`
-- Edge function: `sem-emitir-diploma` (opcional, server-side genera código único + audit log + dispara correo).
-- Auditoría: log en `sem_audit_log` para `evaluacion.crud`, `calificacion.guardada`, `asistencia.guardada`, `recurso.crud`, `diploma.emitido`, `anuncio.crud`.
-- Exportación: reusa `exportUtils.ts`, `seminarioPdf.ts`, `jsPDF + autoTable`.
+## 2. Librería de componentes
 
-## Entrega por fases (para no romper nada)
+Ruta: `src/design-system/components/**`. Cada componente exporta variantes vía `cva`, tipos TS y ejemplos.
 
-| Fase | Módulos | Riesgo |
-|------|---------|--------|
-| 2A | Docentes + Evaluaciones + Calificaciones + función de recálculo | Medio (toca cálculo de promedio) |
-| 2B | Asistencia + Aula Virtual + Anuncios | Bajo |
-| 2C | Biblioteca + Certificados (auto) + edge fn diploma | Bajo |
-| 2D | Reportes + Dashboard | Bajo |
+### Primitivos
+Button (5 variantes × 4 tamaños), IconButton, Link, Badge, Chip, Tag, Kbd, Divider, Skeleton, Spinner, ProgressBar, ProgressRing, Avatar, AvatarGroup, StatusDot, Tooltip.
 
-Cada fase queda navegable y testeable al terminar. Ningún placeholder restante después de 2D.
+### Formularios
+Input, Textarea, NumberInput, PasswordInput, SearchInput, Select, MultiSelect, Combobox, DatePicker, DateRangePicker, TimePicker, Switch, Checkbox, RadioGroup, Slider, FileDropzone, FormField (label + hint + error + description), Fieldset, InlineEdit, FormWizard (stepper horizontal + vertical).
 
-## Fuera de alcance
+### Navegación
+Sidebar (colapsable, grupos, activo, badge de conteo), TopNav (con search + user menu + notifs), Breadcrumbs, Tabs (underline / pill / segmented), CommandPalette (⌘K, grupos, footer con atajos), ContextMenu, Pagination.
 
-- Integración Zoom API real (depende de los 3 secretos, ya hay UI de configuración).
-- Pagos con pasarela (solo registro manual, ya existe).
-- App móvil dedicada (todo responsive web).
+### Superficies
+Card, SectionCard, KpiCard (valor + delta + sparkline slot), StatCard, EmptyState (icono + título + descripción + acción), Callout / Alert (4 tonos), Banner, Panel, Drawer, Modal / Dialog, Sheet, Popover.
 
-## Preguntas antes de empezar
+### Data
+DataTable premium (sticky header, column resize, sort, filter chips, row selection, bulk toolbar, density toggle, virtualización opcional, empty/loading/error), Toolbar, FilterBar, ColumnPicker, ExportMenu, KanbanBoard (columnas + cards + WIP + drag handle visual), Timeline, ActivityFeed, NotificationCard, Calendar (mes / semana / día), Widget shell.
 
-Si confirmas, arranco con **Fase 2A**. Pero antes necesito 2 definiciones:
+### Feedback
+Toast (sonner ya está — envolver con variantes semánticas), ConfirmDialog, InlineAlert, LoadingOverlay, ErrorBoundary visual.
 
-1. **Escala de notas**: ¿0–5 (estándar Colombia, aprobado ≥3.0) o 0–100? Tengo asumido 0–5.
-2. **Plantilla del diploma**: ¿usamos el diseño del módulo Certificados que ya existe (jsPDF con escudo CMG) o quieres uno específico para Seminario con campos extra (promedio, créditos, código de verificación)?
+### Charts (envoltura sobre recharts)
+`AreaChartCard`, `BarChartCard`, `LineChartCard`, `DonutChartCard`, `SparkLine`, `TrendDelta`. Todos leen tokens `--chart-*` y comparten tooltip/legend estandarizados.
+
+## 3. Estructura de carpetas
+
+```text
+src/
+  design-system/
+    tokens.ts                  # export TS de tokens (colores, spacing, motion)
+    motion.ts                  # presets framer-motion
+    index.ts                   # barrel: export * from componentes
+    primitives/
+      Button.tsx  Badge.tsx  Chip.tsx  Avatar.tsx  ...
+    forms/
+      Input.tsx  Select.tsx  MultiSelect.tsx  FormField.tsx  Wizard.tsx  ...
+    nav/
+      Sidebar.tsx  TopNav.tsx  Breadcrumbs.tsx  Tabs.tsx  CommandPalette.tsx
+    surfaces/
+      Card.tsx  KpiCard.tsx  EmptyState.tsx  Modal.tsx  Drawer.tsx  Popover.tsx
+    data/
+      DataTable.tsx  FilterBar.tsx  Kanban.tsx  Timeline.tsx  ActivityFeed.tsx
+      NotificationCard.tsx  Calendar.tsx  Widget.tsx
+    charts/
+      AreaChartCard.tsx  BarChartCard.tsx  DonutChartCard.tsx  SparkLine.tsx
+    feedback/
+      Toast.tsx  ConfirmDialog.tsx  InlineAlert.tsx
+  pages/
+    _design-system/
+      DesignSystemPage.tsx     # ruta interna /design-system para verlo todo
+```
+
+- Los componentes existentes de shadcn en `src/components/ui/**` **no se borran**. El nuevo sistema los envuelve/compone; migrar pantallas es tarea posterior.
+- Se añade una ruta interna `/design-system` (solo para revisión) que renderiza cada sección como storybook ligero. No aparece en el sidebar de usuarios finales.
+
+## 4. Entregables de esta fase
+
+1. Tokens completos en `index.css` + `tailwind.config.ts` + `tokens.ts`.
+2. Todos los componentes listados, con variantes, estados y modo oscuro.
+3. Página `/design-system` navegable por secciones (Foundations, Primitives, Forms, Navigation, Surfaces, Data, Feedback, Charts).
+4. README corto en `src/design-system/README.md` explicando cómo consumirlo.
+5. **Cero cambios** en pantallas actuales, hooks, migraciones o lógica de negocio.
+
+## 5. Fuera de alcance (fases siguientes)
+
+- Migración de `Dashboard`, `PersonaPerfil`, `Personas`, `Finanzas`, `Mensajes`, `Chat`, etc.
+- Cambios en `AppSidebar` / `AppHeader` reales.
+- Ajustes de datos, Supabase o RLS.
+
+## 6. Notas técnicas
+
+- Fuentes vía `<link>` en `index.html` (Geist + Geist Mono).
+- `cva` + `tailwind-merge` para variantes (ya instalados).
+- Modo oscuro con `class="dark"` en `<html>` — tokens duplicados.
+- `data-density="compact"` reduce paddings/tamaños base.
+- Iconografía: `lucide-react` (única familia permitida).
+- Charts: `recharts` (ya en el proyecto) envuelto para forzar tokens.
+
+Al aprobar el plan, comienzo por (1) tokens + fuentes, (2) primitivos, (3) formularios, (4) navegación, (5) superficies, (6) data, (7) feedback, (8) charts, (9) página `/design-system`.
