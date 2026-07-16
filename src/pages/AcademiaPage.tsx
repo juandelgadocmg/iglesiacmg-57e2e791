@@ -69,45 +69,106 @@ const ESTADO_PERIODO: Record<string, { icon: any; color: string }> = {
   Cerrado: { icon: Lock, color: "bg-destructive/10 text-destructive border-destructive/20" },
 };
 
-// ========== SIDEBAR NAVIGATION ==========
-const SIDEBAR_ITEMS = [
-  { id: "escuelas", label: "Escuelas", icon: BookOpen },
-  { id: "periodos", label: "Periodos", icon: CalendarDays },
-  { id: "estudiantes", label: "Estudiantes", icon: Users },
-  { id: "maestros", label: "Maestros", icon: UserCheck },
-  { id: "calificaciones", label: "Calificaciones", icon: BarChart3 },
-  { id: "historial-calificaciones", label: "Historial calificaciones", icon: FileText },
-  { id: "historial-matriculas", label: "Historial matrículas", icon: History },
-  { id: "pagos", label: "Pagos", icon: DollarSign },
-  { id: "dashboard-financiero", label: "Dashboard financiero", icon: PieChart },
-  { id: "recursos", label: "Recursos", icon: FolderOpen },
-  { id: "homologaciones", label: "Homologaciones", icon: RefreshCw },
-  { id: "certificados", label: "Certificados", icon: Award },
-  { id: "aulas", label: "Aulas", icon: Building2 },
+// ========== SIDEBAR NAVIGATION (grouped LMS shell) ==========
+type SidebarItem = { id: string; label: string; icon: any; hint?: (ctx: NavCounts) => number | string | null };
+type SidebarGroupDef = { label: string; items: SidebarItem[] };
+
+type NavCounts = {
+  escuelas: number;
+  periodosAbiertos: number;
+  estudiantes: number;
+  certificados: number;
+};
+
+const SIDEBAR_GROUPS: SidebarGroupDef[] = [
+  {
+    label: "Vista general",
+    items: [
+      { id: "panel", label: "Panel académico", icon: TrendingUp },
+      { id: "aula", label: "Mi aula", icon: BookText },
+    ],
+  },
+  {
+    label: "Gestión académica",
+    items: [
+      { id: "escuelas", label: "Escuelas", icon: BookOpen, hint: (c) => c.escuelas || null },
+      { id: "periodos", label: "Periodos", icon: CalendarDays, hint: (c) => c.periodosAbiertos || null },
+      { id: "aulas", label: "Aulas", icon: Building2 },
+    ],
+  },
+  {
+    label: "Docencia",
+    items: [
+      { id: "estudiantes", label: "Estudiantes", icon: Users, hint: (c) => c.estudiantes || null },
+      { id: "maestros", label: "Maestros", icon: UserCheck },
+      { id: "calificaciones", label: "Calificaciones", icon: BarChart3 },
+      { id: "historial-calificaciones", label: "Historial calificaciones", icon: FileText },
+      { id: "historial-matriculas", label: "Historial matrículas", icon: History },
+    ],
+  },
+  {
+    label: "Financiero",
+    items: [
+      { id: "pagos", label: "Pagos", icon: DollarSign },
+      { id: "dashboard-financiero", label: "Dashboard financiero", icon: PieChart },
+    ],
+  },
+  {
+    label: "Recursos y salidas",
+    items: [
+      { id: "recursos", label: "Recursos", icon: FolderOpen },
+      { id: "homologaciones", label: "Homologaciones", icon: RefreshCw },
+      { id: "certificados", label: "Certificados", icon: Award, hint: (c) => c.certificados || null },
+    ],
+  },
 ];
 
-function AcademiaSidebar({ activeSection, onSectionChange }: { activeSection: string; onSectionChange: (s: string) => void }) {
+const ALL_SIDEBAR_ITEMS = SIDEBAR_GROUPS.flatMap((g) => g.items);
+
+function AcademiaSidebar({
+  activeSection, onSectionChange, counts,
+}: { activeSection: string; onSectionChange: (s: string) => void; counts: NavCounts }) {
   return (
-    <nav className="w-56 shrink-0 border-r bg-card/50 hidden md:block">
-      <div className="p-4">
-        <h2 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-3">Academia</h2>
-        <div className="space-y-0.5">
-          {SIDEBAR_ITEMS.map((item) => (
-            <button
-              key={item.id}
-              onClick={() => onSectionChange(item.id)}
-              className={cn(
-                "w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
-                activeSection === item.id
-                  ? "bg-primary/10 text-primary"
-                  : "text-muted-foreground hover:bg-muted hover:text-foreground"
-              )}
-            >
-              <item.icon className="h-4 w-4 shrink-0" />
-              {item.label}
-            </button>
-          ))}
-        </div>
+    <nav className="w-60 shrink-0 border-r bg-card/40 hidden md:flex flex-col h-[calc(100vh-3.5rem)] sticky top-14 overflow-y-auto">
+      <div className="px-4 pt-4 pb-3 border-b">
+        <p className="text-[10.5px] uppercase tracking-wider text-muted-foreground font-semibold">Formación</p>
+        <h2 className="text-sm font-semibold text-foreground mt-0.5">Academia</h2>
+      </div>
+      <div className="flex-1 py-2">
+        {SIDEBAR_GROUPS.map((g) => (
+          <div key={g.label} className="mb-2">
+            <p className="px-4 pt-2 pb-1 text-[10px] uppercase tracking-wider text-muted-foreground/80 font-semibold">
+              {g.label}
+            </p>
+            <div className="space-y-0.5 px-2">
+              {g.items.map((item) => {
+                const active = activeSection === item.id;
+                const hint = item.hint?.(counts);
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => onSectionChange(item.id)}
+                    className={cn(
+                      "w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-md text-[13px] font-medium transition-colors group",
+                      active
+                        ? "bg-primary/10 text-primary"
+                        : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                    )}
+                  >
+                    <item.icon className="h-3.5 w-3.5 shrink-0" />
+                    <span className="flex-1 text-left truncate">{item.label}</span>
+                    {hint != null && (
+                      <span className={cn(
+                        "text-[10.5px] font-semibold px-1.5 py-0.5 rounded",
+                        active ? "bg-primary/15" : "text-muted-foreground/70"
+                      )}>{hint}</span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        ))}
       </div>
     </nav>
   );
@@ -116,9 +177,9 @@ function AcademiaSidebar({ activeSection, onSectionChange }: { activeSection: st
 // Mobile tabs
 function MobileNav({ activeSection, onSectionChange }: { activeSection: string; onSectionChange: (s: string) => void }) {
   return (
-    <div className="md:hidden overflow-x-auto border-b">
+    <div className="md:hidden overflow-x-auto border-b bg-card/40">
       <div className="flex gap-0.5 px-2 py-1 min-w-max">
-        {SIDEBAR_ITEMS.map((item) => (
+        {ALL_SIDEBAR_ITEMS.map((item) => (
           <button
             key={item.id}
             onClick={() => onSectionChange(item.id)}
@@ -131,6 +192,151 @@ function MobileNav({ activeSection, onSectionChange }: { activeSection: string; 
           >
             <item.icon className="h-3.5 w-3.5" />
             {item.label}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ========== PANEL ACADÉMICO (landing dashboard) ==========
+function PanelAcademicoSection({
+  counts, escuelas, allPeriodos, allMatriculas, certificados, onNavigate,
+}: {
+  counts: NavCounts;
+  escuelas: any[]; allPeriodos: any[]; allMatriculas: any[]; certificados: any[];
+  onNavigate: (s: string) => void;
+}) {
+  const abiertos = (allPeriodos || []).filter((p: any) => p.estado === "Abierto");
+  const ultimosCerts = (certificados || []).slice(0, 5);
+  const pendientes = (allMatriculas || []).filter((m: any) => (m.estado || "").toLowerCase().includes("pend"));
+
+  const kpis = [
+    { title: "Escuelas activas", value: counts.escuelas, icon: BookOpen, section: "escuelas", accent: "text-primary bg-primary/10" },
+    { title: "Periodos abiertos", value: counts.periodosAbiertos, icon: Unlock, section: "periodos", accent: "text-emerald-600 bg-emerald-500/10" },
+    { title: "Estudiantes", value: counts.estudiantes, icon: Users, section: "estudiantes", accent: "text-blue-600 bg-blue-500/10" },
+    { title: "Certificados emitidos", value: counts.certificados, icon: Award, section: "certificados", accent: "text-amber-600 bg-amber-500/10" },
+  ];
+
+  return (
+    <div className="space-y-5">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        {kpis.map((k) => (
+          <button
+            key={k.title}
+            onClick={() => onNavigate(k.section)}
+            className="text-left rounded-xl border bg-card p-4 hover:border-primary/40 hover:shadow-sm transition-all"
+          >
+            <div className={cn("h-9 w-9 rounded-lg flex items-center justify-center", k.accent)}>
+              <k.icon className="h-4 w-4" />
+            </div>
+            <p className="text-[11px] uppercase tracking-wide text-muted-foreground mt-3 font-semibold">{k.title}</p>
+            <p className="text-2xl font-bold mt-0.5">{k.value}</p>
+          </button>
+        ))}
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <section className="lg:col-span-2 rounded-xl border bg-card">
+          <div className="px-4 py-3 border-b flex items-center justify-between">
+            <h3 className="font-semibold text-sm flex items-center gap-2"><Unlock className="h-4 w-4 text-emerald-600" /> Periodos abiertos</h3>
+            <button onClick={() => onNavigate("periodos")} className="text-xs text-primary hover:underline">Ver todos →</button>
+          </div>
+          <div className="divide-y">
+            {abiertos.length === 0 && (
+              <div className="p-8 text-center text-sm text-muted-foreground">Sin periodos abiertos actualmente</div>
+            )}
+            {abiertos.slice(0, 6).map((p: any) => {
+              const escuela = escuelas.find((e: any) => e.id === p.escuela_id);
+              const mats = (allMatriculas || []).filter((m: any) => m.periodo_id === p.id);
+              return (
+                <button key={p.id} onClick={() => onNavigate("periodos")} className="w-full flex items-center gap-3 p-3 text-left hover:bg-muted/40">
+                  <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                    <CalendarDays className="h-4 w-4 text-primary" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium truncate">{p.nombre}</p>
+                    <p className="text-[11.5px] text-muted-foreground truncate">{escuela?.nombre || "Sin escuela"} · {mats.length} matrícula(s)</p>
+                  </div>
+                  <Badge className="bg-emerald-500/10 text-emerald-600 border-emerald-500/20 text-[10px]" variant="outline">Abierto</Badge>
+                </button>
+              );
+            })}
+          </div>
+        </section>
+
+        <div className="space-y-4">
+          <section className="rounded-xl border bg-card">
+            <div className="px-4 py-3 border-b flex items-center justify-between">
+              <h3 className="font-semibold text-sm flex items-center gap-2"><Award className="h-4 w-4 text-amber-600" /> Últimos certificados</h3>
+              <button onClick={() => onNavigate("certificados")} className="text-xs text-primary hover:underline">Ver →</button>
+            </div>
+            <div className="divide-y">
+              {ultimosCerts.length === 0 && (
+                <div className="p-6 text-center text-sm text-muted-foreground">Sin certificados</div>
+              )}
+              {ultimosCerts.map((c: any) => (
+                <div key={c.id} className="p-3 text-sm">
+                  <p className="font-medium truncate">{c.persona?.nombre_completo || "Estudiante"}</p>
+                  <p className="text-[11.5px] text-muted-foreground truncate">{c.escuela?.nombre || c.tipo || "Certificado"}</p>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          {pendientes.length > 0 && (
+            <button onClick={() => onNavigate("pagos")} className="w-full rounded-xl border bg-amber-500/5 border-amber-500/30 p-4 text-left hover:bg-amber-500/10 transition-colors">
+              <div className="flex items-center gap-2 text-amber-700 dark:text-amber-500">
+                <AlertTriangle className="h-4 w-4" />
+                <span className="font-semibold text-sm">{pendientes.length} matrícula(s) pendientes</span>
+              </div>
+              <p className="text-[11.5px] text-muted-foreground mt-1">Revisar pagos y estados de inscripción</p>
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ========== MI AULA (accesos rápidos docente) ==========
+function MiAulaSection({ onNavigate }: { onNavigate: (s: string) => void }) {
+  const shortcuts = [
+    { id: "calificaciones", label: "Registrar calificaciones", desc: "Captura notas por materia y corte.", icon: BarChart3 },
+    { id: "estudiantes", label: "Mis estudiantes", desc: "Consulta matrículas y avances.", icon: Users },
+    { id: "recursos", label: "Recursos del aula", desc: "Material didáctico y contenidos.", icon: FolderOpen },
+    { id: "historial-calificaciones", label: "Historial", desc: "Cambios y auditoría de notas.", icon: History },
+  ];
+  return (
+    <div className="space-y-5">
+      <div className="rounded-xl border bg-gradient-to-br from-primary/5 via-card to-card p-6">
+        <div className="flex items-center gap-3">
+          <div className="h-12 w-12 rounded-xl bg-primary/15 flex items-center justify-center">
+            <BookText className="h-5 w-5 text-primary" />
+          </div>
+          <div>
+            <h3 className="text-lg font-semibold">Bienvenido a tu aula</h3>
+            <p className="text-sm text-muted-foreground">Accede rápido a las tareas docentes más frecuentes.</p>
+          </div>
+        </div>
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        {shortcuts.map((s) => (
+          <button
+            key={s.id}
+            onClick={() => onNavigate(s.id)}
+            className="text-left rounded-xl border bg-card p-4 hover:border-primary/40 hover:shadow-sm transition-all group"
+          >
+            <div className="flex items-start gap-3">
+              <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0 group-hover:bg-primary/20 transition-colors">
+                <s.icon className="h-4 w-4 text-primary" />
+              </div>
+              <div className="flex-1">
+                <p className="font-semibold text-sm">{s.label}</p>
+                <p className="text-[12px] text-muted-foreground mt-0.5">{s.desc}</p>
+              </div>
+              <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-primary" />
+            </div>
           </button>
         ))}
       </div>
