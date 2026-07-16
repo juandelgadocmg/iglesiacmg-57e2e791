@@ -1,5 +1,10 @@
 import { useParams, useNavigate } from "react-router-dom";
-import { usePersonaDetalle, useProcesos, usePersonaProcesos, useUpdateProceso, usePersonaAsistencia, usePersonaGrupoMiembros, useRelacionesFamiliares, useCreateRelacion, useDeleteRelacion } from "@/hooks/usePersonaPerfil";
+import {
+  usePersonaDetalle, useProcesos, usePersonaProcesos, useUpdateProceso,
+  usePersonaAsistencia, usePersonaGrupoMiembros, useRelacionesFamiliares,
+  useCreateRelacion, useDeleteRelacion,
+  usePersonaFinanzas, usePersonaDonaciones, usePersonaPeticiones, usePersonaConsejerias,
+} from "@/hooks/usePersonaPerfil";
 import { usePersonas, useUpdatePersona } from "@/hooks/useDatabase";
 import { supabase } from "@/integrations/supabase/client";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -14,12 +19,16 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { Textarea } from "@/components/ui/textarea";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator, DropdownMenuLabel } from "@/components/ui/dropdown-menu";
 import StatusBadge from "@/components/shared/StatusBadge";
 import PersonaFormDialog from "@/components/forms/PersonaFormDialog";
+import PersonaActivityTimeline, { type TimelineEvent } from "@/components/persona/PersonaActivityTimeline";
+import { exportPersonaFichaPDF, exportPersonaHistorialCSV } from "@/lib/exportPersonaFicha";
 import {
   ArrowLeft, Phone, Mail, MapPin, Calendar, Church, Users, Briefcase,
   Heart, BookOpen, CheckCircle2, XCircle, Clock, User, FileText,
   GraduationCap, Shield, Pencil, UserPlus, Trash2, Baby, HeartHandshake, Camera, Plus, QrCode,
+  MoreHorizontal, Download, Award, DollarSign, Activity, ClipboardCheck, MessageSquare,
 } from "lucide-react";
 import { format, parseISO, differenceInYears } from "date-fns";
 import { es } from "date-fns/locale";
