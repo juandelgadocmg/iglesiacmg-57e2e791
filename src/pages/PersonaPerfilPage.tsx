@@ -109,6 +109,25 @@ export default function PersonaPerfilPage() {
   const { data: servicios } = useServicios();
   const upsertAsistencia = useUpsertAsistencia();
 
+  // Auditoría por persona (solo visible para admins gracias a RLS)
+  const { data: auditoriaPersona, isLoading: auditoriaLoading, error: auditoriaError } = useQuery({
+    queryKey: ["persona-audit", id],
+    enabled: !!id,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("security_audit_log")
+        .select("id, operation, actor_email, changed, created_at, table_name")
+        .eq("table_name", "personas")
+        .eq("row_id", id!)
+        .order("created_at", { ascending: false })
+        .limit(100);
+      if (error) throw error;
+      return data || [];
+    },
+    retry: false,
+  });
+  const canSeeAudit = !auditoriaError;
+
   const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !persona) return;
