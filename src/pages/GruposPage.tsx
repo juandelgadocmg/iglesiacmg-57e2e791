@@ -8,10 +8,12 @@ import DeleteConfirmDialog from "@/components/shared/DeleteConfirmDialog";
 import ReporteGrupoFormDialog from "@/components/forms/ReporteGrupoFormDialog";
 import GrupoPerfilView from "@/components/groups/GrupoPerfilView";
 import GrupoHierarchyView from "@/components/groups/GrupoHierarchyView";
+import GruposRedRail from "@/components/grupos/GruposRedRail";
 import PlanificacionGrupoFormDialog from "@/components/forms/PlanificacionGrupoFormDialog";
 import { usePlanificaciones, useDeletePlanificacion } from "@/hooks/usePlanificaciones";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Users, Pencil, Plus, ClipboardList, Network, DollarSign, TrendingUp, BarChart3, FileText, Trash2, Eye } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Users, Pencil, Plus, ClipboardList, Network, DollarSign, TrendingUp, BarChart3, FileText, Trash2, Eye, ChevronDown } from "lucide-react";
 import { useGrupos, useDeleteGrupo } from "@/hooks/useDatabase";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -94,6 +96,8 @@ export default function GruposPage() {
   const [showReportForm, setShowReportForm] = useState(false);
   const [showPlanForm, setShowPlanForm] = useState(false);
   const [selectedGrupoId, setSelectedGrupoId] = useState<string | null>(null);
+  const [selectedRed, setSelectedRed] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<string>("lista");
   const { data: planificaciones } = usePlanificaciones();
   const deletePlan = useDeletePlanificacion();
   const [viewingPlan, setViewingPlan] = useState<any>(null);
@@ -329,7 +333,7 @@ export default function GruposPage() {
 
         <TabsContent value="lista">
           <DataTable
-            data={tableData} searchKey="nombre" searchPlaceholder="Buscar grupo..."
+            data={gruposFiltrados} searchKey="nombre" searchPlaceholder="Buscar grupo..."
             filterKey="tipo" filterPlaceholder="Tipo de grupo"
             filterOptions={[
               { value: "Casas de paz", label: "Casas de paz" }, { value: "Grupos encuentro", label: "Grupos encuentro" },
