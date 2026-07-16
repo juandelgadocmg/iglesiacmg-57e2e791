@@ -30,6 +30,8 @@ import { canPerform } from "@/lib/permissions";
 import { useAuth } from "@/hooks/useAuth";
 import { useActiveRole } from "@/hooks/useActiveRole";
 import PageSkeleton from "@/components/shared/PageSkeleton";
+import EmptyState from "@/components/shared/EmptyState";
+import { GrupoInfoCard, GrupoCardsSkeletonGrid } from "@/components/grupos/GrupoInfoCard";
 
 const ReportesGruposContent = lazy(() => import("@/pages/ReportesGruposPage"));
 const MapaGruposContent = lazy(() => import("@/pages/MapaGruposPage"));
