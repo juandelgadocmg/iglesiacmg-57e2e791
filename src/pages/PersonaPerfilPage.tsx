@@ -94,6 +94,7 @@ export default function PersonaPerfilPage() {
   const [exportPreview, setExportPreview] = useState<null | "pdf" | "csv">(null);
   const [qrCheckinOpen, setQrCheckinOpen] = useState(false);
   const [qrCheckinServicio, setQrCheckinServicio] = useState<string>("");
+  const [activeTab, setActiveTab] = useUrlParam("tab", "resumen");
   const { data: servicios } = useServicios();
   const upsertAsistencia = useUpsertAsistencia();
 
