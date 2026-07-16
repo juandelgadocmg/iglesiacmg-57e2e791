@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Award, Download, Search, Sparkles } from "lucide-react";
+import SectionHero from "@/components/shell/SectionHero";
 import { toast } from "sonner";
 import { useCan } from "@/hooks/useCan";
 import { exportKardexPdf } from "@/lib/seminarioPdf";
