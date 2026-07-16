@@ -12,6 +12,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import StatusBadge from "@/components/shared/StatusBadge";
 import EmptyState from "@/components/shared/EmptyState";
 import ErrorState from "@/components/shared/ErrorState";
+import { useLogGrupoLoadFailure } from "@/hooks/useLogGrupoLoadFailure";
 import {
   useGrupoDetalle, useGrupoMiembrosDetalle, useGrupoReportes, useGrupoAsistenciaStats,
   type MiembroDetalle, type ReporteResumen,
@@ -65,9 +66,14 @@ const rolBadgeClass = (rol: string) => {
 
 export default function GrupoPerfilView({ grupoId, onBack, readOnly = false }: Props) {
   const { data: grupo, isLoading: loadingGrupo, isError: errorGrupo, error: grupoErr, refetch: refetchGrupo } = useGrupoDetalle(grupoId);
-  const { data: miembros, isLoading: loadingMiembros } = useGrupoMiembrosDetalle(grupoId);
-  const { data: reportes } = useGrupoReportes(grupoId);
-  const { data: asistenciaStats } = useGrupoAsistenciaStats(grupoId);
+  const { data: miembros, isLoading: loadingMiembros, isError: errorMiembros, error: miembrosErr, refetch: refetchMiembros } = useGrupoMiembrosDetalle(grupoId);
+  const { data: reportes, isError: errorReportes, error: reportesErr, refetch: refetchReportes } = useGrupoReportes(grupoId);
+  const { data: asistenciaStats, isError: errorStats, error: statsErr, refetch: refetchStats } = useGrupoAsistenciaStats(grupoId);
+
+  useLogGrupoLoadFailure(grupoId, "detalle", errorGrupo, grupoErr);
+  useLogGrupoLoadFailure(grupoId, "miembros", errorMiembros, miembrosErr);
+  useLogGrupoLoadFailure(grupoId, "reportes", errorReportes, reportesErr);
+  useLogGrupoLoadFailure(grupoId, "estadisticas", errorStats, statsErr);
 
   const [editing, setEditing] = useState(false);
   const [showReportForm, setShowReportForm] = useState(false);
@@ -244,7 +250,7 @@ export default function GrupoPerfilView({ grupoId, onBack, readOnly = false }: P
                 <Pencil className="h-3.5 w-3.5" /> Editar
               </Button>
             )}
-            {(() => {
+            {!readOnly && (() => {
               const now = new Date();
               const day = now.getDay();
               const mins = now.getHours() * 60 + now.getMinutes();
@@ -256,6 +262,7 @@ export default function GrupoPerfilView({ grupoId, onBack, readOnly = false }: P
                     className="gap-1.5"
                     onClick={() => setShowReportForm(true)}
                     disabled={!isOpen}
+                    aria-disabled={!isOpen}
                     title={!isOpen ? "Solo disponible lunes a jueves hasta las 11:59 PM" : ""}
                   >
                     <ClipboardList className="h-3.5 w-3.5" /> Crear Reporte
@@ -738,10 +745,15 @@ function MapEmbed({ lat, lng, nombre }: { lat: number; lng: number; nombre: stri
 }
 
 function PlanificacionTab({ grupoId, readOnly = false }: { grupoId: string; readOnly?: boolean }) {
-  const { data: planificaciones } = usePlanificaciones(grupoId);
+  const { data: planificaciones, isLoading: loadingPlan, isError: errorPlan, error: planErr, refetch: refetchPlan } = usePlanificaciones(grupoId);
+  useLogGrupoLoadFailure(grupoId, "planificaciones", errorPlan, planErr);
   const deletePlan = useDeletePlanificacion();
   const [showPlanForm, setShowPlanForm] = useState(false);
   const [viewingPlan, setViewingPlan] = useState<any>(null);
+
+  if (errorPlan) {
+    return <ErrorState error={planErr} onRetry={() => refetchPlan()} />;
+  }
 
   if (viewingPlan) {
     return <PlanificacionDetailView plan={viewingPlan} onBack={() => setViewingPlan(null)} />;
@@ -754,9 +766,11 @@ function PlanificacionTab({ grupoId, readOnly = false }: { grupoId: string; read
           <h3 className="text-base sm:text-lg font-semibold">Hojas de Planeación</h3>
           <p className="text-xs sm:text-sm text-muted-foreground">Planificación semanal de Casa de Paz</p>
         </div>
-        <Button onClick={() => setShowPlanForm(true)} className="gap-2 w-full sm:w-auto">
-          <UserPlus className="h-4 w-4" /> Nueva Planificación
-        </Button>
+        {!readOnly && (
+          <Button onClick={() => setShowPlanForm(true)} className="gap-2 w-full sm:w-auto">
+            <UserPlus className="h-4 w-4" /> Nueva Planificación
+          </Button>
+        )}
       </div>
 
       {planificaciones && planificaciones.length > 0 ? (
