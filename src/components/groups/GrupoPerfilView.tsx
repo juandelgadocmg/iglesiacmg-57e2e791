@@ -745,10 +745,15 @@ function MapEmbed({ lat, lng, nombre }: { lat: number; lng: number; nombre: stri
 }
 
 function PlanificacionTab({ grupoId, readOnly = false }: { grupoId: string; readOnly?: boolean }) {
-  const { data: planificaciones } = usePlanificaciones(grupoId);
+  const { data: planificaciones, isLoading: loadingPlan, isError: errorPlan, error: planErr, refetch: refetchPlan } = usePlanificaciones(grupoId);
+  useLogGrupoLoadFailure(grupoId, "planificaciones", errorPlan, planErr);
   const deletePlan = useDeletePlanificacion();
   const [showPlanForm, setShowPlanForm] = useState(false);
   const [viewingPlan, setViewingPlan] = useState<any>(null);
+
+  if (errorPlan) {
+    return <ErrorState error={planErr} onRetry={() => refetchPlan()} />;
+  }
 
   if (viewingPlan) {
     return <PlanificacionDetailView plan={viewingPlan} onBack={() => setViewingPlan(null)} />;
