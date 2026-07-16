@@ -18,6 +18,7 @@ import MaestroSearchPickerShared from "@/components/academia/MaestroSearchPicker
 import HistorialCalificacionesSection from "@/components/academia/HistorialCalificacionesSection";
 import DeleteConfirmDialog from "@/components/shared/DeleteConfirmDialog";
 import MateriaAttendanceTrendChart from "@/components/charts/MateriaAttendanceTrendChart";
+import ModuleHero from "@/components/shell/ModuleHero";
 import ExportDropdown from "@/components/shared/ExportDropdown";
 import ImportAcademiaDialog from "@/components/forms/ImportAcademiaDialog";
 import {
@@ -220,6 +221,15 @@ function PanelAcademicoSection({
 
   return (
     <div className="space-y-5">
+      <ModuleHero
+        variant="academia"
+        title="Panel Académico"
+        eyebrow="LMS · Formación integral"
+        description="Escuelas, periodos, estudiantes y certificaciones — un espacio inspirado en Canvas LMS para gestionar la formación pastoral."
+        status={{ label: `${counts.periodosAbiertos} periodo${counts.periodosAbiertos === 1 ? "" : "s"} abierto${counts.periodosAbiertos === 1 ? "" : "s"}`, tone: counts.periodosAbiertos > 0 ? "ok" : "warn" }}
+        kpis={kpis.map(k => ({ label: k.title, value: k.value, tone: "info" as const }))}
+      />
+
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {kpis.map((k) => (
           <button
@@ -235,6 +245,7 @@ function PanelAcademicoSection({
           </button>
         ))}
       </div>
+
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <section className="lg:col-span-2 rounded-xl border bg-card">
@@ -3015,15 +3026,22 @@ export default function AcademiaPage() {
         <MobileNav activeSection={activeSection} onSectionChange={setActiveSection} />
 
         {/* Sticky header */}
-        <header className="sticky top-14 z-10 bg-background/95 backdrop-blur border-b px-4 md:px-6 py-3 flex items-start justify-between gap-3 flex-wrap">
-          <div>
-            <h1 className="text-lg md:text-xl font-semibold tracking-tight">{meta.title}</h1>
-            {meta.subtitle && <p className="text-[12.5px] text-muted-foreground mt-0.5">{meta.subtitle}</p>}
+        <header className="sticky top-14 z-10 bg-background/95 backdrop-blur border-b px-4 md:px-6 py-3 flex items-center justify-between gap-3 flex-wrap">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-indigo-600 via-violet-600 to-fuchsia-500 text-white flex items-center justify-center shadow-md shrink-0">
+              <span className="text-xs font-bold">LMS</span>
+            </div>
+            <div className="min-w-0">
+              <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Canvas-style · Academia CMG</p>
+              <h1 className="text-lg md:text-xl font-bold tracking-tight truncate">{meta.title}</h1>
+              {meta.subtitle && <p className="text-[12px] text-muted-foreground truncate">{meta.subtitle}</p>}
+            </div>
           </div>
           <div className="flex items-center gap-2">
             <ImportAcademiaDialog />
           </div>
         </header>
+
 
         <div className="flex-1 p-4 md:p-6 overflow-auto">
           {activeSection === "panel" && (

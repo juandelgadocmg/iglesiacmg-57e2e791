@@ -15,6 +15,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { exportFinancialSummaryPDF, exportToExcel } from "@/lib/exportUtils";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import ModuleHero from "@/components/shell/ModuleHero";
 
 type Domain = "todos" | "finanzas" | "personas" | "grupos" | "academia" | "asistencia" | "eventos";
 
@@ -226,37 +227,34 @@ export default function ReportesPage() {
 
       {/* Área principal */}
       <div className="flex-1 min-w-0 p-3 md:p-6 space-y-6">
-        <div className="flex items-start justify-between gap-3 flex-wrap">
-          <div>
-            <h1 className="text-xl md:text-2xl font-semibold tracking-tight">
-              {DOMAINS.find((d) => d.id === domain)?.label}
-            </h1>
-            <p className="text-[13px] text-muted-foreground mt-0.5">
-              {filtered.length} reportes disponibles · Datos actualizados en tiempo real
-            </p>
-          </div>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm" className="h-8 gap-1.5">
-                <Download className="h-3.5 w-3.5" /> Exportar resumen
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={handleExportPDF}><FileText className="h-4 w-4 mr-2" />PDF ejecutivo</DropdownMenuItem>
-              <DropdownMenuItem onClick={handleExportExcel}><FileSpreadsheet className="h-4 w-4 mr-2" />Excel</DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
+        <ModuleHero
+          variant="reportes"
+          title={DOMAINS.find((d) => d.id === domain)?.label || "Reportes"}
+          eyebrow={`${filtered.length} reportes disponibles`}
+          description="Analítica ejecutiva multidominio con drill-down, alertas inteligentes y exportación auditable."
+          status={{ label: "Datos en tiempo real", tone: "ok" }}
+          kpis={domain === "todos" ? [
+            { label: "Personas activas", value: stats?.totalPersonas || 0, hint: `+${stats?.nuevosEsteMes || 0} este mes`, tone: "info" },
+            { label: "Ingresos mes", value: fmt(stats?.ingresosMes || 0), hint: `Balance ${fmt(balance)}`, tone: balance >= 0 ? "ok" : "bad" },
+            { label: "Matrículas", value: matriculas?.length || 0, hint: `${cursos?.filter((c) => c.estado === "Activo").length || 0} cursos activos`, tone: "warn" },
+            { label: "Certificados", value: certificados?.length || 0, hint: "Emitidos histórico", tone: "info" },
+          ] : []}
+          actions={
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" className="h-8 gap-1.5">
+                  <Download className="h-3.5 w-3.5" /> Exportar resumen
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={handleExportPDF}><FileText className="h-4 w-4 mr-2" />PDF ejecutivo</DropdownMenuItem>
+                <DropdownMenuItem onClick={handleExportExcel}><FileSpreadsheet className="h-4 w-4 mr-2" />Excel</DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          }
+        />
 
-        {/* Snapshot ejecutivo — visible solo en "Todos" */}
-        {domain === "todos" && (
-          <section className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            <SnapshotTile icon={Users} label="Personas activas" value={String(stats?.totalPersonas || 0)} sub={`+${stats?.nuevosEsteMes || 0} este mes`} tone="blue" />
-            <SnapshotTile icon={TrendingUp} label="Ingresos mes" value={fmt(stats?.ingresosMes || 0)} sub={`Balance ${fmt(balance)}`} tone="green" />
-            <SnapshotTile icon={GraduationCap} label="Matrículas activas" value={String(matriculas?.length || 0)} sub={`${cursos?.filter((c) => c.estado === "Activo").length || 0} cursos activos`} tone="amber" />
-            <SnapshotTile icon={Award} label="Certificados" value={String(certificados?.length || 0)} sub="Emitidos total" tone="violet" />
-          </section>
-        )}
+
 
         {/* Grid de reportes */}
         <section className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">

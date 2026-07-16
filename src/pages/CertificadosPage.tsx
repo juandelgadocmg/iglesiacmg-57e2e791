@@ -15,6 +15,7 @@ import { format, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
 import jsPDF from "jspdf";
 import { cn } from "@/lib/utils";
+import ModuleHero from "@/components/shell/ModuleHero";
 
 const TIPO_META: Record<string, { color: string; bg: string; ring: string }> = {
   "Membresía":              { color: "#3b82f6", bg: "from-blue-500/10 to-blue-500/5", ring: "ring-blue-500/30" },
@@ -232,47 +233,52 @@ export default function CertificadosPage() {
 
       {/* Main */}
       <div className="flex-1 min-w-0 p-3 md:p-6 space-y-5">
-        {/* Header */}
-        <div className="flex items-start justify-between gap-3 flex-wrap">
-          <div>
-            <h1 className="text-xl md:text-2xl font-semibold tracking-tight">
-              {tipoFilter === "all" ? "Todos los certificados" : tipoFilter}
-            </h1>
-            <p className="text-[13px] text-muted-foreground mt-0.5">
-              {filtered.length} de {certs.length} · previsualización en vivo
-            </p>
-          </div>
-          <div className="flex items-center gap-2 flex-wrap">
-            <div className="flex items-center gap-0.5 rounded-lg border bg-card p-0.5">
-              {[
-                { id: "grid", icon: LayoutGrid, label: "Galería" },
-                { id: "table", icon: Rows, label: "Tabla" },
-              ].map((v) => (
-                <button
-                  key={v.id}
-                  onClick={() => setView(v.id as any)}
-                  className={cn(
-                    "flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[12px] transition-colors",
-                    view === v.id ? "bg-primary text-primary-foreground" : "hover:bg-muted text-muted-foreground"
-                  )}
-                >
-                  <v.icon className="h-3.5 w-3.5" />
-                  <span className="hidden sm:inline">{v.label}</span>
-                </button>
-              ))}
-            </div>
-            <ExportDropdown
-              title="Certificados"
-              filename="certificados"
-              columns={[
-                { header: "Miembro", key: "miembro" }, { header: "Tipo", key: "tipo" },
-                { header: "Fecha expedición", key: "fecha" }, { header: "Código", key: "codigo" },
-              ]}
-              data={exportData}
-            />
-            <CertificadoIglesiaFormDialog />
-          </div>
-        </div>
+        <ModuleHero
+          variant="certificados"
+          title={tipoFilter === "all" ? "Todos los certificados" : tipoFilter}
+          eyebrow={`${filtered.length} de ${certs.length}`}
+          description="Emisión, verificación pública y descarga PDF de constancias con sello institucional."
+          status={{ label: "Firma digital activa", tone: "ok" }}
+          kpis={[
+            { label: "Emitidos totales", value: certs.length, hint: "Histórico", tone: "info" },
+            { label: "Este año", value: certs.filter((c: any) => (c.fecha_emision || "").startsWith(String(new Date().getFullYear()))).length, hint: "Año en curso", tone: "ok" },
+            { label: "Tipos activos", value: Object.keys(tipoCounts).length, hint: "Categorías con emisión", tone: "warn" },
+            { label: "Filtrados", value: filtered.length, hint: "Vista actual", tone: "info" },
+          ]}
+          actions={
+            <>
+              <div className="flex items-center gap-0.5 rounded-lg border bg-card p-0.5">
+                {[
+                  { id: "grid", icon: LayoutGrid, label: "Galería" },
+                  { id: "table", icon: Rows, label: "Tabla" },
+                ].map((v) => (
+                  <button
+                    key={v.id}
+                    onClick={() => setView(v.id as any)}
+                    className={cn(
+                      "flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[12px] transition-colors",
+                      view === v.id ? "bg-primary text-primary-foreground" : "hover:bg-muted text-muted-foreground"
+                    )}
+                  >
+                    <v.icon className="h-3.5 w-3.5" />
+                    <span className="hidden sm:inline">{v.label}</span>
+                  </button>
+                ))}
+              </div>
+              <ExportDropdown
+                title="Certificados"
+                filename="certificados"
+                columns={[
+                  { header: "Miembro", key: "miembro" }, { header: "Tipo", key: "tipo" },
+                  { header: "Fecha expedición", key: "fecha" }, { header: "Código", key: "codigo" },
+                ]}
+                data={exportData}
+              />
+              <CertificadoIglesiaFormDialog />
+            </>
+          }
+        />
+
 
         {/* Mobile filter chips */}
         <div className="md:hidden -mx-3 px-3 overflow-x-auto">
