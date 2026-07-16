@@ -20,6 +20,7 @@ import VideosPage from "@/pages/VideosPage";
 import SenalEnVivoPage from "@/pages/SenalEnVivoPage";
 import NotificacionesPreferencias from "@/components/configuracion/NotificacionesPreferencias";
 import PermisosMatriz from "@/components/configuracion/PermisosMatriz";
+import TemaSemanaManager from "@/components/configuracion/TemaSemanaManager";
 
 const MONEDAS = [
   { value: "USD", label: "USD - Dólar estadounidense" },
