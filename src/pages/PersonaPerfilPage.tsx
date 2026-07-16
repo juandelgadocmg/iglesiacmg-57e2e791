@@ -69,6 +69,10 @@ export default function PersonaPerfilPage() {
   const { data: asistencias } = usePersonaAsistencia(id);
   const { data: grupoMiembros } = usePersonaGrupoMiembros(id);
   const { data: relaciones } = useRelacionesFamiliares(id);
+  const { data: finanzasP } = usePersonaFinanzas(id);
+  const { data: donacionesP } = usePersonaDonaciones(id);
+  const { data: peticionesP } = usePersonaPeticiones(id);
+  const { data: consejeriasP } = usePersonaConsejerias(id);
   const { data: todasPersonas } = usePersonas();
   const createRelacion = useCreateRelacion();
   const deleteRelacion = useDeleteRelacion();
