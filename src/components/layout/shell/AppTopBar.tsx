@@ -43,7 +43,7 @@ export default function AppTopBar({ onMenuClick }: { onMenuClick?: () => void })
 
   const sedes: string[] = (config as any)?.sedes || ["Principal"];
   const [sede, setSede] = useState<string>(sedes[0] || "Principal");
-  const { url: discipulandoUrl, logo: logoSrc, open: openDiscipulando } = useDiscipulando();
+  const { logo: logoSrc, open: openDiscipulando } = useDiscipulando();
   const [logoFailed, setLogoFailed] = useState(false);
   useEffect(() => { setLogoFailed(false); }, [logoSrc]);
 
