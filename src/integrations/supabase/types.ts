@@ -618,6 +618,39 @@ export type Database = {
         }
         Relationships: []
       }
+      discipulando_access_log: {
+        Row: {
+          action: string
+          created_at: string
+          error_message: string | null
+          id: string
+          target_url: string | null
+          user_agent: string | null
+          user_email: string | null
+          user_id: string | null
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          target_url?: string | null
+          user_agent?: string | null
+          user_email?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          target_url?: string | null
+          user_agent?: string | null
+          user_email?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       donaciones: {
         Row: {
           created_at: string
