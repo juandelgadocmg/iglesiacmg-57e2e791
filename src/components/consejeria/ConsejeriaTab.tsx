@@ -83,23 +83,57 @@ export default function ConsejeriaTab() {
 
   const [sub, setSub] = useState(isStaff ? "calendario" : "agendar");
 
+  const SUBTABS = [
+    ...(isStaff ? [{ id: "calendario", label: "Calendario", icon: CalendarIcon }] : []),
+    { id: "agendar", label: "Agendar", icon: Plus },
+    { id: "mis", label: "Mis citas", icon: User },
+    ...(isAdmin ? [{ id: "horarios", label: "Horarios", icon: Clock }] : []),
+    ...(isAdmin ? [{ id: "seguimiento", label: "Seguimiento", icon: MessageSquare }] : []),
+  ];
+
   return (
     <div className="space-y-4">
-      <Tabs value={sub} onValueChange={setSub}>
-        <TabsList className="flex flex-wrap h-auto">
-          {isStaff && <TabsTrigger value="calendario"><CalendarIcon className="h-4 w-4 mr-1" />Calendario</TabsTrigger>}
-          <TabsTrigger value="agendar"><Plus className="h-4 w-4 mr-1" />Agendar</TabsTrigger>
-          <TabsTrigger value="mis"><User className="h-4 w-4 mr-1" />Mis citas</TabsTrigger>
-          {isAdmin && <TabsTrigger value="horarios"><Clock className="h-4 w-4 mr-1" />Horarios</TabsTrigger>}
-          {isAdmin && <TabsTrigger value="seguimiento"><MessageSquare className="h-4 w-4 mr-1" />Seguimiento</TabsTrigger>}
-        </TabsList>
+      <SectionHero
+        icon={Heart}
+        eyebrow="Pastoral Care"
+        title="Consejería pastoral"
+        description="Agenda citas, gestiona horarios de consejeros y da seguimiento espiritual con confidencialidad."
+        gradient="from-rose-600 via-pink-500 to-fuchsia-500"
+        stats={[
+          { label: "Consejeros", value: consejeros.length, tone: "info" },
+          { label: "Modalidades", value: 3 },
+          { label: "Rol", value: isAdmin ? "Admin" : isStaff ? "Staff" : "Miembro", tone: "ok" },
+          { label: "Vista", value: SUBTABS.find(t => t.id === sub)?.label ?? "—" },
+        ]}
+      />
 
-        {isStaff && <TabsContent value="calendario"><CalendarioView consejeros={consejeros} isAdmin={isAdmin} /></TabsContent>}
-        <TabsContent value="agendar"><AgendarWizard consejeros={consejeros} userId={user?.id} personas={personas} isStaff={isStaff} /></TabsContent>
-        <TabsContent value="mis"><MisCitas userId={user?.id} consejeros={consejeros} /></TabsContent>
-        {isAdmin && <TabsContent value="horarios"><HorariosAdmin consejeros={consejeros} /></TabsContent>}
-        {isAdmin && <TabsContent value="seguimiento"><SeguimientoView consejeros={consejeros} /></TabsContent>}
-      </Tabs>
+      <div className="flex flex-wrap gap-1 p-1 rounded-xl border bg-card/60 w-fit">
+        {SUBTABS.map((t) => {
+          const active = sub === t.id;
+          return (
+            <button
+              key={t.id}
+              onClick={() => setSub(t.id)}
+              aria-current={active ? "page" : undefined}
+              className={cn(
+                "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all",
+                active
+                  ? "bg-gradient-to-br from-rose-600 to-pink-500 text-white shadow-sm"
+                  : "text-muted-foreground hover:text-foreground hover:bg-muted",
+              )}
+            >
+              <t.icon className="h-4 w-4" />
+              <span className="hidden sm:inline">{t.label}</span>
+            </button>
+          );
+        })}
+      </div>
+
+      {isStaff && sub === "calendario" && <CalendarioView consejeros={consejeros} isAdmin={isAdmin} />}
+      {sub === "agendar" && <AgendarWizard consejeros={consejeros} userId={user?.id} personas={personas} isStaff={isStaff} />}
+      {sub === "mis" && <MisCitas userId={user?.id} consejeros={consejeros} />}
+      {isAdmin && sub === "horarios" && <HorariosAdmin consejeros={consejeros} />}
+      {isAdmin && sub === "seguimiento" && <SeguimientoView consejeros={consejeros} />}
     </div>
   );
 }
