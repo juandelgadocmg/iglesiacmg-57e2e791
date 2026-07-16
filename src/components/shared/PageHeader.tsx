@@ -1,5 +1,6 @@
 import { ReactNode } from "react";
-import { cn } from "@/lib/utils";
+import { useLocation } from "react-router-dom";
+import ModuleHero, { type ModuleVariant } from "@/components/shell/ModuleHero";
 
 interface PageHeaderProps {
   title: string;
@@ -7,27 +8,62 @@ interface PageHeaderProps {
   children?: ReactNode;
   className?: string;
   eyebrow?: string;
+  /** Fuerza la variante visual del hero (sobrescribe la detección por ruta). */
+  variant?: ModuleVariant;
 }
 
-export default function PageHeader({ title, description, children, className, eyebrow }: PageHeaderProps) {
+function variantFromPath(pathname: string): ModuleVariant {
+  const seg = "/" + (pathname.split("/").filter(Boolean)[0] || "");
+  const map: Record<string, ModuleVariant> = {
+    "/hoy": "hoy",
+    "/dashboard": "dashboard",
+    "/personas": "personas",
+    "/grupos": "grupos",
+    "/servicios": "reuniones",
+    "/eventos": "eventos",
+    "/academia": "academia",
+    "/seminario": "seminario",
+    "/certificados": "certificados",
+    "/finanzas": "finanzas",
+    "/donaciones": "donaciones",
+    "/mensajes": "mensajes",
+    "/peticiones": "peticiones",
+    "/reportes": "reportes",
+    "/usuarios": "usuarios",
+    "/configuracion": "configuracion",
+    "/seguridad": "seguridad",
+    "/asistencia": "asistencia",
+    "/inscripciones": "inscripciones",
+    "/banners": "banners",
+    "/videos": "videos",
+    "/mapa": "mapa",
+    "/senal": "senal",
+  };
+  return map[seg] ?? "generic";
+}
+
+/**
+ * PageHeader unificado. Delega en `ModuleHero` para mantener una identidad
+ * visual consistente (gradiente, chip, patrón e ícono) en todos los módulos.
+ * Los hijos se renderizan como acciones a la derecha del hero.
+ */
+export default function PageHeader({
+  title,
+  description,
+  children,
+  eyebrow,
+  variant,
+}: PageHeaderProps) {
+  const { pathname } = useLocation();
+  const resolved = variant ?? variantFromPath(pathname);
+
   return (
-    <div className={cn("flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-8", className)}>
-      <div className="min-w-0">
-        {eyebrow && (
-          <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-accent mb-1.5">
-            {eyebrow}
-          </p>
-        )}
-        <h1 className="font-heading text-[26px] md:text-[32px] font-bold text-foreground tracking-tight leading-tight">
-          {title}
-        </h1>
-        {description && (
-          <p className="text-[14px] md:text-[15px] text-muted-foreground mt-1.5 max-w-2xl">
-            {description}
-          </p>
-        )}
-      </div>
-      {children && <div className="flex items-center gap-2 shrink-0">{children}</div>}
-    </div>
+    <ModuleHero
+      variant={resolved}
+      title={title}
+      description={description}
+      eyebrow={eyebrow}
+      actions={children}
+    />
   );
 }
