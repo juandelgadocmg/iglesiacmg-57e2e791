@@ -3016,15 +3016,22 @@ export default function AcademiaPage() {
         <MobileNav activeSection={activeSection} onSectionChange={setActiveSection} />
 
         {/* Sticky header */}
-        <header className="sticky top-14 z-10 bg-background/95 backdrop-blur border-b px-4 md:px-6 py-3 flex items-start justify-between gap-3 flex-wrap">
-          <div>
-            <h1 className="text-lg md:text-xl font-semibold tracking-tight">{meta.title}</h1>
-            {meta.subtitle && <p className="text-[12.5px] text-muted-foreground mt-0.5">{meta.subtitle}</p>}
+        <header className="sticky top-14 z-10 bg-background/95 backdrop-blur border-b px-4 md:px-6 py-3 flex items-center justify-between gap-3 flex-wrap">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-indigo-600 via-violet-600 to-fuchsia-500 text-white flex items-center justify-center shadow-md shrink-0">
+              <span className="text-xs font-bold">LMS</span>
+            </div>
+            <div className="min-w-0">
+              <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Canvas-style · Academia CMG</p>
+              <h1 className="text-lg md:text-xl font-bold tracking-tight truncate">{meta.title}</h1>
+              {meta.subtitle && <p className="text-[12px] text-muted-foreground truncate">{meta.subtitle}</p>}
+            </div>
           </div>
           <div className="flex items-center gap-2">
             <ImportAcademiaDialog />
           </div>
         </header>
+
 
         <div className="flex-1 p-4 md:p-6 overflow-auto">
           {activeSection === "panel" && (
