@@ -18,6 +18,7 @@ import MaestroSearchPickerShared from "@/components/academia/MaestroSearchPicker
 import HistorialCalificacionesSection from "@/components/academia/HistorialCalificacionesSection";
 import DeleteConfirmDialog from "@/components/shared/DeleteConfirmDialog";
 import MateriaAttendanceTrendChart from "@/components/charts/MateriaAttendanceTrendChart";
+import ModuleHero from "@/components/shell/ModuleHero";
 import ExportDropdown from "@/components/shared/ExportDropdown";
 import ImportAcademiaDialog from "@/components/forms/ImportAcademiaDialog";
 import {
