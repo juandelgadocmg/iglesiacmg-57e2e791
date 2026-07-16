@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useConfiguracion } from "@/hooks/useConfiguracion";
 import { toast } from "sonner";
-import discipulandoLogoAsset from "@/assets/discipulando-naciones-logo.png.asset.json";
+import discipulandoLogoAsset from "@/assets/discipulando-naciones-logo-v2.png.asset.json";
 
 export const DEFAULT_DISCIPULANDO_URL = "https://discipulandonaciones.lovable.app";
 export const DEFAULT_DISCIPULANDO_LOGO = discipulandoLogoAsset.url;

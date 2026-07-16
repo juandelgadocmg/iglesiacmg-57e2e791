@@ -15,7 +15,7 @@ import { useActiveRole, ROLE_LABELS } from "@/hooks/useActiveRole";
 import NotificationDropdown from "@/components/layout/NotificationDropdown";
 import { useUnreadCount } from "@/hooks/useMensajes";
 import { useConfiguracion } from "@/hooks/useConfiguracion";
-import discipulandoLogoAsset from "@/assets/discipulando-naciones-logo.png.asset.json";
+import discipulandoLogoAsset from "@/assets/discipulando-naciones-logo-v2.png.asset.json";
 
 const DEFAULT_DISCIPULANDO_URL = "https://discipulandonaciones.lovable.app";
 const DEFAULT_LOGO_SRC = discipulandoLogoAsset.url;
@@ -125,7 +125,7 @@ export default function AppHeader({ onMenuClick }: AppHeaderProps) {
                     decoding="async"
                     fetchPriority="low"
                     onError={() => setLogoFailed(true)}
-                    className="h-7 md:h-8 w-auto object-contain select-none dark:brightness-0 dark:invert"
+                    className="h-8 md:h-9 w-auto object-contain select-none"
                   />
                 )}
               </a>

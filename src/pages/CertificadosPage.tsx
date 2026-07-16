@@ -18,10 +18,13 @@ import { cn } from "@/lib/utils";
 import ModuleHero from "@/components/shell/ModuleHero";
 import PageSkeleton from "@/components/shared/PageSkeleton";
 import EmptyState from "@/components/shared/EmptyState";
+import certLideresAsset from "@/assets/cert-lideres-cdp.png.asset.json";
+import certBautismoAsset from "@/assets/cert-bautismo.png.asset.json";
 
 const TIPO_META: Record<string, { color: string; bg: string; ring: string }> = {
   "Membresía":              { color: "#3b82f6", bg: "from-blue-500/10 to-blue-500/5", ring: "ring-blue-500/30" },
   "Bautismo":               { color: "#06b6d4", bg: "from-cyan-500/10 to-cyan-500/5", ring: "ring-cyan-500/30" },
+  "Líderes de Casas de Paz":{ color: "#c9a24a", bg: "from-amber-500/10 to-amber-500/5", ring: "ring-amber-500/30" },
   "Confirmación":           { color: "#22c55e", bg: "from-emerald-500/10 to-emerald-500/5", ring: "ring-emerald-500/30" },
   "Matrimonio":             { color: "#f59e0b", bg: "from-amber-500/10 to-amber-500/5", ring: "ring-amber-500/30" },
   "Presentación de niños":  { color: "#a855f7", bg: "from-purple-500/10 to-purple-500/5", ring: "ring-purple-500/30" },
@@ -31,10 +34,64 @@ const TIPO_META: Record<string, { color: string; bg: string; ring: string }> = {
 };
 const tipoMeta = (t: string) => TIPO_META[t] || { color: "#6b7280", bg: "from-gray-500/10 to-gray-500/5", ring: "ring-gray-500/30" };
 
-function generateCertificatePDF(cert: any, config: any) {
+/** Plantillas oficiales (imágenes de fondo). El nombre se dibuja sobre la línea. */
+const TEMPLATE_MAP: Record<string, string> = {
+  "Bautismo": certBautismoAsset.url,
+  "Líderes de Casas de Paz": certLideresAsset.url,
+};
+
+async function loadImageDataUrl(url: string): Promise<string> {
+  const res = await fetch(url, { mode: "cors" });
+  const blob = await res.blob();
+  return await new Promise((resolve, reject) => {
+    const r = new FileReader();
+    r.onload = () => resolve(r.result as string);
+    r.onerror = reject;
+    r.readAsDataURL(blob);
+  });
+}
+
+async function generateCertificatePDF(cert: any, config: any) {
   const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "letter" });
   const w = doc.internal.pageSize.getWidth();
   const h = doc.internal.pageSize.getHeight();
+
+  const templateUrl = TEMPLATE_MAP[cert.tipo];
+  if (templateUrl) {
+    // ===== Plantilla oficial CMG / FEL Institute =====
+    try {
+      const dataUrl = await loadImageDataUrl(templateUrl);
+      doc.addImage(dataUrl, "PNG", 0, 0, w, h, undefined, "FAST");
+
+      // Nombre del líder / miembro sobre la línea horizontal de la plantilla.
+      // Coordenadas calibradas a las plantillas subidas (letter landscape).
+      doc.setFont("times", "italic");
+      doc.setTextColor(30, 30, 30);
+      const nameY = cert.tipo === "Bautismo" ? 170 : 175;
+      // Ajuste automático de tamaño según longitud del nombre
+      const nombre = cert.personaNombre || "—";
+      let fontSize = 26;
+      if (nombre.length > 28) fontSize = 22;
+      if (nombre.length > 38) fontSize = 18;
+      doc.setFontSize(fontSize);
+      doc.text(nombre, w / 2, nameY, { align: "center" });
+
+      // Código y fecha discretos en el pie
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(7);
+      doc.setTextColor(120, 120, 120);
+      const fechaStr = cert.fecha_emision ? format(parseISO(cert.fecha_emision), "dd/MM/yyyy") : "";
+      doc.text(`Código de verificación: ${cert.codigo}   ·   Emitido: ${fechaStr}`, w / 2, h - 5, { align: "center" });
+
+      doc.save(`Certificado_${nombre.replace(/\s/g, "_")}_${cert.tipo}.pdf`);
+      return;
+    } catch (e) {
+      // Si la plantilla falla, seguimos con el diseño genérico.
+      console.warn("No se pudo cargar la plantilla, usando diseño genérico", e);
+    }
+  }
+
+  // ===== Diseño genérico (resto de tipos o fallback) =====
   doc.setDrawColor(59, 130, 246); doc.setLineWidth(2); doc.rect(10, 10, w - 20, h - 20);
   doc.setLineWidth(0.5); doc.rect(14, 14, w - 28, h - 28);
   doc.setFontSize(28); doc.setFont("helvetica", "bold"); doc.setTextColor(59, 130, 246);
@@ -64,6 +121,37 @@ function generateCertificatePDF(cert: any, config: any) {
 function DiplomaPreview({ cert, config, scale = "sm" }: { cert: any; config: any; scale?: "sm" | "lg" }) {
   const meta = tipoMeta(cert.tipo);
   const isLg = scale === "lg";
+  const templateUrl = TEMPLATE_MAP[cert.tipo];
+
+  // ===== Vista previa con plantilla oficial (Bautismo / Líderes CDP) =====
+  if (templateUrl) {
+    return (
+      <div className="relative w-full aspect-[11/8.5] rounded-lg overflow-hidden border shadow-sm bg-white">
+        <img
+          src={templateUrl}
+          alt={`Plantilla ${cert.tipo}`}
+          className="absolute inset-0 w-full h-full object-cover select-none"
+          loading="lazy"
+          decoding="async"
+        />
+        {/* Nombre sobre la línea de la plantilla — posición proporcional */}
+        <div
+          className="absolute left-0 right-0 flex justify-center pointer-events-none"
+          style={{ top: cert.tipo === "Bautismo" ? "78%" : "80%" }}
+        >
+          <p
+            className={cn(
+              "font-serif italic text-foreground/90 px-3 truncate max-w-[70%] text-center",
+              isLg ? "text-xl md:text-2xl" : "text-[10px]"
+            )}
+          >
+            {cert.personaNombre || "—"}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div
       className={cn(
@@ -168,9 +256,13 @@ export default function CertificadosPage() {
     toast.success("Certificado eliminado");
     if (selected?.id === id) setSelected(null);
   };
-  const handleDownload = (cert: any) => {
-    generateCertificatePDF(cert, config);
-    toast.success("Certificado descargado");
+  const handleDownload = async (cert: any) => {
+    try {
+      await generateCertificatePDF(cert, config);
+      toast.success("Certificado descargado");
+    } catch (e: any) {
+      toast.error("No se pudo generar el PDF", { description: e?.message });
+    }
   };
 
   const exportData = filtered.map((c) => ({

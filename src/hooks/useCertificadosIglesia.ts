@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 export const TIPOS_CERTIFICADO = [
   "Membresía",
   "Bautismo",
+  "Líderes de Casas de Paz",
   "Confirmación",
   "Matrimonio",
   "Presentación de niños",
