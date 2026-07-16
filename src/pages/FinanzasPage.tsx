@@ -215,6 +215,16 @@ export default function FinanzasPage() {
         }
       />
 
+      {editing && <FinanzaFormDialog initialData={editing} onClose={() => setEditing(null)} />}
+
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+        <MetricCard title="Ingresos (30d vs prev)" value={fmt(ingresos)} icon={TrendingUp} variant="success" trend={ingTrend} sparkline={ingSpark} subtitle="Sparkline 6m" />
+        <MetricCard title="Egresos (30d vs prev)" value={fmt(gastos)} icon={TrendingDown} variant="accent" trend={{ value: gasTrend.value, positive: !gasTrend.positive }} sparkline={gasSpark} subtitle="Sparkline 6m" />
+        <MetricCard title="Saldo (tendencia)" value={fmt(saldo)} icon={Wallet} variant="default" trend={saldoTrend} sparkline={saldoSpark} subtitle="Balance neto" />
+      </div>
+
+
+
 
       <Tabs defaultValue="movimientos" className="space-y-4">
         <TabsList className="flex flex-wrap gap-1 h-auto">
