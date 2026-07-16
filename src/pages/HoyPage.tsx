@@ -42,6 +42,7 @@ export default function HoyPage() {
   const { data: unreadMsgs = 0 } = useUnreadCount();
   const { items: recents } = useRecentEntities();
   const { data: config } = useConfiguracion();
+  const { data: temaVigente } = useTemaSemanaVigente();
 
   const name = user?.email?.split("@")[0].split(/[._-]/)[0] || "Usuario";
   const nameCap = name.charAt(0).toUpperCase() + name.slice(1);
