@@ -45,6 +45,7 @@ import { es } from "date-fns/locale";
 import { useState, useMemo, useRef } from "react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { useUrlParam } from "@/hooks/useUrlParam";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { QRCodeSVG } from "qrcode.react";
 
