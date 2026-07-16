@@ -31,6 +31,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useActiveRole } from "@/hooks/useActiveRole";
 import PageSkeleton from "@/components/shared/PageSkeleton";
 import EmptyState from "@/components/shared/EmptyState";
+import ErrorState from "@/components/shared/ErrorState";
 import { GrupoInfoCard, GrupoCardsSkeletonGrid } from "@/components/grupos/GrupoInfoCard";
 
 const ReportesGruposContent = lazy(() => import("@/pages/ReportesGruposPage"));
@@ -102,7 +103,7 @@ export default function GruposPage() {
   const [selectedGrupoId, setSelectedGrupoId] = useState<string | null>(null);
   const [selectedRed, setSelectedRed] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<string>("lista");
-  const { data: planificaciones } = usePlanificaciones();
+  const { data: planificaciones, error: planError, refetch: refetchPlan, isLoading: loadingPlan } = usePlanificaciones();
   const deletePlan = useDeletePlanificacion();
   const [viewingPlan, setViewingPlan] = useState<any>(null);
   const { roles } = useUserRoles();
@@ -209,34 +210,29 @@ export default function GruposPage() {
           </div>
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {gruposDeRed.length === 0 ? (
-            <div className="col-span-3 text-center py-12 text-muted-foreground text-sm">
-              No hay grupos en la Red {redAsignada}
-            </div>
-          ) : gruposDeRed.map((g: any) => (
-            <div
-              key={g.id}
-              className="rounded-xl border bg-card p-4 cursor-pointer hover:shadow-md hover:border-primary/30 transition-all"
-              onClick={() => setSelectedGrupoId(g.id)}
-            >
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                  <Users className="h-5 w-5 text-primary" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="font-semibold text-sm">{g.nombre}</p>
-                  <p className="text-xs text-muted-foreground">{g.tipo} · {g.dia_reunion || "—"}</p>
-                </div>
-                {g.grupo_miembros?.[0]?.count > 0 && (
-                  <span className="text-xs font-medium text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
-                    {g.grupo_miembros[0].count}
-                  </span>
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
+        {gruposDeRed.length === 0 ? (
+          <EmptyState
+            icon={Users}
+            title={`No hay grupos en la Red ${redAsignada}`}
+            description="Cuando se asignen Casas de Paz a esta red aparecerán aquí."
+            variant="compact"
+          />
+        ) : (
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {gruposDeRed.map((g: any) => {
+              const count = g.grupo_miembros?.[0]?.count || 0;
+              return (
+                <GrupoInfoCard
+                  key={g.id}
+                  onClick={() => setSelectedGrupoId(g.id)}
+                  title={g.nombre}
+                  subtitle={`${g.tipo} · ${g.dia_reunion || "—"}`}
+                  badge={count > 0 ? { label: `${count} miembros`, tone: "neutral" } : undefined}
+                />
+              );
+            })}
+          </div>
+        )}
         {selectedGrupoId && (
           <GrupoPerfilView grupoId={selectedGrupoId} onBack={() => setSelectedGrupoId(null)} readOnly />
         )}
@@ -430,8 +426,10 @@ export default function GruposPage() {
               )}
             </div>
 
-            {planificaciones === undefined ? (
+            {loadingPlan || planificaciones === undefined ? (
               <GrupoCardsSkeletonGrid count={6} />
+            ) : planError ? (
+              <ErrorState error={planError} onRetry={() => refetchPlan()} />
             ) : planificaciones.length === 0 ? (
               <EmptyState
                 icon={FileText}

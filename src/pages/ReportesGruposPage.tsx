@@ -2,6 +2,7 @@ import { useState, useMemo } from "react";
 import PageHeader from "@/components/shared/PageHeader";
 import MetricCard from "@/components/shared/MetricCard";
 import EmptyState from "@/components/shared/EmptyState";
+import ErrorState from "@/components/shared/ErrorState";
 import { GrupoInfoCard, GrupoCardsSkeletonGrid, type GrupoCardBadgeTone } from "@/components/grupos/GrupoInfoCard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -39,7 +40,7 @@ export default function ReportesGruposPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
 
-  const { data: reportes, isLoading } = useReportesGrupos();
+  const { data: reportes, isLoading, error, refetch } = useReportesGrupos();
   const deleteReporte = useDeleteReporteGrupo();
   const updateReporte = useUpdateReporteGrupo();
   const { data: morosos } = useTesoreriaMora();
@@ -174,6 +175,8 @@ export default function ReportesGruposPage() {
       {/* Report Cards */}
       {isLoading ? (
         <GrupoCardsSkeletonGrid count={6} />
+      ) : error ? (
+        <ErrorState error={error} onRetry={() => refetch()} />
       ) : filtered.length === 0 ? (
         reportes && reportes.length > 0 ? (
           <EmptyState
