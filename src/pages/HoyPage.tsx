@@ -341,6 +341,15 @@ export default function HoyPage() {
           />
         </div>
 
+        {/* VIDEOS (Proyecto Nehemías / iglesia) — col-span-6 */}
+        {videos.length > 0 && (
+          <div className="col-span-6">
+            <DashboardVideoSection videos={videos as any} />
+          </div>
+        )}
+
+
+
         {/* QUICK ACTIONS — col-span-6 */}
         <div className="col-span-6 grid grid-cols-2 md:grid-cols-4 gap-3">
           {quickActions.map((a) => (
