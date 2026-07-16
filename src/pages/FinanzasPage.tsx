@@ -227,16 +227,7 @@ export default function FinanzasPage() {
         {/* TAB MOVIMIENTOS */}
         <TabsContent value="movimientos">
           <div className="space-y-4">
-            <div className="flex flex-col sm:flex-row flex-wrap items-start sm:items-center gap-3">
-              <div className="flex flex-wrap items-center gap-2 bg-muted/50 rounded-lg px-3 py-1.5 text-sm w-full sm:w-auto">
-                <span className="text-muted-foreground text-xs">📅 Periodo:</span>
-                <Input type="date" value={periodoDesde} onChange={e => setPeriodoDesde(e.target.value)} className="h-7 w-full sm:w-36 text-xs" />
-                <span className="text-muted-foreground hidden sm:inline">a</span>
-                <Input type="date" value={periodoHasta} onChange={e => setPeriodoHasta(e.target.value)} className="h-7 w-full sm:w-36 text-xs" />
-              </div>
-              <div className="flex-1" />
-              <FinanzaFormDialog />
-            </div>
+
 
             <DataTable
               data={filteredData} searchKey="descripcion" searchPlaceholder="Buscar movimiento..."
