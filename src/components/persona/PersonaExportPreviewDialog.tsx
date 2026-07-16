@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Download, FileText, Table as TableIcon } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Download, FileText, Table as TableIcon, Search, ChevronLeft, ChevronRight } from "lucide-react";
 import {
   buildPersonaHistorialCSV,
   exportPersonaFichaPDF,
@@ -21,37 +22,58 @@ interface Props {
   onDownloaded?: () => void;
 }
 
+const PAGE_SIZE = 25;
+
+function parseCsvLine(line: string): string[] {
+  const out: string[] = [];
+  let cur = ""; let inQ = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (inQ) {
+      if (ch === '"' && line[i + 1] === '"') { cur += '"'; i++; }
+      else if (ch === '"') inQ = false;
+      else cur += ch;
+    } else {
+      if (ch === ',') { out.push(cur); cur = ""; }
+      else if (ch === '"') inQ = true;
+      else cur += ch;
+    }
+  }
+  out.push(cur);
+  return out;
+}
+
 export default function PersonaExportPreviewDialog({
   open, onOpenChange, kind, persona, timeline, onDownloaded,
 }: Props) {
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
+  const [page, setPage] = useState(0);
 
-  const csvPreview = useMemo(() => {
+  const csvData = useMemo(() => {
     if (kind !== "csv" || !open || !persona) return null;
     const csv = buildPersonaHistorialCSV(persona, timeline);
-    const lines = csv.split("\n");
-    const header = lines[0]?.split(",") ?? [];
-    const rows = lines.slice(1, 51).map((l) => {
-      // simple split respecting quotes
-      const out: string[] = [];
-      let cur = ""; let inQ = false;
-      for (let i = 0; i < l.length; i++) {
-        const ch = l[i];
-        if (inQ) {
-          if (ch === '"' && l[i + 1] === '"') { cur += '"'; i++; }
-          else if (ch === '"') inQ = false;
-          else cur += ch;
-        } else {
-          if (ch === ',') { out.push(cur); cur = ""; }
-          else if (ch === '"') inQ = true;
-          else cur += ch;
-        }
-      }
-      out.push(cur);
-      return out;
-    });
-    return { header, rows, total: Math.max(lines.length - 1, 0) };
+    const lines = csv.split("\n").filter(Boolean);
+    const header = lines[0] ? parseCsvLine(lines[0]) : [];
+    const rows = lines.slice(1).map(parseCsvLine);
+    return { header, rows };
   }, [kind, open, persona, timeline]);
+
+  const filtered = useMemo(() => {
+    if (!csvData) return [];
+    const q = search.trim().toLowerCase();
+    if (!q) return csvData.rows;
+    return csvData.rows.filter((r) => r.some((c) => c.toLowerCase().includes(q)));
+  }, [csvData, search]);
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const currentPage = Math.min(page, totalPages - 1);
+  const pageRows = useMemo(
+    () => filtered.slice(currentPage * PAGE_SIZE, currentPage * PAGE_SIZE + PAGE_SIZE),
+    [filtered, currentPage]
+  );
+
+  useEffect(() => { setPage(0); }, [search, open, kind]);
 
   useEffect(() => {
     if (!open || kind !== "pdf" || !persona) return;
@@ -90,44 +112,78 @@ export default function PersonaExportPreviewDialog({
             )}
           </div>
         ) : (
-          <div className="max-h-[65vh] overflow-auto rounded-lg border">
-            <table className="w-full text-xs">
-              <thead className="sticky top-0 bg-muted">
-                <tr>
-                  {csvPreview?.header.map((h, i) => (
-                    <th key={i} className="text-left px-3 py-2 font-semibold border-b">{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {csvPreview?.rows.map((r, i) => (
-                  <tr key={i} className="even:bg-muted/40">
-                    {r.map((c, j) => (
-                      <td key={j} className="px-3 py-1.5 border-b border-border/60 align-top">{c}</td>
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              <div className="relative flex-1">
+                <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  className="pl-8 h-9"
+                  placeholder="Buscar en el historial…"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                />
+              </div>
+              <span className="text-xs text-muted-foreground whitespace-nowrap">
+                {filtered.length} de {csvData?.rows.length ?? 0} filas
+              </span>
+            </div>
+
+            <div className="max-h-[55vh] overflow-auto rounded-lg border">
+              <table className="w-full text-xs">
+                <thead className="sticky top-0 bg-muted">
+                  <tr>
+                    {csvData?.header.map((h, i) => (
+                      <th key={i} className="text-left px-3 py-2 font-semibold border-b whitespace-nowrap">{h}</th>
                     ))}
                   </tr>
-                ))}
-                {(!csvPreview || csvPreview.rows.length === 0) && (
-                  <tr>
-                    <td colSpan={5} className="px-3 py-6 text-center text-muted-foreground">
-                      Sin eventos para mostrar en el historial.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-            {csvPreview && csvPreview.total > csvPreview.rows.length && (
-              <p className="text-[11px] text-muted-foreground px-3 py-2">
-                Mostrando {csvPreview.rows.length} de {csvPreview.total} filas. La descarga incluye el historial completo.
+                </thead>
+                <tbody>
+                  {pageRows.map((r, i) => (
+                    <tr key={i} className="even:bg-muted/40">
+                      {r.map((c, j) => (
+                        <td key={j} className="px-3 py-1.5 border-b border-border/60 align-top">{c}</td>
+                      ))}
+                    </tr>
+                  ))}
+                  {pageRows.length === 0 && (
+                    <tr>
+                      <td colSpan={csvData?.header.length || 5} className="px-3 py-6 text-center text-muted-foreground">
+                        {search ? "Sin resultados para la búsqueda" : "Sin eventos en el historial"}
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="flex items-center justify-between">
+              <p className="text-[11px] text-muted-foreground">
+                Página {currentPage + 1} de {totalPages}
               </p>
-            )}
+              <div className="flex items-center gap-1">
+                <Button
+                  variant="outline" size="sm" className="h-8 w-8 p-0"
+                  disabled={currentPage === 0}
+                  onClick={() => setPage((p) => Math.max(0, p - 1))}
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="outline" size="sm" className="h-8 w-8 p-0"
+                  disabled={currentPage >= totalPages - 1}
+                  onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
           </div>
         )}
 
         <DialogFooter className="gap-2">
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cerrar</Button>
           <Button onClick={handleDownload} className="gap-1.5">
-            <Download className="h-4 w-4" /> Descargar {kind === "pdf" ? "PDF" : "CSV"}
+            <Download className="h-4 w-4" /> Descargar {kind === "pdf" ? "PDF" : "CSV completo"}
           </Button>
         </DialogFooter>
       </DialogContent>
