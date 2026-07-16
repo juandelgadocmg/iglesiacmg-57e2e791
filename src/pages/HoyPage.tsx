@@ -21,7 +21,12 @@ import { useUnreadCount } from "@/hooks/useMensajes";
 import { useRecentEntities } from "@/hooks/useRecentEntities";
 import { useConfiguracion } from "@/hooks/useConfiguracion";
 import { useTemaSemanaVigente } from "@/hooks/useTemaSemana";
+import { useActiveBanners } from "@/hooks/useBanners";
+import { useActiveVideos } from "@/hooks/useVideosIglesia";
 import DashboardTemaSemana from "@/components/dashboard/DashboardTemaSemana";
+import DashboardBannerCarousel from "@/components/dashboard/DashboardBannerCarousel";
+import DashboardVideoSection from "@/components/dashboard/DashboardVideoSection";
+
 import { cn } from "@/lib/utils";
 
 function greeting() {
@@ -43,6 +48,9 @@ export default function HoyPage() {
   const { items: recents } = useRecentEntities();
   const { data: config } = useConfiguracion();
   const { data: temaVigente } = useTemaSemanaVigente();
+  const { data: banners = [] } = useActiveBanners();
+  const { data: videos = [] } = useActiveVideos();
+
 
   const name = user?.email?.split("@")[0].split(/[._-]/)[0] || "Usuario";
   const nameCap = name.charAt(0).toUpperCase() + name.slice(1);
@@ -119,7 +127,15 @@ export default function HoyPage() {
           </div>
         </div>
 
+        {/* BANNERS (Pastores / anuncios) — col-span-6 */}
+        {banners.length > 0 && (
+          <div className="col-span-6">
+            <DashboardBannerCarousel banners={banners as any} />
+          </div>
+        )}
+
         {/* PRÓXIMA REUNIÓN — col-span-4 row-span-2 */}
+
         <BentoCard className="col-span-6 md:col-span-4 md:row-span-2 relative overflow-hidden bg-gradient-to-br from-primary/10 via-card to-card">
           <div className="absolute top-0 right-0 w-40 h-40 rounded-full bg-primary/10 blur-2xl" />
           <div className="relative h-full flex flex-col">
@@ -324,6 +340,15 @@ export default function HoyPage() {
             fechaFin={temaVigente?.fecha_fin ?? null}
           />
         </div>
+
+        {/* VIDEOS (Proyecto Nehemías / iglesia) — col-span-6 */}
+        {videos.length > 0 && (
+          <div className="col-span-6">
+            <DashboardVideoSection videos={videos as any} />
+          </div>
+        )}
+
+
 
         {/* QUICK ACTIONS — col-span-6 */}
         <div className="col-span-6 grid grid-cols-2 md:grid-cols-4 gap-3">
