@@ -197,45 +197,28 @@ export default function UsuariosPage() {
 
   return (
     <div className="animate-fade-in">
-      <PageHeader title="Usuarios y Roles" description="Gestión de usuarios y permisos del sistema">
-        <div className="flex gap-2">
-          <Button variant="outline" className="gap-2" onClick={handleExportExcel}>
-            <Download className="h-4 w-4" /> Exportar
-          </Button>
-          <InviteUserDialog onSuccess={handleSuccess} />
-        </div>
-      </PageHeader>
+      <ModuleHero
+        variant="usuarios"
+        title="Usuarios & Roles"
+        eyebrow="Identity & Access Management"
+        description="Provisión de cuentas, RBAC granular por rol pastoral y vinculación automática al seminario."
+        status={{ label: `${usersWithRoles}/${totalUsers} con rol`, tone: usersWithRoles === totalUsers ? "ok" : "warn" }}
+        kpis={[
+          { label: "Usuarios totales", value: totalUsers, hint: "Registrados en plataforma", tone: "info" },
+          { label: "Con rol asignado", value: usersWithRoles, hint: `${totalUsers - usersWithRoles} sin asignar`, tone: "ok" },
+          { label: "Roles del sistema", value: Constants.public.Enums.app_role.length, hint: "Definidos vía enum", tone: "info" },
+          { label: "Cobertura RBAC", value: `${totalUsers ? Math.round((usersWithRoles/totalUsers)*100) : 0}%`, hint: "Usuarios con al menos 1 rol", tone: "warn" },
+        ]}
+        actions={
+          <>
+            <Button variant="outline" className="gap-2" onClick={handleExportExcel}>
+              <Download className="h-4 w-4" /> Exportar
+            </Button>
+            <InviteUserDialog onSuccess={handleSuccess} />
+          </>
+        }
+      />
 
-      {/* Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-        <Card>
-          <CardContent className="flex items-center gap-3 pt-6">
-            <div className="p-2.5 rounded-xl bg-primary/10"><Users className="h-5 w-5 text-primary" /></div>
-            <div>
-              <p className="text-2xl font-bold">{totalUsers}</p>
-              <p className="text-xs text-muted-foreground">Usuarios registrados</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="flex items-center gap-3 pt-6">
-            <div className="p-2.5 rounded-xl bg-chart-2/10"><ShieldCheck className="h-5 w-5 text-chart-2" /></div>
-            <div>
-              <p className="text-2xl font-bold">{usersWithRoles}</p>
-              <p className="text-xs text-muted-foreground">Con roles asignados</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="flex items-center gap-3 pt-6">
-            <div className="p-2.5 rounded-xl bg-chart-3/10"><Shield className="h-5 w-5 text-chart-3" /></div>
-            <div>
-              <p className="text-2xl font-bold">{Constants.public.Enums.app_role.length}</p>
-              <p className="text-xs text-muted-foreground">Roles disponibles</p>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
 
       {/* Seminario linking status */}
       <Card className="mb-6">
