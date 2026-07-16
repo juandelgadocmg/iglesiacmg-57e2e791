@@ -1,7 +1,7 @@
 import { useState, useMemo, useCallback, useEffect } from "react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart as RechartsPie, Pie, Cell } from "recharts";
 import { supabase } from "@/integrations/supabase/client";
-import PageHeader from "@/components/shared/PageHeader";
+
 import MetricCard from "@/components/shared/MetricCard";
 import CursoFormDialog from "@/components/forms/CursoFormDialog";
 import PeriodoFormDialog from "@/components/forms/PeriodoFormDialog";
