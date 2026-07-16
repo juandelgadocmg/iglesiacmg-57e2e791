@@ -953,43 +953,77 @@ export default function PersonaPerfilPage() {
 
         {/* QR Tab */}
         <TabsContent value="qr">
-          <Card className="max-w-sm mx-auto">
-            <CardHeader className="text-center">
-              <CardTitle className="text-sm flex items-center justify-center gap-2 text-muted-foreground uppercase tracking-wider">
-                <QrCode className="h-4 w-4" /> Código QR de Asistencia
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="flex flex-col items-center gap-4">
-              {(persona as any).qr_code ? (
-                <>
-                  <div className="p-4 bg-white rounded-xl border-2 border-border">
-                    <QRCodeSVG value={(persona as any).qr_code} size={200} level="M" />
-                  </div>
-                  <p className="text-xs text-muted-foreground text-center">
-                    Escanea este código en el módulo de Reuniones para registrar asistencia automáticamente.
-                  </p>
-                  <p className="text-[10px] text-muted-foreground font-mono">{(persona as any).qr_code}</p>
-                  <Button
-                    variant="outline" size="sm" className="gap-1.5"
-                    onClick={() => {
-                      const svg = document.querySelector(".qr-tab-svg svg") as SVGElement;
-                      if (!svg) {
-                        // Fallback: copy code
+          <div className="grid md:grid-cols-2 gap-4 max-w-3xl mx-auto">
+            <Card>
+              <CardHeader className="text-center">
+                <CardTitle className="text-sm flex items-center justify-center gap-2 text-muted-foreground uppercase tracking-wider">
+                  <QrCode className="h-4 w-4" /> Código QR de Asistencia
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="flex flex-col items-center gap-4">
+                {(persona as any).qr_code ? (
+                  <>
+                    <div className="p-4 bg-white rounded-xl border-2 border-border">
+                      <QRCodeSVG value={(persona as any).qr_code} size={200} level="M" />
+                    </div>
+                    <p className="text-xs text-muted-foreground text-center">
+                      Escanea este código en el módulo de Reuniones o usa "Check-in rápido" para registrar la asistencia.
+                    </p>
+                    <p className="text-[10px] text-muted-foreground font-mono break-all">{(persona as any).qr_code}</p>
+                    <Button
+                      variant="outline" size="sm" className="gap-1.5"
+                      onClick={() => {
                         navigator.clipboard.writeText((persona as any).qr_code);
                         toast.success("Código QR copiado al portapapeles");
-                        return;
-                      }
-                    }}
-                  >
-                    Copiar código
-                  </Button>
-                </>
-              ) : (
-                <p className="text-sm text-muted-foreground">Este miembro no tiene un código QR asignado aún.</p>
-              )}
-            </CardContent>
-          </Card>
+                      }}
+                    >
+                      Copiar código
+                    </Button>
+                  </>
+                ) : (
+                  <p className="text-sm text-muted-foreground">Este miembro no tiene un código QR asignado aún.</p>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-sm flex items-center gap-2 text-muted-foreground uppercase tracking-wider">
+                  <ClipboardCheck className="h-4 w-4" /> Check-in rápido con QR
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <p className="text-xs text-muted-foreground">
+                  Selecciona el servicio y registra la asistencia de <span className="font-semibold text-foreground">{persona.nombres}</span> usando su identificador QR. Queda registrado en auditoría.
+                </p>
+                <div className="space-y-2">
+                  <label className="text-xs font-medium text-muted-foreground">Servicio</label>
+                  <Select value={qrCheckinServicio} onValueChange={setQrCheckinServicio}>
+                    <SelectTrigger><SelectValue placeholder="Elige un servicio" /></SelectTrigger>
+                    <SelectContent>
+                      {(servicios || []).slice(0, 30).map((s: any) => (
+                        <SelectItem key={s.id} value={s.id}>
+                          {s.nombre}{s.fecha ? " · " + s.fecha : ""}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <Button
+                  className="w-full gap-2"
+                  disabled={!qrCheckinServicio || !(persona as any).qr_code}
+                  onClick={() => setQrCheckinOpen(true)}
+                >
+                  <QrCode className="h-4 w-4" /> Realizar check-in
+                </Button>
+                {!(persona as any).qr_code && (
+                  <p className="text-[11px] text-destructive">Esta persona aún no tiene código QR generado.</p>
+                )}
+              </CardContent>
+            </Card>
+          </div>
         </TabsContent>
+
 
         {/* Grupos tab */}
         <TabsContent value="grupos">
