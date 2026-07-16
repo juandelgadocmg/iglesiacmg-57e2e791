@@ -31,7 +31,7 @@ export default function DeleteConfirmDialog({
     <AlertDialog>
       <AlertDialogTrigger asChild>
         {trigger || (
-          <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10">
+          <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10" aria-label="Eliminar">
             <Trash2 className="h-4 w-4" />
           </Button>
         )}

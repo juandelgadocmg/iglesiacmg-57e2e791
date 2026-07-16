@@ -519,7 +519,7 @@ function PeriodosSection({ escuelas, allPeriodos, allMatriculas }: any) {
                 <div className="absolute top-2 right-2 z-10" onClick={(e) => e.stopPropagation()}>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon" className="h-7 w-7 opacity-60 hover:opacity-100">
+                      <Button variant="ghost" size="icon" className="h-7 w-7 opacity-60 hover:opacity-100" aria-label="Más opciones">
                         <MoreVertical className="h-4 w-4" />
                       </Button>
                     </DropdownMenuTrigger>

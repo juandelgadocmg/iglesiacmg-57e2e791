@@ -96,7 +96,7 @@ export default function VideosPage() {
                 </Button>
                 <DeleteConfirmDialog
                   onConfirm={async () => { try { await deleteVideo.mutateAsync(v.id); toast.success("Video eliminado"); } catch { toast.error("Error"); } }}
-                  trigger={<Button size="icon" variant="ghost" className="text-destructive"><Trash2 className="h-4 w-4" /></Button>}
+                  trigger={<Button size="icon" variant="ghost" className="text-destructive" aria-label="Eliminar"><Trash2 className="h-4 w-4" /></Button>}
                 />
               </div>
             </CardContent>

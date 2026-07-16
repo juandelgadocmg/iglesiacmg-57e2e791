@@ -256,7 +256,7 @@ function UrlRow({ label, url, onTest, onCopy }: { label: string; url: string | n
     <div className="flex items-center gap-1.5 bg-background border rounded px-2 py-1">
       <span className="text-[11px] font-medium text-muted-foreground min-w-[140px] shrink-0">{label}</span>
       <code className="text-[10px] truncate flex-1 text-foreground/70">{url || "—"}</code>
-      <Button type="button" variant="ghost" size="icon" className="h-6 w-6 shrink-0" disabled={!url} onClick={onCopy} title="Copiar URL">
+      <Button type="button" variant="ghost" size="icon" className="h-6 w-6 shrink-0" disabled={!url} onClick={onCopy} title="Copiar URL" aria-label="Copiar">
         <Copy className="h-3 w-3" />
       </Button>
       <Button

@@ -727,7 +727,7 @@ function EstudianteDetalle({ ins, programa, onBack }: any) {
                             ) : null
                           ) : (
                             <DeleteConfirmDialog onConfirm={async () => { await unenroll.mutateAsync(c.id); toast.success("Retirada"); }}
-                              trigger={<Button size="icon" variant="ghost" className="h-6 w-6 text-destructive"><Trash2 className="h-3 w-3" /></Button>} />
+                              trigger={<Button size="icon" variant="ghost" className="h-6 w-6 text-destructive" aria-label="Eliminar"><Trash2 className="h-3 w-3" /></Button>} />
                           )}
                         </div>
                         {c && (

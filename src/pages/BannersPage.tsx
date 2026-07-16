@@ -94,7 +94,7 @@ export default function BannersPage() {
                 </Button>
                 <DeleteConfirmDialog
                   onConfirm={async () => { try { await deleteBanner.mutateAsync(b.id); toast.success("Banner eliminado"); } catch { toast.error("Error"); } }}
-                  trigger={<Button size="icon" variant="ghost" className="text-destructive"><Trash2 className="h-4 w-4" /></Button>}
+                  trigger={<Button size="icon" variant="ghost" className="text-destructive" aria-label="Eliminar"><Trash2 className="h-4 w-4" /></Button>}
                 />
               </div>
             </CardContent>
