@@ -255,15 +255,6 @@ export default function ReportesPage() {
         />
 
 
-        {/* Snapshot ejecutivo — visible solo en "Todos" */}
-        {domain === "todos" && (
-          <section className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            <SnapshotTile icon={Users} label="Personas activas" value={String(stats?.totalPersonas || 0)} sub={`+${stats?.nuevosEsteMes || 0} este mes`} tone="blue" />
-            <SnapshotTile icon={TrendingUp} label="Ingresos mes" value={fmt(stats?.ingresosMes || 0)} sub={`Balance ${fmt(balance)}`} tone="green" />
-            <SnapshotTile icon={GraduationCap} label="Matrículas activas" value={String(matriculas?.length || 0)} sub={`${cursos?.filter((c) => c.estado === "Activo").length || 0} cursos activos`} tone="amber" />
-            <SnapshotTile icon={Award} label="Certificados" value={String(certificados?.length || 0)} sub="Emitidos total" tone="violet" />
-          </section>
-        )}
 
         {/* Grid de reportes */}
         <section className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
