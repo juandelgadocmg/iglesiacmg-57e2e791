@@ -13,6 +13,7 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import PersonaExportPreviewDialog from "@/components/persona/PersonaExportPreviewDialog";
+import PersonaQrCameraCheckin from "@/components/persona/PersonaQrCameraCheckin";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
