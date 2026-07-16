@@ -312,6 +312,15 @@ export default function HoyPage() {
           )}
         </BentoCard>
 
+        {/* TEMA DE LA SEMANA (Casas de Paz) — col-span-6 */}
+        <div className="col-span-6">
+          <DashboardTemaSemana
+            titulo={config?.tema_semana_titulo}
+            descripcion={config?.tema_semana_descripcion}
+            url={config?.tema_semana_url}
+          />
+        </div>
+
         {/* QUICK ACTIONS — col-span-6 */}
         <div className="col-span-6 grid grid-cols-2 md:grid-cols-4 gap-3">
           {quickActions.map((a) => (
