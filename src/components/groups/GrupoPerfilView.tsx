@@ -761,9 +761,11 @@ function PlanificacionTab({ grupoId, readOnly = false }: { grupoId: string; read
           <h3 className="text-base sm:text-lg font-semibold">Hojas de Planeación</h3>
           <p className="text-xs sm:text-sm text-muted-foreground">Planificación semanal de Casa de Paz</p>
         </div>
-        <Button onClick={() => setShowPlanForm(true)} className="gap-2 w-full sm:w-auto">
-          <UserPlus className="h-4 w-4" /> Nueva Planificación
-        </Button>
+        {!readOnly && (
+          <Button onClick={() => setShowPlanForm(true)} className="gap-2 w-full sm:w-auto">
+            <UserPlus className="h-4 w-4" /> Nueva Planificación
+          </Button>
+        )}
       </div>
 
       {planificaciones && planificaciones.length > 0 ? (
