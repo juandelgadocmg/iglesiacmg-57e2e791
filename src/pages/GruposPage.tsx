@@ -9,6 +9,7 @@ import ReporteGrupoFormDialog from "@/components/forms/ReporteGrupoFormDialog";
 import GrupoPerfilView from "@/components/groups/GrupoPerfilView";
 import GrupoHierarchyView from "@/components/groups/GrupoHierarchyView";
 import GruposRedRail from "@/components/grupos/GruposRedRail";
+import GruposViewSwitcher from "@/components/grupos/GruposViewSwitcher";
 import PlanificacionGrupoFormDialog from "@/components/forms/PlanificacionGrupoFormDialog";
 import { usePlanificaciones, useDeletePlanificacion } from "@/hooks/usePlanificaciones";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
