@@ -479,7 +479,7 @@ export default function PersonaPerfilPage() {
       </section>
 
       {/* ============ TABS ============ */}
-      <Tabs defaultValue="resumen" className="space-y-6">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
         <div className="sticky top-0 z-20 -mx-2 px-2 bg-background/85 backdrop-blur-lg border-b border-border/60">
           <TabsList className="h-auto p-0 bg-transparent gap-1 overflow-x-auto flex-nowrap w-full justify-start rounded-none">
             {[
