@@ -349,12 +349,13 @@ export function NotasTab({ persona }: any) {
 
       <div className="lg:col-span-3 space-y-3">
         {notes.length === 0 ? (
-          <Card className="p-10 text-center">
-            <FileText className="h-10 w-10 text-muted-foreground/40 mx-auto mb-3" />
-            <p className="text-[13px] font-medium">Sin notas todavía</p>
-            <p className="text-[11.5px] text-muted-foreground mt-1">Empieza a documentar el acompañamiento pastoral.</p>
-          </Card>
+          <EmptyState
+            icon={FileText}
+            title="Sin notas todavía"
+            description="Empieza a documentar el acompañamiento pastoral."
+          />
         ) : (
+
           notes.map((n) => (
             <Card key={n.id} className="p-4 hover:shadow-sm transition-shadow group">
               <div className="flex items-start justify-between gap-3">
