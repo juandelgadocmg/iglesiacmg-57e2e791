@@ -2,8 +2,9 @@ import { useMemo } from "react";
 import { useDashboardKpis, useProgramas } from "@/hooks/useSeminario";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { GraduationCap, BookOpen, AlertCircle, Calendar, Award, TrendingUp, Users, UserCheck, ClipboardCheck, Activity } from "lucide-react";
+import { GraduationCap, BookOpen, AlertCircle, Calendar, Award, TrendingUp, Users, UserCheck, ClipboardCheck, Activity, LayoutDashboard } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, PieChart, Pie, Legend } from "recharts";
+import SectionHero from "@/components/shell/SectionHero";
 
 export default function DashboardSection() {
   const { data: programas } = useProgramas();
