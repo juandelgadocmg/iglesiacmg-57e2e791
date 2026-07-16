@@ -191,10 +191,20 @@ export default function SeguridadPage() {
 
   return (
     <div className="animate-fade-in">
-      <PageHeader
-        title="Auditoría de seguridad"
-        description="Cambios sensibles y eventos de Storage registrados por el sistema."
+      <ModuleHero
+        variant="seguridad"
+        title="Consola de Seguridad"
+        eyebrow="Audit Trail · RLS · Storage"
+        description="Trazabilidad completa de cambios sensibles, RLS activo por tabla y eventos de Storage con retención inmutable."
+        status={{ label: "RLS activo · Auditoría en línea", tone: "ok" }}
+        kpis={[
+          { label: "Eventos cargados", value: totalLoaded, hint: "Ventana actual", tone: "info" },
+          { label: "INSERT", value: rows.filter(r => r.operation === "INSERT").length, hint: "Creaciones", tone: "ok" },
+          { label: "UPDATE", value: rows.filter(r => r.operation === "UPDATE").length, hint: "Modificaciones", tone: "warn" },
+          { label: "DELETE", value: rows.filter(r => r.operation === "DELETE").length, hint: "Eliminaciones", tone: "bad" },
+        ]}
       />
+
 
       <div className="bg-card border rounded-lg p-4 mb-4 grid gap-3 md:grid-cols-6">
         <div>
