@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Library, Plus, Pencil, Trash2, Search, FileText, Video, Link as LinkIcon, Music, Upload } from "lucide-react";
+import SectionHero from "@/components/shell/SectionHero";
 import { toast } from "sonner";
 import DeleteConfirmDialog from "@/components/shared/DeleteConfirmDialog";
 import { useCan } from "@/hooks/useCan";
@@ -87,11 +88,14 @@ export default function BibliotecaSection() {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <div>
-          <h2 className="text-lg font-semibold flex items-center gap-2"><Library className="h-5 w-5" />Biblioteca Digital</h2>
-          <p className="text-xs text-muted-foreground">PDFs, videos, audios y enlaces por materia</p>
-        </div>
+      <SectionHero
+        icon={Library}
+        eyebrow="Digital Library"
+        title="Biblioteca Digital"
+        description="PDFs, videos, audios y enlaces por materia."
+        gradient="from-amber-600 via-yellow-500 to-orange-500"
+      />
+      <div className="flex flex-wrap items-center justify-end gap-2">
         <div className="flex gap-2 flex-wrap">
           <div className="relative">
             <Search className="absolute left-2 top-2.5 h-3.5 w-3.5 text-muted-foreground" />

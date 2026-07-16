@@ -6,7 +6,8 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Video, ShieldCheck, ShieldAlert, ShieldQuestion, RefreshCw, Save, ExternalLink, KeyRound, Info } from "lucide-react";
+import { Video, ShieldCheck, ShieldAlert, ShieldQuestion, RefreshCw, Save, ExternalLink, KeyRound, Info, Settings2 } from "lucide-react";
+import SectionHero from "@/components/shell/SectionHero";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useCan } from "@/hooks/useCan";
@@ -79,13 +80,13 @@ export default function ZoomConfigSection() {
 
   return (
     <div className="space-y-4 max-w-3xl">
-      <div className="flex items-center gap-2">
-        <Video className="h-5 w-5 text-primary" />
-        <div>
-          <h2 className="text-lg font-semibold">Configuración Zoom</h2>
-          <p className="text-xs text-muted-foreground">Elige cómo se generan los enlaces de las clases virtuales</p>
-        </div>
-      </div>
+      <SectionHero
+        icon={Settings2}
+        eyebrow="Integrations · Video"
+        title="Configuración Zoom"
+        description="Elige cómo se generan los enlaces de las clases virtuales del seminario."
+        gradient="from-sky-600 via-blue-600 to-indigo-700"
+      />
 
       {/* Modo activo */}
       <Card>

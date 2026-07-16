@@ -2,8 +2,9 @@ import { useMemo } from "react";
 import { useDashboardKpis, useProgramas } from "@/hooks/useSeminario";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { GraduationCap, BookOpen, AlertCircle, Calendar, Award, TrendingUp, Users, UserCheck, ClipboardCheck, Activity } from "lucide-react";
+import { GraduationCap, BookOpen, AlertCircle, Calendar, Award, TrendingUp, Users, UserCheck, ClipboardCheck, Activity, LayoutDashboard } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, PieChart, Pie, Legend } from "recharts";
+import SectionHero from "@/components/shell/SectionHero";
 
 export default function DashboardSection() {
   const { data: programas } = useProgramas();
@@ -86,10 +87,19 @@ export default function DashboardSection() {
 
   return (
     <div className="space-y-4">
-      <div>
-        <h2 className="text-lg font-semibold">Dashboard Seminario</h2>
-        <p className="text-xs text-muted-foreground">KPIs y resumen académico en tiempo real</p>
-      </div>
+      <SectionHero
+        icon={LayoutDashboard}
+        eyebrow="Live · Realtime metrics"
+        title="Dashboard Seminario"
+        description="KPIs y resumen académico en tiempo real."
+        gradient="from-indigo-700 via-blue-600 to-cyan-500"
+        stats={[
+          { label: "Activos", value: stats.activas, tone: "info" },
+          { label: "Completados", value: stats.completadas, tone: "ok" },
+          { label: "Promedio", value: stats.promedio.toFixed(2) },
+          { label: "Aprobación", value: `${stats.tasaAprob}%`, tone: stats.tasaAprob >= 70 ? "ok" : "warn" },
+        ]}
+      />
 
       {/* KPIs primarios */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">

@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Save, UserCheck, UserPlus, UserMinus } from "lucide-react";
+import SectionHero from "@/components/shell/SectionHero";
 import { toast } from "sonner";
 import { useCan } from "@/hooks/useCan";
 import { logSemAudit } from "@/lib/seminarioAudit";
@@ -76,11 +77,14 @@ export default function AsistenciaSection() {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <div>
-          <h2 className="text-lg font-semibold">Asistencia</h2>
-          <p className="text-xs text-muted-foreground">Registra asistencia por materia y fecha</p>
-        </div>
+      <SectionHero
+        icon={UserCheck}
+        eyebrow="Attendance"
+        title="Asistencia"
+        description="Registra asistencia por materia y fecha."
+        gradient="from-blue-600 via-cyan-500 to-teal-500"
+      />
+      <div className="flex flex-wrap items-center justify-end gap-2">
         <div className="flex gap-2 flex-wrap">
           <Select value={effProg} onValueChange={setProgramaId}>
             <SelectTrigger className="w-40"><SelectValue placeholder="Programa" /></SelectTrigger>

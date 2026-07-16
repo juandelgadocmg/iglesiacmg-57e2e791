@@ -8,7 +8,8 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Plus, Pencil, Trash2, Eye, EyeOff, AlertTriangle, Search, ChevronLeft, ChevronRight } from "lucide-react";
+import { Plus, Pencil, Trash2, Eye, EyeOff, AlertTriangle, Search, ChevronLeft, ChevronRight, ClipboardCheck as ClipHeroIcon } from "lucide-react";
+import SectionHero from "@/components/shell/SectionHero";
 import { toast } from "sonner";
 import DeleteConfirmDialog from "@/components/shared/DeleteConfirmDialog";
 import { useCan } from "@/hooks/useCan";
@@ -76,11 +77,14 @@ export default function EvaluacionesSection() {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <div>
-          <h2 className="text-lg font-semibold">Evaluaciones</h2>
-          <p className="text-xs text-muted-foreground">Define quices, parciales, finales y trabajos por materia</p>
-        </div>
+      <SectionHero
+        icon={ClipHeroIcon}
+        eyebrow="Grading · Esquema"
+        title="Evaluaciones"
+        description="Define quices, parciales, finales y trabajos por materia."
+        gradient="from-amber-500 via-orange-500 to-rose-500"
+      />
+      <div className="flex flex-wrap items-center justify-end gap-2">
         <div className="flex gap-2 flex-wrap">
           <Select value={effProg} onValueChange={setProgramaId}>
             <SelectTrigger className="w-44"><SelectValue placeholder="Programa" /></SelectTrigger>

@@ -9,7 +9,8 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { FileDown, FileText, ChevronLeft, ChevronRight, RefreshCw, Filter, Eye, Copy, ExternalLink, Radio } from "lucide-react";
+import { FileDown, FileText, ChevronLeft, ChevronRight, RefreshCw, Filter, Eye, Copy, ExternalLink, Radio, ShieldCheck } from "lucide-react";
+import SectionHero from "@/components/shell/SectionHero";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import jsPDF from "jspdf";
@@ -203,11 +204,14 @@ export default function AuditoriaSection() {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <div>
-          <h2 className="text-lg font-semibold">Auditoría</h2>
-          <p className="text-xs text-muted-foreground">Registro de acciones del seminario: certificados, Zoom, matrículas e inscripciones.</p>
-        </div>
+      <SectionHero
+        icon={ShieldCheck}
+        eyebrow="Audit Trail"
+        title="Auditoría"
+        description="Registro de acciones del seminario: certificados, Zoom, matrículas e inscripciones."
+        gradient="from-rose-600 via-red-500 to-orange-500"
+      />
+      <div className="flex flex-wrap items-center justify-end gap-2">
         <div className="flex gap-2 items-center flex-wrap">
           <div className="flex items-center gap-2 px-2 py-1 border rounded text-xs">
             <Radio className={`h-3.5 w-3.5 ${live ? "text-green-600 animate-pulse" : "text-muted-foreground"}`} />

@@ -8,6 +8,8 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import SectionHero from "@/components/shell/SectionHero";
+import { GraduationCap as GradIconHero } from "lucide-react";
 import { Plus, Trash2, UserPlus, ChevronLeft, FileDown, Award, Video, Search, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import DeleteConfirmDialog from "@/components/shared/DeleteConfirmDialog";
@@ -266,11 +268,20 @@ export default function EstudiantesSection() {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <div>
-          <h2 className="text-lg font-semibold">Estudiantes Inscritos</h2>
-          <p className="text-xs text-muted-foreground">Inscribe estudiantes por semestre y registra avance académico</p>
-        </div>
+      <SectionHero
+        icon={GradIconHero}
+        eyebrow="Registro académico"
+        title="Estudiantes Inscritos"
+        description="Inscribe estudiantes por semestre y registra avance académico."
+        gradient="from-blue-700 via-indigo-600 to-violet-500"
+        stats={[
+          { label: "Inscritos", value: (inscripciones || []).length, tone: "info" },
+          { label: "Filtrados", value: inscripcionesFiltradas?.length ?? "—" },
+          { label: "Programa", value: programa?.codigo || "—" },
+          { label: "Periodo", value: (periodos || []).find((p: any) => p.id === effPer)?.codigo || "—", tone: "ok" },
+        ]}
+      />
+      <div className="flex flex-wrap items-center justify-end gap-2">
         <div className="flex gap-2 flex-wrap">
           <div className="relative">
             <Search className="absolute left-2 top-2.5 h-3.5 w-3.5 text-muted-foreground" />

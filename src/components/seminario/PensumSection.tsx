@@ -7,10 +7,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Plus, X, Pencil, FileDown } from "lucide-react";
+import { Plus, X, Pencil, FileDown, Layers } from "lucide-react";
 import { toast } from "sonner";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+import SectionHero from "@/components/shell/SectionHero";
 
 export default function PensumSection({ readOnly = false }: { readOnly?: boolean }) {
   const { data: programas } = useProgramas();
@@ -44,22 +45,32 @@ export default function PensumSection({ readOnly = false }: { readOnly?: boolean
   }, {});
   const hayDuplicadas = Object.values(duplicadas).some((c: any) => c > 1);
 
+  const totalMaterias = (materias || []).length;
+  const totalCreditos = (pensum || []).reduce((s: number, p: any) => s + (p.sem_materias?.creditos || 0), 0);
+
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <div>
-          <h2 className="text-lg font-semibold">Malla Curricular</h2>
-          <p className="text-xs text-muted-foreground">
-            {readOnly ? "Consulta de materias por semestre" : "Edita materias y créditos directamente, o asígnalas a un semestre"}
-          </p>
-        </div>
-        <Select value={effectiveId} onValueChange={setProgramaId}>
-          <SelectTrigger className="w-56"><SelectValue placeholder="Programa" /></SelectTrigger>
-          <SelectContent>
-            {(programas || []).map((p: any) => <SelectItem key={p.id} value={p.id}>{p.nombre}</SelectItem>)}
-          </SelectContent>
-        </Select>
-      </div>
+      <SectionHero
+        icon={Layers}
+        eyebrow="Curriculum · Malla"
+        title="Malla Curricular"
+        description={readOnly ? "Consulta de materias por semestre." : "Edita materias y créditos, o asígnalas a un semestre."}
+        gradient="from-violet-600 via-purple-600 to-fuchsia-500"
+        stats={[
+          { label: "Semestres", value: (semestres || []).length, tone: "info" },
+          { label: "Materias", value: totalMaterias },
+          { label: "Créditos", value: totalCreditos, tone: "ok" },
+          { label: "Asignadas", value: (pensum || []).length },
+        ]}
+        actions={
+          <Select value={effectiveId} onValueChange={setProgramaId}>
+            <SelectTrigger className="w-56"><SelectValue placeholder="Programa" /></SelectTrigger>
+            <SelectContent>
+              {(programas || []).map((p: any) => <SelectItem key={p.id} value={p.id}>{p.nombre}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        }
+      />
 
       {hayDuplicadas && !readOnly && (
         <div className="text-xs p-2 rounded border border-destructive/40 bg-destructive/5 text-destructive">

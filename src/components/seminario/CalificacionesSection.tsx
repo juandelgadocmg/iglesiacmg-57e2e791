@@ -7,7 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Save, Calculator, Search, ChevronLeft, ChevronRight } from "lucide-react";
+import { Save, Calculator, Search, ChevronLeft, ChevronRight, BarChart3 } from "lucide-react";
+import SectionHero from "@/components/shell/SectionHero";
 import { toast } from "sonner";
 import { useCan } from "@/hooks/useCan";
 import { logSemAudit } from "@/lib/seminarioAudit";
@@ -94,11 +95,14 @@ export default function CalificacionesSection() {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <div>
-          <h2 className="text-lg font-semibold">Calificaciones</h2>
-          <p className="text-xs text-muted-foreground">Libreta del docente · escala 0–5 · aprobado ≥ 3.0</p>
-        </div>
+      <SectionHero
+        icon={BarChart3}
+        eyebrow="Grading · Libreta"
+        title="Calificaciones"
+        description="Libreta del docente · escala 0–5 · aprobado ≥ 3.0."
+        gradient="from-emerald-600 via-teal-500 to-cyan-500"
+      />
+      <div className="flex flex-wrap items-center justify-end gap-2">
         <div className="flex gap-2 flex-wrap">
           <Select value={effProg} onValueChange={setProgramaId}>
             <SelectTrigger className="w-44"><SelectValue placeholder="Programa" /></SelectTrigger>

@@ -8,7 +8,8 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
-import { Download, TrendingUp, BookOpen, FileText, Search, ChevronLeft, ChevronRight } from "lucide-react";
+import { Download, TrendingUp, BookOpen, FileText, Search, ChevronLeft, ChevronRight, BarChart3 } from "lucide-react";
+import SectionHero from "@/components/shell/SectionHero";
 import { exportToExcel, exportToPDF } from "@/lib/exportUtils";
 import { toast } from "sonner";
 
@@ -150,11 +151,14 @@ export default function ReportesSection() {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <div>
-          <h2 className="text-lg font-semibold">Reportes</h2>
-          <p className="text-xs text-muted-foreground">Indicadores académicos por programa y periodo</p>
-        </div>
+      <SectionHero
+        icon={BarChart3}
+        eyebrow="Analítica académica"
+        title="Reportes"
+        description="Indicadores académicos por programa y periodo."
+        gradient="from-fuchsia-600 via-purple-600 to-indigo-600"
+      />
+      <div className="flex flex-wrap items-center justify-end gap-2">
         <div className="flex gap-2 flex-wrap">
           <Select value={effProg} onValueChange={setProgramaId}>
             <SelectTrigger className="w-44"><SelectValue placeholder="Programa" /></SelectTrigger>

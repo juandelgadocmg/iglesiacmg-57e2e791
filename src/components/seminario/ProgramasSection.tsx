@@ -7,9 +7,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Plus, Pencil, Trash2, GraduationCap } from "lucide-react";
+import { Plus, Pencil, Trash2, GraduationCap, BookOpen } from "lucide-react";
 import { toast } from "sonner";
 import DeleteConfirmDialog from "@/components/shared/DeleteConfirmDialog";
+import SectionHero from "@/components/shell/SectionHero";
 
 export default function ProgramasSection() {
   const { data: programas, isLoading } = useProgramas();
@@ -26,25 +27,44 @@ export default function ProgramasSection() {
     } catch (e: any) { toast.error(e.message); }
   };
 
+  const list = programas || [];
+  const activos = list.filter((p: any) => p.activo).length;
+  const totalSem = list.reduce((s: number, p: any) => s + (p.total_semestres || 0), 0);
+
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold">Programas Académicos</h2>
-        <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) setEditing(null); }}>
-          <DialogTrigger asChild><Button size="sm"><Plus className="h-4 w-4 mr-1" /> Nuevo programa</Button></DialogTrigger>
-          <ProgramaDialog initial={editing} onSave={onSave} pending={upsert.isPending} />
-        </Dialog>
-      </div>
+      <SectionHero
+        icon={BookOpen}
+        eyebrow="Curriculum · Catálogo"
+        title="Programas Académicos"
+        description="Diseña currículos, semestres y modalidades del seminario."
+        gradient="from-blue-700 via-indigo-600 to-violet-500"
+        stats={[
+          { label: "Programas", value: list.length, tone: "info" },
+          { label: "Activos", value: activos, tone: "ok" },
+          { label: "Semestres", value: totalSem },
+          { label: "Modalidades", value: new Set(list.map((p: any) => p.modalidad).filter(Boolean)).size },
+        ]}
+        actions={
+          <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) setEditing(null); }}>
+            <DialogTrigger asChild>
+              <Button size="sm" className="gap-1.5"><Plus className="h-4 w-4" /> Nuevo programa</Button>
+            </DialogTrigger>
+            <ProgramaDialog initial={editing} onSave={onSave} pending={upsert.isPending} />
+          </Dialog>
+        }
+      />
 
       {isLoading ? <p className="text-sm text-muted-foreground">Cargando...</p> : (
         <div className="grid gap-3 md:grid-cols-2">
-          {(programas || []).map((p: any) => (
-            <Card key={p.id}>
+          {list.map((p: any) => (
+            <Card key={p.id} className="group relative overflow-hidden hover:shadow-lg hover:-translate-y-0.5 transition-all">
+              <div className="absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r from-blue-600 via-indigo-500 to-violet-500 opacity-70 group-hover:opacity-100" />
               <CardContent className="p-4">
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex gap-3">
-                    <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                      <GraduationCap className="h-5 w-5 text-primary" />
+                    <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-600 to-indigo-500 flex items-center justify-center shrink-0 text-white shadow-sm">
+                      <GraduationCap className="h-5 w-5" />
                     </div>
                     <div>
                       <p className="font-semibold">{p.nombre}</p>
@@ -58,8 +78,8 @@ export default function ProgramasSection() {
                       {p.descripcion && <p className="text-xs text-muted-foreground mt-2 line-clamp-2">{p.descripcion}</p>}
                     </div>
                   </div>
-                  <div className="flex gap-1">
-                    <Button size="icon" variant="ghost" onClick={() => { setEditing(p); setOpen(true); }}>
+                  <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <Button size="icon" variant="ghost" onClick={() => { setEditing(p); setOpen(true); }} aria-label="Editar programa">
                       <Pencil className="h-3.5 w-3.5" />
                     </Button>
                     <DeleteConfirmDialog onConfirm={async () => { await del.mutateAsync(p.id); toast.success("Eliminado"); }} trigger={<Button size="icon" variant="ghost" className="text-destructive" aria-label="Eliminar"><Trash2 className="h-3.5 w-3.5" /></Button>} />

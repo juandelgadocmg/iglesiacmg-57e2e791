@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
+import SectionHero from "@/components/shell/SectionHero";
 
 import DeleteConfirmDialog from "@/components/shared/DeleteConfirmDialog";
 import { useCan } from "@/hooks/useCan";
@@ -138,11 +139,14 @@ function AulaVirtualStaff() {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <div>
-          <h2 className="text-lg font-semibold">Aula Virtual · Docente</h2>
-          <p className="text-xs text-muted-foreground">Material, trabajos, notas, asistencia, anuncios y foros</p>
-        </div>
+      <SectionHero
+        icon={Video}
+        eyebrow="Classroom · Docente"
+        title="Aula Virtual"
+        description="Material, trabajos, notas, asistencia, anuncios y foros."
+        gradient="from-violet-600 via-purple-600 to-pink-600"
+      />
+      <div className="flex flex-wrap items-center justify-end gap-2">
         <div className="flex gap-2 flex-wrap">
           <Select value={effProg} onValueChange={setProgramaId}>
             <SelectTrigger className="w-40"><SelectValue placeholder="Programa" /></SelectTrigger>

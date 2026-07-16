@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Award, Download, Search, Sparkles } from "lucide-react";
+import SectionHero from "@/components/shell/SectionHero";
 import { toast } from "sonner";
 import { useCan } from "@/hooks/useCan";
 import { exportKardexPdf } from "@/lib/seminarioPdf";
@@ -84,16 +85,17 @@ export default function CertificadosSection() {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <div>
-          <h2 className="text-lg font-semibold flex items-center gap-2"><Award className="h-5 w-5" />Diplomas Seminario</h2>
-          <p className="text-xs text-muted-foreground">Emisión y descarga de diplomas con código de verificación</p>
-        </div>
-        <div className="flex gap-2">
-          <div className="relative">
-            <Search className="absolute left-2 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
-            <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Buscar..." className="pl-8 w-56" />
-          </div>
+      <SectionHero
+        icon={Award}
+        eyebrow="Credentials"
+        title="Diplomas Seminario"
+        description="Emisión y descarga de diplomas con código de verificación."
+        gradient="from-amber-600 via-yellow-500 to-amber-400"
+      />
+      <div className="flex flex-wrap items-center justify-end gap-2">
+        <div className="relative">
+          <Search className="absolute left-2 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
+          <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Buscar..." className="pl-8 w-56" />
         </div>
       </div>
 
