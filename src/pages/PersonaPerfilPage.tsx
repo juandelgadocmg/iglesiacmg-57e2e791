@@ -755,7 +755,33 @@ export default function PersonaPerfilPage() {
             onOpenManual={() => setQrCheckinOpen(true)}
           />
         </TabsContent>
+
+        {/* ======== TAB · SEGUIMIENTO ======== */}
+        <TabsContent value="seguimiento" className="mt-0">
+          <SeguimientoTab persona={persona} peticiones={peticionesP} consejerias={consejeriasP} progresoPct={progressPercent} asistenciaPct={asistenciaPercent} />
+        </TabsContent>
+
+        {/* ======== TAB · MINISTERIOS ======== */}
+        <TabsContent value="ministerios" className="mt-0">
+          <MinisteriosTab persona={persona} tipos={tipos} grupoMiembros={grupoMiembros || []} />
+        </TabsContent>
+
+        {/* ======== TAB · PRÓXIMAS REUNIONES ======== */}
+        <TabsContent value="proximas" className="mt-0">
+          <ProximasReunionesTab servicios={servicios || []} grupoMiembros={grupoMiembros || []} onRegistrar={openRegistrarAsistencia} />
+        </TabsContent>
+
+        {/* ======== TAB · NOTAS ======== */}
+        <TabsContent value="notas" className="mt-0">
+          <NotasTab persona={persona} />
+        </TabsContent>
+
+        {/* ======== TAB · ARCHIVOS ======== */}
+        <TabsContent value="archivos" className="mt-0">
+          <ArchivosTab persona={persona} />
+        </TabsContent>
       </Tabs>
+
 
       {/* ============ DIALOGS ============ */}
       <Dialog open={!!procesoDialog} onOpenChange={(o) => !o && setProcesoDialog(null)}>
