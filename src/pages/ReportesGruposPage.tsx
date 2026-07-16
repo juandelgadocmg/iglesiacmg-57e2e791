@@ -1,6 +1,8 @@
 import { useState, useMemo } from "react";
 import PageHeader from "@/components/shared/PageHeader";
 import MetricCard from "@/components/shared/MetricCard";
+import EmptyState from "@/components/shared/EmptyState";
+import { GrupoInfoCard, GrupoCardsSkeletonGrid, type GrupoCardBadgeTone } from "@/components/grupos/GrupoInfoCard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -16,18 +18,18 @@ import { format, isWithinInterval, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
 import {
   Plus, Search, FileText, ClipboardCheck, CheckCircle2, XCircle,
-  AlertCircle, CalendarIcon, DollarSign, Trash2, ShieldCheck, Pencil
+  AlertCircle, CalendarIcon, DollarSign, Trash2, ShieldCheck, Pencil, SearchX
 } from "lucide-react";
 import { toast } from "sonner";
 import type { DateRange } from "react-day-picker";
 
 const ESTADOS = ["Todos", "No Finalizado", "No Verificado", "Aprobado", "No Aprobado"] as const;
 
-const estadoBadge: Record<string, { variant: "default" | "secondary" | "destructive" | "outline"; className?: string }> = {
-  "No Finalizado": { variant: "secondary" },
-  "No Verificado": { variant: "outline", className: "border-amber-500 text-amber-600" },
-  "Aprobado": { variant: "default", className: "bg-success text-success-foreground" },
-  "No Aprobado": { variant: "destructive" },
+const ESTADO_TONE: Record<string, GrupoCardBadgeTone> = {
+  "No Finalizado": "neutral",
+  "No Verificado": "warning",
+  "Aprobado": "success",
+  "No Aprobado": "danger",
 };
 
 export default function ReportesGruposPage() {
