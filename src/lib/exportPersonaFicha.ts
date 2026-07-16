@@ -10,13 +10,17 @@ function fmtDate(v?: string | null) {
   try { return format(parseISO(v), "dd MMM yyyy", { locale: es }); } catch { return v; }
 }
 
-export function exportPersonaFichaPDF(persona: any, timeline: TimelineEvent[]) {
+export function slugPersona(persona: any) {
+  const nombre = `${persona?.nombres ?? ""} ${persona?.apellidos ?? ""}`.trim();
+  return (nombre || "persona").toLowerCase().replace(/\s+/g, "-").normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+}
+
+export function buildPersonaFichaPDF(persona: any, timeline: TimelineEvent[]): jsPDF {
   const doc = new jsPDF();
   const w = doc.internal.pageSize.getWidth();
   const nombre = `${persona.nombres ?? ""} ${persona.apellidos ?? ""}`.trim();
 
-  // Cover header band
-  doc.setFillColor(12, 35, 64); // #0c2340
+  doc.setFillColor(12, 35, 64);
   doc.rect(0, 0, w, 34, "F");
   doc.setTextColor(255);
   doc.setFontSize(18);
@@ -26,7 +30,6 @@ export function exportPersonaFichaPDF(persona: any, timeline: TimelineEvent[]) {
   doc.setFontSize(9);
   doc.setTextColor(200);
   doc.text(`Generado: ${format(new Date(), "dd MMM yyyy · HH:mm", { locale: es })}`, w - 14, 15, { align: "right" });
-
   doc.setTextColor(30);
 
   autoTable(doc, {
@@ -106,12 +109,20 @@ export function exportPersonaFichaPDF(persona: any, timeline: TimelineEvent[]) {
     });
   }
 
-  const slug = (nombre || "persona").toLowerCase().replace(/\s+/g, "-").normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-  doc.save(`ficha-${slug}.pdf`);
+  return doc;
 }
 
-export function exportPersonaHistorialCSV(persona: any, timeline: TimelineEvent[]) {
-  const nombre = `${persona.nombres ?? ""} ${persona.apellidos ?? ""}`.trim();
+export function getPersonaFichaPDFBlobUrl(persona: any, timeline: TimelineEvent[]): string {
+  const doc = buildPersonaFichaPDF(persona, timeline);
+  return doc.output("bloburl") as unknown as string;
+}
+
+export function exportPersonaFichaPDF(persona: any, timeline: TimelineEvent[]) {
+  const doc = buildPersonaFichaPDF(persona, timeline);
+  doc.save(`ficha-${slugPersona(persona)}.pdf`);
+}
+
+export function buildPersonaHistorialCSV(_persona: any, timeline: TimelineEvent[]): string {
   const rows = [
     ["Fecha", "Tipo", "Evento", "Descripción", "Meta"],
     ...timeline.map((e) => [
@@ -122,19 +133,22 @@ export function exportPersonaHistorialCSV(persona: any, timeline: TimelineEvent[
       e.meta || "",
     ]),
   ];
-  const csv = rows
+  return rows
     .map((r) => r.map((c) => {
       const s = String(c ?? "");
       return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
     }).join(","))
     .join("\n");
+}
+
+export function exportPersonaHistorialCSV(persona: any, timeline: TimelineEvent[]) {
+  const csv = buildPersonaHistorialCSV(persona, timeline);
   const bom = "\uFEFF";
   const blob = new Blob([bom + csv], { type: "text/csv;charset=utf-8" });
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
-  const slug = (nombre || "persona").toLowerCase().replace(/\s+/g, "-").normalize("NFD").replace(/[\u0300-\u036f]/g, "");
   link.href = url;
-  link.download = `historial-${slug}.csv`;
+  link.download = `historial-${slugPersona(persona)}.csv`;
   link.click();
   URL.revokeObjectURL(url);
 }

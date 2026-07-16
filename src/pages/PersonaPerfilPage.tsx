@@ -5,9 +5,14 @@ import {
   useCreateRelacion, useDeleteRelacion,
   usePersonaFinanzas, usePersonaDonaciones, usePersonaPeticiones, usePersonaConsejerias,
 } from "@/hooks/usePersonaPerfil";
-import { usePersonas, useUpdatePersona } from "@/hooks/useDatabase";
+import { usePersonas, useUpdatePersona, useServicios, useUpsertAsistencia } from "@/hooks/useDatabase";
 import { supabase } from "@/integrations/supabase/client";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import PersonaExportPreviewDialog from "@/components/persona/PersonaExportPreviewDialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -23,7 +28,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import StatusBadge from "@/components/shared/StatusBadge";
 import PersonaFormDialog from "@/components/forms/PersonaFormDialog";
 import PersonaActivityTimeline, { type TimelineEvent } from "@/components/persona/PersonaActivityTimeline";
-import { exportPersonaFichaPDF, exportPersonaHistorialCSV } from "@/lib/exportPersonaFicha";
+// export helpers are used via PersonaExportPreviewDialog
 import {
   ArrowLeft, Phone, Mail, MapPin, Calendar, Church, Users, Briefcase,
   Heart, BookOpen, CheckCircle2, XCircle, Clock, User, FileText,
@@ -91,6 +96,17 @@ export default function PersonaPerfilPage() {
   const [procesoObservacion, setProcesoObservacion] = useState("");
   const [procesoFecha, setProcesoFecha] = useState<Date | undefined>(undefined);
   const [procesoEstado, setProcesoEstado] = useState("No Realizado");
+  // Confirm asistencia
+  const [confirmAsist, setConfirmAsist] = useState<null | { servicioId: string; nombreServicio: string }>(null);
+  const [servicioParaAsistir, setServicioParaAsistir] = useState<string>("");
+  const [askServicio, setAskServicio] = useState(false);
+  // Export previews
+  const [exportPreview, setExportPreview] = useState<null | "pdf" | "csv">(null);
+  // QR check-in
+  const [qrCheckinOpen, setQrCheckinOpen] = useState(false);
+  const [qrCheckinServicio, setQrCheckinServicio] = useState<string>("");
+  const { data: servicios } = useServicios();
+  const upsertAsistencia = useUpsertAsistencia();
 
   const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -210,10 +226,89 @@ export default function PersonaPerfilPage() {
     return evs;
   }, [asistencias, finanzasP, donacionesP, peticionesP, consejeriasP, personaProcesos, procesos, persona]);
 
-  const registrarAsistencia = () => navigate("/asistencia", { state: { personaId: id } });
-  const generarCertificado = () => navigate("/certificados", { state: { personaId: id } });
-  const handleExportPDF = () => { if (persona) { exportPersonaFichaPDF(persona, timeline); toast.success("Ficha PDF generada"); } };
-  const handleExportCSV = () => { if (persona) { exportPersonaHistorialCSV(persona, timeline); toast.success("Historial CSV exportado"); } };
+  // Helpers
+  const logPersonaAction = async (action: string, details: Record<string, any> = {}) => {
+    try {
+      await (supabase as any).rpc("log_persona_action", {
+        _persona_id: id,
+        _action: action,
+        _details: details,
+      });
+    } catch (err) {
+      // Non-blocking — audit failures should not stop the UX
+      console.warn("log_persona_action failed", err);
+    }
+  };
+
+  // Registrar asistencia rápida: ask servicio → confirm → save
+  const openRegistrarAsistencia = () => {
+    if (!servicios || servicios.length === 0) {
+      toast.error("No hay servicios disponibles para registrar asistencia");
+      return;
+    }
+    // Preselect nearest upcoming/most recent service
+    setServicioParaAsistir(servicios[0].id);
+    setAskServicio(true);
+  };
+  const confirmarServicioAsistencia = () => {
+    const svc = (servicios || []).find((s: any) => s.id === servicioParaAsistir);
+    if (!svc) return;
+    setAskServicio(false);
+    setConfirmAsist({ servicioId: svc.id, nombreServicio: `${svc.nombre || "Servicio"}${svc.fecha ? " · " + svc.fecha : ""}` });
+  };
+  const ejecutarRegistroAsistencia = async () => {
+    if (!confirmAsist || !persona) return;
+    try {
+      await upsertAsistencia.mutateAsync([
+        { servicio_id: confirmAsist.servicioId, persona_id: persona.id, presente: true },
+      ]);
+      await logPersonaAction("ATTENDANCE_MARK", {
+        servicio_id: confirmAsist.servicioId,
+        servicio: confirmAsist.nombreServicio,
+        source: "profile_quick_action",
+      });
+      toast.success("Asistencia registrada", { description: confirmAsist.nombreServicio });
+      setConfirmAsist(null);
+    } catch (e: any) {
+      toast.error("Error al registrar asistencia", { description: e?.message });
+    }
+  };
+
+  const generarCertificado = () => {
+    void logPersonaAction("CERTIFICATE_ISSUED", { source: "profile_quick_action" });
+    navigate("/certificados", { state: { personaId: id } });
+  };
+  const handleExportPDF = () => {
+    if (!persona) return;
+    setExportPreview("pdf");
+    void logPersonaAction("EXPORT_FICHA", { format: "pdf", timeline_events: timeline.length });
+  };
+  const handleExportCSV = () => {
+    if (!persona) return;
+    setExportPreview("csv");
+    void logPersonaAction("EXPORT_HISTORIAL", { format: "csv", timeline_events: timeline.length });
+  };
+
+  // QR check-in flow
+  const ejecutarCheckInQR = async () => {
+    if (!persona || !qrCheckinServicio) return;
+    try {
+      await upsertAsistencia.mutateAsync([
+        { servicio_id: qrCheckinServicio, persona_id: persona.id, presente: true },
+      ]);
+      const svc = (servicios || []).find((s: any) => s.id === qrCheckinServicio);
+      await logPersonaAction("CHECKIN", {
+        servicio_id: qrCheckinServicio,
+        servicio: svc?.nombre,
+        method: "qr",
+      });
+      toast.success("✓ Check-in registrado", { description: svc?.nombre || "Servicio" });
+      setQrCheckinOpen(false);
+    } catch (e: any) {
+      toast.error("Error en check-in", { description: e?.message });
+    }
+  };
+
 
   if (isLoading) {
     return (
@@ -363,7 +458,7 @@ export default function PersonaPerfilPage() {
                 <Button variant="secondary" size="sm" className="gap-1.5" onClick={() => setEditing(true)}>
                   <Pencil className="h-3.5 w-3.5" /> Editar
                 </Button>
-                <Button variant="secondary" size="sm" className="gap-1.5" onClick={registrarAsistencia}>
+                <Button variant="secondary" size="sm" className="gap-1.5" onClick={openRegistrarAsistencia}>
                   <ClipboardCheck className="h-3.5 w-3.5" /> Asistencia
                 </Button>
                 <DropdownMenu>
@@ -377,7 +472,7 @@ export default function PersonaPerfilPage() {
                     <DropdownMenuItem onClick={generarCertificado}>
                       <Award className="h-4 w-4 mr-2" /> Generar certificado
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={registrarAsistencia}>
+                    <DropdownMenuItem onClick={openRegistrarAsistencia}>
                       <ClipboardCheck className="h-4 w-4 mr-2" /> Registrar asistencia
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
@@ -858,43 +953,77 @@ export default function PersonaPerfilPage() {
 
         {/* QR Tab */}
         <TabsContent value="qr">
-          <Card className="max-w-sm mx-auto">
-            <CardHeader className="text-center">
-              <CardTitle className="text-sm flex items-center justify-center gap-2 text-muted-foreground uppercase tracking-wider">
-                <QrCode className="h-4 w-4" /> Código QR de Asistencia
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="flex flex-col items-center gap-4">
-              {(persona as any).qr_code ? (
-                <>
-                  <div className="p-4 bg-white rounded-xl border-2 border-border">
-                    <QRCodeSVG value={(persona as any).qr_code} size={200} level="M" />
-                  </div>
-                  <p className="text-xs text-muted-foreground text-center">
-                    Escanea este código en el módulo de Reuniones para registrar asistencia automáticamente.
-                  </p>
-                  <p className="text-[10px] text-muted-foreground font-mono">{(persona as any).qr_code}</p>
-                  <Button
-                    variant="outline" size="sm" className="gap-1.5"
-                    onClick={() => {
-                      const svg = document.querySelector(".qr-tab-svg svg") as SVGElement;
-                      if (!svg) {
-                        // Fallback: copy code
+          <div className="grid md:grid-cols-2 gap-4 max-w-3xl mx-auto">
+            <Card>
+              <CardHeader className="text-center">
+                <CardTitle className="text-sm flex items-center justify-center gap-2 text-muted-foreground uppercase tracking-wider">
+                  <QrCode className="h-4 w-4" /> Código QR de Asistencia
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="flex flex-col items-center gap-4">
+                {(persona as any).qr_code ? (
+                  <>
+                    <div className="p-4 bg-white rounded-xl border-2 border-border">
+                      <QRCodeSVG value={(persona as any).qr_code} size={200} level="M" />
+                    </div>
+                    <p className="text-xs text-muted-foreground text-center">
+                      Escanea este código en el módulo de Reuniones o usa "Check-in rápido" para registrar la asistencia.
+                    </p>
+                    <p className="text-[10px] text-muted-foreground font-mono break-all">{(persona as any).qr_code}</p>
+                    <Button
+                      variant="outline" size="sm" className="gap-1.5"
+                      onClick={() => {
                         navigator.clipboard.writeText((persona as any).qr_code);
                         toast.success("Código QR copiado al portapapeles");
-                        return;
-                      }
-                    }}
-                  >
-                    Copiar código
-                  </Button>
-                </>
-              ) : (
-                <p className="text-sm text-muted-foreground">Este miembro no tiene un código QR asignado aún.</p>
-              )}
-            </CardContent>
-          </Card>
+                      }}
+                    >
+                      Copiar código
+                    </Button>
+                  </>
+                ) : (
+                  <p className="text-sm text-muted-foreground">Este miembro no tiene un código QR asignado aún.</p>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-sm flex items-center gap-2 text-muted-foreground uppercase tracking-wider">
+                  <ClipboardCheck className="h-4 w-4" /> Check-in rápido con QR
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <p className="text-xs text-muted-foreground">
+                  Selecciona el servicio y registra la asistencia de <span className="font-semibold text-foreground">{persona.nombres}</span> usando su identificador QR. Queda registrado en auditoría.
+                </p>
+                <div className="space-y-2">
+                  <label className="text-xs font-medium text-muted-foreground">Servicio</label>
+                  <Select value={qrCheckinServicio} onValueChange={setQrCheckinServicio}>
+                    <SelectTrigger><SelectValue placeholder="Elige un servicio" /></SelectTrigger>
+                    <SelectContent>
+                      {(servicios || []).slice(0, 30).map((s: any) => (
+                        <SelectItem key={s.id} value={s.id}>
+                          {s.nombre}{s.fecha ? " · " + s.fecha : ""}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <Button
+                  className="w-full gap-2"
+                  disabled={!qrCheckinServicio || !(persona as any).qr_code}
+                  onClick={() => setQrCheckinOpen(true)}
+                >
+                  <QrCode className="h-4 w-4" /> Realizar check-in
+                </Button>
+                {!(persona as any).qr_code && (
+                  <p className="text-[11px] text-destructive">Esta persona aún no tiene código QR generado.</p>
+                )}
+              </CardContent>
+            </Card>
+          </div>
         </TabsContent>
+
 
         {/* Grupos tab */}
         <TabsContent value="grupos">
@@ -1023,8 +1152,90 @@ export default function PersonaPerfilPage() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Elegir servicio antes de confirmar asistencia */}
+      <Dialog open={askServicio} onOpenChange={setAskServicio}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <ClipboardCheck className="h-4 w-4" /> Registrar asistencia
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <p className="text-sm text-muted-foreground">
+              Selecciona el servicio para registrar la asistencia de {persona.nombres} {persona.apellidos}.
+            </p>
+            <Select value={servicioParaAsistir} onValueChange={setServicioParaAsistir}>
+              <SelectTrigger><SelectValue placeholder="Elige un servicio" /></SelectTrigger>
+              <SelectContent>
+                {(servicios || []).slice(0, 30).map((s: any) => (
+                  <SelectItem key={s.id} value={s.id}>
+                    {s.nombre}{s.fecha ? " · " + s.fecha : ""}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setAskServicio(false)}>Cancelar</Button>
+            <Button disabled={!servicioParaAsistir} onClick={confirmarServicioAsistencia}>Continuar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Confirmación + auditoría de asistencia rápida */}
+      <AlertDialog open={!!confirmAsist} onOpenChange={(o) => !o && setConfirmAsist(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Registrar asistencia?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Se marcará como <span className="font-semibold">presente</span> a{" "}
+              <span className="font-semibold">{persona.nombres} {persona.apellidos}</span> en{" "}
+              <span className="font-semibold">{confirmAsist?.nombreServicio}</span>.
+              Esta acción se registra en el log de auditoría.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={ejecutarRegistroAsistencia} disabled={upsertAsistencia.isPending}>
+              {upsertAsistencia.isPending ? "Registrando…" : "Confirmar"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Confirmación check-in QR */}
+      <AlertDialog open={qrCheckinOpen} onOpenChange={setQrCheckinOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <QrCode className="h-4 w-4" /> Confirmar check-in QR
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Se registrará el check-in QR de <span className="font-semibold">{persona.nombres} {persona.apellidos}</span>{" "}
+              en el servicio seleccionado. Queda constancia en la bitácora de auditoría.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={ejecutarCheckInQR} disabled={upsertAsistencia.isPending}>
+              {upsertAsistencia.isPending ? "Procesando…" : "Confirmar check-in"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Vista previa de exportaciones */}
+      <PersonaExportPreviewDialog
+        open={exportPreview !== null}
+        onOpenChange={(o) => !o && setExportPreview(null)}
+        kind={exportPreview ?? "pdf"}
+        persona={persona}
+        timeline={timeline}
+      />
     </div>
   );
+
 }
 
 function InfoRow({ label, value, icon }: { label: string; value: string; icon?: React.ReactNode }) {

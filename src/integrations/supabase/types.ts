@@ -4786,6 +4786,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      log_persona_action: {
+        Args: { _action: string; _details?: Json; _persona_id: string }
+        Returns: undefined
+      }
       log_storage_event: {
         Args: {
           _bucket: string
