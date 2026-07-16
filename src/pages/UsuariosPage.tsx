@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import PageHeader from "@/components/shared/PageHeader";
+import ModuleHero from "@/components/shell/ModuleHero";
 import { supabase } from "@/integrations/supabase/client";
 import { useProfiles, useUserRoles, useAssignRole, useRemoveRole } from "@/hooks/useUsuarios";
 import { useReindexSeminarioVinculos, useSeminarioVinculacionStatus } from "@/hooks/useSeminario";
