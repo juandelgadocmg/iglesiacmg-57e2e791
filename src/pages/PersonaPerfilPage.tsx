@@ -139,6 +139,82 @@ export default function PersonaPerfilPage() {
   const totalAsistencias = asistencias?.length || 0;
   const asistenciaPercent = totalAsistencias > 0 ? Math.round((asistenciasPresente / totalAsistencias) * 100) : 0;
 
+  // Finanzas totales por persona
+  const totalDonaciones = (donacionesP || []).reduce((s, d: any) => s + Number(d.monto || 0), 0);
+  const totalAportesIngreso = (finanzasP || []).filter((f: any) => f.tipo === "Ingreso").reduce((s, f: any) => s + Number(f.monto || 0), 0);
+
+  // Timeline unificado
+  const timeline: TimelineEvent[] = useMemo(() => {
+    const evs: TimelineEvent[] = [];
+    (asistencias || []).forEach((a: any) => {
+      evs.push({
+        id: a.id,
+        type: "asistencia",
+        date: a.servicios?.fecha || a.created_at,
+        title: a.presente ? `Asistió a ${a.servicios?.nombre || "servicio"}` : `Ausente en ${a.servicios?.nombre || "servicio"}`,
+        meta: a.servicios?.tipo || undefined,
+        positive: a.presente,
+      });
+    });
+    (finanzasP || []).forEach((f: any) => {
+      evs.push({
+        id: f.id, type: "finanza", date: f.fecha || f.created_at,
+        title: `${f.tipo === "Ingreso" ? "Aporte" : "Gasto"} · $${Number(f.monto).toLocaleString()}`,
+        description: f.descripcion || undefined,
+        meta: [f.categoria_nombre, f.metodo_pago].filter(Boolean).join(" · "),
+      });
+    });
+    (donacionesP || []).forEach((d: any) => {
+      evs.push({
+        id: d.id, type: "donacion", date: d.fecha || (d as any).created_at,
+        title: `Donación · $${Number(d.monto).toLocaleString()}`,
+        description: d.descripcion || undefined,
+        meta: [d.tipo, d.metodo_pago, d.estado].filter(Boolean).join(" · "),
+      });
+    });
+    (peticionesP || []).forEach((p: any) => {
+      evs.push({
+        id: p.id, type: "peticion", date: p.created_at,
+        title: p.titulo || "Petición de oración",
+        description: p.descripcion || undefined,
+        meta: [p.estado, p.prioridad].filter(Boolean).join(" · "),
+      });
+    });
+    (consejeriasP || []).forEach((c: any) => {
+      evs.push({
+        id: c.id, type: "consejeria", date: c.fecha || c.created_at,
+        title: `Consejería · ${c.motivo_categoria || "sesión"}`,
+        description: c.motivo_descripcion || c.notas_admin || undefined,
+        meta: [c.consejero_nombre, c.modalidad, c.estado].filter(Boolean).join(" · "),
+      });
+    });
+    (personaProcesos || []).forEach((pp: any) => {
+      const nombreP = procesos?.find((x: any) => x.id === pp.proceso_id)?.nombre || "Proceso";
+      if (pp.fecha_completado || pp.created_at) {
+        evs.push({
+          id: pp.id || pp.proceso_id, type: "proceso",
+          date: pp.fecha_completado || pp.created_at,
+          title: `${nombreP} · ${pp.estado}`,
+          description: (pp as any).observacion || undefined,
+        });
+      }
+    });
+    if ((persona as any)?.observaciones) {
+      evs.push({
+        id: "obs-persona", type: "observacion",
+        date: (persona as any).updated_at || (persona as any).created_at,
+        title: "Nota pastoral",
+        description: (persona as any).observaciones,
+      });
+    }
+    return evs;
+  }, [asistencias, finanzasP, donacionesP, peticionesP, consejeriasP, personaProcesos, procesos, persona]);
+
+  const registrarAsistencia = () => navigate("/asistencia", { state: { personaId: id } });
+  const generarCertificado = () => navigate("/certificados", { state: { personaId: id } });
+  const handleExportPDF = () => { if (persona) { exportPersonaFichaPDF(persona, timeline); toast.success("Ficha PDF generada"); } };
+  const handleExportCSV = () => { if (persona) { exportPersonaHistorialCSV(persona, timeline); toast.success("Historial CSV exportado"); } };
+
   if (isLoading) {
     return (
       <div className="animate-fade-in space-y-4">
