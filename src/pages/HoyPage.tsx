@@ -52,8 +52,31 @@ export default function HoyPage() {
   const { data: videos = [] } = useActiveVideos();
 
 
-  const name = user?.email?.split("@")[0].split(/[._-]/)[0] || "Usuario";
-  const nameCap = name.charAt(0).toUpperCase() + name.slice(1);
+  const { data: myProfile } = useQuery({
+    queryKey: ["hoy_profile_name", user?.id],
+    enabled: !!user?.id,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("profiles")
+        .select("display_name, persona_id, personas:persona_id(nombres, apellidos)")
+        .eq("user_id", user!.id)
+        .maybeSingle();
+      return data as any;
+    },
+  });
+  const personaFull = myProfile?.personas
+    ? `${myProfile.personas.nombres ?? ""} ${myProfile.personas.apellidos ?? ""}`.trim()
+    : "";
+  const rawName =
+    personaFull ||
+    myProfile?.display_name ||
+    user?.user_metadata?.display_name ||
+    user?.user_metadata?.full_name ||
+    user?.email?.split("@")[0].split(/[._-]/)[0] ||
+    "Usuario";
+  const firstName = rawName.split(" ")[0];
+  const nameCap = firstName.charAt(0).toUpperCase() + firstName.slice(1);
+
   const today = new Date();
   const todayStr = format(today, "EEEE d 'de' MMMM", { locale: es });
 
