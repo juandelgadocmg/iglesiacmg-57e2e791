@@ -317,10 +317,11 @@ export default function HoyPage() {
         {/* TEMA DE LA SEMANA (Casas de Paz) — col-span-6 */}
         <div className="col-span-6">
           <DashboardTemaSemana
-            titulo={config?.tema_semana_titulo}
-            descripcion={config?.tema_semana_descripcion}
-            url={config?.tema_semana_url}
-            pdfUrl={(config as any)?.tema_semana_pdf_url}
+            titulo={temaVigente?.titulo ?? config?.tema_semana_titulo}
+            descripcion={temaVigente?.descripcion ?? config?.tema_semana_descripcion}
+            url={temaVigente?.url ?? config?.tema_semana_url}
+            pdfUrl={temaVigente?.pdf_url ?? (config as any)?.tema_semana_pdf_url}
+            fechaFin={temaVigente?.fecha_fin ?? null}
           />
         </div>
 
