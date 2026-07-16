@@ -15,6 +15,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { exportFinancialSummaryPDF, exportToExcel } from "@/lib/exportUtils";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import ModuleHero from "@/components/shell/ModuleHero";
 
 type Domain = "todos" | "finanzas" | "personas" | "grupos" | "academia" | "asistencia" | "eventos";
 
