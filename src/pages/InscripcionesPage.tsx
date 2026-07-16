@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { CheckCircle, XCircle, Trash2, FileText } from "lucide-react";
 import { toast } from "sonner";
 import ExportDropdown from "@/components/shared/ExportDropdown";
+import PageSkeleton from "@/components/shared/PageSkeleton";
 
 export default function InscripcionesPage() {
   const { data: eventos, isLoading: loadingEventos } = useEventos();
@@ -24,10 +25,7 @@ export default function InscripcionesPage() {
 
   if (isLoading) {
     return (
-      <div className="animate-fade-in space-y-4">
-        <Skeleton className="h-10 w-48" />
-        <Skeleton className="h-[400px] w-full" />
-      </div>
+      <PageSkeleton variant="list" />
     );
   }
 

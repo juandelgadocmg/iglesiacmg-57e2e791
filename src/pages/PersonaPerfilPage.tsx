@@ -1195,7 +1195,7 @@ function DiscipuladoRoadmap({ procesos, procesosMap, progressPercent, completedC
                         {done ? "Finalizado" : doing ? "En curso" : "Iniciar"}
                       </Button>
                       <Popover>
-                        <PopoverTrigger asChild><Button size="icon" variant="ghost" className="h-7 w-7"><Calendar className="h-3.5 w-3.5" /></Button></PopoverTrigger>
+                        <PopoverTrigger asChild><Button size="icon" variant="ghost" className="h-7 w-7" aria-label="Elegir fecha"><Calendar className="h-3.5 w-3.5" /></Button></PopoverTrigger>
                         <PopoverContent className="w-auto p-0" align="end">
                           <CalendarComponent mode="single" selected={pp?.fecha_completado ? parseISO(pp.fecha_completado) : undefined}
                             onSelect={(d) => d && onSetDate(p.id, d, estado, (pp as any)?.observacion || null)} locale={es} />

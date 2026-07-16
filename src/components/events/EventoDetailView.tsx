@@ -167,7 +167,7 @@ export default function EventoDetailView({ evento, onBack }: Props) {
   return (
     <div className="animate-fade-in">
       <div className="flex items-center gap-3 mb-6">
-        <Button variant="ghost" size="icon" onClick={onBack}><ArrowLeft className="h-5 w-5" /></Button>
+        <Button variant="ghost" size="icon" onClick={onBack} aria-label="Volver"><ArrowLeft className="h-5 w-5" /></Button>
         <div className="flex-1">
           <h1 className="text-xl font-bold text-foreground">Actualizar Actividad: "{evento.nombre}"</h1>
           <p className="text-sm text-muted-foreground">Formulario para la actualización de la actividad.</p>

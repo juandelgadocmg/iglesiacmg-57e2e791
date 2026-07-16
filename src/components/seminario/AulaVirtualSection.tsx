@@ -276,7 +276,7 @@ function AulaVirtualStaff() {
                       </div>
                       {canAnuncio && (
                         <DeleteConfirmDialog onConfirm={async () => { await delAnuncio.mutateAsync(a.id); toast.success("Eliminado"); }}
-                          trigger={<Button size="icon" variant="ghost" className="h-6 w-6 text-destructive"><Trash2 className="h-3 w-3" /></Button>} />
+                          trigger={<Button size="icon" variant="ghost" className="h-6 w-6 text-destructive" aria-label="Eliminar"><Trash2 className="h-3 w-3" /></Button>} />
                       )}
                     </div>
                     <p className="text-xs whitespace-pre-wrap">{a.mensaje}</p>
@@ -394,7 +394,7 @@ function MaterialTab({ materiaId, periodoId, recursos }: { materiaId?: string; p
           </div>
           {r.url && <Button size="sm" variant="outline" onClick={() => openAsset({ url: r.url, bucket: "recursos-academicos", filename: r.titulo, download: true })}><Download className="h-3 w-3 mr-1" />Descargar</Button>}
           <DeleteConfirmDialog onConfirm={async () => { await del.mutateAsync(r.id); toast.success("Eliminado"); }}
-            trigger={<Button size="icon" variant="ghost" className="h-7 w-7 text-destructive"><Trash2 className="h-3 w-3" /></Button>} />
+            trigger={<Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" aria-label="Eliminar"><Trash2 className="h-3 w-3" /></Button>} />
         </div>
       ))}
     </div>
@@ -492,9 +492,9 @@ function EvalRow({ ev, onEdit, onDelete }: { ev: any; onEdit: () => void; onDele
           <Badge variant="secondary" className="text-[10px]">{ev.peso}%</Badge>
           <Badge variant="outline" className="text-[10px]"><Calendar className="h-3 w-3 mr-1" />{ev.fecha || "sin fecha"}</Badge>
           <Button size="sm" variant="outline" onClick={() => setOpen(true)}><Eye className="h-3 w-3 mr-1" />Entregas</Button>
-          <Button size="icon" variant="ghost" className="h-7 w-7" onClick={onEdit} title="Editar trabajo"><Pencil className="h-3 w-3" /></Button>
+          <Button size="icon" variant="ghost" className="h-7 w-7" onClick={onEdit} title="Editar trabajo" aria-label="Editar"><Pencil className="h-3 w-3" /></Button>
           <DeleteConfirmDialog onConfirm={onDelete}
-            trigger={<Button size="icon" variant="ghost" className="h-7 w-7 text-destructive"><Trash2 className="h-3 w-3" /></Button>} />
+            trigger={<Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" aria-label="Eliminar"><Trash2 className="h-3 w-3" /></Button>} />
         </div>
         {ev.descripcion && <p className="text-xs text-muted-foreground mt-2">{ev.descripcion}</p>}
         <EntregasDialog open={open} onOpenChange={setOpen} evaluacion={ev} />
@@ -846,7 +846,7 @@ function ClasesGrabadasTab({ ofertaId }: { ofertaId: string }) {
                   </div>
                   {z.grabacion_url && <Button size="sm" variant="outline" asChild><a href={z.grabacion_url} target="_blank" rel="noopener noreferrer">Abrir</a></Button>}
                   <DeleteConfirmDialog onConfirm={() => del(z.id)}
-                    trigger={<Button size="icon" variant="ghost" className="h-7 w-7 text-destructive"><Trash2 className="h-3 w-3" /></Button>} />
+                    trigger={<Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" aria-label="Eliminar"><Trash2 className="h-3 w-3" /></Button>} />
                 </div>
                 {embed && (
                   <div className="aspect-video rounded overflow-hidden border">

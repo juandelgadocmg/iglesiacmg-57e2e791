@@ -237,11 +237,20 @@ export default function ModuleHero({
         {kpis.length > 0 && (
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-5">
             {kpis.map((k, i) => (
-              <div key={i} className="rounded-xl bg-background/60 backdrop-blur border p-3">
+              <div
+                key={i}
+                className={cn(
+                  "rounded-xl bg-background/60 backdrop-blur border p-3 subtle-hover",
+                  "hover:bg-background/90 hover:border-border/80 hover:-translate-y-0.5",
+                  "transition-transform"
+                )}
+                title={k.hint || undefined}
+              >
                 <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">{k.label}</p>
                 <p className={cn("text-xl font-bold mt-1 tabular-nums", toneClass(k.tone))}>{k.value}</p>
                 {k.hint && <p className="text-[10.5px] text-muted-foreground mt-0.5">{k.hint}</p>}
               </div>
+
             ))}
           </div>
         )}

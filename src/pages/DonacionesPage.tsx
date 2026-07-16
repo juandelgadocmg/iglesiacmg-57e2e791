@@ -7,16 +7,14 @@ import { Heart, TrendingUp, DollarSign } from "lucide-react";
 import { useDonaciones } from "@/hooks/useDatabase";
 import { Skeleton } from "@/components/ui/skeleton";
 import ExportDropdown from "@/components/shared/ExportDropdown";
+import PageSkeleton from "@/components/shared/PageSkeleton";
 
 export default function DonacionesPage() {
   const { data: donaciones, isLoading } = useDonaciones();
 
   if (isLoading) {
     return (
-      <div className="animate-fade-in space-y-4">
-        <Skeleton className="h-10 w-48" />
-        <Skeleton className="h-[400px] w-full" />
-      </div>
+      <PageSkeleton variant="list" />
     );
   }
 

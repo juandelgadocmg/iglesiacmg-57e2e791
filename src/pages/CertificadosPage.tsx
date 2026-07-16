@@ -16,6 +16,8 @@ import { es } from "date-fns/locale";
 import jsPDF from "jspdf";
 import { cn } from "@/lib/utils";
 import ModuleHero from "@/components/shell/ModuleHero";
+import PageSkeleton from "@/components/shared/PageSkeleton";
+import EmptyState from "@/components/shared/EmptyState";
 
 const TIPO_META: Record<string, { color: string; bg: string; ring: string }> = {
   "Membresía":              { color: "#3b82f6", bg: "from-blue-500/10 to-blue-500/5", ring: "ring-blue-500/30" },
@@ -157,10 +159,7 @@ export default function CertificadosPage() {
 
   if (isLoading) {
     return (
-      <div className="animate-fade-in space-y-4 p-6">
-        <Skeleton className="h-10 w-48" />
-        <Skeleton className="h-[400px] w-full" />
-      </div>
+      <PageSkeleton variant="list" />
     );
   }
 
@@ -308,11 +307,14 @@ export default function CertificadosPage() {
         </div>
 
         {filtered.length === 0 && (
-          <div className="rounded-xl border bg-card p-16 text-center">
-            <Award className="h-10 w-10 mx-auto text-muted-foreground/40" />
-            <p className="text-sm text-muted-foreground mt-3">No se encontraron certificados</p>
-          </div>
+          <EmptyState
+            icon={Award}
+            title="No se encontraron certificados"
+            description={search || tipoFilter !== "all" ? "Ajusta la búsqueda o el filtro de tipo." : "Emite el primer certificado para verlo aquí."}
+            action={<CertificadoIglesiaFormDialog />}
+          />
         )}
+
 
         {view === "grid" && filtered.length > 0 && (
           <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">

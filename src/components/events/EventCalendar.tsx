@@ -76,10 +76,10 @@ export default function EventCalendar({ events, onEventClick, onNewEvent }: Prop
       {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 p-3 sm:p-4 border-b">
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="icon" className="h-8 w-8" onClick={prev}>
+          <Button variant="outline" size="icon" className="h-8 w-8" onClick={prev} aria-label="Anterior">
             <ChevronLeft className="h-4 w-4" />
           </Button>
-          <Button variant="outline" size="icon" className="h-8 w-8" onClick={next}>
+          <Button variant="outline" size="icon" className="h-8 w-8" onClick={next} aria-label="Siguiente">
             <ChevronRight className="h-4 w-4" />
           </Button>
           <Button variant="ghost" size="sm" onClick={goToday}>hoy</Button>

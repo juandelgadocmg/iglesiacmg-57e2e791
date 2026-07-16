@@ -64,6 +64,7 @@ import { es } from "date-fns/locale";
 import { exportToExcel, exportToPDF } from "@/lib/exportUtils";
 import { cn } from "@/lib/utils";
 import { getAcademiaMaestroTipo, isAcademiaMaestro } from "@/lib/personaRoles";
+import PageSkeleton from "@/components/shared/PageSkeleton";
 
 const ESTADO_PERIODO: Record<string, { icon: any; color: string }> = {
   Abierto: { icon: Unlock, color: "bg-success/10 text-success border-success/20" },
@@ -518,7 +519,7 @@ function PeriodosSection({ escuelas, allPeriodos, allMatriculas }: any) {
                 <div className="absolute top-2 right-2 z-10" onClick={(e) => e.stopPropagation()}>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon" className="h-7 w-7 opacity-60 hover:opacity-100">
+                      <Button variant="ghost" size="icon" className="h-7 w-7 opacity-60 hover:opacity-100" aria-label="Más opciones">
                         <MoreVertical className="h-4 w-4" />
                       </Button>
                     </DropdownMenuTrigger>
@@ -2991,11 +2992,7 @@ export default function AcademiaPage() {
 
   if (isLoading) {
     return (
-      <div className="animate-fade-in space-y-4">
-        <Skeleton className="h-10 w-48" />
-        <div className="grid grid-cols-4 gap-4">{[1, 2, 3, 4].map((i) => <Skeleton key={i} className="h-24" />)}</div>
-        <Skeleton className="h-[400px] w-full" />
-      </div>
+      <PageSkeleton variant="dashboard" />
     );
   }
 

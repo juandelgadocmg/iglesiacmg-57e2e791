@@ -67,9 +67,9 @@ export default function CalendarioPanel() {
     <div className="space-y-4">
       <div className="flex justify-between items-center flex-wrap gap-2">
         <div className="flex items-center gap-2">
-          <Button size="icon" variant="outline" onClick={goPrev}><ChevronLeft className="h-4 w-4" /></Button>
+          <Button size="icon" variant="outline" onClick={goPrev} aria-label="Anterior"><ChevronLeft className="h-4 w-4" /></Button>
           <h3 className="font-semibold text-lg capitalize min-w-[180px] text-center">{title}</h3>
-          <Button size="icon" variant="outline" onClick={goNext}><ChevronRight className="h-4 w-4" /></Button>
+          <Button size="icon" variant="outline" onClick={goNext} aria-label="Siguiente"><ChevronRight className="h-4 w-4" /></Button>
           <Button variant="ghost" size="sm" onClick={() => setCursor(new Date())}>Hoy</Button>
         </div>
         <div className="flex gap-2">

@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import EmptyState from "@/components/shared/EmptyState";
 
 /* =========================================================
    SEGUIMIENTO — resumen pastoral (peticiones, consejería, salud)
@@ -162,14 +163,15 @@ export function MinisteriosTab({ persona, tipos = [], grupoMiembros = [] }: any)
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
       {ministerios.length === 0 ? (
-        <Card className="md:col-span-2 lg:col-span-3 p-10 text-center">
-          <Church className="h-10 w-10 text-muted-foreground/40 mx-auto mb-3" />
-          <p className="text-[13px] font-medium">Sin ministerios asignados</p>
-          <p className="text-[11.5px] text-muted-foreground mt-1">
-            Aún no participa en un área ministerial. Edita el perfil para asignar tipos.
-          </p>
-        </Card>
+        <div className="md:col-span-2 lg:col-span-3">
+          <EmptyState
+            icon={Church}
+            title="Sin ministerios asignados"
+            description="Aún no participa en un área ministerial. Edita el perfil para asignar tipos."
+          />
+        </div>
       ) : (
+
         ministerios.map((tipo: string) => {
           const meta = ministeriosMap[tipo] || { color: "from-muted to-card", desc: "Servicio ministerial" };
           return (
@@ -347,12 +349,13 @@ export function NotasTab({ persona }: any) {
 
       <div className="lg:col-span-3 space-y-3">
         {notes.length === 0 ? (
-          <Card className="p-10 text-center">
-            <FileText className="h-10 w-10 text-muted-foreground/40 mx-auto mb-3" />
-            <p className="text-[13px] font-medium">Sin notas todavía</p>
-            <p className="text-[11.5px] text-muted-foreground mt-1">Empieza a documentar el acompañamiento pastoral.</p>
-          </Card>
+          <EmptyState
+            icon={FileText}
+            title="Sin notas todavía"
+            description="Empieza a documentar el acompañamiento pastoral."
+          />
         ) : (
+
           notes.map((n) => (
             <Card key={n.id} className="p-4 hover:shadow-sm transition-shadow group">
               <div className="flex items-start justify-between gap-3">

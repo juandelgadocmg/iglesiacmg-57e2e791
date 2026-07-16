@@ -158,7 +158,7 @@ export default function BibliotecaSection() {
                       <>
                         <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => setEditing(r)}><Pencil className="h-3.5 w-3.5" /></Button>
                         <DeleteConfirmDialog onConfirm={async () => { await del.mutateAsync(r.id); toast.success("Eliminado"); }}
-                          trigger={<Button size="icon" variant="ghost" className="h-8 w-8 text-destructive"><Trash2 className="h-3.5 w-3.5" /></Button>} />
+                          trigger={<Button size="icon" variant="ghost" className="h-8 w-8 text-destructive" aria-label="Eliminar"><Trash2 className="h-3.5 w-3.5" /></Button>} />
                       </>
                     )}
                   </div>

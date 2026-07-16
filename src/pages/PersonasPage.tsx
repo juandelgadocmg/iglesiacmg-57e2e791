@@ -28,6 +28,7 @@ import { useRecentEntities } from "@/hooks/useRecentEntities";
 import { useUserPins } from "@/hooks/useUserPins";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
+import EmptyState from "@/components/shared/EmptyState";
 
 type Segment = {
   id: string;
@@ -272,16 +273,12 @@ export default function PersonasPage() {
         {/* Galería de personas */}
         <div className="flex-1 overflow-auto p-3 md:p-4">
           {filtered.length === 0 ? (
-            <div className="h-full flex flex-col items-center justify-center py-16 text-center px-6">
-              <UsersRound className="h-10 w-10 text-muted-foreground/40 mb-3" />
-              <p className="text-[14px] font-medium">Sin resultados</p>
-              <p className="text-[12px] text-muted-foreground mt-1">Ajusta la vista o los filtros para ver más personas.</p>
-              {canCreate && (
-                <div className="mt-4">
-                  <PersonaFormDialog />
-                </div>
-              )}
-            </div>
+            <EmptyState
+              icon={UsersRound}
+              title="Sin resultados"
+              description="Ajusta los filtros o la vista para encontrar personas."
+              action={canCreate ? <PersonaFormDialog /> : undefined}
+            />
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-3">
               {pageItems.map((p: any) => {

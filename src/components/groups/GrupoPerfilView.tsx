@@ -786,7 +786,7 @@ function PlanificacionDetailView({ plan, onBack }: { plan: any; onBack: () => vo
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-3">
-        <Button variant="ghost" size="icon" onClick={onBack}>
+        <Button variant="ghost" size="icon" onClick={onBack} aria-label="Anterior">
           <ChevronLeft className="h-5 w-5" />
         </Button>
         <div>
