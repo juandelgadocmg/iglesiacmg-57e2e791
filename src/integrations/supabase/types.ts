@@ -1010,6 +1010,42 @@ export type Database = {
         }
         Relationships: []
       }
+      export_audit_log: {
+        Row: {
+          created_at: string
+          filename: string
+          filters: Json
+          format: string
+          id: string
+          row_count: number
+          title: string | null
+          user_email: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          filename: string
+          filters?: Json
+          format: string
+          id?: string
+          row_count?: number
+          title?: string | null
+          user_email?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          filename?: string
+          filters?: Json
+          format?: string
+          id?: string
+          row_count?: number
+          title?: string | null
+          user_email?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       finanzas: {
         Row: {
           categoria_id: string | null

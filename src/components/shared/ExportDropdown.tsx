@@ -8,6 +8,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { exportToPDF, exportToExcel, exportToCSV } from "@/lib/exportUtils";
+import { supabase } from "@/integrations/supabase/client";
 
 interface ExportColumn {
   header: string;
@@ -19,9 +20,39 @@ interface ExportDropdownProps {
   filename: string;
   columns: ExportColumn[];
   data: Record<string, any>[];
+  /** Applied filter snapshot for audit log. Non-blocking. */
+  filters?: Record<string, any>;
 }
 
-export default function ExportDropdown({ title, filename, columns, data }: ExportDropdownProps) {
+async function logExportAttempt(payload: {
+  format: "pdf" | "excel" | "csv";
+  filename: string;
+  title: string;
+  row_count: number;
+  filters: Record<string, any>;
+}) {
+  try {
+    const { data: userData } = await supabase.auth.getUser();
+    const user = userData.user;
+    if (!user) return;
+    await supabase.from("export_audit_log").insert({
+      user_id: user.id,
+      user_email: user.email ?? null,
+      format: payload.format,
+      filename: payload.filename,
+      title: payload.title,
+      row_count: payload.row_count,
+      filters: payload.filters ?? {},
+    });
+  } catch (err) {
+    // audit is best-effort — never block the export
+    console.warn("[ExportDropdown] audit log failed:", err);
+  }
+}
+
+export default function ExportDropdown({
+  title, filename, columns, data, filters,
+}: ExportDropdownProps) {
   const handleExport = async (format: "pdf" | "excel" | "csv") => {
     const label = format === "pdf" ? "PDF" : format === "excel" ? "Excel" : "CSV";
     const ext = format === "pdf" ? "pdf" : format === "excel" ? "xlsx" : "csv";
@@ -41,6 +72,16 @@ export default function ExportDropdown({ title, filename, columns, data }: Expor
       if (format === "pdf") await exportToPDF({ title, columns, data, filename });
       else if (format === "excel") await exportToExcel({ title, columns, data, filename });
       else await exportToCSV({ title, columns, data, filename });
+
+      // Fire-and-forget audit log
+      void logExportAttempt({
+        format,
+        filename: `${filename}.${ext}`,
+        title,
+        row_count: data.length,
+        filters: filters ?? {},
+      });
+
       toast.success(`${label} generado correctamente`, {
         id: loadingId,
         description: `Archivo: ${filename}.${ext}`,
