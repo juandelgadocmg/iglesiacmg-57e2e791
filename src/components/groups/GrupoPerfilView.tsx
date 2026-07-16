@@ -65,9 +65,14 @@ const rolBadgeClass = (rol: string) => {
 
 export default function GrupoPerfilView({ grupoId, onBack, readOnly = false }: Props) {
   const { data: grupo, isLoading: loadingGrupo, isError: errorGrupo, error: grupoErr, refetch: refetchGrupo } = useGrupoDetalle(grupoId);
-  const { data: miembros, isLoading: loadingMiembros } = useGrupoMiembrosDetalle(grupoId);
-  const { data: reportes } = useGrupoReportes(grupoId);
-  const { data: asistenciaStats } = useGrupoAsistenciaStats(grupoId);
+  const { data: miembros, isLoading: loadingMiembros, isError: errorMiembros, error: miembrosErr, refetch: refetchMiembros } = useGrupoMiembrosDetalle(grupoId);
+  const { data: reportes, isError: errorReportes, error: reportesErr, refetch: refetchReportes } = useGrupoReportes(grupoId);
+  const { data: asistenciaStats, isError: errorStats, error: statsErr, refetch: refetchStats } = useGrupoAsistenciaStats(grupoId);
+
+  useLogGrupoLoadFailure(grupoId, "detalle", errorGrupo, grupoErr);
+  useLogGrupoLoadFailure(grupoId, "miembros", errorMiembros, miembrosErr);
+  useLogGrupoLoadFailure(grupoId, "reportes", errorReportes, reportesErr);
+  useLogGrupoLoadFailure(grupoId, "estadisticas", errorStats, statsErr);
 
   const [editing, setEditing] = useState(false);
   const [showReportForm, setShowReportForm] = useState(false);
