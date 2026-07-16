@@ -14,7 +14,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useAuth } from "@/hooks/useAuth";
 import { useActiveRole } from "@/hooks/useActiveRole";
 import { useCan } from "@/hooks/useCan";
-import { usePersonasQuery } from "@/hooks/useDatabase";
+import { usePersonas } from "@/hooks/useDatabase";
 import { useProgEventos } from "@/hooks/usePrograma";
 import { usePeticiones } from "@/hooks/usePeticiones";
 import { useUnreadCount } from "@/hooks/useMensajes";
