@@ -250,7 +250,7 @@ export default function GrupoPerfilView({ grupoId, onBack, readOnly = false }: P
                 <Pencil className="h-3.5 w-3.5" /> Editar
               </Button>
             )}
-            {(() => {
+            {!readOnly && (() => {
               const now = new Date();
               const day = now.getDay();
               const mins = now.getHours() * 60 + now.getMinutes();
@@ -262,6 +262,7 @@ export default function GrupoPerfilView({ grupoId, onBack, readOnly = false }: P
                     className="gap-1.5"
                     onClick={() => setShowReportForm(true)}
                     disabled={!isOpen}
+                    aria-disabled={!isOpen}
                     title={!isOpen ? "Solo disponible lunes a jueves hasta las 11:59 PM" : ""}
                   >
                     <ClipboardList className="h-3.5 w-3.5" /> Crear Reporte
