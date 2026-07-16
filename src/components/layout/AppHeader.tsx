@@ -107,7 +107,7 @@ export default function AppHeader({ onMenuClick }: AppHeaderProps) {
                 target="_blank"
                 rel="noopener noreferrer"
                 aria-label="Abrir Discipulando Naciones en una nueva pestaña"
-                className="shrink-0 inline-flex items-center justify-center h-14 md:h-16 px-2 rounded-md hover:bg-muted transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                className="shrink-0 inline-flex items-center justify-center h-10 md:h-12 px-2.5 rounded-lg hover:bg-muted transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
               >
                 {logoFailed ? (
                   <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-foreground/80">
@@ -119,18 +119,17 @@ export default function AppHeader({ onMenuClick }: AppHeaderProps) {
                     src={logoSrc}
                     key={logoSrc}
                     alt="Discipulando Naciones"
-                    width={220}
-                    height={64}
+                    width={200}
+                    height={48}
                     loading="lazy"
                     decoding="async"
                     fetchPriority="low"
                     onError={() => setLogoFailed(true)}
-                    className="h-14 md:h-16 w-auto max-w-[200px] object-contain select-none"
+                    className="block h-9 sm:h-10 md:h-11 lg:h-12 w-auto max-w-[140px] sm:max-w-[170px] md:max-w-[200px] object-contain select-none"
                   />
                 )}
-
-
               </a>
+
             </TooltipTrigger>
             <TooltipContent side="bottom">Discipulando Naciones</TooltipContent>
           </Tooltip>
