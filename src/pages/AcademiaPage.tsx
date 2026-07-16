@@ -2964,12 +2964,19 @@ export default function AcademiaPage() {
   const { data: allPeriodos } = useAllPeriodos();
   const { data: certificados } = useCertificados();
 
-  const [activeSection, setActiveSection] = useState("escuelas");
+  const [activeSection, setActiveSection] = useState("panel");
 
   const totalEscuelas = escuelas?.length || 0;
   const totalEstudiantes = new Set(allMatriculas?.map((m: any) => m.persona_id)).size;
   const totalCertificados = certificados?.length || 0;
   const periodosAbiertos = (allPeriodos || []).filter((p: any) => p.estado === "Abierto").length;
+
+  const counts: NavCounts = {
+    escuelas: totalEscuelas,
+    periodosAbiertos,
+    estudiantes: totalEstudiantes,
+    certificados: totalCertificados,
+  };
 
   if (isLoading) {
     return (
@@ -2981,44 +2988,55 @@ export default function AcademiaPage() {
     );
   }
 
-  const sectionTitle: Record<string, string> = {
-    escuelas: "Escuelas",
-    periodos: "Períodos",
-    estudiantes: "Estudiantes",
-    maestros: "Maestros",
-    calificaciones: "Calificaciones",
-    "historial-calificaciones": "Historial de Calificaciones",
-    "historial-matriculas": "Historial de Matrículas",
-    pagos: "Gestión de Pagos",
-    "dashboard-financiero": "Dashboard Financiero",
-    recursos: "Recursos y Contenido",
-    homologaciones: "Homologaciones",
-    certificados: "Certificados",
-    aulas: "Gestionar Aulas",
+  const sectionMeta: Record<string, { title: string; subtitle: string }> = {
+    panel: { title: "Panel académico", subtitle: "Resumen ejecutivo del programa formativo." },
+    aula: { title: "Mi aula", subtitle: "Accesos rápidos para tareas docentes." },
+    escuelas: { title: "Escuelas", subtitle: "Programas formativos activos y su estructura." },
+    periodos: { title: "Periodos", subtitle: "Ciclos académicos abiertos y cerrados." },
+    estudiantes: { title: "Estudiantes", subtitle: "Matrículas activas y trayectoria académica." },
+    maestros: { title: "Maestros", subtitle: "Docentes asignados a materias y periodos." },
+    calificaciones: { title: "Calificaciones", subtitle: "Captura y consulta de notas por corte." },
+    "historial-calificaciones": { title: "Historial de calificaciones", subtitle: "Auditoría de cambios en notas." },
+    "historial-matriculas": { title: "Historial de matrículas", subtitle: "Trazabilidad completa de matrículas." },
+    pagos: { title: "Gestión de pagos", subtitle: "Estados de pago por matrícula." },
+    "dashboard-financiero": { title: "Dashboard financiero", subtitle: "Ingresos, cartera y proyecciones." },
+    recursos: { title: "Recursos y contenido", subtitle: "Material didáctico por escuela y periodo." },
+    homologaciones: { title: "Homologaciones", subtitle: "Convalidación de materias y escuelas." },
+    certificados: { title: "Certificados", subtitle: "Emisión y control de constancias académicas." },
+    aulas: { title: "Aulas", subtitle: "Espacios físicos y virtuales disponibles." },
   };
+  const meta = sectionMeta[activeSection] || { title: "Academia", subtitle: "" };
 
   return (
-    <div className="animate-fade-in space-y-4">
-      {/* Header metrics */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <MetricCard title="Escuelas" value={totalEscuelas} icon={BookOpen} />
-        <MetricCard title="Períodos Abiertos" value={periodosAbiertos} icon={Unlock} variant="success" />
-        <MetricCard title="Estudiantes" value={totalEstudiantes} icon={Users} variant="info" />
-        <MetricCard title="Certificados" value={totalCertificados} icon={Award} variant="accent" />
-      </div>
+    <div className="animate-fade-in -m-3 md:-m-6 flex min-h-[calc(100vh-3.5rem)]">
+      <AcademiaSidebar activeSection={activeSection} onSectionChange={setActiveSection} counts={counts} />
 
-      {/* Mobile nav */}
-      <MobileNav activeSection={activeSection} onSectionChange={setActiveSection} />
+      <div className="flex-1 min-w-0 flex flex-col">
+        <MobileNav activeSection={activeSection} onSectionChange={setActiveSection} />
 
-      {/* Layout with sidebar */}
-      <div className="flex gap-0 rounded-xl border bg-background overflow-hidden min-h-[500px]">
-        <AcademiaSidebar activeSection={activeSection} onSectionChange={setActiveSection} />
-        <div className="flex-1 p-5 overflow-auto">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-bold text-foreground">{sectionTitle[activeSection] || "Academia"}</h2>
+        {/* Sticky header */}
+        <header className="sticky top-14 z-10 bg-background/95 backdrop-blur border-b px-4 md:px-6 py-3 flex items-start justify-between gap-3 flex-wrap">
+          <div>
+            <h1 className="text-lg md:text-xl font-semibold tracking-tight">{meta.title}</h1>
+            {meta.subtitle && <p className="text-[12.5px] text-muted-foreground mt-0.5">{meta.subtitle}</p>}
+          </div>
+          <div className="flex items-center gap-2">
             <ImportAcademiaDialog />
           </div>
+        </header>
 
+        <div className="flex-1 p-4 md:p-6 overflow-auto">
+          {activeSection === "panel" && (
+            <PanelAcademicoSection
+              counts={counts}
+              escuelas={escuelas || []}
+              allPeriodos={allPeriodos || []}
+              allMatriculas={allMatriculas || []}
+              certificados={certificados || []}
+              onNavigate={setActiveSection}
+            />
+          )}
+          {activeSection === "aula" && <MiAulaSection onNavigate={setActiveSection} />}
           {activeSection === "escuelas" && (
             <EscuelasSection escuelas={escuelas} allPeriodos={allPeriodos} allMatriculas={allMatriculas}
               onSelectEscuela={() => setActiveSection("periodos")} />
@@ -3050,3 +3068,4 @@ export default function AcademiaPage() {
     </div>
   );
 }
+
