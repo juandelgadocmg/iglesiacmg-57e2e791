@@ -4,8 +4,9 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
-import { User, BookOpen, Search } from "lucide-react";
+import { User, BookOpen, Search, Users } from "lucide-react";
 import { matchesPersona } from "@/lib/seminarioSearch";
+import SectionHero from "@/components/shell/SectionHero";
 
 export default function DocentesSection() {
   const { data: programas } = useProgramas();
