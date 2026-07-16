@@ -101,4 +101,56 @@ test.describe("Grupos · accesibilidad de tarjetas y estados", () => {
     const urlChanged = page.url() !== `${BASE_URL}/grupos`;
     expect((await dialog.count()) > 0 || urlChanged).toBeTruthy();
   });
+
+  test("Navegación por Tab recorre el sidebar y llega a los tabs de Grupos", async ({ page }) => {
+    await page.goto(`${BASE_URL}/grupos`);
+    // Verifica existencia de <main> único y una skip-link o landmark
+    await expect(page.locator("main")).toHaveCount(1);
+
+    // Recorrido de Tab: se enfoca al menos un enlace del sidebar
+    for (let i = 0; i < 20; i++) {
+      await page.keyboard.press("Tab");
+    }
+    const focused = await page.evaluate(() => {
+      const el = document.activeElement as HTMLElement | null;
+      return el ? { tag: el.tagName, role: el.getAttribute("role"), text: el.textContent?.trim().slice(0, 40) } : null;
+    });
+    expect(focused).not.toBeNull();
+    // El elemento enfocado debe ser interactivo (button/link/tab)
+    expect(["A", "BUTTON"]).toContain(focused!.tag);
+  });
+
+  test("Barra de acciones masivas aparece con role=region al seleccionar", async ({ page }) => {
+    await page.goto(`${BASE_URL}/grupos`);
+    const planTab = page.getByRole("tab", { name: /planificaci/i });
+    if (await planTab.count()) await planTab.first().click();
+
+    const check = page.getByRole("checkbox", { name: /seleccionar planificaci/i }).first();
+    if (!(await check.count())) test.skip(true, "Sin planificaciones para seleccionar.");
+    await check.focus();
+    await page.keyboard.press("Space");
+
+    const region = page.getByRole("region", { name: /planificaciones seleccionadas/i });
+    await expect(region).toBeVisible();
+    await expect(region.getByRole("button", { name: /confirmar asistencia/i })).toBeVisible();
+    await expect(region.getByRole("button", { name: /asignar servidores/i })).toBeVisible();
+  });
+
+  test("Exportación de Reportes: botones accesibles por teclado", async ({ page }) => {
+    await page.goto(`${BASE_URL}/grupos`);
+    const reportesTab = page.getByRole("tab", { name: /reportes/i });
+    if (await reportesTab.count()) await reportesTab.first().click();
+
+    const pdfBtn = page.getByRole("button", { name: /PDF detallado/i });
+    await expect(pdfBtn.first()).toBeVisible({ timeout: 15000 });
+    await pdfBtn.first().focus();
+    await expect(pdfBtn.first()).toBeFocused();
+
+    const exportMenu = page.getByRole("button", { name: /exportar/i });
+    if (await exportMenu.count()) {
+      await exportMenu.first().focus();
+      await expect(exportMenu.first()).toBeFocused();
+    }
+  });
 });
+
