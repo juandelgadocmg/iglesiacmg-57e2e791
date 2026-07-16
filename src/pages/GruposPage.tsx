@@ -579,6 +579,7 @@ export default function GruposPage() {
           )}
         </DialogContent>
       </Dialog>
+      </div>
     </div>
   );
 }
