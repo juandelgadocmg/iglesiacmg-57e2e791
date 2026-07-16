@@ -560,6 +560,20 @@ export default function CertificadosPage() {
           </div>
         </aside>
       )}
+
+      {downloadCert && downloadTipoKey && (
+        <CertDownloadDialog
+          open={!!downloadCert}
+          onOpenChange={(v) => !v && setDownloadCert(null)}
+          tipo={downloadTipoKey}
+          personaId={downloadCert.persona_id}
+          personaNombre={downloadCert.personaNombre}
+          contexto={{ codigo: downloadCert.codigo, tipo_original: downloadCert.tipo }}
+          onDownload={async (template) => {
+            await generateCertificatePDF(downloadCert, config, template?.asset_url);
+          }}
+        />
+      )}
     </div>
   );
 }
