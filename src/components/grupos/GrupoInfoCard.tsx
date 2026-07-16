@@ -51,19 +51,32 @@ export interface GrupoInfoCardProps {
   actions?: ReactNode;
   onClick?: () => void;
   className?: string;
+  ariaLabel?: string;
 }
 
 export function GrupoInfoCard({
   title, subtitle, badge, metaDate, metaSecondary, extraBadge,
-  description, attendance, summaryTitle, summary, actions, onClick, className,
+  description, attendance, summaryTitle, summary, actions, onClick, className, ariaLabel,
 }: GrupoInfoCardProps) {
   const tone = BADGE_TONE[badge?.tone ?? "neutral"];
   const clickable = !!onClick;
+  const handleKey = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (!onClick) return;
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      onClick();
+    }
+  };
   return (
     <div
       onClick={onClick}
+      onKeyDown={handleKey}
+      role={clickable ? "button" : "group"}
+      tabIndex={clickable ? 0 : undefined}
+      aria-label={ariaLabel ?? (typeof title === "string" ? title : undefined)}
       className={cn(
-        "rounded-xl border bg-card p-5 space-y-3 shadow-sm transition-shadow",
+        "rounded-xl border bg-card p-4 sm:p-5 space-y-3 shadow-sm transition-shadow",
+        "focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
         clickable && "cursor-pointer hover:shadow-md focus-within:shadow-md",
         className
       )}
@@ -86,8 +99,9 @@ export function GrupoInfoCard({
         <div className="text-sm text-muted-foreground space-y-0.5">
           {metaDate && (
             <div>
-              <CalendarIcon className="inline h-3.5 w-3.5 mr-1" />
-              {metaDate.label}: {metaDate.value}
+              <CalendarIcon aria-hidden className="inline h-3.5 w-3.5 mr-1" />
+              <span className="sr-only">{metaDate.label}: </span>
+              <span aria-hidden>{metaDate.label}: </span>{metaDate.value}
             </div>
           )}
           {metaSecondary && (
@@ -123,7 +137,7 @@ export function GrupoInfoCard({
                 )}
               >
                 <span className="flex items-center gap-1">
-                  {Icon && <Icon className={cn("h-3.5 w-3.5", row.iconClassName)} />}
+                  {Icon && <Icon aria-hidden className={cn("h-3.5 w-3.5", row.iconClassName)} />}
                   {row.label}
                 </span>
                 <span className={cn(!row.emphasis && "font-medium")}>{row.value}</span>
@@ -135,8 +149,9 @@ export function GrupoInfoCard({
 
       {actions && (
         <div
-          className="flex items-center gap-2 pt-1"
+          className="flex flex-wrap items-center gap-2 pt-1"
           onClick={(e) => e.stopPropagation()}
+          onKeyDown={(e) => e.stopPropagation()}
         >
           {actions}
         </div>
@@ -174,10 +189,17 @@ export function GrupoInfoCardSkeleton() {
 /** Grilla de skeletons homogénea. */
 export function GrupoCardsSkeletonGrid({ count = 6 }: { count?: number }) {
   return (
-    <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+    <div
+      role="status"
+      aria-live="polite"
+      aria-busy="true"
+      aria-label="Cargando tarjetas de grupo"
+      className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3"
+    >
       {Array.from({ length: count }).map((_, i) => (
         <GrupoInfoCardSkeleton key={i} />
       ))}
+      <span className="sr-only">Cargando…</span>
     </div>
   );
 }
