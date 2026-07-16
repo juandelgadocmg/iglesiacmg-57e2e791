@@ -51,19 +51,32 @@ export interface GrupoInfoCardProps {
   actions?: ReactNode;
   onClick?: () => void;
   className?: string;
+  ariaLabel?: string;
 }
 
 export function GrupoInfoCard({
   title, subtitle, badge, metaDate, metaSecondary, extraBadge,
-  description, attendance, summaryTitle, summary, actions, onClick, className,
+  description, attendance, summaryTitle, summary, actions, onClick, className, ariaLabel,
 }: GrupoInfoCardProps) {
   const tone = BADGE_TONE[badge?.tone ?? "neutral"];
   const clickable = !!onClick;
+  const handleKey = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (!onClick) return;
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      onClick();
+    }
+  };
   return (
     <div
       onClick={onClick}
+      onKeyDown={handleKey}
+      role={clickable ? "button" : "group"}
+      tabIndex={clickable ? 0 : undefined}
+      aria-label={ariaLabel ?? (typeof title === "string" ? title : undefined)}
       className={cn(
-        "rounded-xl border bg-card p-5 space-y-3 shadow-sm transition-shadow",
+        "rounded-xl border bg-card p-4 sm:p-5 space-y-3 shadow-sm transition-shadow",
+        "focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
         clickable && "cursor-pointer hover:shadow-md focus-within:shadow-md",
         className
       )}
