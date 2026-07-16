@@ -67,6 +67,12 @@ export default function PersonasPage() {
   const [search, setSearch] = useState("");
   const [tipoFilter, setTipoFilter] = useState("Todos");
   const [estadoFilter, setEstadoFilter] = useState("all");
+  const [grupoFilter, setGrupoFilter] = useState("all");
+  const [ministerioFilter, setMinisterioFilter] = useState("all");
+  const [altaDesde, setAltaDesde] = useState<string>("");
+  const [altaHasta, setAltaHasta] = useState<string>("");
+  const [mesCumple, setMesCumple] = useState<string>("all");
+  const [showAdvanced, setShowAdvanced] = useState(false);
   const [page, setPage] = useState(1);
   const pageSize = 9;
 
