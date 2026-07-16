@@ -15,6 +15,7 @@ import { format, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
 import jsPDF from "jspdf";
 import { cn } from "@/lib/utils";
+import ModuleHero from "@/components/shell/ModuleHero";
 
 const TIPO_META: Record<string, { color: string; bg: string; ring: string }> = {
   "Membresía":              { color: "#3b82f6", bg: "from-blue-500/10 to-blue-500/5", ring: "ring-blue-500/30" },
