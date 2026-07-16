@@ -87,10 +87,19 @@ export default function DashboardSection() {
 
   return (
     <div className="space-y-4">
-      <div>
-        <h2 className="text-lg font-semibold">Dashboard Seminario</h2>
-        <p className="text-xs text-muted-foreground">KPIs y resumen académico en tiempo real</p>
-      </div>
+      <SectionHero
+        icon={LayoutDashboard}
+        eyebrow="Live · Realtime metrics"
+        title="Dashboard Seminario"
+        description="KPIs y resumen académico en tiempo real."
+        gradient="from-indigo-700 via-blue-600 to-cyan-500"
+        stats={[
+          { label: "Activos", value: stats.activas, tone: "info" },
+          { label: "Completados", value: stats.completadas, tone: "ok" },
+          { label: "Promedio", value: stats.promedio.toFixed(2) },
+          { label: "Aprobación", value: `${stats.tasaAprob}%`, tone: stats.tasaAprob >= 70 ? "ok" : "warn" },
+        ]}
+      />
 
       {/* KPIs primarios */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
