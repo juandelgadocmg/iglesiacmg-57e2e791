@@ -28,7 +28,7 @@ export default function LoginPage() {
   const rawNext = searchParams.get("next") ?? "";
   const nextPath =
     rawNext.startsWith("/") && !rawNext.startsWith("//") ? rawNext : "";
-  const postAuthTarget = nextPath || "/dashboard";
+  const postAuthTarget = nextPath || "/hoy";
   const postAuthAbsolute = `${window.location.origin}${postAuthTarget}`;
 
   if (session) return <Navigate to={postAuthTarget} replace />;
