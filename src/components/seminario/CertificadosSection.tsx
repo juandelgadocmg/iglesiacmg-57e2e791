@@ -93,10 +93,9 @@ export default function CertificadosSection() {
         gradient="from-amber-600 via-yellow-500 to-amber-400"
       />
       <div className="flex flex-wrap items-center justify-end gap-2">
-          <div className="relative">
-            <Search className="absolute left-2 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
-            <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Buscar..." className="pl-8 w-56" />
-          </div>
+        <div className="relative">
+          <Search className="absolute left-2 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
+          <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Buscar..." className="pl-8 w-56" />
         </div>
       </div>
 
