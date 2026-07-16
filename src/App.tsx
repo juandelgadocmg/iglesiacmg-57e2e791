@@ -32,6 +32,7 @@ import OAuthConsentPage from "@/pages/OAuthConsentPage";
 import SeguridadPage from "@/pages/SeguridadPage";
 import NotFound from "./pages/NotFound";
 import DesignSystemPage from "@/pages/_design-system/DesignSystemPage";
+import HoyPage from "@/pages/HoyPage";
 
 const queryClient = new QueryClient();
 if (typeof window !== "undefined") (window as any).__lovableQueryClient = queryClient;
@@ -45,13 +46,14 @@ const App = () => (
         <AuthProvider>
           <ActiveRoleProvider>
           <Routes>
-            <Route path="/" element={<Navigate to="/login" replace />} />
+            <Route path="/" element={<Navigate to="/hoy" replace />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/reset-password" element={<ResetPasswordPage />} />
             <Route path="/check-in/:servicioId" element={<CheckInPage />} />
             <Route path="/.lovable/oauth/consent" element={<OAuthConsentPage />} />
             <Route path="/design-system" element={<DesignSystemPage />} />
             <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
+              <Route path="/hoy" element={<HoyPage />} />
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/personas" element={<RoleGuard><PersonasPage /></RoleGuard>} />
               <Route path="/personas/:id" element={<RoleGuard><PersonaPerfilPage /></RoleGuard>} />
