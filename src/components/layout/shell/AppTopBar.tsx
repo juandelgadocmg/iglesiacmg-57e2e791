@@ -15,6 +15,7 @@ import { useUnreadCount } from "@/hooks/useMensajes";
 import NotificationDropdown from "@/components/layout/NotificationDropdown";
 import CommandBar from "./CommandBar";
 import QuickCreateMenu from "./QuickCreateMenu";
+import HotkeysHelpDialog from "./HotkeysHelpDialog";
 import { useHotkeys } from "@/hooks/useHotkeys";
 import { useNavigate } from "react-router-dom";
 
@@ -35,6 +36,7 @@ export default function AppTopBar({ onMenuClick }: { onMenuClick?: () => void })
   const { data: config } = useConfiguracion();
   const { data: unread = 0 } = useUnreadCount();
   const [cmdOpen, setCmdOpen] = useState(false);
+  const [helpOpen, setHelpOpen] = useState(false);
   const initials = user?.email?.slice(0, 2).toUpperCase() || "U";
 
   const sedes: string[] = (config as any)?.sedes || ["Principal"];
@@ -42,10 +44,24 @@ export default function AppTopBar({ onMenuClick }: { onMenuClick?: () => void })
 
   useHotkeys({
     "mod+k": () => setCmdOpen(true),
+    "shift+/": () => setHelpOpen(true),
+    "c": () => window.dispatchEvent(new CustomEvent("doxa:open-quick-create")),
     "gh": () => navigate("/hoy"),
+    "gd": () => navigate("/dashboard"),
     "gp": () => navigate("/personas"),
     "gg": () => navigate("/grupos"),
     "gr": () => navigate("/servicios"),
+    "ge": () => navigate("/eventos"),
+    "ga": () => navigate("/academia"),
+    "gs": () => navigate("/seminario"),
+    "gf": () => navigate("/finanzas"),
+    "gm": () => navigate("/mensajes"),
+    "gq": () => navigate("/peticiones"),
+    "gt": () => navigate("/reportes"),
+    "np": () => navigate("/personas?new=1"),
+    "ne": () => navigate("/eventos?new=1"),
+    "nq": () => navigate("/peticiones?new=1"),
+    "nm": () => navigate("/mensajes?new=1"),
   });
 
   return (
@@ -154,6 +170,7 @@ export default function AppTopBar({ onMenuClick }: { onMenuClick?: () => void })
       </header>
 
       <CommandBar open={cmdOpen} onOpenChange={setCmdOpen} />
+      <HotkeysHelpDialog open={helpOpen} onOpenChange={setHelpOpen} />
     </>
   );
 }
