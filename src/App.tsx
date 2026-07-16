@@ -31,6 +31,7 @@ import VerificarAcademicoPage from "@/pages/VerificarAcademicoPage";
 import OAuthConsentPage from "@/pages/OAuthConsentPage";
 import SeguridadPage from "@/pages/SeguridadPage";
 import NotFound from "./pages/NotFound";
+import DesignSystemPage from "@/pages/_design-system/DesignSystemPage";
 
 const queryClient = new QueryClient();
 if (typeof window !== "undefined") (window as any).__lovableQueryClient = queryClient;
@@ -49,6 +50,7 @@ const App = () => (
             <Route path="/reset-password" element={<ResetPasswordPage />} />
             <Route path="/check-in/:servicioId" element={<CheckInPage />} />
             <Route path="/.lovable/oauth/consent" element={<OAuthConsentPage />} />
+            <Route path="/design-system" element={<DesignSystemPage />} />
             <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/personas" element={<RoleGuard><PersonasPage /></RoleGuard>} />
