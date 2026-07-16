@@ -216,6 +216,11 @@ export default function CertificadosPage() {
   const [tipoFilter, setTipoFilter] = useState<string>("all");
   const [view, setView] = useState<"grid" | "table">("grid");
   const [selected, setSelected] = useState<any>(null);
+  const [downloadCert, setDownloadCert] = useState<any>(null);
+  const downloadTipoKey: "bautismo" | "lideres_cdp" | null =
+    downloadCert?.tipo === "Bautismo" ? "bautismo"
+    : downloadCert?.tipo === "Líderes de Casas de Paz" ? "lideres_cdp"
+    : null;
 
   const certs = useMemo(
     () => (certificados || []).map((c: any) => ({
