@@ -476,16 +476,16 @@ export default function PersonaPerfilPage() {
         <KpiTile icon={<DollarSign className="h-4 w-4" />} label="Contribución total" value={`$${totalContribuido.toLocaleString()}`} sub={`${(finanzasP?.length || 0) + (donacionesP?.length || 0)} movimientos`} tone="accent" />
       </section>
 
-      {/* ============ TABS + SIDEBAR ============ */}
+      {/* ============ TABS ============ */}
       <Tabs defaultValue="resumen" className="space-y-6">
-        <div className="sticky top-0 z-10 -mx-2 px-2 bg-background/80 backdrop-blur border-b border-border/60">
+        <div className="sticky top-0 z-20 -mx-2 px-2 bg-background/85 backdrop-blur-lg border-b border-border/60">
           <TabsList className="h-auto p-0 bg-transparent gap-1 overflow-x-auto flex-nowrap w-full justify-start rounded-none">
             {[
               { v: "resumen", label: "Resumen", icon: User },
               { v: "actividad", label: "Actividad", icon: Activity },
-              { v: "discipulado", label: "Discipulado", icon: Heart },
+              { v: "discipulado", label: "Discipulado", icon: Route },
               { v: "grupos", label: "Grupos", icon: Users },
-              { v: "finanzas", label: "Finanzas", icon: DollarSign },
+              { v: "finanzas", label: "Finanzas", icon: Wallet },
               { v: "familia", label: "Familia", icon: HeartHandshake },
               { v: "certificados", label: "Certificados", icon: Award },
               { v: "qr", label: "QR", icon: QrCode },
@@ -501,428 +501,129 @@ export default function PersonaPerfilPage() {
           </TabsList>
         </div>
 
-        <div className="grid lg:grid-cols-3 gap-6">
-          {/* ================= MAIN COLUMN ================= */}
+        {/* ======================================================
+             TAB · RESUMEN — Dashboard ejecutivo (bento + sidebar)
+        ====================================================== */}
+        <TabsContent value="resumen" className="mt-0 grid lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 space-y-6">
-
-            {/* ---- RESUMEN ---- */}
-            <TabsContent value="resumen" className="space-y-6 mt-0">
-              <SectionCard icon={<User className="h-4 w-4" />} title="Acerca de">
+            {/* Bento hero: About + Next steps */}
+            <div className="grid md:grid-cols-5 gap-4">
+              <motion.div
+                initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
+                className="md:col-span-3 rounded-2xl border border-border/60 bg-gradient-to-br from-card via-card to-primary/5 p-6 shadow-sm"
+              >
+                <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-primary mb-3">
+                  <User className="h-3.5 w-3.5" /> Acerca de
+                </div>
                 {persona.observaciones ? (
-                  <p className="text-sm text-foreground/90 leading-relaxed whitespace-pre-wrap">{persona.observaciones}</p>
+                  <p className="text-[15px] text-foreground/90 leading-relaxed whitespace-pre-wrap line-clamp-6">{persona.observaciones}</p>
                 ) : (
-                  <p className="text-sm text-muted-foreground italic">Sin biografía registrada. Añade una nota pastoral desde "Editar perfil".</p>
+                  <p className="text-sm text-muted-foreground italic">Sin biografía. Añade una nota pastoral desde "Editar perfil".</p>
                 )}
                 {persona.ocupacion && (
-                  <div className="mt-4 pt-4 border-t border-border/50 flex items-center gap-2 text-sm">
-                    <Briefcase className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-muted-foreground">Ocupación:</span>
-                    <span className="font-medium text-foreground">{persona.ocupacion}</span>
+                  <div className="mt-4 pt-4 border-t border-border/50 inline-flex items-center gap-2 text-sm">
+                    <Briefcase className="h-4 w-4 text-primary" />
+                    <span className="font-semibold text-foreground">{persona.ocupacion}</span>
                   </div>
                 )}
-              </SectionCard>
+              </motion.div>
 
-              <SectionCard
-                icon={<Activity className="h-4 w-4" />}
-                title="Actividad reciente"
-                right={<Button variant="link" size="sm" onClick={() => document.querySelector<HTMLElement>('[data-state="inactive"][value="actividad"]')?.click()}>Ver toda →</Button>}
+              {/* Next milestone */}
+              <motion.div
+                initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}
+                className="md:col-span-2 rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/10 to-accent/10 p-5 shadow-sm flex flex-col"
               >
-                <PersonaActivityTimeline events={timeline.slice(0, 8)} />
-              </SectionCard>
-
-              <SectionCard icon={<Users className="h-4 w-4" />} title={`Grupos (${grupoMiembros?.length || 0})`}>
-                {grupoMiembros && grupoMiembros.length > 0 ? (
-                  <div className="grid sm:grid-cols-2 gap-3">
-                    {grupoMiembros.map((gm: any) => (
-                      <div key={gm.id} className="flex items-center gap-3 p-3 rounded-xl border border-border/60 bg-muted/30 hover:bg-muted/60 transition-colors">
-                        <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                          <Users className="h-5 w-5 text-primary" />
+                <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-primary mb-2">
+                  <Flag className="h-3.5 w-3.5" /> Siguiente hito
+                </div>
+                {(() => {
+                  const pendientes = (procesos || []).filter((p: any) => {
+                    const est = procesosMap.get(p.id)?.estado?.toLowerCase();
+                    return est !== "realizado" && est !== "finalizado";
+                  });
+                  const next = pendientes[0];
+                  return next ? (
+                    <>
+                      <p className="text-base font-bold text-foreground mt-1 leading-tight">{next.nombre}</p>
+                      <p className="text-xs text-muted-foreground mt-1">Próximo paso del discipulado</p>
+                      <div className="mt-auto pt-3">
+                        <div className="flex items-center justify-between text-[11px] text-muted-foreground mb-1">
+                          <span>Progreso general</span><span className="font-bold text-primary">{progressPercent}%</span>
                         </div>
-                        <div className="min-w-0">
-                          <p className="text-sm font-semibold truncate">{gm.grupos?.nombre}</p>
-                          <p className="text-xs text-muted-foreground truncate">{gm.grupos?.tipo || "—"} · {gm.rol || "asistente"}</p>
-                        </div>
+                        <Progress value={progressPercent} className="h-1.5" />
                       </div>
-                    ))}
-                  </div>
-                ) : <EmptyState icon={<Users className="h-8 w-8" />} text="Sin grupos asignados" />}
-              </SectionCard>
-            </TabsContent>
-
-            {/* ---- ACTIVIDAD ---- */}
-            <TabsContent value="actividad" className="space-y-6 mt-0">
-              <SectionCard
-                icon={<Activity className="h-4 w-4" />}
-                title={`Línea de tiempo · ${timeline.length} eventos`}
-                right={
-                  <div className="flex gap-2">
-                    <Button variant="outline" size="sm" onClick={handleExportCSV}><Download className="h-3.5 w-3.5 mr-1.5" /> CSV</Button>
-                    <Button variant="outline" size="sm" onClick={handleExportPDF}><FileText className="h-3.5 w-3.5 mr-1.5" /> PDF</Button>
-                  </div>
-                }
-              >
-                <PersonaActivityTimeline events={timeline} />
-              </SectionCard>
-
-              {canSeeAudit && (
-                <SectionCard
-                  icon={<Shield className="h-4 w-4" />}
-                  title="Auditoría de acciones"
-                  right={<Badge variant="outline" className="text-xs">{auditoriaPersona?.length || 0} eventos</Badge>}
-                >
-                  {auditoriaLoading ? (
-                    <div className="space-y-2"><Skeleton className="h-10" /><Skeleton className="h-10" /></div>
-                  ) : (auditoriaPersona && auditoriaPersona.length > 0) ? (
-                    <div className="divide-y divide-border/50">
-                      {auditoriaPersona.map((row: any) => {
-                        const op = String(row.operation || "").toUpperCase();
-                        const badgeClass =
-                          op === "CHECKIN" ? "bg-success/10 text-success border-success/30" :
-                          op === "ATTENDANCE_MARK" ? "bg-primary/10 text-primary border-primary/30" :
-                          op.startsWith("EXPORT") ? "bg-info/10 text-info border-info/30" :
-                          op === "CERTIFICATE_ISSUED" ? "bg-accent/10 text-accent border-accent/30" :
-                          "bg-muted text-muted-foreground";
-                        const label = op === "CHECKIN" ? "Check-in QR" : op === "ATTENDANCE_MARK" ? "Asistencia" : op === "EXPORT_FICHA" ? "Exportó ficha" : op === "EXPORT_HISTORIAL" ? "Exportó historial" : op === "CERTIFICATE_ISSUED" ? "Certificado" : op;
-                        const detalle = row.changed ? Object.entries(row.changed as any).filter(([k]) => k !== "persona_id").map(([k, v]) => `${k}: ${typeof v === "object" ? JSON.stringify(v) : v}`).join(" · ") : "";
-                        return (
-                          <div key={row.id} className="flex items-start justify-between gap-3 py-2.5">
-                            <div className="flex items-start gap-3 min-w-0">
-                              <Badge variant="outline" className={cn("shrink-0 text-[10px] uppercase", badgeClass)}>{label}</Badge>
-                              <div className="min-w-0">
-                                <p className="text-xs text-foreground truncate">{row.actor_email || "Sistema"}</p>
-                                {detalle && <p className="text-[11px] text-muted-foreground truncate">{detalle}</p>}
-                              </div>
-                            </div>
-                            <span className="text-[11px] text-muted-foreground whitespace-nowrap">
-                              {row.created_at ? format(parseISO(row.created_at), "d MMM · HH:mm", { locale: es }) : ""}
-                            </span>
-                          </div>
-                        );
-                      })}
+                    </>
+                  ) : (
+                    <div className="flex-1 flex flex-col items-center justify-center text-center py-4">
+                      <CheckCircle2 className="h-8 w-8 text-success mb-2" />
+                      <p className="text-sm font-semibold">Discipulado completo</p>
                     </div>
-                  ) : <EmptyState icon={<Shield className="h-8 w-8" />} text="Sin acciones auditadas" />}
-                </SectionCard>
-              )}
-            </TabsContent>
+                  );
+                })()}
+              </motion.div>
+            </div>
 
-            {/* ---- DISCIPULADO ---- */}
-            <TabsContent value="discipulado" className="space-y-6 mt-0">
-              <SectionCard
-                icon={<Heart className="h-4 w-4" />}
-                title="Procesos de crecimiento espiritual"
-                right={<Badge variant="outline" className="gap-1"><GraduationCap className="h-3 w-3" /> {completedCount}/{totalProcesos}</Badge>}
-              >
-                <div className="mb-4">
-                  <div className="flex items-center justify-between text-xs text-muted-foreground mb-1.5">
-                    <span>Progreso general de discipulado</span>
-                    <span className="font-semibold text-foreground">{progressPercent}%</span>
-                  </div>
-                  <Progress value={progressPercent} className="h-2" />
+            {/* Row 2: attendance streak + pastoral card + family snapshot */}
+            <div className="grid md:grid-cols-3 gap-4">
+              <div className="rounded-2xl border border-border/60 bg-card p-5">
+                <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-success mb-3">
+                  <Zap className="h-3.5 w-3.5" /> Racha
                 </div>
-                <div className="divide-y divide-border/50 -mx-2">
-                  {(procesos || []).map((p: any) => {
-                    const pp = procesosMap.get(p.id);
-                    const estado = pp?.estado || "No Realizado";
-                    const estadoNorm = estado.toLowerCase().trim();
-                    const displayEstado = (estadoNorm === "realizado" || estadoNorm === "finalizado") ? "Finalizado" : estadoNorm === "en curso" ? "En Curso" : "Pendiente";
-                    const badgeClass = (estadoNorm === "realizado" || estadoNorm === "finalizado") ? "bg-success/15 text-success border-success/30"
-                      : estadoNorm === "en curso" ? "bg-primary/15 text-primary border-primary/30" : "bg-muted text-muted-foreground border-border";
-                    return (
-                      <div key={p.id} className="flex items-center gap-3 px-2 py-2.5">
-                        <p className="flex-1 text-sm font-medium">{p.nombre}</p>
-                        <Badge variant="outline" className={cn("cursor-pointer select-none min-w-[100px] justify-center", badgeClass)} onClick={() => handleToggleEstado(p.id, estado)}>
-                          {displayEstado}
-                        </Badge>
-                        <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={() => openProcesoDialog(p.id, p.nombre)}>
-                          <Plus className="h-4 w-4" />
-                        </Button>
-                        <Popover>
-                          <PopoverTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0"><Calendar className="h-4 w-4" /></Button>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-auto p-0" align="end">
-                            <CalendarComponent mode="single" selected={pp?.fecha_completado ? parseISO(pp.fecha_completado) : undefined}
-                              onSelect={(date) => { if (date) updateProceso.mutate({ personaId: persona.id, procesoId: p.id, estado: estado === "No Realizado" ? "En Curso" : estado, fecha_completado: format(date, "yyyy-MM-dd"), observacion: (pp as any)?.observacion || null }); }}
-                              locale={es} />
-                          </PopoverContent>
-                        </Popover>
-                        <span className="text-xs text-muted-foreground w-[80px] text-right">
-                          {pp?.fecha_completado ? format(parseISO(pp.fecha_completado), "dd/MM/yy") : "—"}
-                        </span>
-                      </div>
-                    );
-                  })}
-                </div>
-              </SectionCard>
-
-              <SectionCard icon={<Clock className="h-4 w-4" />} title={`Historial de asistencia (${totalAsistencias})`}>
-                {totalAsistencias > 0 ? (
-                  <div className="space-y-1.5">
-                    {(asistencias || []).slice(0, 15).map((a: any) => (
-                      <div key={a.id} className={cn("flex items-center justify-between p-3 rounded-lg border", a.presente ? "bg-success/5 border-success/15" : "bg-destructive/5 border-destructive/15")}>
-                        <div className="flex items-center gap-3">
-                          <div className={cn("w-8 h-8 rounded-full flex items-center justify-center", a.presente ? "bg-success/20" : "bg-destructive/20")}>
-                            {a.presente ? <CheckCircle2 className="h-4 w-4 text-success" /> : <XCircle className="h-4 w-4 text-destructive" />}
-                          </div>
-                          <div>
-                            <p className="text-sm font-medium">{a.servicios?.nombre || "Servicio"}</p>
-                            <p className="text-xs text-muted-foreground">
-                              {a.servicios?.fecha ? format(parseISO(a.servicios.fecha), "dd MMM yyyy", { locale: es }) : ""}
-                              {a.servicios?.tipo ? ` · ${a.servicios.tipo}` : ""}
-                            </p>
-                          </div>
-                        </div>
-                        <Badge variant="outline" className={cn(a.presente ? "border-success/30 text-success" : "border-destructive/30 text-destructive")}>
-                          {a.presente ? "Presente" : "Ausente"}
-                        </Badge>
-                      </div>
-                    ))}
-                  </div>
-                ) : <EmptyState icon={<Clock className="h-8 w-8" />} text="Sin registros de asistencia" />}
-              </SectionCard>
-            </TabsContent>
-
-            {/* ---- GRUPOS ---- */}
-            <TabsContent value="grupos" className="space-y-6 mt-0">
-              <SectionCard icon={<Users className="h-4 w-4" />} title={`Grupos (${grupoMiembros?.length || 0})`}>
-                {grupoMiembros && grupoMiembros.length > 0 ? (
-                  <div className="grid sm:grid-cols-2 gap-3">
-                    {grupoMiembros.map((gm: any) => (
-                      <div key={gm.id} className="p-4 rounded-xl border border-border/60 bg-gradient-to-br from-muted/30 to-transparent hover:shadow-md transition-all">
-                        <div className="flex items-center gap-3">
-                          <div className="w-11 h-11 rounded-xl bg-primary/10 flex items-center justify-center">
-                            <Users className="h-5 w-5 text-primary" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-semibold truncate">{gm.grupos?.nombre}</p>
-                            <p className="text-xs text-muted-foreground truncate">{gm.grupos?.tipo || "—"}</p>
-                          </div>
-                          <Badge variant="outline" className="text-xs capitalize">{gm.rol || "asistente"}</Badge>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : <EmptyState icon={<Users className="h-8 w-8" />} text="Sin grupos asignados" />}
-              </SectionCard>
-            </TabsContent>
-
-            {/* ---- FINANZAS ---- */}
-            <TabsContent value="finanzas" className="space-y-6 mt-0">
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <MiniKpi label="Aportes" value={`$${totalAportesIngreso.toLocaleString()}`} sub={`${(finanzasP || []).length} movimientos`} tone="primary" />
-                <MiniKpi label="Donaciones" value={`$${totalDonaciones.toLocaleString()}`} sub={`${(donacionesP || []).length} donaciones`} tone="accent" />
-                <MiniKpi label="Total contribuido" value={`$${totalContribuido.toLocaleString()}`} sub="Ingresos + donaciones" tone="success" />
-              </div>
-              <SectionCard icon={<DollarSign className="h-4 w-4" />} title="Movimientos y donaciones">
-                {(finanzasP && finanzasP.length > 0) || (donacionesP && donacionesP.length > 0) ? (
-                  <div className="divide-y divide-border/50">
-                    {[...(finanzasP || []).map((f: any) => ({ ...f, _kind: "finanza" })), ...(donacionesP || []).map((d: any) => ({ ...d, _kind: "donacion" }))]
-                      .sort((a: any, b: any) => (b.fecha || "").localeCompare(a.fecha || ""))
-                      .map((row: any) => (
-                        <div key={`${row._kind}-${row.id}`} className="flex items-center justify-between py-3">
-                          <div className="flex items-center gap-3 min-w-0">
-                            <div className={cn("w-9 h-9 rounded-lg flex items-center justify-center shrink-0",
-                              row._kind === "donacion" ? "bg-accent/10 text-accent" : row.tipo === "Ingreso" ? "bg-success/10 text-success" : "bg-destructive/10 text-destructive")}>
-                              {row._kind === "donacion" ? <Heart className="h-4 w-4" /> : <DollarSign className="h-4 w-4" />}
-                            </div>
-                            <div className="min-w-0">
-                              <p className="text-sm font-medium truncate">
-                                {row._kind === "donacion" ? `Donación${row.tipo ? " · " + row.tipo : ""}` : (row.categoria_nombre || row.descripcion || row.tipo || "Movimiento")}
-                              </p>
-                              <p className="text-xs text-muted-foreground truncate">
-                                {row.fecha ? format(parseISO(row.fecha), "dd MMM yyyy", { locale: es }) : "—"}
-                                {row.metodo_pago ? ` · ${row.metodo_pago}` : ""}
-                                {row.estado ? ` · ${row.estado}` : ""}
-                              </p>
-                            </div>
-                          </div>
-                          <span className={cn("text-sm font-bold whitespace-nowrap", row._kind === "donacion" || row.tipo === "Ingreso" ? "text-success" : "text-destructive")}>
-                            {row._kind === "donacion" || row.tipo === "Ingreso" ? "+" : "-"}${Number(row.monto).toLocaleString()}
-                          </span>
-                        </div>
-                      ))}
-                  </div>
-                ) : <EmptyState icon={<DollarSign className="h-8 w-8" />} text="Sin movimientos financieros" />}
-              </SectionCard>
-            </TabsContent>
-
-            {/* ---- FAMILIA ---- */}
-            <TabsContent value="familia" className="space-y-6 mt-0">
-              <SectionCard
-                icon={<HeartHandshake className="h-4 w-4" />}
-                title="Relaciones familiares"
-                right={<Button size="sm" variant="outline" className="gap-1.5" onClick={() => setShowAddFamiliar(!showAddFamiliar)}><UserPlus className="h-3.5 w-3.5" /> Agregar</Button>}
-              >
-                {showAddFamiliar && (
-                  <div className="border rounded-xl p-4 bg-muted/30 space-y-3 mb-4">
-                    <p className="text-sm font-medium">Nuevo familiar</p>
-                    <div className="grid sm:grid-cols-3 gap-3">
-                      <div className="space-y-1">
-                        <label className="text-xs text-muted-foreground">Parentesco</label>
-                        <select className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm" value={selectedParentesco} onChange={(e) => setSelectedParentesco(e.target.value)}>
-                          {["Cónyuge", "Hijo/a", "Padre", "Madre", "Hermano/a", "Abuelo/a", "Tío/a", "Sobrino/a", "Primo/a", "Otro"].map((p) => (<option key={p} value={p}>{p}</option>))}
-                        </select>
-                      </div>
-                      <div className="space-y-1 sm:col-span-2">
-                        <label className="text-xs text-muted-foreground">Buscar persona registrada</label>
-                        <input className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm" placeholder="Escriba nombre..." value={familiarSearch} onChange={(e) => setFamiliarSearch(e.target.value)} />
-                      </div>
-                    </div>
-                    {familiarSearch.length >= 2 && (
-                      <div className="max-h-40 overflow-y-auto space-y-1">
-                        {(todasPersonas || []).filter((p) => p.id !== id && `${p.nombres} ${p.apellidos}`.toLowerCase().includes(familiarSearch.toLowerCase())).slice(0, 5).map((p) => (
-                          <div key={p.id} className="flex items-center justify-between p-2 rounded-lg hover:bg-muted cursor-pointer"
-                            onClick={() => { createRelacion.mutate({ persona_id: persona.id, familiar_id: p.id, parentesco: selectedParentesco }, { onSuccess: () => { setFamiliarSearch(""); setShowAddFamiliar(false); } }); }}>
-                            <div className="flex items-center gap-2">
-                              <Avatar className="h-7 w-7"><AvatarFallback className="text-xs">{p.nombres?.[0]}{p.apellidos?.[0]}</AvatarFallback></Avatar>
-                              <span className="text-sm">{p.nombres} {p.apellidos}</span>
-                            </div>
-                            <Badge variant="outline" className="text-xs">{p.tipo_persona}</Badge>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                    <div className="border-t pt-3">
-                      <label className="text-xs text-muted-foreground">O escribir nombre manual</label>
-                      <div className="flex gap-2 mt-1">
-                        <input className="flex h-9 flex-1 rounded-md border border-input bg-background px-3 py-1 text-sm" placeholder="Nombre completo" value={manualName} onChange={(e) => setManualName(e.target.value)} />
-                        <Button size="sm" disabled={!manualName.trim() || createRelacion.isPending}
-                          onClick={() => { createRelacion.mutate({ persona_id: persona.id, familiar_nombre: manualName.trim(), parentesco: selectedParentesco }, { onSuccess: () => { setManualName(""); setShowAddFamiliar(false); } }); }}>
-                          Agregar
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {relaciones && relaciones.length > 0 ? (
-                  <div className="grid sm:grid-cols-2 gap-2">
-                    {relaciones.map((rel: any) => {
-                      const fam = rel.familiar;
-                      const nombre = fam ? `${fam.nombres} ${fam.apellidos}` : rel.familiar_nombre || "—";
-                      const parentescoIcon = rel.parentesco === "Cónyuge" ? <Heart className="h-4 w-4 text-destructive" />
-                        : rel.parentesco?.includes("Hijo") ? <Baby className="h-4 w-4 text-primary" />
-                        : <User className="h-4 w-4 text-muted-foreground" />;
-                      return (
-                        <div key={rel.id} className="flex items-center justify-between p-3 rounded-xl border bg-card hover:shadow-sm transition-shadow">
-                          <div className="flex items-center gap-3 min-w-0">
-                            <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center shrink-0">
-                              {fam?.foto_url ? <Avatar className="h-10 w-10"><AvatarImage src={fam.foto_url} /><AvatarFallback>{nombre[0]}</AvatarFallback></Avatar> : parentescoIcon}
-                            </div>
-                            <div className="min-w-0">
-                              <p className="text-sm font-medium truncate">{nombre}</p>
-                              <p className="text-xs text-muted-foreground">{rel.parentesco}</p>
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-1 shrink-0">
-                            {fam && <Button variant="ghost" size="sm" className="text-xs h-8" onClick={() => navigate(`/personas/${fam.id}`)}>Ver</Button>}
-                            <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive/70 hover:text-destructive" onClick={() => deleteRelacion.mutate({ id: rel.id, personaId: persona.id })}>
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </Button>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                ) : !showAddFamiliar ? (
-                  <EmptyState icon={<HeartHandshake className="h-8 w-8" />} text="Sin relaciones familiares" action={<Button variant="link" size="sm" onClick={() => setShowAddFamiliar(true)}>Agregar familiar</Button>} />
-                ) : null}
-              </SectionCard>
-            </TabsContent>
-
-            {/* ---- CERTIFICADOS ---- */}
-            <TabsContent value="certificados" className="space-y-6 mt-0">
-              <SectionCard icon={<Award className="h-4 w-4" />} title="Certificados">
-                <div className="text-center py-8">
-                  <div className="w-16 h-16 mx-auto rounded-2xl bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center mb-4">
-                    <Award className="h-8 w-8 text-primary" />
-                  </div>
-                  <h3 className="text-base font-semibold">Genera un certificado</h3>
-                  <p className="text-sm text-muted-foreground max-w-md mx-auto mt-1">
-                    Emite constancias de membresía, bautismo, matrimonio o servicio para {persona.nombres}. La emisión queda registrada en auditoría.
-                  </p>
-                  <Button className="mt-4 gap-1.5" onClick={generarCertificado}>
-                    <Award className="h-4 w-4" /> Ir al módulo de certificados
-                  </Button>
-                </div>
-              </SectionCard>
-
-              <div className="grid sm:grid-cols-2 gap-3">
-                <div className="p-4 rounded-xl border bg-card">
-                  <div className="flex items-center gap-2 mb-2"><FileText className="h-4 w-4 text-primary" /><p className="text-sm font-semibold">Exportar ficha completa</p></div>
-                  <p className="text-xs text-muted-foreground mb-3">PDF con datos, progreso y línea de tiempo.</p>
-                  <Button variant="outline" size="sm" className="w-full gap-1.5" onClick={handleExportPDF}><Download className="h-3.5 w-3.5" /> Descargar PDF</Button>
-                </div>
-                <div className="p-4 rounded-xl border bg-card">
-                  <div className="flex items-center gap-2 mb-2"><Download className="h-4 w-4 text-accent" /><p className="text-sm font-semibold">Exportar historial</p></div>
-                  <p className="text-xs text-muted-foreground mb-3">CSV con todos los eventos registrados.</p>
-                  <Button variant="outline" size="sm" className="w-full gap-1.5" onClick={handleExportCSV}><Download className="h-3.5 w-3.5" /> Descargar CSV</Button>
+                <p className="text-3xl font-bold text-foreground">{asistenciasPresente}</p>
+                <p className="text-xs text-muted-foreground mt-1">servicios asistidos</p>
+                <div className="mt-3 flex gap-1">
+                  {(asistencias || []).slice(0, 12).reverse().map((a: any, i: number) => (
+                    <div key={i} className={cn("h-6 flex-1 rounded-sm", a.presente ? "bg-success/70" : "bg-muted")} title={a.servicios?.nombre} />
+                  ))}
                 </div>
               </div>
-            </TabsContent>
 
-            {/* ---- QR ---- */}
-            <TabsContent value="qr" className="space-y-6 mt-0">
-              <div className="grid md:grid-cols-2 gap-4">
-                <SectionCard icon={<QrCode className="h-4 w-4" />} title="Código QR personal">
-                  <div className="flex flex-col items-center gap-4 py-2">
-                    {(persona as any).qr_code ? (
-                      <>
-                        <div className="p-4 bg-white rounded-2xl border-2 border-border shadow-sm">
-                          <QRCodeSVG value={(persona as any).qr_code} size={200} level="M" />
-                        </div>
-                        <p className="text-xs text-muted-foreground text-center max-w-xs">
-                          Escanea este código en Reuniones o desde "Check-in rápido" para registrar la asistencia.
-                        </p>
-                        <Button variant="outline" size="sm" className="gap-1.5" onClick={() => { navigator.clipboard.writeText((persona as any).qr_code); toast.success("Código copiado"); }}>
-                          <Copy className="h-3.5 w-3.5" /> Copiar código
-                        </Button>
-                      </>
-                    ) : <EmptyState icon={<QrCode className="h-8 w-8" />} text="Sin código QR asignado" />}
-                  </div>
-                </SectionCard>
-
-                <SectionCard icon={<ClipboardCheck className="h-4 w-4" />} title="Check-in rápido con QR">
-                  <p className="text-xs text-muted-foreground mb-3">
-                    Selecciona el servicio y registra la asistencia usando el QR. Queda registrado en auditoría.
-                  </p>
-                  <div className="space-y-3">
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-medium text-muted-foreground">Servicio</label>
-                      <Select value={qrCheckinServicio} onValueChange={setQrCheckinServicio}>
-                        <SelectTrigger><SelectValue placeholder="Elige un servicio" /></SelectTrigger>
-                        <SelectContent>
-                          {(servicios || []).slice(0, 30).map((s: any) => (
-                            <SelectItem key={s.id} value={s.id}>{s.nombre}{s.fecha ? " · " + s.fecha : ""}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <Button className="w-full gap-2" disabled={!qrCheckinServicio || !(persona as any).qr_code} onClick={() => setQrCheckinOpen(true)}>
-                      <QrCode className="h-4 w-4" /> Check-in manual
-                    </Button>
-                    <PersonaQrCameraCheckin
-                      expectedCode={(persona as any).qr_code || ""}
-                      personaNombre={fullName}
-                      onMatch={() => { if (!qrCheckinServicio) { toast.error("Selecciona primero un servicio"); return; } setQrCheckinOpen(true); }}
-                    />
-                    {!(persona as any).qr_code && <p className="text-[11px] text-destructive">Esta persona no tiene QR generado aún.</p>}
-                    {!qrCheckinServicio && (persona as any).qr_code && <p className="text-[11px] text-muted-foreground">Selecciona un servicio para habilitar el check-in.</p>}
-                  </div>
-                </SectionCard>
+              <div className="rounded-2xl border border-border/60 bg-card p-5">
+                <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-accent mb-3">
+                  <HeartHandshake className="h-3.5 w-3.5" /> Familia
+                </div>
+                <p className="text-3xl font-bold text-foreground">{relaciones?.length || 0}</p>
+                <p className="text-xs text-muted-foreground mt-1">relaciones registradas</p>
+                <div className="mt-3 flex -space-x-2">
+                  {(relaciones || []).slice(0, 5).map((r: any) => (
+                    <Avatar key={r.id} className="h-8 w-8 border-2 border-card">
+                      <AvatarImage src={r.familiar?.foto_url} />
+                      <AvatarFallback className="text-[10px]">{(r.familiar?.nombres?.[0] || r.familiar_nombre?.[0] || "?")}</AvatarFallback>
+                    </Avatar>
+                  ))}
+                </div>
               </div>
-            </TabsContent>
 
+              <div className="rounded-2xl border border-border/60 bg-card p-5">
+                <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-primary mb-3">
+                  <PiggyBank className="h-3.5 w-3.5" /> Contribución
+                </div>
+                <p className="text-3xl font-bold text-foreground">${totalContribuido.toLocaleString()}</p>
+                <p className="text-xs text-muted-foreground mt-1">total histórico</p>
+                <div className="mt-3 flex items-center gap-3 text-[11px]">
+                  <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-primary" />Aportes ${totalAportesIngreso.toLocaleString()}</span>
+                  <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-accent" />Don. ${totalDonaciones.toLocaleString()}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Recent activity preview */}
+            <SectionCard
+              icon={<Activity className="h-4 w-4" />}
+              title="Actividad reciente"
+              right={<Button variant="ghost" size="sm" className="gap-1" onClick={() => (document.querySelector('[role="tab"][value="actividad"]') as HTMLElement)?.click()}>Ver toda <ChevronRight className="h-3.5 w-3.5" /></Button>}
+            >
+              <PersonaActivityTimeline events={timeline.slice(0, 6)} />
+            </SectionCard>
           </div>
 
-          {/* ================= SIDEBAR (fixed) ================= */}
+          {/* Sidebar with fixed info */}
           <aside className="space-y-4 lg:sticky lg:top-20 self-start h-fit">
             <SidebarCard icon={<Phone className="h-4 w-4" />} title="Contacto">
               <SideRow icon={<Phone className="h-3.5 w-3.5" />} label="Teléfono" value={persona.telefono || "—"} />
               <SideRow icon={<Mail className="h-3.5 w-3.5" />} label="Email" value={persona.email || "—"} />
               <SideRow icon={<MapPin className="h-3.5 w-3.5" />} label="Dirección" value={persona.direccion || "—"} />
             </SidebarCard>
-
             <SidebarCard icon={<User className="h-4 w-4" />} title="Datos personales">
               <SideRow icon={<Cake className="h-3.5 w-3.5" />} label="Nacimiento" value={persona.fecha_nacimiento ? format(parseISO(persona.fecha_nacimiento), "dd MMM yyyy", { locale: es }) : "—"} />
               <SideRow label="Edad" value={age !== null ? `${age} años` : "—"} />
@@ -931,30 +632,122 @@ export default function PersonaPerfilPage() {
               <SideRow label="Documento" value={persona.documento || "—"} />
               <SideRow icon={<Briefcase className="h-3.5 w-3.5" />} label="Ocupación" value={persona.ocupacion || "—"} />
             </SidebarCard>
-
-            <SidebarCard icon={<Church className="h-4 w-4" />} title="Información ministerial">
+            <SidebarCard icon={<Church className="h-4 w-4" />} title="Ministerial">
               <SideRow label="Grupo" value={(persona as any).grupos?.nombre || "Sin grupo"} />
               <SideRow label="Red" value={(persona as any).grupos?.red || "—"} />
               <SideRow label="Vinculación" value={persona.vinculacion || "—"} />
               <SideRow label="Ministerio" value={persona.ministerio || "—"} />
               <SideRow label="Líder" value={persona.lider_responsable || "—"} />
               <SideRow label="Invitado por" value={persona.invitado_por || "—"} />
-              <SideRow label="Seguimiento" value={persona.seguimiento_por || "—"} />
               <SideRow label="Ingreso" value={persona.fecha_ingreso ? format(parseISO(persona.fecha_ingreso), "dd MMM yyyy", { locale: es }) : "—"} />
               <SideRow label="Conversión" value={persona.fecha_conversion ? format(parseISO(persona.fecha_conversion), "dd MMM yyyy", { locale: es }) : "—"} />
               <SideRow label="Bautismo" value={persona.fecha_bautismo ? format(parseISO(persona.fecha_bautismo), "dd MMM yyyy", { locale: es }) : "—"} />
             </SidebarCard>
-
-            <SidebarCard icon={<Sparkles className="h-4 w-4" />} title="Acciones rápidas">
-              <div className="space-y-2">
-                <Button variant="outline" size="sm" className="w-full justify-start gap-2" onClick={openRegistrarAsistencia}><ClipboardCheck className="h-3.5 w-3.5" /> Registrar asistencia</Button>
-                <Button variant="outline" size="sm" className="w-full justify-start gap-2" onClick={generarCertificado}><Award className="h-3.5 w-3.5" /> Generar certificado</Button>
-                <Button variant="outline" size="sm" className="w-full justify-start gap-2" onClick={handleExportPDF}><FileText className="h-3.5 w-3.5" /> Exportar ficha PDF</Button>
-                <Button variant="outline" size="sm" className="w-full justify-start gap-2" onClick={handleExportCSV}><Download className="h-3.5 w-3.5" /> Exportar CSV</Button>
-              </div>
-            </SidebarCard>
           </aside>
-        </div>
+        </TabsContent>
+
+        {/* ======================================================
+             TAB · ACTIVIDAD — Feed vertical estilo LinkedIn
+        ====================================================== */}
+        <TabsContent value="actividad" className="mt-0">
+          <ActivityFeedTab
+            timeline={timeline}
+            auditoria={auditoriaPersona || []}
+            canSeeAudit={canSeeAudit}
+            auditoriaLoading={auditoriaLoading}
+            onExportCSV={handleExportCSV}
+            onExportPDF={handleExportPDF}
+          />
+        </TabsContent>
+
+        {/* ======================================================
+             TAB · DISCIPULADO — Roadmap vertical
+        ====================================================== */}
+        <TabsContent value="discipulado" className="mt-0">
+          <DiscipuladoRoadmap
+            procesos={procesos || []}
+            procesosMap={procesosMap}
+            progressPercent={progressPercent}
+            completedCount={completedCount}
+            totalProcesos={totalProcesos}
+            onToggle={handleToggleEstado}
+            onOpenDetail={openProcesoDialog}
+            onSetDate={(procesoId, date, estado, obs) =>
+              updateProceso.mutate({ personaId: persona.id, procesoId, estado: estado === "No Realizado" ? "En Curso" : estado, fecha_completado: format(date, "yyyy-MM-dd"), observacion: obs || null })
+            }
+          />
+        </TabsContent>
+
+        {/* ======================================================
+             TAB · GRUPOS — Tarjetas visuales con portada
+        ====================================================== */}
+        <TabsContent value="grupos" className="mt-0">
+          <GruposGallery grupos={grupoMiembros || []} />
+        </TabsContent>
+
+        {/* ======================================================
+             TAB · FINANZAS — Panel bancario con gráficas
+        ====================================================== */}
+        <TabsContent value="finanzas" className="mt-0">
+          <FinanzasBankPanel
+            finanzas={finanzasP || []}
+            donaciones={donacionesP || []}
+            totalAportes={totalAportesIngreso}
+            totalDonaciones={totalDonaciones}
+            totalContribuido={totalContribuido}
+          />
+        </TabsContent>
+
+        {/* ======================================================
+             TAB · FAMILIA — Tarjetas de relaciones agrupadas
+        ====================================================== */}
+        <TabsContent value="familia" className="mt-0">
+          <FamiliaCards
+            relaciones={relaciones || []}
+            personaNombre={fullName}
+            showAdd={showAddFamiliar}
+            setShowAdd={setShowAddFamiliar}
+            selectedParentesco={selectedParentesco}
+            setSelectedParentesco={setSelectedParentesco}
+            familiarSearch={familiarSearch}
+            setFamiliarSearch={setFamiliarSearch}
+            manualName={manualName}
+            setManualName={setManualName}
+            todasPersonas={todasPersonas || []}
+            currentId={id!}
+            onLinkExisting={(familiar_id) => createRelacion.mutate({ persona_id: persona.id, familiar_id, parentesco: selectedParentesco }, { onSuccess: () => { setFamiliarSearch(""); setShowAddFamiliar(false); } })}
+            onAddManual={() => createRelacion.mutate({ persona_id: persona.id, familiar_nombre: manualName.trim(), parentesco: selectedParentesco }, { onSuccess: () => { setManualName(""); setShowAddFamiliar(false); } })}
+            onDelete={(relId) => deleteRelacion.mutate({ id: relId, personaId: persona.id })}
+            navigate={navigate}
+            createPending={createRelacion.isPending}
+          />
+        </TabsContent>
+
+        {/* ======================================================
+             TAB · CERTIFICADOS
+        ====================================================== */}
+        <TabsContent value="certificados" className="mt-0">
+          <CertificadosPanel
+            personaNombre={persona.nombres}
+            onGenerar={generarCertificado}
+            onExportPDF={handleExportPDF}
+            onExportCSV={handleExportCSV}
+          />
+        </TabsContent>
+
+        {/* ======================================================
+             TAB · QR — Hero destacado
+        ====================================================== */}
+        <TabsContent value="qr" className="mt-0">
+          <QrHero
+            personaNombre={fullName}
+            qrCode={(persona as any).qr_code || ""}
+            servicios={servicios || []}
+            qrCheckinServicio={qrCheckinServicio}
+            setQrCheckinServicio={setQrCheckinServicio}
+            onOpenManual={() => setQrCheckinOpen(true)}
+          />
+        </TabsContent>
       </Tabs>
 
       {/* ============ DIALOGS ============ */}
