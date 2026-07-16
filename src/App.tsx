@@ -50,6 +50,7 @@ const App = () => (
             <Route path="/reset-password" element={<ResetPasswordPage />} />
             <Route path="/check-in/:servicioId" element={<CheckInPage />} />
             <Route path="/.lovable/oauth/consent" element={<OAuthConsentPage />} />
+            <Route path="/design-system" element={<DesignSystemPage />} />
             <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/personas" element={<RoleGuard><PersonasPage /></RoleGuard>} />
