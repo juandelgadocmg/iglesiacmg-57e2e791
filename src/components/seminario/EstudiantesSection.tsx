@@ -8,6 +8,8 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import SectionHero from "@/components/shell/SectionHero";
+import { GraduationCap as GradIconHero } from "lucide-react";
 import { Plus, Trash2, UserPlus, ChevronLeft, FileDown, Award, Video, Search, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import DeleteConfirmDialog from "@/components/shared/DeleteConfirmDialog";
