@@ -158,13 +158,39 @@ export default function Dashboard() {
         <DashboardBannerCarousel banners={banners} />
       )}
 
-      {/* KPIs */}
+      {/* KPIs — Bento with sparklines + MoM */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <MetricCard title="Total Miembros" value={totalMiembros} icon={Users} variant="default" trend={nuevos > 0 ? { value: `+${nuevos} este mes`, positive: true } : undefined} />
-        <MetricCard title="Peticiones Activas" value={peticionStats.pendientes + peticionStats.enOracion} icon={HandHeart} variant="accent" />
-        <MetricCard title="Respondidas" value={peticionStats.respondidas} icon={CheckCircle2} variant="success" />
-        <MetricCard title="Cursos Activos" value={cursos?.filter(c => c.estado === "Activo").length || 0} icon={GraduationCap} variant="info" />
+        <MetricCard
+          title="Total Miembros"
+          value={totalMiembros}
+          icon={Users}
+          variant="default"
+          sparkline={growthSeries.series}
+          trend={growthSeries.mom || (nuevos > 0 ? { value: `+${nuevos} este mes`, positive: true } : undefined)}
+        />
+        <MetricCard
+          title="Peticiones Activas"
+          value={peticionStats.pendientes + peticionStats.enOracion}
+          icon={HandHeart}
+          variant="accent"
+          subtitle={`${peticionStats.pendientes} pendientes · ${peticionStats.enOracion} en oración`}
+        />
+        <MetricCard
+          title="Respondidas"
+          value={peticionStats.respondidas}
+          icon={CheckCircle2}
+          variant="success"
+          subtitle="Peticiones cerradas"
+        />
+        <MetricCard
+          title="Cursos Activos"
+          value={cursos?.filter(c => c.estado === "Activo").length || 0}
+          icon={GraduationCap}
+          variant="info"
+          subtitle={`${matriculas?.length || 0} matrículas`}
+        />
       </div>
+
 
       {/* Row 2: Calendar + Alert Cards + Tema */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
