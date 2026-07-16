@@ -43,6 +43,7 @@ export default function Dashboard() {
   const { data: banners } = useActiveBanners();
   const { data: videos } = useActiveVideos();
   const { data: config } = useConfiguracion();
+  const { data: temaVigente } = useTemaSemanaVigente();
 
   const totalMiembros = stats?.totalPersonas || 0;
   const nuevos = stats?.nuevosEsteMes || 0;
