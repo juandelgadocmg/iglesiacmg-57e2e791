@@ -320,7 +320,7 @@ export default function GruposPage() {
         {canEditGrupo && editing && <GrupoFormDialog initialData={editing} onClose={() => setEditing(null)} />}
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-          <TabsList className="h-9">
+          <TabsList className="h-9 flex-wrap">
             <TabsTrigger value="lista" className="text-[12.5px]">
               {selectedRed ? "Grupos de la red" : "Todos los grupos"}
             </TabsTrigger>
@@ -329,7 +329,13 @@ export default function GruposPage() {
                 <BarChart3 className="h-3.5 w-3.5" /> Dashboard redes
               </TabsTrigger>
             )}
+            {canManageTesoreriaCDP && (
+              <TabsTrigger value="tesoreria-cdp" className="gap-1 text-[12.5px]">
+                <DollarSign className="h-3.5 w-3.5" /> Tesorería CDP
+              </TabsTrigger>
+            )}
           </TabsList>
+
 
         <TabsContent value="lista">
           <GruposViewSwitcher
