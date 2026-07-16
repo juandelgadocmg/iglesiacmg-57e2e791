@@ -56,24 +56,27 @@ export default function Dashboard() {
     };
   }, [peticiones]);
 
-  const growthTrend = useMemo(() => {
-    if (!personas) return [];
+  const growthSeries = useMemo(() => {
+    if (!personas) return { data: [] as { month: string; count: number }[], series: [] as number[], mom: null as null | { value: string; positive: boolean } };
     const now = new Date();
-    const months: { month: string; count: number }[] = [];
+    const data: { month: string; count: number }[] = [];
     for (let i = 5; i >= 0; i--) {
       const d = subMonths(now, i);
-      const m = d.getMonth();
-      const y = d.getFullYear();
+      const m = d.getMonth(); const y = d.getFullYear();
       const count = (personas as any[]).filter(p => {
-        try {
-          const created = parseISO(p.created_at);
-          return created.getMonth() === m && created.getFullYear() === y;
-        } catch { return false; }
+        try { const created = parseISO(p.created_at); return created.getMonth() === m && created.getFullYear() === y; } catch { return false; }
       }).length;
-      months.push({ month: format(d, "MMM", { locale: es }), count });
+      data.push({ month: format(d, "MMM", { locale: es }), count });
     }
-    return months;
+    const series = data.map(d => d.count);
+    const current = series[series.length - 1] ?? 0;
+    const prev = series[series.length - 2] ?? 0;
+    const diff = current - prev;
+    const pct = prev === 0 ? (current > 0 ? 100 : 0) : Math.round((diff / prev) * 100);
+    const mom = { value: `${diff >= 0 ? "+" : ""}${pct}%`, positive: diff >= 0 };
+    return { data, series, mom };
   }, [personas]);
+  const growthTrend = growthSeries.data;
 
   const calendarEvents = useMemo(() => {
     if (!stats?.eventos) return [];
