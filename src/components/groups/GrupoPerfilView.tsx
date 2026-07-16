@@ -562,10 +562,11 @@ export default function GrupoPerfilView({ grupoId, onBack, readOnly = false }: P
         <TabsContent value="reportes">
           <div className="space-y-3">
             {(!reportes || reportes.length === 0) ? (
-              <div className="text-center py-12 text-muted-foreground">
-                <ClipboardList className="h-12 w-12 mx-auto mb-2 opacity-30" />
-                <p>No hay reportes registrados</p>
-              </div>
+              <EmptyState
+                icon={ClipboardList}
+                title="No hay reportes registrados"
+                description="Los reportes semanales de esta Casa de Paz aparecerán aquí una vez sean creados."
+              />
             ) : (
               <ScrollArea className="max-h-[600px]">
                 <div className="space-y-2">
