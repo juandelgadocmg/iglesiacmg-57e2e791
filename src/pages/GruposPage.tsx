@@ -33,6 +33,8 @@ import PageSkeleton from "@/components/shared/PageSkeleton";
 import EmptyState from "@/components/shared/EmptyState";
 import ErrorState from "@/components/shared/ErrorState";
 import { GrupoInfoCard, GrupoCardsSkeletonGrid } from "@/components/grupos/GrupoInfoCard";
+import PlanificacionBulkBar from "@/components/grupos/PlanificacionBulkBar";
+import { Checkbox } from "@/components/ui/checkbox";
 
 const ReportesGruposContent = lazy(() => import("@/pages/ReportesGruposPage"));
 const MapaGruposContent = lazy(() => import("@/pages/MapaGruposPage"));
