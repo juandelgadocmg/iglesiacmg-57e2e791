@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import PageHeader from "@/components/shared/PageHeader";
+import ModuleHero from "@/components/shell/ModuleHero";
 import DataTable from "@/components/shared/DataTable";
 import StatusBadge from "@/components/shared/StatusBadge";
 import ServicioFormDialog from "@/components/forms/ServicioFormDialog";
@@ -130,45 +130,75 @@ export default function ServiciosPage() {
     setInitialized(null);
   };
 
+  // KPIs for the hero
+  const hoyStr = new Date().toISOString().slice(0, 10);
+  const proximas = serviciosList.filter((s: any) => (s.fecha || "") >= hoyStr && s.estado !== "Cancelado").length;
+  const semanaTipos = new Set(serviciosList.map((s: any) => s.tipo).filter(Boolean)).size;
+
+  const VIEWS: { id: ActiveView; label: string; icon: any }[] = [
+    { id: "reuniones",    label: "Lista de reuniones", icon: Church },
+    { id: "reportes",     label: "Reportar reunión",   icon: FileText },
+    { id: "consejeria",   label: "Consejería",         icon: Heart },
+    { id: "programacion", label: "Programación",       icon: Users },
+  ];
+
   return (
     <div className="animate-fade-in space-y-6">
-      <PageHeader title="Reuniones" description="Lista de reuniones establecidas en la iglesia">
-        <ExportDropdown
-          title="Reuniones"
-          filename="reuniones"
-          columns={[
-            { header: "Nombre", key: "nombre" },
-            { header: "Tipo", key: "tipo" },
-            { header: "Fecha", key: "fecha" },
-            { header: "Hora", key: "hora" },
-            { header: "Predicador", key: "predicador" },
-            { header: "Estado", key: "estado" },
-          ]}
-          data={servicios || []}
-        />
-        <ServicioFormDialog />
-      </PageHeader>
+      <ModuleHero
+        variant="reuniones"
+        title="Reuniones"
+        eyebrow="Worship Operations"
+        description="Planifica, reporta y analiza las reuniones de la iglesia — asistencia, consejería y programación de servidores."
+        status={{ label: `${totalActivos} activas`, tone: totalActivos > 0 ? "ok" : "warn" }}
+        kpis={[
+          { label: "Activas",     value: totalActivos,  hint: "Reuniones en agenda",  tone: "ok" },
+          { label: "Canceladas",  value: totalBaja,     hint: "Últimos periodos",      tone: totalBaja > 0 ? "warn" : "info" },
+          { label: "Próximas",    value: proximas,      hint: "De hoy en adelante",    tone: "info" },
+          { label: "Tipos",       value: semanaTipos,   hint: "Categorías distintas" },
+        ]}
+        actions={
+          <>
+            <ExportDropdown
+              title="Reuniones"
+              filename="reuniones"
+              columns={[
+                { header: "Nombre", key: "nombre" },
+                { header: "Tipo", key: "tipo" },
+                { header: "Fecha", key: "fecha" },
+                { header: "Hora", key: "hora" },
+                { header: "Predicador", key: "predicador" },
+                { header: "Estado", key: "estado" },
+              ]}
+              data={servicios || []}
+            />
+            <ServicioFormDialog />
+          </>
+        }
+      />
 
       {editing && <ServicioFormDialog initialData={editing} onClose={() => setEditing(null)} />}
 
-      {/* Navigation tabs */}
-      <div className="flex gap-1 border-b">
-        <button onClick={() => { setActiveView("reuniones"); setSelectedReunion(null); }}
-          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${activeView === "reuniones" ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`}>
-          <Church className="h-4 w-4 inline mr-1.5" />Lista de reuniones
-        </button>
-        <button onClick={() => setActiveView("reportes")}
-          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${activeView === "reportes" ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`}>
-          <FileText className="h-4 w-4 inline mr-1.5" />Reportar reunión
-        </button>
-        <button onClick={() => setActiveView("consejeria")}
-          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${activeView === "consejeria" ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`}>
-          <Heart className="h-4 w-4 inline mr-1.5" />Consejería
-        </button>
-        <button onClick={() => setActiveView("programacion")}
-          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${activeView === "programacion" ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`}>
-          <Users className="h-4 w-4 inline mr-1.5" />Programación
-        </button>
+      {/* Navigation tabs — premium pill switcher */}
+      <div className="flex flex-wrap gap-1 p-1 rounded-xl border bg-card/60 backdrop-blur w-fit">
+        {VIEWS.map((v) => {
+          const active = activeView === v.id;
+          return (
+            <button
+              key={v.id}
+              onClick={() => { setActiveView(v.id); if (v.id === "reuniones") setSelectedReunion(null); }}
+              aria-current={active ? "page" : undefined}
+              className={cn(
+                "flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-sm font-medium transition-all",
+                active
+                  ? "bg-gradient-to-br from-rose-600 to-orange-500 text-white shadow-md shadow-rose-500/20"
+                  : "text-muted-foreground hover:text-foreground hover:bg-muted"
+              )}
+            >
+              <v.icon className="h-4 w-4" />
+              {v.label}
+            </button>
+          );
+        })}
       </div>
 
       {activeView === "consejeria" && <ConsejeriaTab />}

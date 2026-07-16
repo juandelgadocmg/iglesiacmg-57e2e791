@@ -2,13 +2,13 @@ import { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import {
   GraduationCap, Wallet, BarChart3, Users, Settings2, ShieldCheck,
-  Award, ScrollText, Coins, KeyRound, BookOpenCheck, LucideIcon
+  Award, ScrollText, Coins, KeyRound, BookOpenCheck, Church, LucideIcon
 } from "lucide-react";
 
 export type ModuleVariant =
   | "academia" | "finanzas" | "reportes" | "usuarios"
   | "configuracion" | "seguridad" | "certificados"
-  | "auditoria" | "roles" | "tesoreria" | "seminario";
+  | "auditoria" | "roles" | "tesoreria" | "seminario" | "reuniones";
 
 type Kpi = { label: string; value: ReactNode; hint?: string; tone?: "ok" | "warn" | "bad" | "info" };
 
@@ -185,6 +185,26 @@ const VARIANTS: Record<ModuleVariant, {
         </defs>
         <rect width="400" height="200" fill="url(#g-sem)"/>
         <path d="M10 170 Q100 120 200 150 T390 110" stroke="currentColor" strokeWidth="1" fill="none"/>
+      </svg>
+    )
+  },
+  reuniones: {
+    icon: Church,
+    gradient: "from-rose-600 via-pink-600 to-orange-500",
+    chip: "bg-rose-500/10 text-rose-700 dark:text-rose-300 ring-rose-500/20",
+    ring: "ring-rose-500/30",
+    tag: "Worship Ops · Meetings",
+    inspiredBy: "Planning Center · Linear",
+    pattern: (
+      <svg className="absolute inset-0 w-full h-full opacity-[0.10]" viewBox="0 0 400 200" preserveAspectRatio="none">
+        {[0,1,2,3,4,5,6].map((d)=>(
+          <g key={d}>
+            <line x1={20 + d*54} y1="20" x2={20 + d*54} y2="180" stroke="currentColor" strokeWidth="0.5"/>
+            <circle cx={20 + d*54} cy={60 + (d%3)*30} r="3" fill="currentColor"/>
+            <circle cx={20 + d*54} cy={120 + ((d+1)%3)*20} r="2" fill="currentColor"/>
+          </g>
+        ))}
+        <line x1="0" y1="180" x2="400" y2="180" stroke="currentColor" strokeWidth="0.5"/>
       </svg>
     )
   }
