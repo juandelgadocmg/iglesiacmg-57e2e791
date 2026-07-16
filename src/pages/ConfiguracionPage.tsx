@@ -44,7 +44,9 @@ export default function ConfiguracionPage() {
   const [form, setForm] = useState<Record<string, string>>({});
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [logoPreviewError, setLogoPreviewError] = useState(false);
+  const [uploadingTemaPdf, setUploadingTemaPdf] = useState(false);
   const logoFileRef = useRef<HTMLInputElement>(null);
+  const temaPdfRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (config) {
@@ -67,6 +69,7 @@ export default function ConfiguracionPage() {
         tema_semana_titulo: config.tema_semana_titulo || "",
         tema_semana_descripcion: config.tema_semana_descripcion || "",
         tema_semana_url: config.tema_semana_url || "",
+        tema_semana_pdf_url: (config as any).tema_semana_pdf_url || "",
         tesoreria_cdp_tolerancia_pct: String((config as any).tesoreria_cdp_tolerancia_pct ?? 0),
         tesoreria_cdp_tolerancia_abs: String((config as any).tesoreria_cdp_tolerancia_abs ?? 0),
         tesoreria_cdp_dias_mora: String((config as any).tesoreria_cdp_dias_mora ?? 7),
