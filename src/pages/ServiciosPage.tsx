@@ -368,18 +368,19 @@ function ReporteDetalleView({
         ← Volver a reuniones
       </Button>
 
-      {/* Header */}
-      <Card className="border-2 border-primary/20">
-        <CardContent className="p-5">
-          <h2 className="text-xl font-bold text-foreground">REPORTE: {reunion.nombre}</h2>
-          <p className="text-sm text-muted-foreground">Fecha de reunión: {reunion.fecha}</p>
-          <div className="flex gap-4 mt-3 text-sm">
-            <span className="flex items-center gap-1"><Check className="h-4 w-4 text-success" /> Asisten: {totalPresent}</span>
-            <span className="flex items-center gap-1"><Users className="h-4 w-4 text-info" /> Crecim. Preliminar: {totalPresent}</span>
-            <span className="flex items-center gap-1"><X className="h-4 w-4 text-destructive" /> Primerizo/Invitados: 0</span>
-          </div>
-        </CardContent>
-      </Card>
+      <SectionHero
+        icon={ClipboardCheck}
+        eyebrow={`Reporte · ${reunion.fecha || "sin fecha"}`}
+        title={reunion.nombre}
+        description={`Registro de asistencia y consolidación · ${reunion.tipo || "Reunión"} · ${reunion.hora || "—"}`}
+        gradient="from-rose-600 via-pink-500 to-orange-500"
+        stats={[
+          { label: "Presentes", value: totalPresent, tone: "ok" },
+          { label: "Ausentes", value: totalAbsent, tone: totalAbsent > 0 ? "warn" : "info" },
+          { label: "Tasa", value: `${attendanceRate}%`, tone: attendanceRate >= 70 ? "ok" : attendanceRate >= 40 ? "warn" : "bad" },
+          { label: "Personas", value: personas.length },
+        ]}
+      />
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Left: Attendance List */}
