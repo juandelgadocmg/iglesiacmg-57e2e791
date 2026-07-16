@@ -1,4 +1,5 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import PageHeader from "@/components/shared/PageHeader";
 import DataTable from "@/components/shared/DataTable";
 import StatusBadge from "@/components/shared/StatusBadge";
@@ -6,7 +7,8 @@ import ServicioFormDialog from "@/components/forms/ServicioFormDialog";
 import DeleteConfirmDialog from "@/components/shared/DeleteConfirmDialog";
 import MetricCard from "@/components/shared/MetricCard";
 import QrAttendanceScanner from "@/components/attendance/QrAttendanceScanner";
-import { Church, Pencil, ClipboardCheck, Check, X, Save, Search, TrendingUp, Calendar, Eye, FileText, Users, MapPin, Clock as ClockIcon, QrCode, Share2, Heart } from "lucide-react";
+import WeeklyTimeline from "@/components/servicios/WeeklyTimeline";
+import { Church, Pencil, ClipboardCheck, Check, X, Save, Search, TrendingUp, Calendar, Eye, FileText, Users, MapPin, Clock as ClockIcon, QrCode, Share2, Heart, CalendarDays, List } from "lucide-react";
 import ConsejeriaTab from "@/components/consejeria/ConsejeriaTab";
 import ProgramacionTab from "@/components/programa/ProgramacionTab";
 import { useServicios, useDeleteServicio, usePersonas, useAsistencia, useUpsertAsistencia } from "@/hooks/useDatabase";
@@ -26,6 +28,10 @@ import ExportDropdown from "@/components/shared/ExportDropdown";
 import AttendanceTrendChart from "@/components/charts/AttendanceTrendChart";
 
 type ActiveView = "reuniones" | "reportes" | "reporte-detalle" | "consejeria" | "programacion";
+
+const DAYS_ES = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
+const normStr = (s: any) => String(s ?? "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+
 
 export default function ServiciosPage() {
   const { data: servicios, isLoading } = useServicios();
