@@ -79,7 +79,7 @@ export type ActionPermission =
   | "programa:confirm:servidor"
   | "programa:confirm:colaborador";
 
-const ACTION_PERMISSIONS: Record<ActionPermission, AppRole[]> = {
+export const ACTION_PERMISSIONS: Record<ActionPermission, AppRole[]> = {
   "personas:create": ["admin", "super_admin", "pastor", "lider", "secretaria", "consolidador_lider"],
   "personas:edit":   ["admin", "super_admin", "pastor", "lider", "secretaria", "consolidador_lider", "consolidador"],
   "personas:delete": ["admin", "super_admin", "pastor"],
