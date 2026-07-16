@@ -32,9 +32,9 @@ export default function HoyPage() {
   const { user } = useAuth();
   const { roleLabel } = useActiveRole();
   const can = useCan();
-  const { data: personas = [], isLoading: personasLoading } = usePersonasQuery();
+  const { data: personas = [], isLoading: personasLoading } = usePersonas();
   const { data: eventos = [], isLoading: eventosLoading } = useProgEventos();
-  const { data: peticiones = [] } = usePeticiones({} as any);
+  const { data: peticiones = [] } = usePeticiones();
   const { data: unreadMsgs = 0 } = useUnreadCount();
   const { items: recents } = useRecentEntities();
 
