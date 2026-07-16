@@ -10,6 +10,8 @@ import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import StatusBadge from "@/components/shared/StatusBadge";
+import EmptyState from "@/components/shared/EmptyState";
+import ErrorState from "@/components/shared/ErrorState";
 import {
   useGrupoDetalle, useGrupoMiembrosDetalle, useGrupoReportes, useGrupoAsistenciaStats,
   type MiembroDetalle, type ReporteResumen,
@@ -62,7 +64,7 @@ const rolBadgeClass = (rol: string) => {
 };
 
 export default function GrupoPerfilView({ grupoId, onBack, readOnly = false }: Props) {
-  const { data: grupo, isLoading: loadingGrupo } = useGrupoDetalle(grupoId);
+  const { data: grupo, isLoading: loadingGrupo, isError: errorGrupo, error: grupoErr, refetch: refetchGrupo } = useGrupoDetalle(grupoId);
   const { data: miembros, isLoading: loadingMiembros } = useGrupoMiembrosDetalle(grupoId);
   const { data: reportes } = useGrupoReportes(grupoId);
   const { data: asistenciaStats } = useGrupoAsistenciaStats(grupoId);
@@ -164,10 +166,30 @@ export default function GrupoPerfilView({ grupoId, onBack, readOnly = false }: P
   };
 
   if (loadingGrupo) {
-    return <div className="space-y-4"><Skeleton className="h-10 w-48" /><Skeleton className="h-[500px] w-full" /></div>;
+    return (
+      <div className="space-y-4" role="status" aria-busy="true" aria-live="polite">
+        <span className="sr-only">Cargando información del grupo…</span>
+        <Skeleton className="h-10 w-48" />
+        <Skeleton className="h-[500px] w-full" />
+      </div>
+    );
   }
 
-  if (!grupo) return <div className="text-center py-12 text-muted-foreground">Grupo no encontrado</div>;
+  if (errorGrupo) {
+    return <ErrorState error={grupoErr} onRetry={() => refetchGrupo()} />;
+  }
+
+  if (!grupo) {
+    return (
+      <EmptyState
+        icon={Users}
+        title="Grupo no encontrado"
+        description="El grupo solicitado no existe o fue eliminado."
+        variant="hero"
+        action={onBack ? <Button variant="outline" size="sm" onClick={onBack}><ChevronLeft className="h-4 w-4 mr-1" />Volver a Grupos</Button> : undefined}
+      />
+    );
+  }
 
   return (
     <div className="animate-fade-in space-y-6">
@@ -410,11 +432,15 @@ export default function GrupoPerfilView({ grupoId, onBack, readOnly = false }: P
             </div>
 
             {/* Members list */}
-            {loadingMiembros ? <Skeleton className="h-[300px]" /> : filteredMembers.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">
-                <Users className="h-12 w-12 mx-auto mb-2 opacity-30" />
-                <p>No se encontraron integrantes</p>
-              </div>
+            {loadingMiembros ? (
+              <Skeleton className="h-[300px]" aria-label="Cargando integrantes" />
+            ) : filteredMembers.length === 0 ? (
+              <EmptyState
+                icon={Users}
+                title="No se encontraron integrantes"
+                description={memberSearch || memberFilterRol !== "todos" || memberFilterEstado !== "todos" ? "Prueba ajustar los filtros de búsqueda." : "Aún no hay personas asignadas a este grupo."}
+                variant="compact"
+              />
             ) : (
               <>
                 {equipoMembers.length > 0 && (
@@ -491,10 +517,11 @@ export default function GrupoPerfilView({ grupoId, onBack, readOnly = false }: P
         <TabsContent value="estadisticas">
           <div className="space-y-4">
             {chartData.length === 0 ? (
-              <div className="text-center py-12 text-muted-foreground">
-                <BarChart3 className="h-12 w-12 mx-auto mb-2 opacity-30" />
-                <p>No hay datos de asistencia disponibles</p>
-              </div>
+              <EmptyState
+                icon={BarChart3}
+                title="Sin datos de asistencia"
+                description="Aún no hay reportes suficientes para generar las gráficas de este grupo."
+              />
             ) : (
               <>
                 <div className="rounded-xl border bg-card p-5">
@@ -535,10 +562,11 @@ export default function GrupoPerfilView({ grupoId, onBack, readOnly = false }: P
         <TabsContent value="reportes">
           <div className="space-y-3">
             {(!reportes || reportes.length === 0) ? (
-              <div className="text-center py-12 text-muted-foreground">
-                <ClipboardList className="h-12 w-12 mx-auto mb-2 opacity-30" />
-                <p>No hay reportes registrados</p>
-              </div>
+              <EmptyState
+                icon={ClipboardList}
+                title="No hay reportes registrados"
+                description="Los reportes semanales de esta Casa de Paz aparecerán aquí una vez sean creados."
+              />
             ) : (
               <ScrollArea className="max-h-[600px]">
                 <div className="space-y-2">
@@ -586,11 +614,12 @@ export default function GrupoPerfilView({ grupoId, onBack, readOnly = false }: P
               <MapEmbed lat={grupo.latitud} lng={grupo.longitud} nombre={grupo.nombre} />
             </div>
           ) : (
-            <div className="text-center py-12 text-muted-foreground">
-              <MapPin className="h-12 w-12 mx-auto mb-2 opacity-30" />
-              <p>No hay coordenadas registradas para este grupo</p>
-              <p className="text-xs mt-1">Edita el grupo para agregar latitud y longitud</p>
-            </div>
+            <EmptyState
+              icon={MapPin}
+              title="Sin coordenadas registradas"
+              description="Edita el grupo para agregar latitud y longitud y ver su ubicación en el mapa."
+              action={!readOnly ? <Button size="sm" variant="outline" onClick={() => setEditing(true)}><Pencil className="h-3.5 w-3.5 mr-1" />Editar grupo</Button> : undefined}
+            />
           )}
         </TabsContent>
       </Tabs>
@@ -760,10 +789,12 @@ function PlanificacionTab({ grupoId, readOnly = false }: { grupoId: string; read
           ))}
         </div>
       ) : (
-        <div className="text-center py-12 text-muted-foreground">
-          <FileText className="h-10 w-10 mx-auto mb-2 opacity-50" />
-          <p>No hay planificaciones registradas.</p>
-        </div>
+        <EmptyState
+          icon={FileText}
+          title="Sin planificaciones registradas"
+          description="Crea la primera hoja de planeación semanal para este grupo."
+          action={!readOnly ? <Button size="sm" onClick={() => setShowPlanForm(true)}><UserPlus className="h-4 w-4 mr-1" />Nueva planificación</Button> : undefined}
+        />
       )}
 
       <PlanificacionGrupoFormDialog open={showPlanForm} onOpenChange={setShowPlanForm} />
