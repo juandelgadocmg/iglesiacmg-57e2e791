@@ -214,6 +214,186 @@ const VARIANTS: Record<ModuleVariant, {
         <line x1="0" y1="180" x2="400" y2="180" stroke="currentColor" strokeWidth="0.5"/>
       </svg>
     )
+  },
+  personas: {
+    icon: Users, gradient: "from-blue-600 via-indigo-600 to-violet-600",
+    chip: "bg-blue-500/10 text-blue-700 dark:text-blue-300 ring-blue-500/20",
+    ring: "ring-blue-500/30", tag: "People CRM", inspiredBy: "Notion · Attio",
+    pattern: (
+      <svg className="absolute inset-0 w-full h-full opacity-[0.09]" viewBox="0 0 400 200" preserveAspectRatio="none">
+        {Array.from({length:30}).map((_,i)=>(<circle key={i} cx={15+(i%15)*26} cy={30+Math.floor(i/15)*70} r="5" fill="currentColor"/>))}
+      </svg>
+    )
+  },
+  grupos: {
+    icon: UsersRound, gradient: "from-teal-600 via-cyan-600 to-blue-500",
+    chip: "bg-teal-500/10 text-teal-700 dark:text-teal-300 ring-teal-500/20",
+    ring: "ring-teal-500/30", tag: "Small Groups", inspiredBy: "Planning Center · Linear",
+    pattern: (
+      <svg className="absolute inset-0 w-full h-full opacity-[0.10]" viewBox="0 0 400 200" preserveAspectRatio="none">
+        {[[80,60],[200,50],[320,70],[120,140],[260,150]].map(([x,y],i)=>(
+          <g key={i}><circle cx={x} cy={y} r="18" stroke="currentColor" strokeWidth="0.8" fill="none"/><circle cx={x} cy={y} r="4" fill="currentColor"/></g>
+        ))}
+        <path d="M80 60 L200 50 L320 70 M120 140 L200 50 L260 150" stroke="currentColor" strokeWidth="0.5" fill="none"/>
+      </svg>
+    )
+  },
+  eventos: {
+    icon: CalendarDays, gradient: "from-fuchsia-600 via-pink-600 to-rose-500",
+    chip: "bg-fuchsia-500/10 text-fuchsia-700 dark:text-fuchsia-300 ring-fuchsia-500/20",
+    ring: "ring-fuchsia-500/30", tag: "Events Platform", inspiredBy: "Luma · Eventbrite",
+    pattern: (
+      <svg className="absolute inset-0 w-full h-full opacity-[0.10]" viewBox="0 0 400 200" preserveAspectRatio="none">
+        {Array.from({length:7}).map((_,d)=>Array.from({length:4}).map((__,w)=>(
+          <rect key={`${d}-${w}`} x={20+d*54} y={20+w*40} width="44" height="30" rx="4" stroke="currentColor" strokeWidth="0.5" fill="none"/>
+        )))}
+      </svg>
+    )
+  },
+  mensajes: {
+    icon: Mail, gradient: "from-sky-600 via-blue-600 to-indigo-600",
+    chip: "bg-sky-500/10 text-sky-700 dark:text-sky-300 ring-sky-500/20",
+    ring: "ring-sky-500/30", tag: "Internal Inbox", inspiredBy: "Superhuman · Front",
+    pattern: (
+      <svg className="absolute inset-0 w-full h-full opacity-[0.09]" viewBox="0 0 400 200" preserveAspectRatio="none">
+        {[30,70,110,150].map((y,i)=>(<g key={i}><rect x="20" y={y} width="360" height="24" rx="4" stroke="currentColor" strokeWidth="0.5" fill="none"/><circle cx="35" cy={y+12} r="4" fill="currentColor"/></g>))}
+      </svg>
+    )
+  },
+  peticiones: {
+    icon: HandHeart, gradient: "from-rose-600 via-pink-500 to-amber-500",
+    chip: "bg-rose-500/10 text-rose-700 dark:text-rose-300 ring-rose-500/20",
+    ring: "ring-rose-500/30", tag: "Pastoral Care · Kanban", inspiredBy: "Linear · Trello",
+    pattern: (
+      <svg className="absolute inset-0 w-full h-full opacity-[0.10]" viewBox="0 0 400 200" preserveAspectRatio="none">
+        {[20,120,220,320].map((x,i)=>(<g key={i}><rect x={x} y="20" width="60" height="160" rx="6" stroke="currentColor" strokeWidth="0.5" fill="none"/>{[35,75,115,155].map(y=>(<rect key={y} x={x+8} y={y} width="44" height="14" rx="2" fill="currentColor" fillOpacity="0.6"/>))}</g>))}
+      </svg>
+    )
+  },
+  hoy: {
+    icon: Sparkles, gradient: "from-violet-600 via-purple-600 to-pink-500",
+    chip: "bg-violet-500/10 text-violet-700 dark:text-violet-300 ring-violet-500/20",
+    ring: "ring-violet-500/30", tag: "Today · Home", inspiredBy: "Linear Inbox · Height",
+    pattern: (
+      <svg className="absolute inset-0 w-full h-full opacity-[0.10]" viewBox="0 0 400 200" preserveAspectRatio="none">
+        <circle cx="80" cy="100" r="40" stroke="currentColor" strokeWidth="0.5" fill="none"/>
+        <circle cx="80" cy="100" r="60" stroke="currentColor" strokeWidth="0.3" fill="none"/>
+        <circle cx="80" cy="100" r="80" stroke="currentColor" strokeWidth="0.2" fill="none"/>
+        {Array.from({length:12}).map((_,i)=>(<line key={i} x1="80" y1="100" x2={80+Math.cos(i*Math.PI/6)*80} y2={100+Math.sin(i*Math.PI/6)*80} stroke="currentColor" strokeWidth="0.2"/>))}
+      </svg>
+    )
+  },
+  dashboard: {
+    icon: LayoutDashboard, gradient: "from-slate-800 via-blue-700 to-indigo-600",
+    chip: "bg-blue-500/10 text-blue-700 dark:text-blue-300 ring-blue-500/20",
+    ring: "ring-blue-500/30", tag: "Executive Overview", inspiredBy: "Vercel · Linear",
+    pattern: (
+      <svg className="absolute inset-0 w-full h-full opacity-[0.10]" viewBox="0 0 400 200" preserveAspectRatio="none">
+        <rect x="20" y="20" width="110" height="70" rx="6" stroke="currentColor" strokeWidth="0.5" fill="none"/>
+        <rect x="140" y="20" width="110" height="70" rx="6" stroke="currentColor" strokeWidth="0.5" fill="none"/>
+        <rect x="260" y="20" width="120" height="70" rx="6" stroke="currentColor" strokeWidth="0.5" fill="none"/>
+        <rect x="20" y="100" width="360" height="80" rx="6" stroke="currentColor" strokeWidth="0.5" fill="none"/>
+        <path d="M40 160 L100 140 L160 150 L220 120 L280 130 L340 110" stroke="currentColor" strokeWidth="0.8" fill="none"/>
+      </svg>
+    )
+  },
+  banners: {
+    icon: ImageIcon, gradient: "from-orange-500 via-amber-500 to-yellow-400",
+    chip: "bg-orange-500/10 text-orange-700 dark:text-orange-300 ring-orange-500/20",
+    ring: "ring-orange-500/30", tag: "Content · Media", inspiredBy: "Contentful",
+    pattern: (
+      <svg className="absolute inset-0 w-full h-full opacity-[0.10]" viewBox="0 0 400 200" preserveAspectRatio="none">
+        {[20,120,220,320].map((x,i)=>(<rect key={i} x={x} y="40" width="70" height="120" rx="6" stroke="currentColor" strokeWidth="0.5" fill="none"/>))}
+      </svg>
+    )
+  },
+  videos: {
+    icon: PlaySquare, gradient: "from-red-600 via-rose-500 to-pink-500",
+    chip: "bg-red-500/10 text-red-700 dark:text-red-300 ring-red-500/20",
+    ring: "ring-red-500/30", tag: "Video Library", inspiredBy: "YouTube Studio",
+    pattern: (
+      <svg className="absolute inset-0 w-full h-full opacity-[0.10]" viewBox="0 0 400 200" preserveAspectRatio="none">
+        {[[40,40],[160,40],[280,40],[40,120],[160,120],[280,120]].map(([x,y],i)=>(
+          <g key={i}><rect x={x} y={y} width="90" height="52" rx="4" stroke="currentColor" strokeWidth="0.5" fill="none"/><polygon points={`${x+35},${y+18} ${x+55},${y+26} ${x+35},${y+34}`} fill="currentColor"/></g>
+        ))}
+      </svg>
+    )
+  },
+  asistencia: {
+    icon: ClipboardCheck, gradient: "from-emerald-600 via-green-500 to-lime-500",
+    chip: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 ring-emerald-500/20",
+    ring: "ring-emerald-500/30", tag: "Attendance Tracking", inspiredBy: "Planning Center Check-Ins",
+    pattern: (
+      <svg className="absolute inset-0 w-full h-full opacity-[0.10]" viewBox="0 0 400 200" preserveAspectRatio="none">
+        {Array.from({length:40}).map((_,i)=>(<rect key={i} x={20+(i%20)*19} y={40+Math.floor(i/20)*40} width="14" height="14" rx="3" stroke="currentColor" strokeWidth="0.5" fill={i%3===0?"currentColor":"none"}/>))}
+      </svg>
+    )
+  },
+  donaciones: {
+    icon: DollarSign, gradient: "from-emerald-700 via-emerald-500 to-teal-400",
+    chip: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 ring-emerald-500/20",
+    ring: "ring-emerald-500/30", tag: "Giving · Donations", inspiredBy: "Stripe · Pushpay",
+    pattern: (
+      <svg className="absolute inset-0 w-full h-full opacity-[0.10]" viewBox="0 0 400 200" preserveAspectRatio="none">
+        <path d="M0 180 L60 150 L120 160 L180 100 L240 120 L300 60 L360 90 L400 40" stroke="currentColor" strokeWidth="1.2" fill="none"/>
+        <path d="M0 180 L60 150 L120 160 L180 100 L240 120 L300 60 L360 90 L400 40 L400 200 L0 200 Z" fill="currentColor" fillOpacity="0.15"/>
+      </svg>
+    )
+  },
+  inscripciones: {
+    icon: Ticket, gradient: "from-purple-600 via-fuchsia-500 to-pink-500",
+    chip: "bg-purple-500/10 text-purple-700 dark:text-purple-300 ring-purple-500/20",
+    ring: "ring-purple-500/30", tag: "Registrations", inspiredBy: "Eventbrite",
+    pattern: (
+      <svg className="absolute inset-0 w-full h-full opacity-[0.10]" viewBox="0 0 400 200" preserveAspectRatio="none">
+        {[30,90,150].map((y,i)=>(<rect key={i} x="20" y={y} width="360" height="40" rx="6" stroke="currentColor" strokeWidth="0.5" fill="none"/>))}
+      </svg>
+    )
+  },
+  mapa: {
+    icon: MapPin, gradient: "from-cyan-600 via-teal-600 to-emerald-500",
+    chip: "bg-cyan-500/10 text-cyan-700 dark:text-cyan-300 ring-cyan-500/20",
+    ring: "ring-cyan-500/30", tag: "Geospatial", inspiredBy: "Mapbox",
+    pattern: (
+      <svg className="absolute inset-0 w-full h-full opacity-[0.10]" viewBox="0 0 400 200" preserveAspectRatio="none">
+        <path d="M0 100 Q100 60 200 100 T400 100" stroke="currentColor" strokeWidth="0.5" fill="none"/>
+        <path d="M0 140 Q100 100 200 140 T400 140" stroke="currentColor" strokeWidth="0.5" fill="none"/>
+        {[[80,80],[180,110],[280,90],[340,130]].map(([x,y],i)=>(<circle key={i} cx={x} cy={y} r="4" fill="currentColor"/>))}
+      </svg>
+    )
+  },
+  jerarquia: {
+    icon: Network, gradient: "from-indigo-700 via-blue-600 to-cyan-500",
+    chip: "bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 ring-indigo-500/20",
+    ring: "ring-indigo-500/30", tag: "Org Chart", inspiredBy: "OrgChart · Miro",
+    pattern: (
+      <svg className="absolute inset-0 w-full h-full opacity-[0.10]" viewBox="0 0 400 200" preserveAspectRatio="none">
+        <circle cx="200" cy="30" r="8" fill="currentColor"/>
+        {[80,160,240,320].map((x,i)=>(<g key={i}><line x1="200" y1="30" x2={x} y2="100" stroke="currentColor" strokeWidth="0.5"/><circle cx={x} cy="100" r="6" fill="currentColor"/><line x1={x} y1="100" x2={x-15} y2="170" stroke="currentColor" strokeWidth="0.5"/><line x1={x} y1="100" x2={x+15} y2="170" stroke="currentColor" strokeWidth="0.5"/></g>))}
+      </svg>
+    )
+  },
+  senal: {
+    icon: Radio, gradient: "from-red-600 via-orange-500 to-amber-400",
+    chip: "bg-red-500/10 text-red-700 dark:text-red-300 ring-red-500/20",
+    ring: "ring-red-500/30", tag: "Live Broadcast", inspiredBy: "Twitch · YouTube Live",
+    pattern: (
+      <svg className="absolute inset-0 w-full h-full opacity-[0.10]" viewBox="0 0 400 200" preserveAspectRatio="none">
+        {[30,60,90].map((r,i)=>(<circle key={i} cx="60" cy="100" r={r} stroke="currentColor" strokeWidth="0.5" fill="none"/>))}
+        <circle cx="60" cy="100" r="8" fill="currentColor"/>
+      </svg>
+    )
+  },
+  generic: {
+    icon: Layers, gradient: "from-slate-700 via-slate-600 to-slate-500",
+    chip: "bg-slate-500/10 text-slate-700 dark:text-slate-300 ring-slate-500/20",
+    ring: "ring-slate-500/30", tag: "Module", inspiredBy: "Linear",
+    pattern: (
+      <svg className="absolute inset-0 w-full h-full opacity-[0.08]" viewBox="0 0 400 200" preserveAspectRatio="none">
+        <defs><pattern id="g-gen" width="20" height="20" patternUnits="userSpaceOnUse"><path d="M0 10h20M10 0v20" stroke="currentColor" strokeWidth="0.4"/></pattern></defs>
+        <rect width="400" height="200" fill="url(#g-gen)"/>
+      </svg>
+    )
   }
 };
 
