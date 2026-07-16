@@ -262,8 +262,19 @@ export default function CertificadosPage() {
     if (selected?.id === id) setSelected(null);
   };
   const handleDownload = async (cert: any) => {
+    // Para tipos con plantilla configurable, abrir el diálogo con selector + vista previa
+    if (cert.tipo === "Bautismo" || cert.tipo === "Líderes de Casas de Paz") {
+      setDownloadCert(cert);
+      return;
+    }
     try {
       await generateCertificatePDF(cert, config);
+      await logCertExport({
+        tipo: "academia",
+        template: null,
+        persona_id: cert.persona_id,
+        contexto: { codigo: cert.codigo, tipo_original: cert.tipo, persona_nombre: cert.personaNombre },
+      });
       toast.success("Certificado descargado");
     } catch (e: any) {
       toast.error("No se pudo generar el PDF", { description: e?.message });
