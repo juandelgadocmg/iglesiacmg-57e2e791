@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import ModuleHero from "@/components/shell/ModuleHero";
+import SectionHero from "@/components/shell/SectionHero";
 import DataTable from "@/components/shared/DataTable";
 import StatusBadge from "@/components/shared/StatusBadge";
 import ServicioFormDialog from "@/components/forms/ServicioFormDialog";
