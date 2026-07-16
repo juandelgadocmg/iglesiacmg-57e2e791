@@ -332,48 +332,16 @@ export default function GruposPage() {
           </TabsList>
 
         <TabsContent value="lista">
-          <DataTable
-            data={gruposFiltrados} searchKey="nombre" searchPlaceholder="Buscar grupo..."
-            filterKey="tipo" filterPlaceholder="Tipo de grupo"
-            filterOptions={[
-              { value: "Casas de paz", label: "Casas de paz" }, { value: "Grupos encuentro", label: "Grupos encuentro" },
-            ]}
-            columns={[
-              {
-                key: "nombre", label: "Grupo",
-                render: (g: any) => (
-                  <div className="flex items-center gap-3 cursor-pointer" onClick={() => setSelectedGrupoId(g.id)}>
-                    <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
-                      <Users className="h-4 w-4 text-primary" />
-                    </div>
-                    <div>
-                      <p className="font-medium text-sm hover:underline">{g.nombre}</p>
-                      <p className="text-xs text-muted-foreground">{g.tipo}</p>
-                    </div>
-                  </div>
-                )
-              },
-              { key: "red", label: "Red", render: (g: any) => g.red || "—" },
-              { key: "liderNombre", label: "Líder" },
-              { key: "dia_reunion", label: "Día", render: (g: any) => `${g.dia_reunion || "—"} ${g.hora_reunion || ""}` },
-              { key: "miembrosCount", label: "Miembros", render: (g: any) => (
-                <Button variant="ghost" size="sm" className="gap-1 h-7 font-semibold" onClick={() => setSelectedGrupoId(g.id)}>
-                  <Users className="h-3.5 w-3.5" /> {g.miembrosCount}
-                </Button>
-              )},
-              { key: "estado", label: "Estado", render: (g: any) => <StatusBadge status={g.estado} /> },
-              {
-                key: "actions", label: "",
-                render: (g: any) => (
-                  <div className="flex items-center gap-1" onClick={e => e.stopPropagation()}>
-                    {canEditGrupo && <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setEditing({ ...g })}><Pencil className="h-4 w-4" /></Button>}
-                    {canDeleteGrupo && <DeleteConfirmDialog onConfirm={() => handleDelete(g.id)} title="¿Eliminar grupo?" description={`Se eliminará el grupo "${g.nombre}" permanentemente.`} />}
-                  </div>
-                )
-              },
-            ]}
+          <GruposViewSwitcher
+            grupos={gruposFiltrados}
+            onOpen={(id) => setSelectedGrupoId(id)}
+            onEdit={(g) => setEditing(g)}
+            onDelete={handleDelete}
+            canEdit={canEditGrupo}
+            canDelete={canDeleteGrupo}
           />
         </TabsContent>
+
 
         <TabsContent value="jerarquia">
           <GrupoHierarchyView onSelectGrupo={(id) => setSelectedGrupoId(id)} />
