@@ -12,6 +12,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import StatusBadge from "@/components/shared/StatusBadge";
 import EmptyState from "@/components/shared/EmptyState";
 import ErrorState from "@/components/shared/ErrorState";
+import { useLogGrupoLoadFailure } from "@/hooks/useLogGrupoLoadFailure";
 import {
   useGrupoDetalle, useGrupoMiembrosDetalle, useGrupoReportes, useGrupoAsistenciaStats,
   type MiembroDetalle, type ReporteResumen,
