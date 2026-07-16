@@ -108,6 +108,7 @@ export default function GruposPage() {
   const { data: planificaciones, error: planError, refetch: refetchPlan, isLoading: loadingPlan } = usePlanificaciones();
   const deletePlan = useDeletePlanificacion();
   const [viewingPlan, setViewingPlan] = useState<any>(null);
+  const [selectedPlanIds, setSelectedPlanIds] = useState<string[]>([]);
   const { roles } = useUserRoles();
   const { user } = useAuth();
   const { activeRole } = useActiveRole();
