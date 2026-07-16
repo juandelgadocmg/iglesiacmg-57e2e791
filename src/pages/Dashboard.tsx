@@ -9,6 +9,7 @@ import { useReportesGrupos } from "@/hooks/useReportesGrupos";
 import { useActiveBanners } from "@/hooks/useBanners";
 import { useActiveVideos } from "@/hooks/useVideosIglesia";
 import { useConfiguracion } from "@/hooks/useConfiguracion";
+import { useTemaSemanaVigente } from "@/hooks/useTemaSemana";
 import MetricCard from "@/components/shared/MetricCard";
 import StatusBadge from "@/components/shared/StatusBadge";
 import EventCalendar from "@/components/events/EventCalendar";
