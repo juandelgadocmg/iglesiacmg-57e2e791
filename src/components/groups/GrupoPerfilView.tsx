@@ -10,6 +10,8 @@ import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import StatusBadge from "@/components/shared/StatusBadge";
+import EmptyState from "@/components/shared/EmptyState";
+import ErrorState from "@/components/shared/ErrorState";
 import {
   useGrupoDetalle, useGrupoMiembrosDetalle, useGrupoReportes, useGrupoAsistenciaStats,
   type MiembroDetalle, type ReporteResumen,
