@@ -28,6 +28,7 @@ import { useRecentEntities } from "@/hooks/useRecentEntities";
 import { useUserPins } from "@/hooks/useUserPins";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
+import EmptyState from "@/components/shared/EmptyState";
 
 type Segment = {
   id: string;
