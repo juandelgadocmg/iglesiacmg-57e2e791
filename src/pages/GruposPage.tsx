@@ -430,8 +430,10 @@ export default function GruposPage() {
               )}
             </div>
 
-            {planificaciones === undefined ? (
+            {loadingPlan || planificaciones === undefined ? (
               <GrupoCardsSkeletonGrid count={6} />
+            ) : planError ? (
+              <ErrorState error={planError} onRetry={() => refetchPlan()} />
             ) : planificaciones.length === 0 ? (
               <EmptyState
                 icon={FileText}
