@@ -64,7 +64,7 @@ const rolBadgeClass = (rol: string) => {
 };
 
 export default function GrupoPerfilView({ grupoId, onBack, readOnly = false }: Props) {
-  const { data: grupo, isLoading: loadingGrupo } = useGrupoDetalle(grupoId);
+  const { data: grupo, isLoading: loadingGrupo, isError: errorGrupo, error: grupoErr, refetch: refetchGrupo } = useGrupoDetalle(grupoId);
   const { data: miembros, isLoading: loadingMiembros } = useGrupoMiembrosDetalle(grupoId);
   const { data: reportes } = useGrupoReportes(grupoId);
   const { data: asistenciaStats } = useGrupoAsistenciaStats(grupoId);
