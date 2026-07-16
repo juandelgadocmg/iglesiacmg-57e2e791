@@ -122,6 +122,33 @@ export default function ConfiguracionPage() {
     }
   };
 
+  const handleTemaPdfUpload = async (file: File) => {
+    if (file.type !== "application/pdf") {
+      toast.error("El archivo debe ser un PDF");
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error("El PDF no debe superar 10 MB");
+      return;
+    }
+    setUploadingTemaPdf(true);
+    try {
+      const path = `tema-semana/tema-${Date.now()}.pdf`;
+      const { error: upErr } = await supabase.storage.from("banners").upload(path, file, {
+        cacheControl: "31536000", upsert: false, contentType: "application/pdf",
+      });
+      if (upErr) throw upErr;
+      const { data: urlData } = supabase.storage.from("banners").getPublicUrl(path);
+      set("tema_semana_pdf_url", urlData.publicUrl);
+      toast.success("PDF subido. Recuerda guardar los cambios.");
+    } catch (e: any) {
+      toast.error(e?.message || "Error al subir el PDF");
+    } finally {
+      setUploadingTemaPdf(false);
+      if (temaPdfRef.current) temaPdfRef.current.value = "";
+    }
+  };
+
   const handleSave = async () => {
     if (form.discipulando_url && !isValidUrl(form.discipulando_url)) {
       toast.error("La URL de Discipulando Naciones no es válida");
