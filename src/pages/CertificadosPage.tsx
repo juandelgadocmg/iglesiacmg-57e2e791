@@ -17,6 +17,7 @@ import jsPDF from "jspdf";
 import { cn } from "@/lib/utils";
 import ModuleHero from "@/components/shell/ModuleHero";
 import PageSkeleton from "@/components/shared/PageSkeleton";
+import EmptyState from "@/components/shared/EmptyState";
 
 const TIPO_META: Record<string, { color: string; bg: string; ring: string }> = {
   "Membresía":              { color: "#3b82f6", bg: "from-blue-500/10 to-blue-500/5", ring: "ring-blue-500/30" },
