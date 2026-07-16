@@ -19,6 +19,8 @@ import { useProgEventos } from "@/hooks/usePrograma";
 import { usePeticiones } from "@/hooks/usePeticiones";
 import { useUnreadCount } from "@/hooks/useMensajes";
 import { useRecentEntities } from "@/hooks/useRecentEntities";
+import { useConfiguracion } from "@/hooks/useConfiguracion";
+import DashboardTemaSemana from "@/components/dashboard/DashboardTemaSemana";
 import { cn } from "@/lib/utils";
 
 function greeting() {
@@ -38,6 +40,7 @@ export default function HoyPage() {
   const { data: peticiones = [] } = usePeticiones();
   const { data: unreadMsgs = 0 } = useUnreadCount();
   const { items: recents } = useRecentEntities();
+  const { data: config } = useConfiguracion();
 
   const name = user?.email?.split("@")[0].split(/[._-]/)[0] || "Usuario";
   const nameCap = name.charAt(0).toUpperCase() + name.slice(1);
@@ -308,6 +311,15 @@ export default function HoyPage() {
             </ul>
           )}
         </BentoCard>
+
+        {/* TEMA DE LA SEMANA (Casas de Paz) — col-span-6 */}
+        <div className="col-span-6">
+          <DashboardTemaSemana
+            titulo={config?.tema_semana_titulo}
+            descripcion={config?.tema_semana_descripcion}
+            url={config?.tema_semana_url}
+          />
+        </div>
 
         {/* QUICK ACTIONS — col-span-6 */}
         <div className="col-span-6 grid grid-cols-2 md:grid-cols-4 gap-3">
