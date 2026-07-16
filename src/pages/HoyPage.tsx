@@ -61,7 +61,7 @@ export default function HoyPage() {
     queryFn: async () => {
       const { data } = await supabase
         .from("profiles")
-        .select("display_name, persona_id, personas:persona_id(nombres, apellidos)")
+        .select("display_name, avatar_url, persona_id, personas:persona_id(nombres, apellidos, foto_url)")
         .eq("user_id", user!.id)
         .maybeSingle();
       return data as any;
@@ -70,6 +70,9 @@ export default function HoyPage() {
   const personaFull = myProfile?.personas
     ? `${myProfile.personas.nombres ?? ""} ${myProfile.personas.apellidos ?? ""}`.trim()
     : "";
+  const avatarUrl: string | undefined =
+    myProfile?.personas?.foto_url || myProfile?.avatar_url || user?.user_metadata?.avatar_url;
+
   const rawName =
     personaFull ||
     myProfile?.display_name ||
