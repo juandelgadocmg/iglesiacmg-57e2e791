@@ -75,6 +75,7 @@ function Content({ onNav }: { onNav?: () => void }) {
   const { pins } = useUserPins();
   const { items: recents } = useRecentEntities();
   const { data: unread = 0 } = useUnreadCount();
+  const { open: openDiscipulando } = useDiscipulando();
 
   const effective = activeRole ? [activeRole as any] : roles;
   const canShow = (to: string) => canAccess(effective, to.split("?")[0]);
