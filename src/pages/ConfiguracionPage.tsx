@@ -143,7 +143,19 @@ export default function ConfiguracionPage() {
 
   return (
     <div className="animate-fade-in">
-      <PageHeader title="Configuración" description="Datos generales, contenido multimedia y ajustes del sistema" />
+      <ModuleHero
+        variant="configuracion"
+        title="Configuración"
+        eyebrow="Platform Settings"
+        description="Datos institucionales, contenido multimedia y ajustes del sistema — cambios auditados y versionados."
+        status={{ label: "Sincronizado", tone: "ok" }}
+        kpis={[
+          { label: "Iglesia", value: (config?.nombre_iglesia || "—").slice(0, 24), hint: "Identidad principal", tone: "info" },
+          { label: "Pastor principal", value: config?.pastor_principal || "—", hint: "Responsable pastoral" },
+          { label: "Zona horaria", value: (config as any)?.timezone || "America/Bogota", hint: "Región configurada" },
+          { label: "Moneda", value: (config as any)?.moneda || "COP", hint: "Formato regional" },
+        ]}
+      />
 
       <Tabs defaultValue="general" className="space-y-4">
         <TabsList className="flex-wrap h-auto gap-1">
