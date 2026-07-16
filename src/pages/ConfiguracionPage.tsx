@@ -44,7 +44,9 @@ export default function ConfiguracionPage() {
   const [form, setForm] = useState<Record<string, string>>({});
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [logoPreviewError, setLogoPreviewError] = useState(false);
+  const [uploadingTemaPdf, setUploadingTemaPdf] = useState(false);
   const logoFileRef = useRef<HTMLInputElement>(null);
+  const temaPdfRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (config) {
@@ -67,6 +69,7 @@ export default function ConfiguracionPage() {
         tema_semana_titulo: config.tema_semana_titulo || "",
         tema_semana_descripcion: config.tema_semana_descripcion || "",
         tema_semana_url: config.tema_semana_url || "",
+        tema_semana_pdf_url: (config as any).tema_semana_pdf_url || "",
         tesoreria_cdp_tolerancia_pct: String((config as any).tesoreria_cdp_tolerancia_pct ?? 0),
         tesoreria_cdp_tolerancia_abs: String((config as any).tesoreria_cdp_tolerancia_abs ?? 0),
         tesoreria_cdp_dias_mora: String((config as any).tesoreria_cdp_dias_mora ?? 7),
@@ -116,6 +119,33 @@ export default function ConfiguracionPage() {
     } finally {
       setUploadingLogo(false);
       if (logoFileRef.current) logoFileRef.current.value = "";
+    }
+  };
+
+  const handleTemaPdfUpload = async (file: File) => {
+    if (file.type !== "application/pdf") {
+      toast.error("El archivo debe ser un PDF");
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error("El PDF no debe superar 10 MB");
+      return;
+    }
+    setUploadingTemaPdf(true);
+    try {
+      const path = `tema-semana/tema-${Date.now()}.pdf`;
+      const { error: upErr } = await supabase.storage.from("banners").upload(path, file, {
+        cacheControl: "31536000", upsert: false, contentType: "application/pdf",
+      });
+      if (upErr) throw upErr;
+      const { data: urlData } = supabase.storage.from("banners").getPublicUrl(path);
+      set("tema_semana_pdf_url", urlData.publicUrl);
+      toast.success("PDF subido. Recuerda guardar los cambios.");
+    } catch (e: any) {
+      toast.error(e?.message || "Error al subir el PDF");
+    } finally {
+      setUploadingTemaPdf(false);
+      if (temaPdfRef.current) temaPdfRef.current.value = "";
     }
   };
 
@@ -400,6 +430,33 @@ export default function ConfiguracionPage() {
                 <div className="space-y-2 sm:col-span-2">
                   <Label>URL del enlace (opcional)</Label>
                   <Input value={form.tema_semana_url || ""} onChange={e => set("tema_semana_url", e.target.value)} placeholder="https://..." />
+                </div>
+                <div className="space-y-2 sm:col-span-2">
+                  <Label>PDF descargable (opcional)</Label>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <input
+                      ref={temaPdfRef}
+                      type="file"
+                      accept="application/pdf"
+                      className="hidden"
+                      onChange={e => e.target.files?.[0] && handleTemaPdfUpload(e.target.files[0])}
+                    />
+                    <Button type="button" variant="outline" size="sm" onClick={() => temaPdfRef.current?.click()} disabled={uploadingTemaPdf}>
+                      <Upload className="h-4 w-4 mr-1.5" />
+                      {uploadingTemaPdf ? "Subiendo..." : (form.tema_semana_pdf_url ? "Reemplazar PDF" : "Subir PDF")}
+                    </Button>
+                    {form.tema_semana_pdf_url && (
+                      <>
+                        <a href={form.tema_semana_pdf_url} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline truncate max-w-[240px]">
+                          Ver PDF actual
+                        </a>
+                        <Button type="button" variant="ghost" size="sm" onClick={() => set("tema_semana_pdf_url", "")}>
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </>
+                    )}
+                  </div>
+                  <p className="text-xs text-muted-foreground">Máximo 10 MB. Si se sube, el botón "Descargar PDF" del dashboard entregará este archivo.</p>
                 </div>
               </CardContent>
             </Card>

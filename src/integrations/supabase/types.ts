@@ -422,6 +422,7 @@ export type Database = {
           sitio_web: string | null
           telefono: string | null
           tema_semana_descripcion: string | null
+          tema_semana_pdf_url: string | null
           tema_semana_titulo: string | null
           tema_semana_url: string | null
           tesoreria_cdp_dias_mora: number
@@ -451,6 +452,7 @@ export type Database = {
           sitio_web?: string | null
           telefono?: string | null
           tema_semana_descripcion?: string | null
+          tema_semana_pdf_url?: string | null
           tema_semana_titulo?: string | null
           tema_semana_url?: string | null
           tesoreria_cdp_dias_mora?: number
@@ -480,6 +482,7 @@ export type Database = {
           sitio_web?: string | null
           telefono?: string | null
           tema_semana_descripcion?: string | null
+          tema_semana_pdf_url?: string | null
           tema_semana_titulo?: string | null
           tema_semana_url?: string | null
           tesoreria_cdp_dias_mora?: number

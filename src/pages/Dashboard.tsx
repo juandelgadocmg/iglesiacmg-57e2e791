@@ -212,7 +212,9 @@ export default function Dashboard() {
             titulo={config?.tema_semana_titulo}
             descripcion={config?.tema_semana_descripcion}
             url={config?.tema_semana_url}
+            pdfUrl={(config as any)?.tema_semana_pdf_url}
           />
+
         </div>
       </div>
 

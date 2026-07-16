@@ -1,0 +1,1 @@
+ALTER TABLE public.configuracion_iglesia ADD COLUMN IF NOT EXISTS tema_semana_pdf_url text;

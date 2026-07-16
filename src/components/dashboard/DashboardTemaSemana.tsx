@@ -6,16 +6,39 @@ interface Props {
   titulo?: string | null;
   descripcion?: string | null;
   url?: string | null;
+  pdfUrl?: string | null;
 }
 
-export default function DashboardTemaSemana({ titulo, descripcion, url }: Props) {
+export default function DashboardTemaSemana({ titulo, descripcion, url, pdfUrl }: Props) {
   const navigate = useNavigate();
 
   const isEmpty = !titulo && !descripcion;
 
-  const handleDownloadPDF = () => {
+  const handleDownloadPDF = async () => {
+    // Si hay un PDF cargado, descargarlo directamente
+    if (pdfUrl) {
+      try {
+        const res = await fetch(pdfUrl);
+        const blob = await res.blob();
+        const link = document.createElement("a");
+        const objUrl = URL.createObjectURL(blob);
+        link.href = objUrl;
+        link.download = `tema-de-la-semana-${new Date().toISOString().slice(0, 10)}.pdf`;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        URL.revokeObjectURL(objUrl);
+        return;
+      } catch {
+        // Fallback: abrir en pestaña nueva
+        window.open(pdfUrl, "_blank", "noopener,noreferrer");
+        return;
+      }
+    }
+
+    // Fallback: generar PDF simple con los campos configurados
     const doc = new jsPDF();
-    doc.setFillColor(13, 148, 136); // teal-600
+    doc.setFillColor(13, 148, 136);
     doc.rect(0, 0, 210, 60, "F");
 
     doc.setTextColor(255, 255, 255);
@@ -56,7 +79,7 @@ export default function DashboardTemaSemana({ titulo, descripcion, url }: Props)
           {isEmpty ? "Sin tema configurado" : (descripcion || titulo)}
         </p>
         <div className="flex items-center justify-center gap-2 mt-4 flex-wrap">
-          {!isEmpty && (
+          {(!isEmpty || pdfUrl) && (
             <button
               onClick={handleDownloadPDF}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-white/20 hover:bg-white/30 transition-colors"
