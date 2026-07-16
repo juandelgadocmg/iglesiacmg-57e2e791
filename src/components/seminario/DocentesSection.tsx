@@ -32,29 +32,38 @@ export default function DocentesSection() {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <div>
-          <h2 className="text-lg font-semibold">Docentes del Seminario</h2>
-          <p className="text-xs text-muted-foreground">Lista de docentes con materias y métricas</p>
-        </div>
-        <div className="flex gap-2 flex-wrap">
-          <div className="relative">
-            <Search className="absolute left-2 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
-            <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Buscar por nombre o CC..." className="pl-8 w-56" />
+      <SectionHero
+        icon={Users}
+        eyebrow="Cuerpo académico"
+        title="Docentes del Seminario"
+        description="Lista de docentes con materias asignadas y métricas por periodo."
+        gradient="from-emerald-600 via-teal-600 to-cyan-600"
+        stats={[
+          { label: "Docentes", value: (docentes as any[]).length, tone: "info" },
+          { label: "Filtrados", value: filtered.length, tone: "ok" },
+          { label: "Periodo", value: periodoLabel || "Todos" },
+          { label: "Programa", value: (programas || []).find((p: any) => p.id === effProg)?.codigo || "—" },
+        ]}
+        actions={
+          <div className="flex gap-2 flex-wrap">
+            <div className="relative">
+              <Search className="absolute left-2 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
+              <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Buscar por nombre o CC…" className="pl-8 w-52" />
+            </div>
+            <Select value={effProg} onValueChange={handleProgramaChange}>
+              <SelectTrigger className="w-44"><SelectValue placeholder="Programa" /></SelectTrigger>
+              <SelectContent>{(programas || []).map((p: any) => <SelectItem key={p.id} value={p.id}>{p.nombre}</SelectItem>)}</SelectContent>
+            </Select>
+            <Select value={periodoId || "_all"} onValueChange={(v) => setPeriodoId(v === "_all" ? "" : v)}>
+              <SelectTrigger className="w-44"><SelectValue placeholder="Periodo" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="_all">Todos los periodos</SelectItem>
+                {(periodos || []).map((p: any) => <SelectItem key={p.id} value={p.id}>{p.nombre}</SelectItem>)}
+              </SelectContent>
+            </Select>
           </div>
-          <Select value={effProg} onValueChange={handleProgramaChange}>
-            <SelectTrigger className="w-48"><SelectValue placeholder="Programa" /></SelectTrigger>
-            <SelectContent>{(programas || []).map((p: any) => <SelectItem key={p.id} value={p.id}>{p.nombre}</SelectItem>)}</SelectContent>
-          </Select>
-          <Select value={periodoId || "_all"} onValueChange={(v) => setPeriodoId(v === "_all" ? "" : v)}>
-            <SelectTrigger className="w-48"><SelectValue placeholder="Periodo" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="_all">Todos los periodos</SelectItem>
-              {(periodos || []).map((p: any) => <SelectItem key={p.id} value={p.id}>{p.nombre}</SelectItem>)}
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
+        }
+      />
 
       {filtered.length === 0 ? (
         <Card><CardContent className="p-6 text-center text-sm text-muted-foreground">
