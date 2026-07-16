@@ -1,6 +1,11 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Menu, Search, ChevronRight, ChevronDown, Check, Mail, Building2 } from "lucide-react";
+import { Menu, Search, ChevronRight, ChevronDown, Check, Mail, Building2, BookOpenText } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import discipulandoLogoAsset from "@/assets/discipulando-naciones-logo.png.asset.json";
+
+const DEFAULT_DISCIPULANDO_URL = "https://discipulandonaciones.lovable.app";
+const DEFAULT_LOGO_SRC = discipulandoLogoAsset.url;
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
