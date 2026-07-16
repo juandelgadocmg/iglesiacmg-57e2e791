@@ -18,10 +18,13 @@ import { cn } from "@/lib/utils";
 import ModuleHero from "@/components/shell/ModuleHero";
 import PageSkeleton from "@/components/shared/PageSkeleton";
 import EmptyState from "@/components/shared/EmptyState";
+import certLideresAsset from "@/assets/cert-lideres-cdp.png.asset.json";
+import certBautismoAsset from "@/assets/cert-bautismo.png.asset.json";
 
 const TIPO_META: Record<string, { color: string; bg: string; ring: string }> = {
   "Membresía":              { color: "#3b82f6", bg: "from-blue-500/10 to-blue-500/5", ring: "ring-blue-500/30" },
   "Bautismo":               { color: "#06b6d4", bg: "from-cyan-500/10 to-cyan-500/5", ring: "ring-cyan-500/30" },
+  "Líderes de Casas de Paz":{ color: "#c9a24a", bg: "from-amber-500/10 to-amber-500/5", ring: "ring-amber-500/30" },
   "Confirmación":           { color: "#22c55e", bg: "from-emerald-500/10 to-emerald-500/5", ring: "ring-emerald-500/30" },
   "Matrimonio":             { color: "#f59e0b", bg: "from-amber-500/10 to-amber-500/5", ring: "ring-amber-500/30" },
   "Presentación de niños":  { color: "#a855f7", bg: "from-purple-500/10 to-purple-500/5", ring: "ring-purple-500/30" },
@@ -30,6 +33,23 @@ const TIPO_META: Record<string, { color: string; bg: string; ring: string }> = {
   "Curso":                  { color: "#8b5cf6", bg: "from-violet-500/10 to-violet-500/5", ring: "ring-violet-500/30" },
 };
 const tipoMeta = (t: string) => TIPO_META[t] || { color: "#6b7280", bg: "from-gray-500/10 to-gray-500/5", ring: "ring-gray-500/30" };
+
+/** Plantillas oficiales (imágenes de fondo). El nombre se dibuja sobre la línea. */
+const TEMPLATE_MAP: Record<string, string> = {
+  "Bautismo": certBautismoAsset.url,
+  "Líderes de Casas de Paz": certLideresAsset.url,
+};
+
+async function loadImageDataUrl(url: string): Promise<string> {
+  const res = await fetch(url, { mode: "cors" });
+  const blob = await res.blob();
+  return await new Promise((resolve, reject) => {
+    const r = new FileReader();
+    r.onload = () => resolve(r.result as string);
+    r.onerror = reject;
+    r.readAsDataURL(blob);
+  });
+}
 
 function generateCertificatePDF(cert: any, config: any) {
   const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "letter" });
