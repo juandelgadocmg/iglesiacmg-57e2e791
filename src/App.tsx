@@ -31,6 +31,7 @@ import VerificarAcademicoPage from "@/pages/VerificarAcademicoPage";
 import OAuthConsentPage from "@/pages/OAuthConsentPage";
 import SeguridadPage from "@/pages/SeguridadPage";
 import NotFound from "./pages/NotFound";
+import DesignSystemPage from "@/pages/_design-system/DesignSystemPage";
 
 const queryClient = new QueryClient();
 if (typeof window !== "undefined") (window as any).__lovableQueryClient = queryClient;
