@@ -102,7 +102,7 @@ describe("GrupoPerfilView — estados premium", () => {
   it("oculta acciones de escritura cuando readOnly=true", () => {
     detalleState.data = {
       id: "g-1", nombre: "CDP Norte", red: "Nissi", lider_nombre: "L1",
-      latitud: null, longitud: null, fecha_creacion: "2024-01-15", tipo: "casa_paz",
+      latitud: null, longitud: null, created_at: "2024-01-15T00:00:00Z", tipo: "casa_paz",
     };
     renderView({ readOnly: true });
     expect(screen.queryByRole("button", { name: /Editar$/i })).not.toBeInTheDocument();
@@ -112,7 +112,7 @@ describe("GrupoPerfilView — estados premium", () => {
   it("renderiza acciones de escritura cuando readOnly=false", () => {
     detalleState.data = {
       id: "g-1", nombre: "CDP Norte", red: "Nissi", lider_nombre: "L1",
-      latitud: null, longitud: null, fecha_creacion: "2024-01-15", tipo: "casa_paz",
+      latitud: null, longitud: null, created_at: "2024-01-15T00:00:00Z", tipo: "casa_paz",
     };
     renderView({ readOnly: false });
     expect(screen.getByRole("button", { name: /Editar/i })).toBeInTheDocument();
