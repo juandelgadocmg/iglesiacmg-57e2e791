@@ -12,6 +12,7 @@ import { toast } from "sonner";
 import { useCan } from "@/hooks/useCan";
 import { exportKardexPdf } from "@/lib/seminarioPdf";
 import { logSemAudit } from "@/lib/seminarioAudit";
+import CertDownloadDialog from "@/components/certificados/CertDownloadDialog";
 
 const sb = supabase as any;
 
