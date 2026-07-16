@@ -136,7 +136,19 @@ export default function ReportesGruposPage() {
       records,
       headerNote: `${filtered.length} reporte(s)`,
     });
-    logExportEvent({ format: "pdf", filename: "reportes-grupo-detallado", title: "Reportes de Grupo", row_count: filtered.length });
+    supabase.auth.getUser().then(({ data }) => {
+      const u = data.user;
+      if (!u) return;
+      supabase.from("export_audit_log").insert({
+        user_id: u.id,
+        user_email: u.email ?? null,
+        format: "pdf",
+        filename: "reportes-grupo-detallado",
+        title: "Reportes de Grupo",
+        row_count: filtered.length,
+        filters: { tab, search, from: dateRange?.from?.toISOString() ?? null, to: dateRange?.to?.toISOString() ?? null } as any,
+      } as any).then(() => {}, () => {});
+    });
   };
 
   const csvColumns = [
