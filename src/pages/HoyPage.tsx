@@ -134,13 +134,26 @@ export default function HoyPage() {
           <div className="absolute -top-24 -right-24 w-80 h-80 rounded-full bg-primary/15 blur-3xl" />
           <div className="absolute -bottom-16 -left-16 w-72 h-72 rounded-full bg-accent/10 blur-3xl" />
           <div className="relative flex flex-col md:flex-row md:items-end md:justify-between gap-6">
-            <div>
-              <div className="flex items-center gap-2 text-[11px] text-muted-foreground uppercase tracking-widest mb-2">
-                <Sparkles className="h-3.5 w-3.5 text-primary" />
-                {todayStr}
-              </div>
-              <h1 className="text-3xl md:text-5xl font-bold tracking-tight leading-none">
-                {greeting()}, <span className="bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">{nameCap}</span>
+            <div className="flex items-center gap-4 md:gap-5">
+              <Avatar className="h-16 w-16 md:h-20 md:w-20 ring-2 ring-primary/30 shadow-md shrink-0">
+                {avatarUrl && <img src={avatarUrl} alt={nameCap} className="h-full w-full object-cover" />}
+                <AvatarFallback className="bg-primary/15 text-primary text-lg md:text-2xl font-semibold">
+                  {(personaFull || rawName)
+                    .split(" ")
+                    .filter(Boolean)
+                    .slice(0, 2)
+                    .map((s) => s[0]?.toUpperCase())
+                    .join("") || "US"}
+                </AvatarFallback>
+              </Avatar>
+              <div>
+                <div className="flex items-center gap-2 text-[11px] text-muted-foreground uppercase tracking-widest mb-2">
+                  <Sparkles className="h-3.5 w-3.5 text-primary" />
+                  {todayStr}
+                </div>
+                <h1 className="text-3xl md:text-5xl font-bold tracking-tight leading-none">
+                  {greeting()}, <span className="bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">{nameCap}</span>
+
               </h1>
               <div className="flex items-center gap-2 mt-3">
                 {roleLabel && <Badge variant="secondary" className="rounded-full">{roleLabel}</Badge>}
