@@ -8,7 +8,8 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
-import { Download, TrendingUp, BookOpen, FileText, Search, ChevronLeft, ChevronRight } from "lucide-react";
+import { Download, TrendingUp, BookOpen, FileText, Search, ChevronLeft, ChevronRight, BarChart3 } from "lucide-react";
+import SectionHero from "@/components/shell/SectionHero";
 import { exportToExcel, exportToPDF } from "@/lib/exportUtils";
 import { toast } from "sonner";
 
