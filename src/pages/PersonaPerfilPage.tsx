@@ -613,7 +613,7 @@ export default function PersonaPerfilPage() {
             <SectionCard
               icon={<Activity className="h-4 w-4" />}
               title="Actividad reciente"
-              right={<Button variant="ghost" size="sm" className="gap-1" onClick={() => (document.querySelector('[role="tab"][value="actividad"]') as HTMLElement)?.click()}>Ver toda <ChevronRight className="h-3.5 w-3.5" /></Button>}
+              right={<Button variant="ghost" size="sm" className="gap-1" onClick={() => setActiveTab("actividad")}>Ver toda <ChevronRight className="h-3.5 w-3.5" /></Button>}
             >
               <PersonaActivityTimeline events={timeline.slice(0, 6)} />
             </SectionCard>
