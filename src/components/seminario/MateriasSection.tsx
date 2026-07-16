@@ -60,35 +60,51 @@ export default function MateriasSection({ readOnly = false }: { readOnly?: boole
     } catch (e: any) { toast.error(e.message); }
   };
 
+  const list = materias || [];
+  const totalCreditos = list.reduce((s: number, m: any) => s + (m.creditos || 0), 0);
+  const areas = new Set(list.map((m: any) => m.area).filter(Boolean));
+
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 className="text-lg font-semibold">Catálogo de Materias</h2>
-        <div className="flex flex-wrap gap-2">
-          <Select value={effectiveId} onValueChange={setProgramaId}>
-            <SelectTrigger className="w-56"><SelectValue placeholder="Programa" /></SelectTrigger>
-            <SelectContent>
-              {(programas || []).map((p: any) => <SelectItem key={p.id} value={p.id}>{p.nombre}</SelectItem>)}
-            </SelectContent>
-          </Select>
-          <Select value={semestreFilter} onValueChange={setSemestreFilter}>
-            <SelectTrigger className="w-40"><SelectValue placeholder="Semestre" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos los semestres</SelectItem>
-              {(semestres || []).map((s: any) => (
-                <SelectItem key={s.id} value={String(s.numero)}>Semestre {s.numero}</SelectItem>
-              ))}
-              <SelectItem value="none">Sin semestre</SelectItem>
-            </SelectContent>
-          </Select>
-          {!readOnly && (
-            <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) setEditing(null); }}>
-              <DialogTrigger asChild><Button size="sm"><Plus className="h-4 w-4 mr-1" /> Nueva materia</Button></DialogTrigger>
-              <MateriaDialog initial={editing} onSave={onSave} pending={upsert.isPending} />
-            </Dialog>
-          )}
-        </div>
-      </div>
+      <SectionHero
+        icon={FileText}
+        eyebrow="Catálogo maestro"
+        title="Catálogo de Materias"
+        description="Asignaturas, créditos, prerrequisitos y áreas académicas."
+        gradient="from-cyan-600 via-sky-500 to-blue-600"
+        stats={[
+          { label: "Materias", value: list.length, tone: "info" },
+          { label: "Créditos", value: totalCreditos, tone: "ok" },
+          { label: "Áreas", value: areas.size },
+          { label: "Filtradas", value: filtered.length },
+        ]}
+        actions={
+          <div className="flex flex-wrap gap-2">
+            <Select value={effectiveId} onValueChange={setProgramaId}>
+              <SelectTrigger className="w-48"><SelectValue placeholder="Programa" /></SelectTrigger>
+              <SelectContent>
+                {(programas || []).map((p: any) => <SelectItem key={p.id} value={p.id}>{p.nombre}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            <Select value={semestreFilter} onValueChange={setSemestreFilter}>
+              <SelectTrigger className="w-36"><SelectValue placeholder="Semestre" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos los semestres</SelectItem>
+                {(semestres || []).map((s: any) => (
+                  <SelectItem key={s.id} value={String(s.numero)}>Semestre {s.numero}</SelectItem>
+                ))}
+                <SelectItem value="none">Sin semestre</SelectItem>
+              </SelectContent>
+            </Select>
+            {!readOnly && (
+              <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) setEditing(null); }}>
+                <DialogTrigger asChild><Button size="sm" className="gap-1.5"><Plus className="h-4 w-4" /> Nueva materia</Button></DialogTrigger>
+                <MateriaDialog initial={editing} onSave={onSave} pending={upsert.isPending} />
+              </Dialog>
+            )}
+          </div>
+        }
+      />
 
       {isLoading ? <p className="text-sm text-muted-foreground">Cargando...</p> : (
         <>
