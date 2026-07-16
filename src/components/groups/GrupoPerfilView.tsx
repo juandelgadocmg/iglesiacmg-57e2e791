@@ -614,11 +614,12 @@ export default function GrupoPerfilView({ grupoId, onBack, readOnly = false }: P
               <MapEmbed lat={grupo.latitud} lng={grupo.longitud} nombre={grupo.nombre} />
             </div>
           ) : (
-            <div className="text-center py-12 text-muted-foreground">
-              <MapPin className="h-12 w-12 mx-auto mb-2 opacity-30" />
-              <p>No hay coordenadas registradas para este grupo</p>
-              <p className="text-xs mt-1">Edita el grupo para agregar latitud y longitud</p>
-            </div>
+            <EmptyState
+              icon={MapPin}
+              title="Sin coordenadas registradas"
+              description="Edita el grupo para agregar latitud y longitud y ver su ubicación en el mapa."
+              action={!readOnly ? <Button size="sm" variant="outline" onClick={() => setEditing(true)}><Pencil className="h-3.5 w-3.5 mr-1" />Editar grupo</Button> : undefined}
+            />
           )}
         </TabsContent>
       </Tabs>
