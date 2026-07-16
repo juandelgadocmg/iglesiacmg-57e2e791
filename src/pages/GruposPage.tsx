@@ -102,7 +102,7 @@ export default function GruposPage() {
   const [selectedGrupoId, setSelectedGrupoId] = useState<string | null>(null);
   const [selectedRed, setSelectedRed] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<string>("lista");
-  const { data: planificaciones } = usePlanificaciones();
+  const { data: planificaciones, error: planError, refetch: refetchPlan, isLoading: loadingPlan } = usePlanificaciones();
   const deletePlan = useDeletePlanificacion();
   const [viewingPlan, setViewingPlan] = useState<any>(null);
   const { roles } = useUserRoles();
