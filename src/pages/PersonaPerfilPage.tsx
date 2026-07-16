@@ -226,10 +226,89 @@ export default function PersonaPerfilPage() {
     return evs;
   }, [asistencias, finanzasP, donacionesP, peticionesP, consejeriasP, personaProcesos, procesos, persona]);
 
-  const registrarAsistencia = () => navigate("/asistencia", { state: { personaId: id } });
-  const generarCertificado = () => navigate("/certificados", { state: { personaId: id } });
-  const handleExportPDF = () => { if (persona) { exportPersonaFichaPDF(persona, timeline); toast.success("Ficha PDF generada"); } };
-  const handleExportCSV = () => { if (persona) { exportPersonaHistorialCSV(persona, timeline); toast.success("Historial CSV exportado"); } };
+  // Helpers
+  const logPersonaAction = async (action: string, details: Record<string, any> = {}) => {
+    try {
+      await (supabase as any).rpc("log_persona_action", {
+        _persona_id: id,
+        _action: action,
+        _details: details,
+      });
+    } catch (err) {
+      // Non-blocking — audit failures should not stop the UX
+      console.warn("log_persona_action failed", err);
+    }
+  };
+
+  // Registrar asistencia rápida: ask servicio → confirm → save
+  const openRegistrarAsistencia = () => {
+    if (!servicios || servicios.length === 0) {
+      toast.error("No hay servicios disponibles para registrar asistencia");
+      return;
+    }
+    // Preselect nearest upcoming/most recent service
+    setServicioParaAsistir(servicios[0].id);
+    setAskServicio(true);
+  };
+  const confirmarServicioAsistencia = () => {
+    const svc = (servicios || []).find((s: any) => s.id === servicioParaAsistir);
+    if (!svc) return;
+    setAskServicio(false);
+    setConfirmAsist({ servicioId: svc.id, nombreServicio: `${svc.nombre || "Servicio"}${svc.fecha ? " · " + svc.fecha : ""}` });
+  };
+  const ejecutarRegistroAsistencia = async () => {
+    if (!confirmAsist || !persona) return;
+    try {
+      await upsertAsistencia.mutateAsync([
+        { servicio_id: confirmAsist.servicioId, persona_id: persona.id, presente: true },
+      ]);
+      await logPersonaAction("ATTENDANCE_MARK", {
+        servicio_id: confirmAsist.servicioId,
+        servicio: confirmAsist.nombreServicio,
+        source: "profile_quick_action",
+      });
+      toast.success("Asistencia registrada", { description: confirmAsist.nombreServicio });
+      setConfirmAsist(null);
+    } catch (e: any) {
+      toast.error("Error al registrar asistencia", { description: e?.message });
+    }
+  };
+
+  const generarCertificado = () => {
+    void logPersonaAction("CERTIFICATE_ISSUED", { source: "profile_quick_action" });
+    navigate("/certificados", { state: { personaId: id } });
+  };
+  const handleExportPDF = () => {
+    if (!persona) return;
+    setExportPreview("pdf");
+    void logPersonaAction("EXPORT_FICHA", { format: "pdf", timeline_events: timeline.length });
+  };
+  const handleExportCSV = () => {
+    if (!persona) return;
+    setExportPreview("csv");
+    void logPersonaAction("EXPORT_HISTORIAL", { format: "csv", timeline_events: timeline.length });
+  };
+
+  // QR check-in flow
+  const ejecutarCheckInQR = async () => {
+    if (!persona || !qrCheckinServicio) return;
+    try {
+      await upsertAsistencia.mutateAsync([
+        { servicio_id: qrCheckinServicio, persona_id: persona.id, presente: true },
+      ]);
+      const svc = (servicios || []).find((s: any) => s.id === qrCheckinServicio);
+      await logPersonaAction("CHECKIN", {
+        servicio_id: qrCheckinServicio,
+        servicio: svc?.nombre,
+        method: "qr",
+      });
+      toast.success("✓ Check-in registrado", { description: svc?.nombre || "Servicio" });
+      setQrCheckinOpen(false);
+    } catch (e: any) {
+      toast.error("Error en check-in", { description: e?.message });
+    }
+  };
+
 
   if (isLoading) {
     return (
