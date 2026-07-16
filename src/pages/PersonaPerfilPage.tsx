@@ -895,6 +895,133 @@ export default function PersonaPerfilPage() {
             </CardContent>
           </Card>
         </TabsContent>
+
+        {/* Grupos tab */}
+        <TabsContent value="grupos">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base flex items-center gap-2">
+                <Users className="h-4 w-4 text-primary" /> Grupos ({grupoMiembros?.length || 0})
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {grupoMiembros && grupoMiembros.length > 0 ? (
+                <div className="grid sm:grid-cols-2 gap-3">
+                  {grupoMiembros.map((gm: any) => (
+                    <div key={gm.id} className="surface-card card-hover p-4 flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-primary/8 flex items-center justify-center">
+                        <Users className="h-5 w-5 text-primary" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-foreground truncate">{gm.grupos?.nombre}</p>
+                        <p className="text-xs text-muted-foreground">{gm.grupos?.tipo || "—"} · rol: {gm.rol || "asistente"}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-10 text-muted-foreground">
+                  <Users className="h-10 w-10 mx-auto mb-2 opacity-30" />
+                  <p className="text-sm">Sin grupos asignados</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Finanzas tab */}
+        <TabsContent value="finanzas">
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="surface-card p-4">
+                <p className="kpi-label">Aportes registrados</p>
+                <p className="kpi-value mt-2">${totalAportesIngreso.toLocaleString()}</p>
+                <p className="text-xs text-muted-foreground mt-1">{(finanzasP || []).length} movimientos</p>
+              </div>
+              <div className="surface-card p-4">
+                <p className="kpi-label">Donaciones</p>
+                <p className="kpi-value mt-2">${totalDonaciones.toLocaleString()}</p>
+                <p className="text-xs text-muted-foreground mt-1">{(donacionesP || []).length} donaciones</p>
+              </div>
+              <div className="surface-card p-4">
+                <p className="kpi-label">Total contribuido</p>
+                <p className="kpi-value mt-2">${(totalAportesIngreso + totalDonaciones).toLocaleString()}</p>
+                <p className="text-xs text-muted-foreground mt-1">Ingresos + donaciones</p>
+              </div>
+            </div>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base flex items-center gap-2"><DollarSign className="h-4 w-4 text-primary" /> Movimientos y donaciones</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {(finanzasP && finanzasP.length > 0) || (donacionesP && donacionesP.length > 0) ? (
+                  <div className="divide-y">
+                    {[
+                      ...(finanzasP || []).map((f: any) => ({ ...f, _kind: "finanza" })),
+                      ...(donacionesP || []).map((d: any) => ({ ...d, _kind: "donacion" })),
+                    ]
+                      .sort((a: any, b: any) => (b.fecha || "").localeCompare(a.fecha || ""))
+                      .map((row: any) => (
+                        <div key={`${row._kind}-${row.id}`} className="flex items-center justify-between py-3">
+                          <div className="flex items-center gap-3 min-w-0">
+                            <div className={cn("w-9 h-9 rounded-lg flex items-center justify-center shrink-0",
+                              row._kind === "donacion" ? "bg-accent/10 text-accent" :
+                              row.tipo === "Ingreso" ? "bg-success/10 text-success" : "bg-destructive/10 text-destructive")}>
+                              {row._kind === "donacion" ? <Heart className="h-4 w-4" /> : <DollarSign className="h-4 w-4" />}
+                            </div>
+                            <div className="min-w-0">
+                              <p className="text-sm font-medium text-foreground truncate">
+                                {row._kind === "donacion" ? `Donación${row.tipo ? " · " + row.tipo : ""}` : (row.categoria_nombre || row.descripcion || row.tipo || "Movimiento")}
+                              </p>
+                              <p className="text-xs text-muted-foreground truncate">
+                                {row.fecha ? format(parseISO(row.fecha), "dd MMM yyyy", { locale: es }) : "—"}
+                                {row.metodo_pago ? ` · ${row.metodo_pago}` : ""}
+                                {row.estado ? ` · ${row.estado}` : ""}
+                              </p>
+                            </div>
+                          </div>
+                          <span className={cn("text-sm font-bold whitespace-nowrap",
+                            row._kind === "donacion" || row.tipo === "Ingreso" ? "text-success" : "text-destructive")}>
+                            {row._kind === "donacion" || row.tipo === "Ingreso" ? "+" : "-"}${Number(row.monto).toLocaleString()}
+                          </span>
+                        </div>
+                      ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-10 text-muted-foreground">
+                    <DollarSign className="h-10 w-10 mx-auto mb-2 opacity-30" />
+                    <p className="text-sm">Sin movimientos financieros registrados</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+
+        {/* Actividad tab — timeline unificada */}
+        <TabsContent value="actividad">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Activity className="h-4 w-4 text-primary" /> Línea de tiempo · {timeline.length} eventos
+                </CardTitle>
+                <div className="flex gap-2">
+                  <Button variant="outline" size="sm" onClick={handleExportCSV}>
+                    <Download className="h-3.5 w-3.5 mr-1.5" /> CSV
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={handleExportPDF}>
+                    <FileText className="h-3.5 w-3.5 mr-1.5" /> PDF
+                  </Button>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <PersonaActivityTimeline events={timeline} />
+            </CardContent>
+          </Card>
+        </TabsContent>
       </Tabs>
     </div>
   );
