@@ -79,7 +79,7 @@ export default function DashboardTemaSemana({ titulo, descripcion, url, pdfUrl }
           {isEmpty ? "Sin tema configurado" : (descripcion || titulo)}
         </p>
         <div className="flex items-center justify-center gap-2 mt-4 flex-wrap">
-          {!isEmpty && (
+          {(!isEmpty || pdfUrl) && (
             <button
               onClick={handleDownloadPDF}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-white/20 hover:bg-white/30 transition-colors"
