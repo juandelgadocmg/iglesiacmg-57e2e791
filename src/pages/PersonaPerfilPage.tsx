@@ -483,12 +483,17 @@ export default function PersonaPerfilPage() {
         <div className="sticky top-0 z-20 -mx-2 px-2 bg-background/85 backdrop-blur-lg border-b border-border/60">
           <TabsList className="h-auto p-0 bg-transparent gap-1 overflow-x-auto flex-nowrap w-full justify-start rounded-none">
             {[
-              { v: "resumen", label: "Resumen", icon: User },
-              { v: "actividad", label: "Actividad", icon: Activity },
+              { v: "resumen", label: "Indicadores", icon: User },
+              { v: "actividad", label: "Timeline", icon: Activity },
+              { v: "seguimiento", label: "Seguimiento", icon: Target },
               { v: "discipulado", label: "Discipulado", icon: Route },
               { v: "grupos", label: "Grupos", icon: Users },
-              { v: "finanzas", label: "Finanzas", icon: Wallet },
+              { v: "ministerios", label: "Ministerios", icon: Church },
               { v: "familia", label: "Familia", icon: HeartHandshake },
+              { v: "proximas", label: "Próximas reuniones", icon: Calendar },
+              { v: "notas", label: "Notas", icon: FileText },
+              { v: "archivos", label: "Archivos", icon: Layers },
+              { v: "finanzas", label: "Finanzas", icon: Wallet },
               { v: "certificados", label: "Certificados", icon: Award },
               { v: "qr", label: "QR", icon: QrCode },
             ].map(t => (
