@@ -2,13 +2,20 @@ import { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import {
   GraduationCap, Wallet, BarChart3, Users, Settings2, ShieldCheck,
-  Award, ScrollText, Coins, KeyRound, BookOpenCheck, Church, LucideIcon
+  Award, ScrollText, Coins, KeyRound, BookOpenCheck, Church, LucideIcon,
+  UsersRound, CalendarDays, Mail, HandHeart, Sparkles, LayoutDashboard,
+  Image as ImageIcon, PlaySquare, ClipboardCheck, DollarSign, Ticket,
+  MapPin, Network, Radio, Layers,
 } from "lucide-react";
 
 export type ModuleVariant =
   | "academia" | "finanzas" | "reportes" | "usuarios"
   | "configuracion" | "seguridad" | "certificados"
-  | "auditoria" | "roles" | "tesoreria" | "seminario" | "reuniones";
+  | "auditoria" | "roles" | "tesoreria" | "seminario" | "reuniones"
+  | "personas" | "grupos" | "eventos" | "mensajes" | "peticiones"
+  | "hoy" | "dashboard" | "banners" | "videos" | "asistencia"
+  | "donaciones" | "inscripciones" | "mapa" | "jerarquia" | "senal"
+  | "generic";
 
 type Kpi = { label: string; value: ReactNode; hint?: string; tone?: "ok" | "warn" | "bad" | "info" };
 
