@@ -1,6 +1,11 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Menu, Search, ChevronRight, ChevronDown, Check, Mail, Building2 } from "lucide-react";
+import { Menu, Search, ChevronRight, ChevronDown, Check, Mail, Building2, BookOpenText } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import discipulandoLogoAsset from "@/assets/discipulando-naciones-logo.png.asset.json";
+
+const DEFAULT_DISCIPULANDO_URL = "https://discipulandonaciones.lovable.app";
+const DEFAULT_LOGO_SRC = discipulandoLogoAsset.url;
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -41,6 +46,11 @@ export default function AppTopBar({ onMenuClick }: { onMenuClick?: () => void })
 
   const sedes: string[] = (config as any)?.sedes || ["Principal"];
   const [sede, setSede] = useState<string>(sedes[0] || "Principal");
+  const discipulandoUrl = (config as any)?.discipulando_url?.trim() || DEFAULT_DISCIPULANDO_URL;
+  const customLogoUrl = (config as any)?.discipulando_logo_url?.trim() || "";
+  const logoSrc = customLogoUrl || DEFAULT_LOGO_SRC;
+  const [logoFailed, setLogoFailed] = useState(false);
+  useEffect(() => { setLogoFailed(false); }, [logoSrc]);
 
   useHotkeys({
     "mod+k": () => setCmdOpen(true),
@@ -123,6 +133,40 @@ export default function AppTopBar({ onMenuClick }: { onMenuClick?: () => void })
               </DropdownMenuContent>
             </DropdownMenu>
           ) : null}
+
+          <TooltipProvider delayDuration={200}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <a
+                  href={discipulandoUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label="Abrir Discipulando Naciones en una nueva pestaña"
+                  className="shrink-0 inline-flex items-center justify-center h-8 px-1.5 rounded-md hover:bg-muted transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  {logoFailed ? (
+                    <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-foreground/80">
+                      <BookOpenText className="h-4 w-4" aria-hidden="true" />
+                      <span className="hidden sm:inline">Discipulando</span>
+                    </span>
+                  ) : (
+                    <img
+                      src={logoSrc}
+                      key={logoSrc}
+                      alt="Discipulando Naciones"
+                      width={100}
+                      height={28}
+                      loading="lazy"
+                      decoding="async"
+                      onError={() => setLogoFailed(true)}
+                      className="h-6 md:h-7 w-auto object-contain select-none dark:brightness-0 dark:invert"
+                    />
+                  )}
+                </a>
+              </TooltipTrigger>
+              <TooltipContent side="bottom">Discipulando Naciones</TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
 
           <QuickCreateMenu />
 
