@@ -1,6 +1,8 @@
 import { useState, useMemo } from "react";
 import PageHeader from "@/components/shared/PageHeader";
 import MetricCard from "@/components/shared/MetricCard";
+import EmptyState from "@/components/shared/EmptyState";
+import { GrupoInfoCard, GrupoCardsSkeletonGrid, type GrupoCardBadgeTone } from "@/components/grupos/GrupoInfoCard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -16,18 +18,18 @@ import { format, isWithinInterval, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
 import {
   Plus, Search, FileText, ClipboardCheck, CheckCircle2, XCircle,
-  AlertCircle, CalendarIcon, DollarSign, Trash2, ShieldCheck, Pencil
+  AlertCircle, CalendarIcon, DollarSign, Trash2, ShieldCheck, Pencil, SearchX
 } from "lucide-react";
 import { toast } from "sonner";
 import type { DateRange } from "react-day-picker";
 
 const ESTADOS = ["Todos", "No Finalizado", "No Verificado", "Aprobado", "No Aprobado"] as const;
 
-const estadoBadge: Record<string, { variant: "default" | "secondary" | "destructive" | "outline"; className?: string }> = {
-  "No Finalizado": { variant: "secondary" },
-  "No Verificado": { variant: "outline", className: "border-amber-500 text-amber-600" },
-  "Aprobado": { variant: "default", className: "bg-success text-success-foreground" },
-  "No Aprobado": { variant: "destructive" },
+const ESTADO_TONE: Record<string, GrupoCardBadgeTone> = {
+  "No Finalizado": "neutral",
+  "No Verificado": "warning",
+  "Aprobado": "success",
+  "No Aprobado": "danger",
 };
 
 export default function ReportesGruposPage() {
@@ -171,58 +173,66 @@ export default function ReportesGruposPage() {
 
       {/* Report Cards */}
       {isLoading ? (
-        <div className="text-center py-12 text-muted-foreground">Cargando reportes...</div>
+        <GrupoCardsSkeletonGrid count={6} />
       ) : filtered.length === 0 ? (
-        <div className="text-center py-12 text-muted-foreground">No se encontraron reportes.</div>
+        reportes && reportes.length > 0 ? (
+          <EmptyState
+            icon={SearchX}
+            title="Sin resultados"
+            description="Ningún reporte coincide con los filtros aplicados. Ajusta la búsqueda o el rango de fechas."
+            action={
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => { setSearch(""); setTab("Todos"); setDateRange(undefined); }}
+              >
+                Limpiar filtros
+              </Button>
+            }
+          />
+        ) : (
+          <EmptyState
+            icon={FileText}
+            title="Aún no hay reportes"
+            description="Cuando los líderes envíen sus reportes de grupo aparecerán aquí."
+          />
+        )
       ) : (
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {filtered.map((r) => {
-            const badge = estadoBadge[r.estado] || { variant: "secondary" as const };
+            const semana = getSemanaRange(parseISO(r.fecha));
+            const key = `${r.grupo_id}__${semana.inicio}`;
+            const enMora = morosaSet.has(key) && Number(r.ofrenda_casa_paz) > 0;
+
+            const summary: Array<{ label: React.ReactNode; value: React.ReactNode; emphasis?: boolean; divided?: boolean; icon?: any; iconClassName?: string }> = [
+              { label: "Ofrenda Casa de Paz", value: `$${Number(r.ofrenda_casa_paz).toFixed(2)}` },
+              { label: "Total", value: `$${Number(r.total_reportado).toFixed(2)}`, emphasis: true },
+            ];
+            if (r.ingreso_verificado_sobre !== null) {
+              summary.push({
+                label: "Verificado en sobre",
+                value: <span className="text-success">${Number(r.ingreso_verificado_sobre).toFixed(2)}</span>,
+                divided: true,
+                icon: ShieldCheck,
+                iconClassName: "text-success",
+              });
+            }
+
             return (
-              <div
+              <GrupoInfoCard
                 key={r.id}
-                className="rounded-xl border bg-card p-5 space-y-3 shadow-sm hover:shadow-md transition-shadow"
-              >
-                <div className="flex items-start justify-between gap-2">
-                  <div className="flex-1 min-w-0">
-                    <h3 className="font-semibold text-foreground truncate">{r.mensaje}</h3>
-                    <p className="text-xs text-muted-foreground mt-0.5">
-                      {r.grupos?.nombre || "Grupo"} · {r.grupos?.tipo || ""}
-                    </p>
-                  </div>
-                  <Badge variant={badge.variant} className={badge.className}>
-                    {r.estado}
+                title={r.mensaje}
+                subtitle={`${r.grupos?.nombre || "Grupo"} · ${r.grupos?.tipo || ""}`}
+                badge={{ label: r.estado, tone: ESTADO_TONE[r.estado] ?? "neutral" }}
+                metaDate={{ label: "Fecha reunión", value: format(parseISO(r.fecha), "PPP", { locale: es }) }}
+                metaSecondary={`Reportado: ${format(parseISO(r.created_at), "PPP 'a las' hh:mm a", { locale: es })}`}
+                extraBadge={enMora ? (
+                  <Badge variant="destructive" className="gap-1 text-[10px]">
+                    <DollarSign className="h-3 w-3" /> Pendiente entregar a tesorería
                   </Badge>
-                </div>
-
-                <div className="text-sm text-muted-foreground space-y-0.5">
-                  <div>
-                    <CalendarIcon className="inline h-3.5 w-3.5 mr-1" />
-                    Fecha reunión: {format(parseISO(r.fecha), "PPP", { locale: es })}
-                  </div>
-                  <div className="text-xs text-muted-foreground/70">
-                    Reportado: {format(parseISO(r.created_at), "PPP 'a las' hh:mm a", { locale: es })}
-                  </div>
-                </div>
-
-                {(() => {
-                  // Badge "pendiente entregar a tesorería"
-                  const semana = getSemanaRange(parseISO(r.fecha));
-                  const key = `${r.grupo_id}__${semana.inicio}`;
-                  const enMora = morosaSet.has(key) && Number(r.ofrenda_casa_paz) > 0;
-                  return enMora ? (
-                    <Badge variant="destructive" className="gap-1 text-[10px]">
-                      <DollarSign className="h-3 w-3" /> Pendiente entregar a tesorería
-                    </Badge>
-                  ) : null;
-                })()}
-
-                {r.observaciones && (
-                  <p className="text-sm text-muted-foreground line-clamp-2">{r.observaciones}</p>
-                )}
-
-                {/* Attendance summary */}
-                {r.asistencia_count && (r.asistencia_count.presentes > 0 || r.asistencia_count.ausentes > 0) && (
+                ) : null}
+                description={r.observaciones}
+                attendance={r.asistencia_count && (r.asistencia_count.presentes > 0 || r.asistencia_count.ausentes > 0) ? (
                   <div className="flex items-center gap-3 text-xs">
                     <span className="flex items-center gap-1 text-success font-medium">
                       <CheckCircle2 className="h-3.5 w-3.5" /> {r.asistencia_count.presentes} presentes
@@ -236,60 +246,38 @@ export default function ReportesGruposPage() {
                       </span>
                     )}
                   </div>
-                )}
-
-                {/* Financial info */}
-                <div className="bg-muted/50 rounded-lg p-3 space-y-1.5">
-                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                    Ingresos digitados por el líder
-                  </p>
-                  <div className="flex justify-between text-sm">
-                    <span>Ofrenda Casa de Paz</span>
-                    <span className="font-medium">${Number(r.ofrenda_casa_paz).toFixed(2)}</span>
-                  </div>
-                  <div className="flex justify-between text-sm font-semibold">
-                    <span>Total</span>
-                    <span>${Number(r.total_reportado).toFixed(2)}</span>
-                  </div>
-                  {r.ingreso_verificado_sobre !== null && (
-                    <div className="flex justify-between text-sm pt-1 border-t border-border">
-                      <span className="flex items-center gap-1">
-                        <ShieldCheck className="h-3.5 w-3.5 text-success" />
-                        Verificado en sobre
-                      </span>
-                      <span className="font-medium text-success">${Number(r.ingreso_verificado_sobre).toFixed(2)}</span>
-                    </div>
-                  )}
-                </div>
-
-                {/* Actions */}
-                <div className="flex items-center gap-2 pt-1">
-                  {(r.estado === "No Verificado" || r.estado === "No Finalizado") && (
-                    <>
-                      <Button size="sm" variant="outline" className="gap-1 text-success" onClick={() => handleVerify(r.id)}>
-                        <CheckCircle2 className="h-3.5 w-3.5" /> Aprobar
-                      </Button>
-                      <Button size="sm" variant="outline" className="gap-1 text-destructive" onClick={() => handleReject(r.id)}>
-                        <XCircle className="h-3.5 w-3.5" /> Rechazar
-                      </Button>
-                    </>
-                  )}
-                  <Button size="sm" variant="outline" className="gap-1" onClick={() => { setEditingId(r.id); setShowForm(true); }}>
-                    <Pencil className="h-3.5 w-3.5" /> Editar
-                  </Button>
-                  <DeleteConfirmDialog
-                    onConfirm={async () => {
-                      await deleteReporte.mutateAsync(r.id);
-                      toast.success("Reporte eliminado.");
-                    }}
-                    trigger={
-                      <Button size="sm" variant="ghost" className="ml-auto text-destructive">
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </Button>
-                    }
-                  />
-                </div>
-              </div>
+                ) : null}
+                summaryTitle="Ingresos digitados por el líder"
+                summary={summary}
+                actions={
+                  <>
+                    {(r.estado === "No Verificado" || r.estado === "No Finalizado") && (
+                      <>
+                        <Button size="sm" variant="outline" className="gap-1 text-success" onClick={() => handleVerify(r.id)}>
+                          <CheckCircle2 className="h-3.5 w-3.5" /> Aprobar
+                        </Button>
+                        <Button size="sm" variant="outline" className="gap-1 text-destructive" onClick={() => handleReject(r.id)}>
+                          <XCircle className="h-3.5 w-3.5" /> Rechazar
+                        </Button>
+                      </>
+                    )}
+                    <Button size="sm" variant="outline" className="gap-1" onClick={() => { setEditingId(r.id); setShowForm(true); }}>
+                      <Pencil className="h-3.5 w-3.5" /> Editar
+                    </Button>
+                    <DeleteConfirmDialog
+                      onConfirm={async () => {
+                        await deleteReporte.mutateAsync(r.id);
+                        toast.success("Reporte eliminado.");
+                      }}
+                      trigger={
+                        <Button size="sm" variant="ghost" className="ml-auto text-destructive">
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      }
+                    />
+                  </>
+                }
+              />
             );
           })}
         </div>

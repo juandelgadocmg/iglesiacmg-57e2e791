@@ -30,6 +30,8 @@ import { canPerform } from "@/lib/permissions";
 import { useAuth } from "@/hooks/useAuth";
 import { useActiveRole } from "@/hooks/useActiveRole";
 import PageSkeleton from "@/components/shared/PageSkeleton";
+import EmptyState from "@/components/shared/EmptyState";
+import { GrupoInfoCard, GrupoCardsSkeletonGrid } from "@/components/grupos/GrupoInfoCard";
 
 const ReportesGruposContent = lazy(() => import("@/pages/ReportesGruposPage"));
 const MapaGruposContent = lazy(() => import("@/pages/MapaGruposPage"));
@@ -428,71 +430,54 @@ export default function GruposPage() {
               )}
             </div>
 
-            {planificaciones && planificaciones.length > 0 ? (
+            {planificaciones === undefined ? (
+              <GrupoCardsSkeletonGrid count={6} />
+            ) : planificaciones.length === 0 ? (
+              <EmptyState
+                icon={FileText}
+                title="Aún no hay planificaciones"
+                description="Crea la primera hoja de planeación semanal para tus Casas de Paz."
+                action={canCreateGrupo ? (
+                  <Button onClick={() => setShowPlanForm(true)} size="sm" className="gap-2">
+                    <Plus className="h-4 w-4" /> Nueva Planificación
+                  </Button>
+                ) : undefined}
+              />
+            ) : (
               <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                 {planificaciones.map((p: any) => (
-                  <div
+                  <GrupoInfoCard
                     key={p.id}
-                    className="rounded-xl border bg-card p-5 space-y-3 shadow-sm hover:shadow-md transition-shadow cursor-pointer"
                     onClick={() => setViewingPlan(p)}
-                  >
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="flex-1 min-w-0">
-                        <h3 className="font-semibold text-foreground truncate">{p.lider_nombre}</h3>
-                        <p className="text-xs text-muted-foreground mt-0.5">
-                          {p.red || "Sin red"} · {p.casa_de_paz || "Sin casa de paz"}
-                        </p>
-                      </div>
-                      <Badge variant="outline" className="shrink-0">Plan</Badge>
-                    </div>
-
-                    <div className="text-sm text-muted-foreground space-y-0.5">
-                      <div>
-                        <CalendarIcon className="inline h-3.5 w-3.5 mr-1" />
-                        Creada: {new Date(p.created_at).toLocaleDateString()}
-                      </div>
-                    </div>
-
-                    <div className="bg-muted/50 rounded-lg p-3 space-y-1.5">
-                      <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                        Resumen semanal
-                      </p>
-                      <div className="flex justify-between text-sm">
-                        <span>Personas invitadas</span>
-                        <span className="font-medium">{p.personas_invitadas || 0}</span>
-                      </div>
-                      <div className="flex justify-between text-sm">
-                        <span>Fecha ayuno</span>
-                        <span className="font-medium">{p.fecha_ayuno || "—"}</span>
-                      </div>
-                      <div className="flex justify-between text-sm">
-                        <span>Evangelización</span>
-                        <span className="font-medium">{p.fecha_evangelizacion || "—"}</span>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-2 pt-1" onClick={(e) => e.stopPropagation()}>
-                      <Button size="sm" variant="outline" className="gap-1" onClick={() => setViewingPlan(p)}>
-                        <Eye className="h-3.5 w-3.5" /> Ver
-                      </Button>
-                      {canDeleteGrupo && (
-                        <DeleteConfirmDialog
-                          onConfirm={async () => { try { await deletePlan.mutateAsync(p.id); toast.success("Eliminada"); } catch { toast.error("Error"); } }}
-                          trigger={
-                            <Button size="sm" variant="ghost" className="ml-auto text-destructive">
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </Button>
-                          }
-                        />
-                      )}
-                    </div>
-                  </div>
+                    title={p.lider_nombre}
+                    subtitle={`${p.red || "Sin red"} · ${p.casa_de_paz || "Sin casa de paz"}`}
+                    badge={{ label: "Plan", tone: "info" }}
+                    metaDate={{ label: "Creada", value: new Date(p.created_at).toLocaleDateString() }}
+                    summaryTitle="Resumen semanal"
+                    summary={[
+                      { label: "Personas invitadas", value: p.personas_invitadas || 0 },
+                      { label: "Fecha ayuno", value: p.fecha_ayuno || "—" },
+                      { label: "Evangelización", value: p.fecha_evangelizacion || "—" },
+                    ]}
+                    actions={
+                      <>
+                        <Button size="sm" variant="outline" className="gap-1" onClick={() => setViewingPlan(p)}>
+                          <Eye className="h-3.5 w-3.5" /> Ver
+                        </Button>
+                        {canDeleteGrupo && (
+                          <DeleteConfirmDialog
+                            onConfirm={async () => { try { await deletePlan.mutateAsync(p.id); toast.success("Eliminada"); } catch { toast.error("Error"); } }}
+                            trigger={
+                              <Button size="sm" variant="ghost" className="ml-auto text-destructive">
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </Button>
+                            }
+                          />
+                        )}
+                      </>
+                    }
+                  />
                 ))}
-              </div>
-            ) : (
-              <div className="text-center py-12 text-muted-foreground">
-                <FileText className="h-10 w-10 mx-auto mb-2 opacity-50" />
-                <p>No hay planificaciones registradas.</p>
               </div>
             )}
           </div>
