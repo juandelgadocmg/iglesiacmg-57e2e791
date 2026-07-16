@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import PageHeader from "@/components/shared/PageHeader";
+import ModuleHero from "@/components/shell/ModuleHero";
 import DataTable from "@/components/shared/DataTable";
 import StatusBadge from "@/components/shared/StatusBadge";
 import ServicioFormDialog from "@/components/forms/ServicioFormDialog";
