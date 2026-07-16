@@ -34,8 +34,12 @@ import {
   Heart, BookOpen, CheckCircle2, XCircle, Clock, User, FileText,
   GraduationCap, Shield, Pencil, UserPlus, Trash2, Baby, HeartHandshake, Camera, Plus, QrCode,
   MoreHorizontal, Download, Award, DollarSign, Activity, ClipboardCheck, MessageSquare,
-  TrendingUp, Cake, Sparkles, Copy, ExternalLink, Share2, BadgeCheck,
+  TrendingUp, TrendingDown, Cake, Sparkles, Copy, ExternalLink, Share2, BadgeCheck,
+  ArrowUpRight, ArrowDownRight, Wallet, PiggyBank, Target, Flag, MapPinned, Route,
+  Filter, Search, ChevronRight, Circle, Zap, Gift, Bookmark, Layers,
 } from "lucide-react";
+import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Tooltip as RTooltip, PieChart, Pie, Cell, AreaChart, Area, CartesianGrid } from "recharts";
+import { motion } from "framer-motion";
 import { format, parseISO, differenceInYears } from "date-fns";
 import { es } from "date-fns/locale";
 import { useState, useMemo, useRef } from "react";
