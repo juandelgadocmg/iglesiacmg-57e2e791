@@ -166,10 +166,30 @@ export default function GrupoPerfilView({ grupoId, onBack, readOnly = false }: P
   };
 
   if (loadingGrupo) {
-    return <div className="space-y-4"><Skeleton className="h-10 w-48" /><Skeleton className="h-[500px] w-full" /></div>;
+    return (
+      <div className="space-y-4" role="status" aria-busy="true" aria-live="polite">
+        <span className="sr-only">Cargando información del grupo…</span>
+        <Skeleton className="h-10 w-48" />
+        <Skeleton className="h-[500px] w-full" />
+      </div>
+    );
   }
 
-  if (!grupo) return <div className="text-center py-12 text-muted-foreground">Grupo no encontrado</div>;
+  if (errorGrupo) {
+    return <ErrorState error={grupoErr} onRetry={() => refetchGrupo()} />;
+  }
+
+  if (!grupo) {
+    return (
+      <EmptyState
+        icon={Users}
+        title="Grupo no encontrado"
+        description="El grupo solicitado no existe o fue eliminado."
+        variant="hero"
+        action={onBack ? <Button variant="outline" size="sm" onClick={onBack}><ChevronLeft className="h-4 w-4 mr-1" />Volver a Grupos</Button> : undefined}
+      />
+    );
+  }
 
   return (
     <div className="animate-fade-in space-y-6">
