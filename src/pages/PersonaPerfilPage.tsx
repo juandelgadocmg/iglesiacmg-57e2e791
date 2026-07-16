@@ -5,9 +5,14 @@ import {
   useCreateRelacion, useDeleteRelacion,
   usePersonaFinanzas, usePersonaDonaciones, usePersonaPeticiones, usePersonaConsejerias,
 } from "@/hooks/usePersonaPerfil";
-import { usePersonas, useUpdatePersona } from "@/hooks/useDatabase";
+import { usePersonas, useUpdatePersona, useServicios, useUpsertAsistencia } from "@/hooks/useDatabase";
 import { supabase } from "@/integrations/supabase/client";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import PersonaExportPreviewDialog from "@/components/persona/PersonaExportPreviewDialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
