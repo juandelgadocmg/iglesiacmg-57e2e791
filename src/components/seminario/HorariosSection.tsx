@@ -93,26 +93,35 @@ export default function HorariosSection() {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <div>
-          <h2 className="text-lg font-semibold">Horarios y Asignación Docente</h2>
-          <p className="text-xs text-muted-foreground">Define docente, aula y horario por materia y periodo</p>
-        </div>
-        <div className="flex gap-2 flex-wrap">
-          <Select value={effProg} onValueChange={setProgramaId}>
-            <SelectTrigger className="w-48"><SelectValue placeholder="Programa" /></SelectTrigger>
-            <SelectContent>{(programas || []).map((p: any) => <SelectItem key={p.id} value={p.id}>{p.nombre}</SelectItem>)}</SelectContent>
-          </Select>
-          <Select value={effPer} onValueChange={setPeriodoId}>
-            <SelectTrigger className="w-48"><SelectValue placeholder="Periodo" /></SelectTrigger>
-            <SelectContent>{(periodos || []).map((p: any) => <SelectItem key={p.id} value={p.id}>{p.nombre}</SelectItem>)}</SelectContent>
-          </Select>
-          <Dialog open={creatingPeriodo} onOpenChange={setCreatingPeriodo}>
-            <DialogTrigger asChild><Button size="sm" variant="outline"><Plus className="h-4 w-4 mr-1" />Periodo</Button></DialogTrigger>
-            <PeriodoDialog onSave={handleSavePeriodo} pending={upsertPer.isPending} />
-          </Dialog>
-        </div>
-      </div>
+      <SectionHero
+        icon={CalendarClock}
+        eyebrow="Scheduling · Ofertas"
+        title="Horarios y Asignación Docente"
+        description="Define docente, aula y horario por materia y periodo."
+        gradient="from-orange-600 via-amber-500 to-yellow-500"
+        stats={[
+          { label: "Ofertas", value: (ofertas || []).length, tone: "info" },
+          { label: "Con Zoom", value: (ofertas || []).filter((o: any) => o.zoom_link).length, tone: "ok" },
+          { label: "Semestres", value: (semestres || []).length },
+          { label: "Periodo", value: periodoActivo?.codigo || periodoActivo?.nombre || "—" },
+        ]}
+        actions={
+          <div className="flex gap-2 flex-wrap">
+            <Select value={effProg} onValueChange={setProgramaId}>
+              <SelectTrigger className="w-44"><SelectValue placeholder="Programa" /></SelectTrigger>
+              <SelectContent>{(programas || []).map((p: any) => <SelectItem key={p.id} value={p.id}>{p.nombre}</SelectItem>)}</SelectContent>
+            </Select>
+            <Select value={effPer} onValueChange={setPeriodoId}>
+              <SelectTrigger className="w-44"><SelectValue placeholder="Periodo" /></SelectTrigger>
+              <SelectContent>{(periodos || []).map((p: any) => <SelectItem key={p.id} value={p.id}>{p.nombre}</SelectItem>)}</SelectContent>
+            </Select>
+            <Dialog open={creatingPeriodo} onOpenChange={setCreatingPeriodo}>
+              <DialogTrigger asChild><Button size="sm" variant="outline" className="gap-1.5"><Plus className="h-4 w-4" />Periodo</Button></DialogTrigger>
+              <PeriodoDialog onSave={handleSavePeriodo} pending={upsertPer.isPending} />
+            </Dialog>
+          </div>
+        }
+      />
 
       {!effPer ? (
         <Card><CardContent className="p-6 text-center text-sm text-muted-foreground">Crea un periodo académico para empezar a programar horarios.</CardContent></Card>
