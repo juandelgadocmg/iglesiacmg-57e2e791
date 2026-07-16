@@ -107,11 +107,11 @@ export default function AppHeader({ onMenuClick }: AppHeaderProps) {
                 target="_blank"
                 rel="noopener noreferrer"
                 aria-label="Abrir Discipulando Naciones en una nueva pestaña"
-                className="shrink-0 inline-flex items-center justify-center h-9 px-1.5 rounded-md hover:bg-muted transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                className="shrink-0 inline-flex items-center justify-center h-12 px-2 rounded-md hover:bg-muted transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
               >
                 {logoFailed ? (
-                  <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-foreground/80">
-                    <BookOpenText className="h-4 w-4" aria-hidden="true" />
+                  <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-foreground/80">
+                    <BookOpenText className="h-5 w-5" aria-hidden="true" />
                     <span className="hidden sm:inline">Discipulando</span>
                   </span>
                 ) : (
@@ -119,15 +119,16 @@ export default function AppHeader({ onMenuClick }: AppHeaderProps) {
                     src={logoSrc}
                     key={logoSrc}
                     alt="Discipulando Naciones"
-                    width={110}
-                    height={32}
+                    width={160}
+                    height={48}
                     loading="lazy"
                     decoding="async"
                     fetchPriority="low"
                     onError={() => setLogoFailed(true)}
-                    className="h-8 md:h-9 w-auto object-contain select-none"
+                    className="h-11 md:h-12 w-auto object-contain select-none"
                   />
                 )}
+
               </a>
             </TooltipTrigger>
             <TooltipContent side="bottom">Discipulando Naciones</TooltipContent>
