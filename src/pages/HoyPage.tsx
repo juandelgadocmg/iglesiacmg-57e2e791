@@ -19,6 +19,8 @@ import { useProgEventos } from "@/hooks/usePrograma";
 import { usePeticiones } from "@/hooks/usePeticiones";
 import { useUnreadCount } from "@/hooks/useMensajes";
 import { useRecentEntities } from "@/hooks/useRecentEntities";
+import { useConfiguracion } from "@/hooks/useConfiguracion";
+import DashboardTemaSemana from "@/components/dashboard/DashboardTemaSemana";
 import { cn } from "@/lib/utils";
 
 function greeting() {
