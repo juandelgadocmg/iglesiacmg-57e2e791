@@ -108,12 +108,86 @@ export default function ReportesGruposPage() {
     }
   };
 
+  const handleExportPDFDetallado = () => {
+    if (!filtered.length) return;
+    const records = filtered.map((r: any) => ({
+      title: r.grupos?.nombre ?? "Grupo",
+      subtitle: r.grupos?.red ? `Red ${r.grupos.red}` : undefined,
+      badge: r.estado,
+      sections: [
+        { label: "Fecha reunión", value: r.fecha },
+        { label: "Estado", value: r.estado },
+        { label: "Realizado", value: r.no_realizado ? "No" : "Sí" },
+        { label: "Ofrenda Casa de Paz", value: `$${Number(r.ofrenda_casa_paz ?? 0).toLocaleString("es-CO")}` },
+        { label: "Total reportado", value: `$${Number(r.total_reportado ?? 0).toLocaleString("es-CO")}` },
+        { label: "Ingreso verificado", value: r.ingreso_verificado_sobre != null ? `$${Number(r.ingreso_verificado_sobre).toLocaleString("es-CO")}` : "—" },
+        { label: "Verificado en", value: r.fecha_verificacion ? new Date(r.fecha_verificacion).toLocaleString("es-CO") : "—" },
+        { label: "Mensaje / Tema", value: r.mensaje, fullWidth: true },
+        { label: "Observaciones", value: r.observaciones, fullWidth: true },
+      ],
+      footer: `ID ${String(r.id).slice(0, 8)}`,
+    }));
+    exportToPDFDetailed({
+      title: "Reportes de Grupo",
+      filename: `reportes-grupo-${new Date().toISOString().slice(0, 10)}`,
+      records,
+      headerNote: `${filtered.length} reporte(s)`,
+    });
+    logExportEvent({ format: "pdf", filename: "reportes-grupo-detallado", title: "Reportes de Grupo", row_count: filtered.length });
+  };
+
+  const csvColumns = [
+    { header: "Grupo", key: "grupo" },
+    { header: "Red", key: "red" },
+    { header: "Fecha", key: "fecha" },
+    { header: "Estado", key: "estado" },
+    { header: "Realizado", key: "realizado" },
+    { header: "Ofrenda Casa de Paz", key: "ofrenda_casa_paz" },
+    { header: "Total reportado", key: "total_reportado" },
+    { header: "Ingreso verificado", key: "ingreso_verificado_sobre" },
+    { header: "Verificado en", key: "fecha_verificacion" },
+    { header: "Mensaje", key: "mensaje" },
+    { header: "Observaciones", key: "observaciones" },
+  ];
+  const csvData = filtered.map((r: any) => ({
+    grupo: r.grupos?.nombre ?? "",
+    red: r.grupos?.red ?? "",
+    fecha: r.fecha,
+    estado: r.estado,
+    realizado: r.no_realizado ? "No" : "Sí",
+    ofrenda_casa_paz: Number(r.ofrenda_casa_paz ?? 0),
+    total_reportado: Number(r.total_reportado ?? 0),
+    ingreso_verificado_sobre: r.ingreso_verificado_sobre ?? "",
+    fecha_verificacion: r.fecha_verificacion ?? "",
+    mensaje: r.mensaje ?? "",
+    observaciones: r.observaciones ?? "",
+  }));
+
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <h2 className="text-xl font-semibold">Listado de Reportes</h2>
           <p className="text-sm text-muted-foreground">Consulta y gestiona todos los reportes enviados</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <ExportDropdown
+            title="Reportes de Grupo"
+            filename={`reportes-grupo-${new Date().toISOString().slice(0, 10)}`}
+            columns={csvColumns}
+            data={csvData}
+            filters={{ tab, search, from: dateRange?.from?.toISOString() ?? null, to: dateRange?.to?.toISOString() ?? null }}
+          />
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleExportPDFDetallado}
+            disabled={!filtered.length}
+            className="gap-2"
+            aria-label="Exportar PDF detallado, una página por reporte"
+          >
+            <FileText className="h-4 w-4" /> PDF detallado
+          </Button>
         </div>
       </div>
 
