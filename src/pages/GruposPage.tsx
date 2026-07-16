@@ -14,7 +14,7 @@ import PlanificacionGrupoFormDialog from "@/components/forms/PlanificacionGrupoF
 import { usePlanificaciones, useDeletePlanificacion } from "@/hooks/usePlanificaciones";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Users, Pencil, Plus, ClipboardList, Network, DollarSign, TrendingUp, BarChart3, FileText, Trash2, Eye, ChevronDown } from "lucide-react";
+import { Users, Pencil, Plus, ClipboardList, Network, DollarSign, TrendingUp, BarChart3, FileText, Trash2, Eye, ChevronDown, Calendar as CalendarIcon } from "lucide-react";
 import { useGrupos, useDeleteGrupo } from "@/hooks/useDatabase";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
