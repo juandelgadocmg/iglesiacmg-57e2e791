@@ -20,24 +20,28 @@ import {
   LogOut, HandHeart, MessageCircle, Mail, ShieldCheck
 } from "lucide-react";
 
-const menuItems = [
-  { label: "Dashboard", icon: LayoutDashboard, path: "/dashboard" },
-  { label: "Personas", icon: Users, path: "/personas" },
-  { label: "Grupos", icon: UsersRound, path: "/grupos" },
-  { label: "Reuniones", icon: Church, path: "/servicios" },
-  { label: "Finanzas", icon: DollarSign, path: "/finanzas" },
-  { label: "Eventos", icon: CalendarDays, path: "/eventos" },
-  { label: "Academia", icon: GraduationCap, path: "/academia" },
-  { label: "Seminario", icon: BookMarked, path: "/seminario" },
-  { label: "Mensajes", icon: Mail, path: "/mensajes" },
-  { label: "Certificados", icon: Award, path: "/certificados" },
-  { label: "Peticiones", icon: HandHeart, path: "/peticiones" },
-  { label: "Reportes", icon: BarChart3, path: "/reportes" },
-  { label: "Usuarios", icon: UserCog, path: "/usuarios" },
-  { label: "Configuración", icon: Settings, path: "/configuracion" },
-  { label: "Seguridad", icon: ShieldCheck, path: "/seguridad" },
-  { label: "Chat IA", icon: MessageCircle, path: "/chat" },
+type MenuItem = { label: string; icon: any; path: string; section: string };
+
+const menuItems: MenuItem[] = [
+  { label: "Dashboard", icon: LayoutDashboard, path: "/dashboard", section: "Principal" },
+  { label: "Personas", icon: Users, path: "/personas", section: "Comunidad" },
+  { label: "Grupos", icon: UsersRound, path: "/grupos", section: "Comunidad" },
+  { label: "Reuniones", icon: Church, path: "/servicios", section: "Comunidad" },
+  { label: "Eventos", icon: CalendarDays, path: "/eventos", section: "Comunidad" },
+  { label: "Academia", icon: GraduationCap, path: "/academia", section: "Formación" },
+  { label: "Seminario", icon: BookMarked, path: "/seminario", section: "Formación" },
+  { label: "Certificados", icon: Award, path: "/certificados", section: "Formación" },
+  { label: "Finanzas", icon: DollarSign, path: "/finanzas", section: "Operación" },
+  { label: "Mensajes", icon: Mail, path: "/mensajes", section: "Operación" },
+  { label: "Peticiones", icon: HandHeart, path: "/peticiones", section: "Operación" },
+  { label: "Reportes", icon: BarChart3, path: "/reportes", section: "Operación" },
+  { label: "Chat IA", icon: MessageCircle, path: "/chat", section: "Inteligencia" },
+  { label: "Usuarios", icon: UserCog, path: "/usuarios", section: "Administración" },
+  { label: "Configuración", icon: Settings, path: "/configuracion", section: "Administración" },
+  { label: "Seguridad", icon: ShieldCheck, path: "/seguridad", section: "Administración" },
 ];
+
+const SECTION_ORDER = ["Principal", "Comunidad", "Formación", "Operación", "Inteligencia", "Administración"];
 
 interface AppSidebarProps {
   mobileOpen?: boolean;
@@ -53,8 +57,6 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
   const { activeRole } = useActiveRole();
   const isMobile = useIsMobile();
 
-  // When a specific profile is active, filter menu by that single role
-  // This makes the sidebar reflect what the user can do in their current profile
   const effectiveRoles = activeRole ? [activeRole as any] : roles;
   const visibleItems = menuItems.filter((item) => canAccess(effectiveRoles, item.path));
 
@@ -65,51 +67,84 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
 
   const showCollapsed = !isMobile && collapsed;
 
+  // Group by section preserving canonical order
+  const grouped = SECTION_ORDER.map((section) => ({
+    section,
+    items: visibleItems.filter((i) => i.section === section),
+  })).filter((g) => g.items.length > 0);
+
   return (
     <div
       className={cn(
-        "h-full flex flex-col",
-        !isMobile && "sidebar-gradient transition-all duration-300",
-        !isMobile && (showCollapsed ? "w-[68px]" : "w-[250px]")
+        "h-full flex flex-col bg-sidebar",
+        !isMobile && "transition-[width] duration-300 border-r border-sidebar-border",
+        !isMobile && (showCollapsed ? "w-[72px]" : "w-[260px]")
       )}
     >
-      <div className="flex items-center gap-3 px-4 py-5 border-b border-sidebar-border">
-        <img src={logo} alt="CMG" className="w-9 h-9 rounded-lg object-cover" />
+      {/* Brand */}
+      <div className="flex items-center gap-3 px-5 py-5">
+        <div className="relative shrink-0">
+          <img
+            src={logo}
+            alt="DOXA"
+            className="w-9 h-9 rounded-xl object-cover ring-1 ring-black/5"
+          />
+          <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-accent ring-2 ring-sidebar" />
+        </div>
         {!showCollapsed && (
-          <div className="flex flex-col">
-            <span className="text-sm font-bold text-sidebar-primary-foreground leading-tight">CMG Admin</span>
-            <span className="text-[10px] text-sidebar-foreground opacity-60">Centro Mundial de Gloria</span>
+          <div className="flex flex-col min-w-0">
+            <span className="font-heading text-[15px] font-bold text-foreground leading-tight tracking-tight">DOXA</span>
+            <span className="text-[10.5px] text-muted-foreground truncate">Centro Mundial de Gloria</span>
           </div>
         )}
       </div>
 
-      <nav className="flex-1 overflow-y-auto py-3 px-2 space-y-0.5">
-        {visibleItems.map((item) => {
-          const isActive = location.pathname.startsWith(item.path);
-          return (
-            <NavLink
-              key={item.path}
-              to={item.path}
-              onClick={onNavigate}
-              className={cn(
-                "flex items-center gap-3 px-3 py-2.5 rounded-md text-[13px] font-medium transition-all duration-150",
-                isActive
-                  ? "bg-sidebar-accent text-sidebar-primary"
-                  : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-              )}
-            >
-              <item.icon className={cn("h-[18px] w-[18px] shrink-0", isActive && "text-sidebar-primary")} />
-              {!showCollapsed && <span>{item.label}</span>}
-            </NavLink>
-          );
-        })}
+      {/* Nav */}
+      <nav className="flex-1 overflow-y-auto px-3 pb-3">
+        {grouped.map((group, gi) => (
+          <div key={group.section} className={cn(gi === 0 ? "mt-1" : "mt-2")}>
+            {!showCollapsed && (
+              <div className="sidebar-section-label">{group.section}</div>
+            )}
+            <div className="space-y-0.5">
+              {group.items.map((item) => {
+                const isActive = location.pathname.startsWith(item.path);
+                return (
+                  <NavLink
+                    key={item.path}
+                    to={item.path}
+                    onClick={onNavigate}
+                    data-active={isActive}
+                    className={cn(
+                      "sidebar-link",
+                      showCollapsed && "justify-center px-2"
+                    )}
+                    title={showCollapsed ? item.label : undefined}
+                  >
+                    <item.icon
+                      className={cn(
+                        "h-[17px] w-[17px] shrink-0 transition-colors",
+                        isActive ? "text-primary" : "text-muted-foreground"
+                      )}
+                    />
+                    {!showCollapsed && <span className="truncate">{item.label}</span>}
+                  </NavLink>
+                );
+              })}
+            </div>
+          </div>
+        ))}
       </nav>
 
-      <div className="border-t border-sidebar-border p-2">
+      {/* Footer */}
+      <div className="border-t border-sidebar-border p-2 space-y-0.5">
         {!isMobile && (
           <button
             onClick={() => setCollapsed(!collapsed)}
-            className="flex items-center gap-3 px-3 py-2.5 rounded-md text-[13px] text-sidebar-foreground hover:bg-sidebar-accent w-full transition-colors"
+            className={cn(
+              "sidebar-link w-full",
+              showCollapsed && "justify-center px-2"
+            )}
           >
             {showCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
             {!showCollapsed && <span>Colapsar</span>}
@@ -117,7 +152,10 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
         )}
         <button
           onClick={handleLogout}
-          className="flex items-center gap-3 px-3 py-2.5 rounded-md text-[13px] text-sidebar-foreground hover:bg-sidebar-accent w-full transition-colors"
+          className={cn(
+            "sidebar-link w-full",
+            showCollapsed && "justify-center px-2"
+          )}
         >
           <LogOut className="h-4 w-4" />
           {!showCollapsed && <span>Cerrar sesión</span>}
@@ -133,7 +171,7 @@ export default function AppSidebar({ mobileOpen, onMobileClose }: AppSidebarProp
   if (isMobile) {
     return (
       <Sheet open={mobileOpen} onOpenChange={(open) => !open && onMobileClose?.()}>
-        <SheetContent side="left" className="p-0 w-[280px] sidebar-gradient">
+        <SheetContent side="left" className="p-0 w-[280px] bg-sidebar">
           <SheetHeader className="sr-only">
             <SheetTitle>Menú</SheetTitle>
           </SheetHeader>
