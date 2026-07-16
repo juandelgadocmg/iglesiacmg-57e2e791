@@ -26,6 +26,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import ExportDropdown from "@/components/shared/ExportDropdown";
 import AttendanceTrendChart from "@/components/charts/AttendanceTrendChart";
+import PageSkeleton from "@/components/shared/PageSkeleton";
 
 type ActiveView = "reuniones" | "reportes" | "reporte-detalle" | "consejeria" | "programacion";
 
@@ -62,10 +63,7 @@ export default function ServiciosPage() {
 
   if (isLoading || loadingPersonas) {
     return (
-      <div className="animate-fade-in space-y-4">
-        <Skeleton className="h-10 w-48" />
-        <Skeleton className="h-[400px] w-full" />
-      </div>
+      <PageSkeleton variant="dashboard" />
     );
   }
 

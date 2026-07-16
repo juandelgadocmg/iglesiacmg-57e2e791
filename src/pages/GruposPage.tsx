@@ -29,6 +29,7 @@ import { useUserRoles } from "@/hooks/useUserRoles";
 import { canPerform } from "@/lib/permissions";
 import { useAuth } from "@/hooks/useAuth";
 import { useActiveRole } from "@/hooks/useActiveRole";
+import PageSkeleton from "@/components/shared/PageSkeleton";
 
 const ReportesGruposContent = lazy(() => import("@/pages/ReportesGruposPage"));
 const MapaGruposContent = lazy(() => import("@/pages/MapaGruposPage"));
@@ -134,10 +135,7 @@ export default function GruposPage() {
 
   if (isLoadingAll) {
     return (
-      <div className="animate-fade-in space-y-4">
-        <Skeleton className="h-10 w-48" />
-        <Skeleton className="h-[400px] w-full" />
-      </div>
+      <PageSkeleton variant="dashboard" />
     );
   }
 

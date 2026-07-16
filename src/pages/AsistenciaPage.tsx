@@ -15,6 +15,7 @@ import { toast } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";
 import ExportDropdown from "@/components/shared/ExportDropdown";
 import ImportAsistenciaDialog from "@/components/forms/ImportAsistenciaDialog";
+import PageSkeleton from "@/components/shared/PageSkeleton";
 
 export default function AsistenciaPage() {
   const { data: servicios, isLoading: loadingServicios } = useServicios();
@@ -41,10 +42,7 @@ export default function AsistenciaPage() {
 
   if (loadingServicios || loadingPersonas) {
     return (
-      <div className="animate-fade-in space-y-4">
-        <Skeleton className="h-10 w-48" />
-        <Skeleton className="h-[400px] w-full" />
-      </div>
+      <PageSkeleton variant="list" />
     );
   }
 

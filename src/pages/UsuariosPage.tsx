@@ -19,6 +19,7 @@ import { toast } from "sonner";
 import { Constants } from "@/integrations/supabase/types";
 import type { Database } from "@/integrations/supabase/types";
 import * as XLSX from "xlsx";
+import PageSkeleton from "@/components/shared/PageSkeleton";
 
 type AppRole = Database["public"]["Enums"]["app_role"];
 
@@ -90,10 +91,7 @@ export default function UsuariosPage() {
 
   if (isLoading) {
     return (
-      <div className="animate-fade-in space-y-4">
-        <Skeleton className="h-10 w-48" />
-        <Skeleton className="h-[400px] w-full" />
-      </div>
+      <PageSkeleton variant="list" />
     );
   }
 

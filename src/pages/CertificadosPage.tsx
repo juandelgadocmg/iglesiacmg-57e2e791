@@ -16,6 +16,7 @@ import { es } from "date-fns/locale";
 import jsPDF from "jspdf";
 import { cn } from "@/lib/utils";
 import ModuleHero from "@/components/shell/ModuleHero";
+import PageSkeleton from "@/components/shared/PageSkeleton";
 
 const TIPO_META: Record<string, { color: string; bg: string; ring: string }> = {
   "Membresía":              { color: "#3b82f6", bg: "from-blue-500/10 to-blue-500/5", ring: "ring-blue-500/30" },
@@ -157,10 +158,7 @@ export default function CertificadosPage() {
 
   if (isLoading) {
     return (
-      <div className="animate-fade-in space-y-4 p-6">
-        <Skeleton className="h-10 w-48" />
-        <Skeleton className="h-[400px] w-full" />
-      </div>
+      <PageSkeleton variant="list" />
     );
   }
 

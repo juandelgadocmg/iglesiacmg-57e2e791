@@ -23,6 +23,7 @@ import { toast } from "sonner";
 import ExportDropdown from "@/components/shared/ExportDropdown";
 import ModuleHero from "@/components/shell/ModuleHero";
 import {
+import PageSkeleton from "@/components/shared/PageSkeleton";
   Dialog, DialogContent, DialogHeader, DialogTitle
 } from "@/components/ui/dialog";
 
@@ -49,10 +50,7 @@ export default function FinanzasPage() {
 
   if (isLoading) {
     return (
-      <div className="animate-fade-in space-y-4">
-        <Skeleton className="h-10 w-48" />
-        <Skeleton className="h-[400px] w-full" />
-      </div>
+      <PageSkeleton variant="dashboard" />
     );
   }
 
