@@ -152,3 +152,70 @@ export function useDeleteRelacion() {
     onSuccess: (personaId) => qc.invalidateQueries({ queryKey: ["relaciones-familiares", personaId] }),
   });
 }
+
+// ============ FINANZAS + DONACIONES por persona ============
+
+export function usePersonaFinanzas(personaId: string | undefined) {
+  return useQuery({
+    queryKey: ["persona-finanzas", personaId],
+    enabled: !!personaId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("finanzas")
+        .select("*")
+        .eq("persona_id", personaId!)
+        .order("fecha", { ascending: false });
+      if (error) throw error;
+      return data || [];
+    },
+  });
+}
+
+export function usePersonaDonaciones(personaId: string | undefined) {
+  return useQuery({
+    queryKey: ["persona-donaciones", personaId],
+    enabled: !!personaId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("donaciones")
+        .select("*")
+        .eq("persona_id", personaId!)
+        .order("fecha", { ascending: false });
+      if (error) throw error;
+      return data || [];
+    },
+  });
+}
+
+export function usePersonaPeticiones(personaId: string | undefined) {
+  return useQuery({
+    queryKey: ["persona-peticiones", personaId],
+    enabled: !!personaId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("peticiones_oracion")
+        .select("*")
+        .eq("persona_id", personaId!)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data || [];
+    },
+  });
+}
+
+export function usePersonaConsejerias(personaId: string | undefined) {
+  return useQuery({
+    queryKey: ["persona-consejerias", personaId],
+    enabled: !!personaId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("citas_consejeria")
+        .select("id, fecha, hora_inicio, motivo_categoria, motivo_descripcion, estado, modalidad, consejero_nombre, notas_admin, created_at")
+        .eq("solicitante_persona_id", personaId!)
+        .order("fecha", { ascending: false });
+      if (error) throw error;
+      return data || [];
+    },
+  });
+}
+

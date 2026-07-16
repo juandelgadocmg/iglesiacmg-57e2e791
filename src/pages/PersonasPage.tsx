@@ -67,6 +67,12 @@ export default function PersonasPage() {
   const [search, setSearch] = useState("");
   const [tipoFilter, setTipoFilter] = useState("Todos");
   const [estadoFilter, setEstadoFilter] = useState("all");
+  const [grupoFilter, setGrupoFilter] = useState("all");
+  const [ministerioFilter, setMinisterioFilter] = useState("all");
+  const [altaDesde, setAltaDesde] = useState<string>("");
+  const [altaHasta, setAltaHasta] = useState<string>("");
+  const [mesCumple, setMesCumple] = useState<string>("all");
+  const [showAdvanced, setShowAdvanced] = useState(false);
   const [page, setPage] = useState(1);
   const pageSize = 9;
 
@@ -99,10 +105,21 @@ export default function PersonasPage() {
     const q = norm(search.trim());
     const qDigits = onlyDigits(search);
     return personas.filter((p: any) => {
-      if (tipoFilter !== "Todos") {
-        if (!hasTipo(p, tipoFilter)) return false;
-      }
+      if (tipoFilter !== "Todos" && !hasTipo(p, tipoFilter)) return false;
       if (estadoFilter !== "all" && p.estado_iglesia !== estadoFilter) return false;
+      if (grupoFilter !== "all") {
+        const gid = p.grupo_id || p.grupos?.id;
+        if (grupoFilter === "__none__" ? !!gid : gid !== grupoFilter) return false;
+      }
+      if (ministerioFilter !== "all" && norm(p.ministerio) !== norm(ministerioFilter)) return false;
+      if (altaDesde && (!p.created_at || p.created_at.slice(0, 10) < altaDesde)) return false;
+      if (altaHasta && (!p.created_at || p.created_at.slice(0, 10) > altaHasta)) return false;
+      if (mesCumple !== "all") {
+        const bd = p.fecha_nacimiento;
+        if (!bd) return false;
+        const m = String(new Date(bd).getMonth() + 1).padStart(2, "0");
+        if (m !== mesCumple) return false;
+      }
       if (q) {
         const haystack = norm(
           `${p.nombres ?? ""} ${p.apellidos ?? ""} ${p.email ?? ""} ${p.documento ?? ""} ${p.ocupacion ?? ""} ${p.direccion ?? ""}`
@@ -114,11 +131,32 @@ export default function PersonasPage() {
       }
       return true;
     });
-  }, [personas, search, tipoFilter, estadoFilter]);
+  }, [personas, search, tipoFilter, estadoFilter, grupoFilter, ministerioFilter, altaDesde, altaHasta, mesCumple]);
+
+  // Distinct groups & ministerios for filter selects
+  const gruposOptions = useMemo(() => {
+    const map = new Map<string, string>();
+    (personas || []).forEach((p: any) => {
+      const id = p.grupo_id || p.grupos?.id;
+      const name = p.grupos?.nombre;
+      if (id && name && !map.has(id)) map.set(id, name);
+    });
+    return Array.from(map.entries()).sort((a, b) => a[1].localeCompare(b[1]));
+  }, [personas]);
+  const ministeriosOptions = useMemo(() => {
+    const set = new Set<string>();
+    (personas || []).forEach((p: any) => { if (p.ministerio) set.add(p.ministerio); });
+    return Array.from(set).sort();
+  }, [personas]);
 
   // Reset page on filter change
-  const filterKey = `${search}-${tipoFilter}-${estadoFilter}`;
+  const filterKey = `${search}-${tipoFilter}-${estadoFilter}-${grupoFilter}-${ministerioFilter}-${altaDesde}-${altaHasta}-${mesCumple}`;
   useEffect(() => setPage(1), [filterKey]);
+  const activeAdvanced = [grupoFilter, ministerioFilter].filter(v => v !== "all").length +
+    (altaDesde ? 1 : 0) + (altaHasta ? 1 : 0) + (mesCumple !== "all" ? 1 : 0);
+  const resetAdvanced = () => {
+    setGrupoFilter("all"); setMinisterioFilter("all"); setAltaDesde(""); setAltaHasta(""); setMesCumple("all");
+  };
 
   const counts = useMemo(() => {
     if (!personas) return {} as Record<string, number>;
@@ -185,20 +223,83 @@ export default function PersonasPage() {
       </div>
 
       {/* Filters */}
-      <div className="flex flex-col sm:flex-row gap-3">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input placeholder="Buscar por nombre, apellido, documento, email o teléfono..." value={search} onChange={e => setSearch(e.target.value)} className="pl-10" />
+      <div className="space-y-3">
+        <div className="flex flex-col sm:flex-row gap-3">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input placeholder="Buscar por nombre, apellido, documento, email o teléfono..." value={search} onChange={e => setSearch(e.target.value)} className="pl-10" />
+          </div>
+          <Select value={estadoFilter} onValueChange={setEstadoFilter}>
+            <SelectTrigger className="w-40"><SelectValue placeholder="Estado" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos</SelectItem>
+              <SelectItem value="Activo">Activo</SelectItem>
+              <SelectItem value="Inactivo">Inactivo</SelectItem>
+              <SelectItem value="En proceso">En proceso</SelectItem>
+            </SelectContent>
+          </Select>
+          <Button variant="outline" size="sm" className="gap-1.5" onClick={() => setShowAdvanced(v => !v)}>
+            Filtros avanzados
+            {activeAdvanced > 0 && (
+              <span className="ml-1 inline-flex items-center justify-center h-5 min-w-5 px-1 rounded-full bg-accent text-accent-foreground text-[10px] font-bold">{activeAdvanced}</span>
+            )}
+          </Button>
         </div>
-        <Select value={estadoFilter} onValueChange={setEstadoFilter}>
-          <SelectTrigger className="w-40"><SelectValue placeholder="Estado" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todos</SelectItem>
-            <SelectItem value="Activo">Activo</SelectItem>
-            <SelectItem value="Inactivo">Inactivo</SelectItem>
-            <SelectItem value="En proceso">En proceso</SelectItem>
-          </SelectContent>
-        </Select>
+
+        {showAdvanced && (
+          <div className="surface-card p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 animate-fade-in">
+            <div>
+              <label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Grupo</label>
+              <Select value={grupoFilter} onValueChange={setGrupoFilter}>
+                <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos los grupos</SelectItem>
+                  <SelectItem value="__none__">Sin grupo</SelectItem>
+                  {gruposOptions.map(([id, name]) => (
+                    <SelectItem key={id} value={id}>{name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Ministerio / Rol</label>
+              <Select value={ministerioFilter} onValueChange={setMinisterioFilter}>
+                <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos</SelectItem>
+                  {ministeriosOptions.map((m) => (
+                    <SelectItem key={m} value={m}>{m}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Alta desde</label>
+              <Input type="date" value={altaDesde} onChange={e => setAltaDesde(e.target.value)} className="mt-1" />
+            </div>
+            <div>
+              <label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Alta hasta</label>
+              <Input type="date" value={altaHasta} onChange={e => setAltaHasta(e.target.value)} className="mt-1" />
+            </div>
+            <div>
+              <label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Mes de cumpleaños</label>
+              <Select value={mesCumple} onValueChange={setMesCumple}>
+                <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos</SelectItem>
+                  {["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"].map((n, i) => (
+                    <SelectItem key={n} value={String(i + 1).padStart(2, "0")}>{n}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            {activeAdvanced > 0 && (
+              <div className="sm:col-span-2 lg:col-span-5 flex justify-end">
+                <Button variant="ghost" size="sm" onClick={resetAdvanced}>Limpiar filtros</Button>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       <Tabs value={tipoFilter} onValueChange={setTipoFilter}>

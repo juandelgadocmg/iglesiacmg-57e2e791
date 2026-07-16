@@ -1,5 +1,10 @@
 import { useParams, useNavigate } from "react-router-dom";
-import { usePersonaDetalle, useProcesos, usePersonaProcesos, useUpdateProceso, usePersonaAsistencia, usePersonaGrupoMiembros, useRelacionesFamiliares, useCreateRelacion, useDeleteRelacion } from "@/hooks/usePersonaPerfil";
+import {
+  usePersonaDetalle, useProcesos, usePersonaProcesos, useUpdateProceso,
+  usePersonaAsistencia, usePersonaGrupoMiembros, useRelacionesFamiliares,
+  useCreateRelacion, useDeleteRelacion,
+  usePersonaFinanzas, usePersonaDonaciones, usePersonaPeticiones, usePersonaConsejerias,
+} from "@/hooks/usePersonaPerfil";
 import { usePersonas, useUpdatePersona } from "@/hooks/useDatabase";
 import { supabase } from "@/integrations/supabase/client";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -14,12 +19,16 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { Textarea } from "@/components/ui/textarea";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator, DropdownMenuLabel } from "@/components/ui/dropdown-menu";
 import StatusBadge from "@/components/shared/StatusBadge";
 import PersonaFormDialog from "@/components/forms/PersonaFormDialog";
+import PersonaActivityTimeline, { type TimelineEvent } from "@/components/persona/PersonaActivityTimeline";
+import { exportPersonaFichaPDF, exportPersonaHistorialCSV } from "@/lib/exportPersonaFicha";
 import {
   ArrowLeft, Phone, Mail, MapPin, Calendar, Church, Users, Briefcase,
   Heart, BookOpen, CheckCircle2, XCircle, Clock, User, FileText,
   GraduationCap, Shield, Pencil, UserPlus, Trash2, Baby, HeartHandshake, Camera, Plus, QrCode,
+  MoreHorizontal, Download, Award, DollarSign, Activity, ClipboardCheck, MessageSquare,
 } from "lucide-react";
 import { format, parseISO, differenceInYears } from "date-fns";
 import { es } from "date-fns/locale";
@@ -60,6 +69,10 @@ export default function PersonaPerfilPage() {
   const { data: asistencias } = usePersonaAsistencia(id);
   const { data: grupoMiembros } = usePersonaGrupoMiembros(id);
   const { data: relaciones } = useRelacionesFamiliares(id);
+  const { data: finanzasP } = usePersonaFinanzas(id);
+  const { data: donacionesP } = usePersonaDonaciones(id);
+  const { data: peticionesP } = usePersonaPeticiones(id);
+  const { data: consejeriasP } = usePersonaConsejerias(id);
   const { data: todasPersonas } = usePersonas();
   const createRelacion = useCreateRelacion();
   const deleteRelacion = useDeleteRelacion();
@@ -125,6 +138,82 @@ export default function PersonaPerfilPage() {
   const asistenciasPresente = asistencias?.filter((a) => a.presente).length || 0;
   const totalAsistencias = asistencias?.length || 0;
   const asistenciaPercent = totalAsistencias > 0 ? Math.round((asistenciasPresente / totalAsistencias) * 100) : 0;
+
+  // Finanzas totales por persona
+  const totalDonaciones = (donacionesP || []).reduce((s, d: any) => s + Number(d.monto || 0), 0);
+  const totalAportesIngreso = (finanzasP || []).filter((f: any) => f.tipo === "Ingreso").reduce((s, f: any) => s + Number(f.monto || 0), 0);
+
+  // Timeline unificado
+  const timeline: TimelineEvent[] = useMemo(() => {
+    const evs: TimelineEvent[] = [];
+    (asistencias || []).forEach((a: any) => {
+      evs.push({
+        id: a.id,
+        type: "asistencia",
+        date: a.servicios?.fecha || a.created_at,
+        title: a.presente ? `Asistió a ${a.servicios?.nombre || "servicio"}` : `Ausente en ${a.servicios?.nombre || "servicio"}`,
+        meta: a.servicios?.tipo || undefined,
+        positive: a.presente,
+      });
+    });
+    (finanzasP || []).forEach((f: any) => {
+      evs.push({
+        id: f.id, type: "finanza", date: f.fecha || f.created_at,
+        title: `${f.tipo === "Ingreso" ? "Aporte" : "Gasto"} · $${Number(f.monto).toLocaleString()}`,
+        description: f.descripcion || undefined,
+        meta: [f.categoria_nombre, f.metodo_pago].filter(Boolean).join(" · "),
+      });
+    });
+    (donacionesP || []).forEach((d: any) => {
+      evs.push({
+        id: d.id, type: "donacion", date: d.fecha || (d as any).created_at,
+        title: `Donación · $${Number(d.monto).toLocaleString()}`,
+        description: d.descripcion || undefined,
+        meta: [d.tipo, d.metodo_pago, d.estado].filter(Boolean).join(" · "),
+      });
+    });
+    (peticionesP || []).forEach((p: any) => {
+      evs.push({
+        id: p.id, type: "peticion", date: p.created_at,
+        title: p.titulo || "Petición de oración",
+        description: p.descripcion || undefined,
+        meta: [p.estado, p.prioridad].filter(Boolean).join(" · "),
+      });
+    });
+    (consejeriasP || []).forEach((c: any) => {
+      evs.push({
+        id: c.id, type: "consejeria", date: c.fecha || c.created_at,
+        title: `Consejería · ${c.motivo_categoria || "sesión"}`,
+        description: c.motivo_descripcion || c.notas_admin || undefined,
+        meta: [c.consejero_nombre, c.modalidad, c.estado].filter(Boolean).join(" · "),
+      });
+    });
+    (personaProcesos || []).forEach((pp: any) => {
+      const nombreP = procesos?.find((x: any) => x.id === pp.proceso_id)?.nombre || "Proceso";
+      if (pp.fecha_completado || pp.created_at) {
+        evs.push({
+          id: pp.id || pp.proceso_id, type: "proceso",
+          date: pp.fecha_completado || pp.created_at,
+          title: `${nombreP} · ${pp.estado}`,
+          description: (pp as any).observacion || undefined,
+        });
+      }
+    });
+    if ((persona as any)?.observaciones) {
+      evs.push({
+        id: "obs-persona", type: "observacion",
+        date: (persona as any).updated_at || (persona as any).created_at,
+        title: "Nota pastoral",
+        description: (persona as any).observaciones,
+      });
+    }
+    return evs;
+  }, [asistencias, finanzasP, donacionesP, peticionesP, consejeriasP, personaProcesos, procesos, persona]);
+
+  const registrarAsistencia = () => navigate("/asistencia", { state: { personaId: id } });
+  const generarCertificado = () => navigate("/certificados", { state: { personaId: id } });
+  const handleExportPDF = () => { if (persona) { exportPersonaFichaPDF(persona, timeline); toast.success("Ficha PDF generada"); } };
+  const handleExportCSV = () => { if (persona) { exportPersonaHistorialCSV(persona, timeline); toast.success("Historial CSV exportado"); } };
 
   if (isLoading) {
     return (
@@ -269,25 +358,59 @@ export default function PersonaPerfilPage() {
               </div>
             </div>
 
-            <Button variant="secondary" size="sm" className="gap-1.5 shrink-0" onClick={() => setEditing(true)}>
-              <Pencil className="h-3.5 w-3.5" /> Editar
-            </Button>
+            <div className="flex flex-col gap-2 shrink-0">
+              <div className="flex gap-2">
+                <Button variant="secondary" size="sm" className="gap-1.5" onClick={() => setEditing(true)}>
+                  <Pencil className="h-3.5 w-3.5" /> Editar
+                </Button>
+                <Button variant="secondary" size="sm" className="gap-1.5" onClick={registrarAsistencia}>
+                  <ClipboardCheck className="h-3.5 w-3.5" /> Asistencia
+                </Button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="secondary" size="icon" className="h-8 w-8">
+                      <MoreHorizontal className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-56">
+                    <DropdownMenuLabel>Acciones rápidas</DropdownMenuLabel>
+                    <DropdownMenuItem onClick={generarCertificado}>
+                      <Award className="h-4 w-4 mr-2" /> Generar certificado
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={registrarAsistencia}>
+                      <ClipboardCheck className="h-4 w-4 mr-2" /> Registrar asistencia
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuLabel>Exportar</DropdownMenuLabel>
+                    <DropdownMenuItem onClick={handleExportPDF}>
+                      <FileText className="h-4 w-4 mr-2" /> Ficha completa (PDF)
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={handleExportCSV}>
+                      <Download className="h-4 w-4 mr-2" /> Historial (CSV)
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+            </div>
           </div>
         </div>
       </div>
 
       {/* Tabs */}
-      <Tabs defaultValue="info" className="space-y-6">
-        <TabsList>
-          <TabsTrigger value="info" className="gap-1.5"><User className="h-3.5 w-3.5" /> Información</TabsTrigger>
+      <Tabs defaultValue="resumen" className="space-y-6">
+        <TabsList className="flex flex-wrap h-auto gap-1">
+          <TabsTrigger value="resumen" className="gap-1.5"><User className="h-3.5 w-3.5" /> Resumen</TabsTrigger>
+          <TabsTrigger value="grupos" className="gap-1.5"><Users className="h-3.5 w-3.5" /> Grupos</TabsTrigger>
+          <TabsTrigger value="asistencia" className="gap-1.5"><Clock className="h-3.5 w-3.5" /> Asistencia</TabsTrigger>
+          <TabsTrigger value="finanzas" className="gap-1.5"><DollarSign className="h-3.5 w-3.5" /> Finanzas</TabsTrigger>
+          <TabsTrigger value="actividad" className="gap-1.5"><Activity className="h-3.5 w-3.5" /> Actividad</TabsTrigger>
           <TabsTrigger value="familia" className="gap-1.5"><HeartHandshake className="h-3.5 w-3.5" /> Familia</TabsTrigger>
           <TabsTrigger value="procesos" className="gap-1.5"><Heart className="h-3.5 w-3.5" /> Crecimiento</TabsTrigger>
-          <TabsTrigger value="asistencia" className="gap-1.5"><Clock className="h-3.5 w-3.5" /> Asistencia</TabsTrigger>
           <TabsTrigger value="qr" className="gap-1.5"><QrCode className="h-3.5 w-3.5" /> QR</TabsTrigger>
         </TabsList>
 
-        {/* Info tab */}
-        <TabsContent value="info">
+        {/* Resumen (formerly info) */}
+        <TabsContent value="resumen">
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
             {/* Personal */}
             <Card>
@@ -769,6 +892,133 @@ export default function PersonaPerfilPage() {
               ) : (
                 <p className="text-sm text-muted-foreground">Este miembro no tiene un código QR asignado aún.</p>
               )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Grupos tab */}
+        <TabsContent value="grupos">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base flex items-center gap-2">
+                <Users className="h-4 w-4 text-primary" /> Grupos ({grupoMiembros?.length || 0})
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {grupoMiembros && grupoMiembros.length > 0 ? (
+                <div className="grid sm:grid-cols-2 gap-3">
+                  {grupoMiembros.map((gm: any) => (
+                    <div key={gm.id} className="surface-card card-hover p-4 flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-primary/8 flex items-center justify-center">
+                        <Users className="h-5 w-5 text-primary" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-foreground truncate">{gm.grupos?.nombre}</p>
+                        <p className="text-xs text-muted-foreground">{gm.grupos?.tipo || "—"} · rol: {gm.rol || "asistente"}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-10 text-muted-foreground">
+                  <Users className="h-10 w-10 mx-auto mb-2 opacity-30" />
+                  <p className="text-sm">Sin grupos asignados</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Finanzas tab */}
+        <TabsContent value="finanzas">
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="surface-card p-4">
+                <p className="kpi-label">Aportes registrados</p>
+                <p className="kpi-value mt-2">${totalAportesIngreso.toLocaleString()}</p>
+                <p className="text-xs text-muted-foreground mt-1">{(finanzasP || []).length} movimientos</p>
+              </div>
+              <div className="surface-card p-4">
+                <p className="kpi-label">Donaciones</p>
+                <p className="kpi-value mt-2">${totalDonaciones.toLocaleString()}</p>
+                <p className="text-xs text-muted-foreground mt-1">{(donacionesP || []).length} donaciones</p>
+              </div>
+              <div className="surface-card p-4">
+                <p className="kpi-label">Total contribuido</p>
+                <p className="kpi-value mt-2">${(totalAportesIngreso + totalDonaciones).toLocaleString()}</p>
+                <p className="text-xs text-muted-foreground mt-1">Ingresos + donaciones</p>
+              </div>
+            </div>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base flex items-center gap-2"><DollarSign className="h-4 w-4 text-primary" /> Movimientos y donaciones</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {(finanzasP && finanzasP.length > 0) || (donacionesP && donacionesP.length > 0) ? (
+                  <div className="divide-y">
+                    {[
+                      ...(finanzasP || []).map((f: any) => ({ ...f, _kind: "finanza" })),
+                      ...(donacionesP || []).map((d: any) => ({ ...d, _kind: "donacion" })),
+                    ]
+                      .sort((a: any, b: any) => (b.fecha || "").localeCompare(a.fecha || ""))
+                      .map((row: any) => (
+                        <div key={`${row._kind}-${row.id}`} className="flex items-center justify-between py-3">
+                          <div className="flex items-center gap-3 min-w-0">
+                            <div className={cn("w-9 h-9 rounded-lg flex items-center justify-center shrink-0",
+                              row._kind === "donacion" ? "bg-accent/10 text-accent" :
+                              row.tipo === "Ingreso" ? "bg-success/10 text-success" : "bg-destructive/10 text-destructive")}>
+                              {row._kind === "donacion" ? <Heart className="h-4 w-4" /> : <DollarSign className="h-4 w-4" />}
+                            </div>
+                            <div className="min-w-0">
+                              <p className="text-sm font-medium text-foreground truncate">
+                                {row._kind === "donacion" ? `Donación${row.tipo ? " · " + row.tipo : ""}` : (row.categoria_nombre || row.descripcion || row.tipo || "Movimiento")}
+                              </p>
+                              <p className="text-xs text-muted-foreground truncate">
+                                {row.fecha ? format(parseISO(row.fecha), "dd MMM yyyy", { locale: es }) : "—"}
+                                {row.metodo_pago ? ` · ${row.metodo_pago}` : ""}
+                                {row.estado ? ` · ${row.estado}` : ""}
+                              </p>
+                            </div>
+                          </div>
+                          <span className={cn("text-sm font-bold whitespace-nowrap",
+                            row._kind === "donacion" || row.tipo === "Ingreso" ? "text-success" : "text-destructive")}>
+                            {row._kind === "donacion" || row.tipo === "Ingreso" ? "+" : "-"}${Number(row.monto).toLocaleString()}
+                          </span>
+                        </div>
+                      ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-10 text-muted-foreground">
+                    <DollarSign className="h-10 w-10 mx-auto mb-2 opacity-30" />
+                    <p className="text-sm">Sin movimientos financieros registrados</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+
+        {/* Actividad tab — timeline unificada */}
+        <TabsContent value="actividad">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Activity className="h-4 w-4 text-primary" /> Línea de tiempo · {timeline.length} eventos
+                </CardTitle>
+                <div className="flex gap-2">
+                  <Button variant="outline" size="sm" onClick={handleExportCSV}>
+                    <Download className="h-3.5 w-3.5 mr-1.5" /> CSV
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={handleExportPDF}>
+                    <FileText className="h-3.5 w-3.5 mr-1.5" /> PDF
+                  </Button>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <PersonaActivityTimeline events={timeline} />
             </CardContent>
           </Card>
         </TabsContent>
