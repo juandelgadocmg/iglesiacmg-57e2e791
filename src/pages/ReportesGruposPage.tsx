@@ -2,6 +2,7 @@ import { useState, useMemo } from "react";
 import PageHeader from "@/components/shared/PageHeader";
 import MetricCard from "@/components/shared/MetricCard";
 import EmptyState from "@/components/shared/EmptyState";
+import ErrorState from "@/components/shared/ErrorState";
 import { GrupoInfoCard, GrupoCardsSkeletonGrid, type GrupoCardBadgeTone } from "@/components/grupos/GrupoInfoCard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
