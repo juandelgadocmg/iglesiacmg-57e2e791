@@ -14,6 +14,75 @@ export type Database = {
   }
   public: {
     Tables: {
+      alertas_importantes: {
+        Row: {
+          categoria: string | null
+          created_at: string
+          created_by: string | null
+          created_by_email: string | null
+          descripcion: string | null
+          estado: string
+          grupo_id: string | null
+          id: string
+          metadata: Json | null
+          persona_id: string | null
+          read_at: string | null
+          resolved_at: string | null
+          severidad: string
+          titulo: string
+          updated_at: string
+        }
+        Insert: {
+          categoria?: string | null
+          created_at?: string
+          created_by?: string | null
+          created_by_email?: string | null
+          descripcion?: string | null
+          estado?: string
+          grupo_id?: string | null
+          id?: string
+          metadata?: Json | null
+          persona_id?: string | null
+          read_at?: string | null
+          resolved_at?: string | null
+          severidad?: string
+          titulo: string
+          updated_at?: string
+        }
+        Update: {
+          categoria?: string | null
+          created_at?: string
+          created_by?: string | null
+          created_by_email?: string | null
+          descripcion?: string | null
+          estado?: string
+          grupo_id?: string | null
+          id?: string
+          metadata?: Json | null
+          persona_id?: string | null
+          read_at?: string | null
+          resolved_at?: string | null
+          severidad?: string
+          titulo?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "alertas_importantes_grupo_id_fkey"
+            columns: ["grupo_id"]
+            isOneToOne: false
+            referencedRelation: "grupos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "alertas_importantes_persona_id_fkey"
+            columns: ["persona_id"]
+            isOneToOne: false
+            referencedRelation: "personas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       asistencia: {
         Row: {
           clasificacion: string | null
@@ -701,6 +770,50 @@ export type Database = {
             columns: ["periodo_id"]
             isOneToOne: false
             referencedRelation: "periodos_academicos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cumple_recordatorios: {
+        Row: {
+          activo: boolean
+          created_at: string
+          created_by: string | null
+          created_by_email: string | null
+          id: string
+          nota: string | null
+          persona_id: string
+          recordar_dias_antes: number
+          updated_at: string
+        }
+        Insert: {
+          activo?: boolean
+          created_at?: string
+          created_by?: string | null
+          created_by_email?: string | null
+          id?: string
+          nota?: string | null
+          persona_id: string
+          recordar_dias_antes?: number
+          updated_at?: string
+        }
+        Update: {
+          activo?: boolean
+          created_at?: string
+          created_by?: string | null
+          created_by_email?: string | null
+          id?: string
+          nota?: string | null
+          persona_id?: string
+          recordar_dias_antes?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cumple_recordatorios_persona_id_fkey"
+            columns: ["persona_id"]
+            isOneToOne: false
+            referencedRelation: "personas"
             referencedColumns: ["id"]
           },
         ]
