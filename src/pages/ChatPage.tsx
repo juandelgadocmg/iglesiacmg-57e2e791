@@ -3,7 +3,8 @@ import {
   Send, Bot, User, Loader2, LifeBuoy, Plus, MessageSquare, Trash2, Search,
   PanelRightClose, PanelRightOpen, BookOpen, Compass, ListChecks, ShieldCheck,
   Users, UsersRound, Award, GraduationCap, DollarSign, BarChart3, ClipboardList,
-  Filter, Settings as SettingsIcon,
+  Filter, Settings as SettingsIcon, LayoutGrid, CalendarDays, HeartHandshake,
+  Megaphone, FileText, HandHeart,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -13,13 +14,17 @@ import ReactMarkdown from "react-markdown";
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
+import { supabase } from "@/integrations/supabase/client";
 
 type Message = { role: "user" | "assistant"; content: string };
 type Thread = { id: string; title: string; updatedAt: number; messages: Message[] };
 
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat`;
-const STORAGE_KEY = "doxa.chat.threads.v1";
-const ACTIVE_KEY = "doxa.chat.activeThread.v1";
+const STORAGE_PREFIX = "doxa.chat.threads.v2::";
+const ACTIVE_PREFIX = "doxa.chat.activeThread.v2::";
+const storageKeyFor = (uid: string) => `${STORAGE_PREFIX}${uid}`;
+const activeKeyFor = (uid: string) => `${ACTIVE_PREFIX}${uid}`;
+
 
 // Sugerencias iniciales (tarjetas de bienvenida)
 const PROMPT_CARDS: { icon: any; title: string; prompt: string; color: string }[] = [
