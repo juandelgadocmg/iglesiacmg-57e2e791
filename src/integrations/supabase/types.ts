@@ -824,6 +824,39 @@ export type Database = {
           },
         ]
       }
+      doxa_chat_shares: {
+        Row: {
+          created_at: string
+          expires_at: string
+          id: string
+          messages: Json
+          owner_user_id: string
+          thread_id: string
+          title: string
+          token: string
+        }
+        Insert: {
+          created_at?: string
+          expires_at: string
+          id?: string
+          messages?: Json
+          owner_user_id: string
+          thread_id: string
+          title?: string
+          token: string
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string
+          id?: string
+          messages?: Json
+          owner_user_id?: string
+          thread_id?: string
+          title?: string
+          token?: string
+        }
+        Relationships: []
+      }
       doxa_chat_threads: {
         Row: {
           created_at: string
