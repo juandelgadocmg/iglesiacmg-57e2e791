@@ -9,9 +9,9 @@ export const inputVariants = cva(
   {
     variants: {
       size: {
-        sm: "h-8 text-sm rounded-md px-2.5",
-        md: "h-9 text-sm rounded-lg px-3",
-        lg: "h-11 text-[15px] rounded-lg px-3.5",
+        sm: "h-11 text-[15px] rounded-lg px-3.5",
+        md: "h-[52px] text-base rounded-lg px-4",
+        lg: "h-14 text-base rounded-lg px-5",
       },
       state: {
         default: "border-border hover:border-border-strong",
