@@ -17,14 +17,17 @@ import {
   LayoutDashboard, Users, UsersRound, Church,
   DollarSign, CalendarDays, GraduationCap, BookMarked,
   Award, BarChart3, Settings, UserCog, ChevronLeft, ChevronRight,
-  LogOut, HandHeart, LifeBuoy, Mail, ShieldCheck
+  LogOut, HandHeart, LifeBuoy, Mail, ShieldCheck, Cake, Bell, Activity
 } from "lucide-react";
 
 type MenuItem = { label: string; icon: any; path: string; section: string };
 
 const menuItems: MenuItem[] = [
   { label: "Dashboard", icon: LayoutDashboard, path: "/dashboard", section: "Principal" },
+  { label: "Alertas", icon: Bell, path: "/alertas", section: "Principal" },
+  { label: "Actividad", icon: Activity, path: "/actividad", section: "Principal" },
   { label: "Personas", icon: Users, path: "/personas", section: "Comunidad" },
+  { label: "Cumpleaños", icon: Cake, path: "/cumpleanos", section: "Comunidad" },
   { label: "Grupos", icon: UsersRound, path: "/grupos", section: "Comunidad" },
   { label: "Reuniones", icon: Church, path: "/servicios", section: "Comunidad" },
   { label: "Eventos", icon: CalendarDays, path: "/eventos", section: "Comunidad" },
