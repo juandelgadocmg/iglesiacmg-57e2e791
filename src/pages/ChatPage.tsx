@@ -553,18 +553,55 @@ export default function ChatPage() {
             <p className="text-[10.5px] uppercase tracking-wide text-muted-foreground font-semibold">Acerca del asistente</p>
             <h3 className="text-sm font-semibold mt-0.5">¿En qué puedo ayudarte?</h3>
           </div>
-          <div className="flex-1 overflow-y-auto p-4 space-y-3">
-            {CAPABILITIES.map((c) => (
-              <div key={c.title} className="rounded-lg border bg-card p-3">
-                <div className="flex items-center gap-2 mb-1">
-                  <div className="h-6 w-6 rounded-md bg-primary/10 flex items-center justify-center">
-                    <c.icon className="h-3.5 w-3.5 text-primary" />
-                  </div>
-                  <p className="text-[13px] font-semibold">{c.title}</p>
-                </div>
-                <p className="text-[11.5px] text-muted-foreground leading-relaxed">{c.desc}</p>
+          <div className="flex-1 overflow-y-auto p-4 space-y-4">
+            {/* Módulos DOXA — click inserta una pregunta ejemplo en el composer */}
+            <div>
+              <div className="flex items-center gap-1.5 mb-2">
+                <LayoutGrid className="h-3.5 w-3.5 text-primary" />
+                <p className="text-[11px] uppercase tracking-wide text-muted-foreground font-semibold">Módulos DOXA</p>
               </div>
-            ))}
+              <p className="text-[11px] text-muted-foreground mb-2 leading-relaxed">
+                Toca un módulo para insertar una pregunta de ejemplo en el chat.
+              </p>
+              <div className="grid grid-cols-1 gap-1">
+                {MODULES.map((m) => {
+                  const Icon = m.icon;
+                  return (
+                    <button
+                      key={m.name}
+                      type="button"
+                      onClick={() => insertPrompt(m.example)}
+                      title={m.example}
+                      className="w-full flex items-center gap-2 rounded-md border bg-card hover:border-primary/40 hover:bg-primary/5 px-2.5 py-1.5 text-left transition-colors group"
+                    >
+                      <div className="h-6 w-6 rounded-md bg-primary/10 flex items-center justify-center shrink-0 group-hover:bg-primary/15">
+                        <Icon className="h-3.5 w-3.5 text-primary" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-[12.5px] font-medium truncate">{m.name}</p>
+                        <p className="text-[10.5px] text-muted-foreground truncate">{m.example}</p>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="pt-1">
+              <p className="text-[11px] uppercase tracking-wide text-muted-foreground font-semibold mb-2">Capacidades</p>
+              {CAPABILITIES.map((c) => (
+                <div key={c.title} className="rounded-lg border bg-card p-3 mb-2 last:mb-0">
+                  <div className="flex items-center gap-2 mb-1">
+                    <div className="h-6 w-6 rounded-md bg-primary/10 flex items-center justify-center">
+                      <c.icon className="h-3.5 w-3.5 text-primary" />
+                    </div>
+                    <p className="text-[13px] font-semibold">{c.title}</p>
+                  </div>
+                  <p className="text-[11.5px] text-muted-foreground leading-relaxed">{c.desc}</p>
+                </div>
+              ))}
+            </div>
+
 
             <div className="rounded-lg border bg-gradient-to-br from-amber-500/5 to-card p-3 mt-4">
               <div className="flex items-center gap-1.5 mb-2">
