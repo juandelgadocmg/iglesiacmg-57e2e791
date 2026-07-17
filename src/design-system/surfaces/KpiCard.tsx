@@ -36,35 +36,35 @@ export function KpiCard({
       onClick={onClick}
       className={cn("relative overflow-hidden", className)}
     >
-      <div className="p-5">
-        <div className="flex items-start justify-between gap-2">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-fg-muted">{label}</p>
+      <div className="p-6">
+        <div className="flex items-start justify-between gap-3">
+          <p className="text-xs font-semibold uppercase tracking-[0.08em] text-fg-muted">{label}</p>
           {Icon && (
-            <span className={cn("inline-flex items-center justify-center size-8 rounded-lg", toneMap[tone])}>
-              <Icon className="size-4" />
+            <span className={cn("inline-flex items-center justify-center h-11 w-11 rounded-xl", toneMap[tone])}>
+              <Icon className="h-6 w-6" />
             </span>
           )}
         </div>
-        <div className="mt-2 flex items-baseline gap-2">
-          <span className="text-[30px] leading-none font-bold tracking-tight text-fg font-mono tabular-nums">
+        <div className="mt-3 flex items-baseline gap-2 flex-wrap">
+          <span className="text-3xl md:text-4xl leading-none font-bold tracking-tight text-fg font-mono tabular-nums">
             {value}
           </span>
           {delta && (
             <span
               className={cn(
-                "inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[11px] font-semibold",
+                "inline-flex items-center gap-0.5 rounded-full px-2 py-0.5 text-xs font-semibold",
                 positive ? "bg-success/10 text-success" : "bg-destructive/10 text-destructive"
               )}
             >
-              {positive ? <ArrowUpRight className="size-3" /> : <ArrowDownRight className="size-3" />}
+              {positive ? <ArrowUpRight className="h-3.5 w-3.5" /> : <ArrowDownRight className="h-3.5 w-3.5" />}
               {Math.abs(delta.value).toFixed(1)}%
             </span>
           )}
         </div>
-        {hint && <p className="mt-1 text-xs text-fg-muted">{hint}</p>}
+        {hint && <p className="mt-2 text-sm text-fg-muted">{hint}</p>}
       </div>
       {sparkline && (
-        <div className="h-14 -mt-2 px-2 pb-1">{sparkline}</div>
+        <div className="h-16 -mt-2 px-2 pb-2">{sparkline}</div>
       )}
     </Card>
   );
