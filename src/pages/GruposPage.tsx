@@ -163,7 +163,7 @@ export default function GruposPage() {
         </div>
       );
     }
-    return <GrupoPerfilView grupoId={grupoIdCDP} onBack={null} readOnly />;
+    return <GrupoPerfilView grupoId={grupoIdCDP} onBack={null} readOnly canReportAndPlan />;
   }
 
   // lider_red → show only groups in their assigned red
