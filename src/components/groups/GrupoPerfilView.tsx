@@ -42,7 +42,10 @@ interface Props {
   grupoId: string;
   onBack: (() => void) | null;
   readOnly?: boolean;
+  /** Permite crear reportes y planificaciones aunque readOnly esté activo (ej. líder de Casa de Paz). */
+  canReportAndPlan?: boolean;
 }
+
 
 const rolIcon = (rol: string) => {
   switch (rol) {
@@ -64,7 +67,8 @@ const rolBadgeClass = (rol: string) => {
   }
 };
 
-export default function GrupoPerfilView({ grupoId, onBack, readOnly = false }: Props) {
+export default function GrupoPerfilView({ grupoId, onBack, readOnly = false, canReportAndPlan }: Props) {
+  const allowReportAndPlan = canReportAndPlan ?? !readOnly;
   const { data: grupo, isLoading: loadingGrupo, isError: errorGrupo, error: grupoErr, refetch: refetchGrupo } = useGrupoDetalle(grupoId);
   const { data: miembros, isLoading: loadingMiembros, isError: errorMiembros, error: miembrosErr, refetch: refetchMiembros } = useGrupoMiembrosDetalle(grupoId);
   const { data: reportes, isError: errorReportes, error: reportesErr, refetch: refetchReportes } = useGrupoReportes(grupoId);
@@ -250,7 +254,7 @@ export default function GrupoPerfilView({ grupoId, onBack, readOnly = false }: P
                 <Pencil className="h-3.5 w-3.5" /> Editar
               </Button>
             )}
-            {!readOnly && (() => {
+            {allowReportAndPlan && (() => {
               const now = new Date();
               const day = now.getDay();
               const mins = now.getHours() * 60 + now.getMinutes();
@@ -611,7 +615,7 @@ export default function GrupoPerfilView({ grupoId, onBack, readOnly = false }: P
 
         {/* ====== PLANIFICACIÓN TAB ====== */}
         <TabsContent value="planificacion">
-          <PlanificacionTab grupoId={grupoId} readOnly={readOnly} />
+          <PlanificacionTab grupoId={grupoId} readOnly={!allowReportAndPlan} />
         </TabsContent>
 
         {/* ====== MAPA TAB ====== */}
