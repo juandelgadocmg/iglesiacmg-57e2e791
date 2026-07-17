@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useMemo, useCallback } from "react";
+import React, { useState, useRef, useEffect, useMemo, useCallback, useDeferredValue, useTransition } from "react";
 import {
   Send, User, Loader2, LifeBuoy, Plus, MessageSquare, Trash2, Search,
   PanelRightClose, PanelRightOpen, BookOpen, Compass, ListChecks, ShieldCheck,
@@ -6,6 +6,7 @@ import {
   Filter, Settings as SettingsIcon, LayoutGrid, CalendarDays, HeartHandshake,
   Megaphone, FileText, HandHeart, MoreHorizontal, Pin, PinOff, Pencil,
   Download, FileDown, FileType2, FileText as FileTxt, Cloud, CloudOff, RefreshCw,
+  Share2, Copy, Check, Upload, Clock,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
