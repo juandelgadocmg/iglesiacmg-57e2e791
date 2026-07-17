@@ -22,10 +22,16 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
+} from "@/components/ui/dialog";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Label } from "@/components/ui/label";
+import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import ReactMarkdown from "react-markdown";
 import { cn } from "@/lib/utils";
-import { formatDistanceToNow, format } from "date-fns";
+import { formatDistanceToNow, formatDistanceToNowStrict, format } from "date-fns";
 import { es } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
 import jsPDF from "jspdf";
@@ -37,6 +43,8 @@ import {
   mergeThreads, addTombstone, loadTombstones, clearTombstone,
   type ChatThread, type ChatMessage,
 } from "@/lib/doxaChatSync";
+import { createShare } from "@/lib/doxaChatShare";
+import { importThreadFromFile } from "@/lib/doxaChatImport";
 
 type Message = ChatMessage;
 type Thread = ChatThread;
