@@ -4,6 +4,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Separator } from "@/components/ui/separator";
 import { Progress } from "@/components/ui/progress";
 import { Phone, Mail, MapPin, Loader2, Globe } from "lucide-react";
+import { Icon } from "@/design-system/primitives/Icon";
 import { format, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
 import { useProcesos, usePersonaProcesos } from "@/hooks/usePersonaPerfil";
@@ -51,18 +52,18 @@ export default function PersonaDetailDialog({ persona, open, onOpenChange }: Pro
         <DialogHeader>
           <DialogTitle>Información del Integrante</DialogTitle>
         </DialogHeader>
-        <div className="space-y-4">
+        <div className="space-y-5">
           {/* Header */}
           <div className="flex items-center gap-4">
             <Avatar className="h-16 w-16">
               <AvatarImage src={persona.foto_url || undefined} />
-              <AvatarFallback className="text-lg">{persona.nombres?.[0]}{persona.apellidos?.[0]}</AvatarFallback>
+              <AvatarFallback className="doxa-body">{persona.nombres?.[0]}{persona.apellidos?.[0]}</AvatarFallback>
             </Avatar>
             <div>
-              <p className="text-lg font-semibold">{persona.nombres} {persona.apellidos}</p>
-              <div className="flex gap-2 mt-1">
-                <Badge variant="outline" className="text-xs">{persona.tipo_persona}</Badge>
-                <Badge variant="secondary" className="text-xs">{persona.estado_iglesia}</Badge>
+              <p className="doxa-h4">{persona.nombres} {persona.apellidos}</p>
+              <div className="flex gap-2 mt-2">
+                <Badge variant="outline" className="doxa-caption">{persona.tipo_persona}</Badge>
+                <Badge variant="secondary" className="doxa-caption">{persona.estado_iglesia}</Badge>
               </div>
             </div>
           </div>
@@ -70,15 +71,15 @@ export default function PersonaDetailDialog({ persona, open, onOpenChange }: Pro
           <Separator />
 
           {/* Contact & personal info */}
-          <div className="grid grid-cols-1 gap-2.5 text-sm">
+          <div className="grid grid-cols-1 gap-3 doxa-body-sm">
             {persona.telefono && (
-              <div className="flex items-center gap-2"><Phone className="h-4 w-4 text-muted-foreground" /><span>{persona.telefono}</span></div>
+              <div className="flex items-center gap-2"><Icon icon={Phone} size="xs" className="text-muted-foreground" /><span>{persona.telefono}</span></div>
             )}
             {persona.email && (
-              <div className="flex items-center gap-2"><Mail className="h-4 w-4 text-muted-foreground" /><span>{persona.email}</span></div>
+              <div className="flex items-center gap-2"><Icon icon={Mail} size="xs" className="text-muted-foreground" /><span>{persona.email}</span></div>
             )}
             {persona.direccion && (
-              <div className="flex items-center gap-2"><MapPin className="h-4 w-4 text-muted-foreground" /><span>{persona.direccion}</span></div>
+              <div className="flex items-center gap-2"><Icon icon={MapPin} size="xs" className="text-muted-foreground" /><span>{persona.direccion}</span></div>
             )}
             {persona.fecha_nacimiento && (
               <div><span className="text-muted-foreground">Fecha de nacimiento:</span> {format(parseISO(persona.fecha_nacimiento), "d 'de' MMMM 'de' yyyy", { locale: es })}</div>
@@ -93,7 +94,7 @@ export default function PersonaDetailDialog({ persona, open, onOpenChange }: Pro
               <div><span className="text-muted-foreground">Ocupación:</span> {persona.ocupacion}</div>
             )}
             {persona.vinculacion && (
-              <div className="flex items-center gap-2"><Globe className="h-4 w-4 text-muted-foreground" /><span className="text-muted-foreground">Vinculación:</span> <span>{persona.vinculacion}</span></div>
+              <div className="flex items-center gap-2"><Icon icon={Globe} size="xs" className="text-muted-foreground" /><span className="text-muted-foreground">Vinculación:</span> <span>{persona.vinculacion}</span></div>
             )}
             {persona.whatsapp && (
               <div><span className="text-muted-foreground">WhatsApp:</span> {persona.whatsapp}</div>
@@ -110,17 +111,17 @@ export default function PersonaDetailDialog({ persona, open, onOpenChange }: Pro
           <Separator />
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <h4 className="text-sm font-semibold">Procesos de Crecimiento</h4>
-              <span className="text-xs text-muted-foreground">{realizados}/{totalProcesos} completados · {progressPct}%</span>
+              <h4 className="doxa-body-sm font-semibold">Procesos de Crecimiento</h4>
+              <span className="doxa-caption text-muted-foreground">{realizados}/{totalProcesos} completados · {progressPct}%</span>
             </div>
             <Progress value={progressPct} className="h-2" />
 
             {(loadingProcesos || loadingPP) ? (
               <div className="flex items-center justify-center py-4 text-muted-foreground">
-                <Loader2 className="h-4 w-4 animate-spin mr-2" /> Cargando...
+                <Icon icon={Loader2} size="sm" className="animate-spin mr-2" /> Cargando...
               </div>
             ) : (procesos || []).length === 0 ? (
-              <p className="text-xs text-muted-foreground text-center py-2">No hay procesos de crecimiento configurados</p>
+              <p className="doxa-caption text-muted-foreground text-center py-2">No hay procesos de crecimiento configurados</p>
             ) : (
               <div className="grid grid-cols-1 gap-1 max-h-[300px] overflow-y-auto pr-1">
                 {(procesos || []).map((proc) => {
@@ -129,18 +130,18 @@ export default function PersonaDetailDialog({ persona, open, onOpenChange }: Pro
                   const estado = displayEstado(rawEstado);
                   const fecha = pp?.fecha_completado;
                   return (
-                    <div key={proc.id} className="flex items-center justify-between py-2 px-2 rounded-md hover:bg-muted/50 text-sm border-b border-border/50 last:border-0">
+                    <div key={proc.id} className="flex items-center justify-between py-2 px-2 rounded-md hover:bg-muted/50 doxa-body-sm border-b border-border/50 last:border-0">
                       <span className={`flex-1 ${estado === "Finalizado" ? "text-muted-foreground" : ""}`}>
                         {proc.nombre}
                       </span>
                       <div className="flex items-center gap-2 shrink-0">
                         <Badge
-                          className={`text-[11px] px-3 py-0.5 rounded-full font-medium ${estadoBadgeClasses[estado] || estadoBadgeClasses["No Finalizado"]}`}
+                          className={`doxa-caption px-3 py-0.5 rounded-full font-medium ${estadoBadgeClasses[estado] || estadoBadgeClasses["No Finalizado"]}`}
                         >
                           {estado}
                         </Badge>
                         {fecha && (
-                          <span className="text-xs text-muted-foreground whitespace-nowrap">
+                          <span className="doxa-caption text-muted-foreground whitespace-nowrap">
                             {format(parseISO(fecha), "dd/MM/yyyy")}
                           </span>
                         )}

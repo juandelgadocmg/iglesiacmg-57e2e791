@@ -6,6 +6,7 @@ import { Separator } from "@/components/ui/separator";
 import {
   Phone, Mail, MapPin, Users, Calendar, ExternalLink, Star, Pencil, MessageSquare,
 } from "lucide-react";
+import { Icon } from "@/design-system/primitives/Icon";
 import { format, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
 import { useUserPins } from "@/hooks/useUserPins";
@@ -23,18 +24,18 @@ export default function PersonaQuickView({ persona, onEdit }: { persona: any; on
     <div className="space-y-5">
       <div className="flex items-start gap-4">
         <Avatar className="h-16 w-16">
-          <AvatarFallback className="text-lg font-bold bg-primary/10 text-primary">
+          <AvatarFallback className="doxa-body font-bold bg-primary/10 text-primary">
             {p.nombres?.[0]}{p.apellidos?.[0]}
           </AvatarFallback>
         </Avatar>
         <div className="flex-1 min-w-0">
-          <h2 className="text-lg font-semibold truncate">{p.nombres} {p.apellidos}</h2>
-          <div className="flex flex-wrap gap-1 mt-1.5">
+          <h2 className="doxa-h4 truncate">{p.nombres} {p.apellidos}</h2>
+          <div className="flex flex-wrap gap-1 mt-2">
             {tipos.slice(0, 3).map((t) => (
-              <Badge key={t} variant="secondary" className="text-[10px]">{t}</Badge>
+              <Badge key={t} variant="secondary" className="doxa-caption">{t}</Badge>
             ))}
             {p.estado_iglesia && (
-              <Badge variant="outline" className="text-[10px]">{p.estado_iglesia}</Badge>
+              <Badge variant="outline" className="doxa-caption">{p.estado_iglesia}</Badge>
             )}
           </div>
         </div>
@@ -42,33 +43,34 @@ export default function PersonaQuickView({ persona, onEdit }: { persona: any; on
 
       <div className="grid grid-cols-2 gap-2">
         <Button size="sm" className="w-full" onClick={() => { dock.close(); nav(`/personas/${p.id}`); }}>
-          <ExternalLink className="h-3.5 w-3.5 mr-1.5" /> Perfil completo
+          <Icon icon={ExternalLink} size="xs" className="mr-2" /> Perfil completo
         </Button>
         <Button size="sm" variant="outline" onClick={() => onEdit?.(p)}>
-          <Pencil className="h-3.5 w-3.5 mr-1.5" /> Editar
+          <Icon icon={Pencil} size="xs" className="mr-2" /> Editar
         </Button>
         <Button
           size="sm"
           variant="outline"
           onClick={() => toggle({ id: `persona:${p.id}`, kind: "persona", label: `${p.nombres} ${p.apellidos}`, to: `/personas/${p.id}` })}
         >
-          <Star className={`h-3.5 w-3.5 mr-1.5 ${pinned ? "fill-amber-400 text-amber-500" : ""}`} />
+          <Icon icon={Star} size="xs" className={`mr-2 ${pinned ? "fill-amber-400 text-amber-500" : ""}`} />
           {pinned ? "Anclado" : "Anclar"}
         </Button>
         {p.telefono && (
-          <a
-            href={`https://web.whatsapp.com/send?phone=${(p.telefono || "").replace(/\D/g, "")}`}
-            target="_blank" rel="noopener noreferrer"
-            className="inline-flex items-center justify-center h-8 px-3 rounded-md border text-xs font-medium hover:bg-muted"
-          >
-            <MessageSquare className="h-3.5 w-3.5 mr-1.5 text-emerald-600" /> WhatsApp
-          </a>
+          <Button asChild size="sm" variant="outline">
+            <a
+              href={`https://web.whatsapp.com/send?phone=${(p.telefono || "").replace(/\D/g, "")}`}
+              target="_blank" rel="noopener noreferrer"
+            >
+              <Icon icon={MessageSquare} size="xs" className="mr-2 text-emerald-600" /> WhatsApp
+            </a>
+          </Button>
         )}
       </div>
 
       <Separator />
 
-      <div className="space-y-2 text-sm">
+      <div className="space-y-3">
         {p.telefono && <InfoRow icon={Phone} label="Teléfono" value={p.telefono} />}
         {p.email && <InfoRow icon={Mail} label="Email" value={p.email} />}
         {p.direccion && <InfoRow icon={MapPin} label="Dirección" value={p.direccion} />}
@@ -84,8 +86,8 @@ export default function PersonaQuickView({ persona, onEdit }: { persona: any; on
         <>
           <Separator />
           <div>
-            <div className="text-[11px] uppercase tracking-wider text-muted-foreground mb-1">Notas</div>
-            <p className="text-sm text-muted-foreground whitespace-pre-wrap">{p.notas}</p>
+            <div className="doxa-caption uppercase tracking-wider text-muted-foreground mb-1">Notas</div>
+            <p className="doxa-body-sm text-muted-foreground whitespace-pre-wrap">{p.notas}</p>
           </div>
         </>
       )}
@@ -93,13 +95,13 @@ export default function PersonaQuickView({ persona, onEdit }: { persona: any; on
   );
 }
 
-function InfoRow({ icon: Icon, label, value }: { icon: any; label: string; value: string }) {
+function InfoRow({ icon, label, value }: { icon: any; label: string; value: string }) {
   return (
-    <div className="flex items-start gap-2.5">
-      <Icon className="h-3.5 w-3.5 mt-0.5 text-muted-foreground shrink-0" />
+    <div className="flex items-start gap-3">
+      <Icon icon={icon} size="sm" className="mt-0.5 text-muted-foreground" />
       <div className="flex-1 min-w-0">
-        <div className="text-[10.5px] uppercase tracking-wider text-muted-foreground">{label}</div>
-        <div className="text-[13px] truncate">{value}</div>
+        <div className="doxa-caption uppercase tracking-wider text-muted-foreground">{label}</div>
+        <div className="doxa-body-sm truncate">{value}</div>
       </div>
     </div>
   );
