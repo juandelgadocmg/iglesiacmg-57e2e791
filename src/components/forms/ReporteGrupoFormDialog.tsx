@@ -432,7 +432,9 @@ export default function ReporteGrupoFormDialog({ open, onOpenChange, editReporte
             .insert(records as any);
         }
 
-        toast.success("Reporte actualizado exitosamente.");
+        toast.success("Reporte actualizado", {
+          description: `Los cambios del ${selectedDateKey} se guardaron correctamente.`,
+        });
         resetForm();
         onOpenChange(false);
       } else {
