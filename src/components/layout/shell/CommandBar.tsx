@@ -6,7 +6,7 @@ import {
 } from "@/components/ui/command";
 import {
   Home, Users, UsersRound, Church, CalendarDays, GraduationCap, BookMarked,
-  Award, DollarSign, BarChart3, HandHeart, MessageCircle, Mail, Settings,
+  Award, DollarSign, BarChart3, HandHeart, LifeBuoy, Mail, Settings,
   UserCog, ShieldCheck, Plus, QrCode, Search, ArrowRight, Clock, Star,
 } from "lucide-react";
 import { useUserRoles } from "@/hooks/useUserRoles";
@@ -33,7 +33,7 @@ const NAV_COMMANDS: NavCmd[] = [
   { label: "Mensajes", to: "/mensajes", icon: Mail },
   { label: "Peticiones", to: "/peticiones", icon: HandHeart },
   { label: "Reportes", to: "/reportes", icon: BarChart3 },
-  { label: "Chat IA", to: "/chat", icon: MessageCircle },
+  { label: "Asistente DOXA IA", to: "/chat", icon: LifeBuoy },
   { label: "Usuarios", to: "/usuarios", icon: UserCog },
   { label: "Configuración", to: "/configuracion", icon: Settings },
   { label: "Seguridad", to: "/seguridad", icon: ShieldCheck },
