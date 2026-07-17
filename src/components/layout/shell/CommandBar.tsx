@@ -6,7 +6,7 @@ import {
 } from "@/components/ui/command";
 import {
   Home, Users, UsersRound, Church, CalendarDays, GraduationCap, BookMarked,
-  Award, DollarSign, BarChart3, HandHeart, MessageCircle, Mail, Settings,
+  Award, DollarSign, BarChart3, HandHeart, LifeBuoy, Mail, Settings,
   UserCog, ShieldCheck, Plus, QrCode, Search, ArrowRight, Clock, Star,
 } from "lucide-react";
 import { useUserRoles } from "@/hooks/useUserRoles";
