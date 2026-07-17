@@ -34,6 +34,9 @@ import SeguridadPage from "@/pages/SeguridadPage";
 import NotFound from "./pages/NotFound";
 import DesignSystemPage from "@/pages/_design-system/DesignSystemPage";
 import HoyPage from "@/pages/HoyPage";
+import CumpleanosPage from "@/pages/CumpleanosPage";
+import AlertasPage from "@/pages/AlertasPage";
+import ActividadPage from "@/pages/ActividadPage";
 import PWAUpdatePrompt from "@/components/pwa/PWAUpdatePrompt";
 
 const queryClient = new QueryClient();
