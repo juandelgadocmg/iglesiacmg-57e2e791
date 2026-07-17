@@ -377,7 +377,7 @@ export default function ChatPage() {
           })}
         </div>
         <div className="p-3 border-t text-[10.5px] text-muted-foreground">
-          {threads.length} conversación{threads.length === 1 ? "" : "es"} guardada{threads.length === 1 ? "" : "s"} en este navegador.
+          {threads.length} conversación{threads.length === 1 ? "" : "es"} guardada{threads.length === 1 ? "" : "s"} en tu cuenta{userId === "__anon" ? " (este navegador)" : ""}.
         </div>
       </aside>
 
