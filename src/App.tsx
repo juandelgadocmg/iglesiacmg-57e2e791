@@ -79,6 +79,9 @@ const App = () => (
               <Route path="/configuracion" element={<RoleGuard><ConfiguracionPage /></RoleGuard>} />
               <Route path="/seguridad" element={<RoleGuard><SeguridadPage /></RoleGuard>} />
               <Route path="/chat" element={<ChatPage />} />
+              <Route path="/cumpleanos" element={<CumpleanosPage />} />
+              <Route path="/alertas" element={<AlertasPage />} />
+              <Route path="/actividad" element={<ActividadPage />} />
               <Route path="/verificar-academico/:id" element={<VerificarAcademicoPage />} />
             </Route>
             <Route path="*" element={<NotFound />} />
