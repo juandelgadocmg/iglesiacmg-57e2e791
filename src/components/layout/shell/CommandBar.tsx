@@ -33,7 +33,7 @@ const NAV_COMMANDS: NavCmd[] = [
   { label: "Mensajes", to: "/mensajes", icon: Mail },
   { label: "Peticiones", to: "/peticiones", icon: HandHeart },
   { label: "Reportes", to: "/reportes", icon: BarChart3 },
-  { label: "Chat IA", to: "/chat", icon: MessageCircle },
+  { label: "Asistente DOXA IA", to: "/chat", icon: LifeBuoy },
   { label: "Usuarios", to: "/usuarios", icon: UserCog },
   { label: "Configuración", to: "/configuracion", icon: Settings },
   { label: "Seguridad", to: "/seguridad", icon: ShieldCheck },
