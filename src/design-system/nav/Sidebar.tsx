@@ -36,22 +36,22 @@ export function Sidebar({
     <aside
       className={cn(
         "flex flex-col bg-sidebar border-r border-sidebar-border h-full",
-        collapsed ? "w-14" : "w-60",
+        collapsed ? "w-16" : "w-64",
         "transition-[width] duration-[var(--motion-base)]",
         className
       )}
     >
       {brand && (
-        <div className={cn("h-14 flex items-center border-b border-sidebar-border", collapsed ? "justify-center" : "px-4")}>
+        <div className={cn("h-16 flex items-center border-b border-sidebar-border", collapsed ? "justify-center" : "px-4")}>
           {brand}
         </div>
       )}
-      <nav className="flex-1 overflow-y-auto py-2 px-2 space-y-1">
+      <nav className="flex-1 overflow-y-auto py-3 px-2 space-y-2">
         {groups.map((g, i) => (
           <SidebarGroupBlock key={i} group={g} collapsed={collapsed} />
         ))}
       </nav>
-      {footer && <div className="border-t border-sidebar-border p-3">{footer}</div>}
+      {footer && <div className="border-t border-sidebar-border p-4">{footer}</div>}
     </aside>
   );
 }
@@ -90,21 +90,21 @@ function SidebarLink({ item, collapsed }: { item: SidebarItem; collapsed?: boole
       end={item.end}
       className={({ isActive }) =>
         cn(
-          "relative flex items-center gap-2.5 rounded-md text-[13px] font-medium transition-colors",
+          "relative flex items-center gap-3 rounded-lg text-base font-medium transition-colors",
           "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
-          collapsed ? "justify-center h-9 w-9 mx-auto" : "h-8 px-2.5",
+          collapsed ? "justify-center h-[52px] w-[52px] mx-auto" : "h-[52px] px-3",
           isActive && "bg-sidebar-accent text-sidebar-accent-foreground",
-          isActive && "before:content-[''] before:absolute before:left-[-4px] before:top-1.5 before:bottom-1.5 before:w-[2.5px] before:rounded before:bg-accent"
+          isActive && "before:content-[''] before:absolute before:left-[-4px] before:top-2.5 before:bottom-2.5 before:w-[3px] before:rounded before:bg-accent"
         )
       }
       title={collapsed ? item.label : undefined}
     >
-      {Icon && <Icon className="size-4 shrink-0" />}
+      {Icon && <Icon className="size-6 shrink-0" />}
       {!collapsed && (
         <>
           <span className="flex-1 truncate">{item.label}</span>
           {item.badge != null && (
-            <Badge tone="neutral" size="xs">{item.badge}</Badge>
+            <Badge tone="neutral" size="sm">{item.badge}</Badge>
           )}
         </>
       )}

@@ -182,6 +182,7 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
+    font-size: 16px;
   }
 
   body {
@@ -189,6 +190,8 @@
     font-family: 'Manrope', system-ui, sans-serif;
     font-feature-settings: 'ss01', 'cv11';
     letter-spacing: -0.005em;
+    font-size: 16px;
+    line-height: 1.55;
   }
 
   h1, h2, h3, h4, h5, h6 {
@@ -197,9 +200,13 @@
     letter-spacing: -0.02em;
   }
 
-  h1 { @apply text-3xl md:text-[32px] leading-tight; }
-  h2 { @apply text-xl md:text-[22px] leading-snug; }
-  h3 { @apply text-base md:text-lg; }
+  /* DOXA Global Type Scale */
+  h1 { font-size: 32px; line-height: 1.15; }
+  h2 { font-size: 28px; line-height: 1.2; }
+  h3 { font-size: 24px; line-height: 1.25; }
+  h4 { font-size: 20px; line-height: 1.3; }
+  h5 { font-size: 18px; line-height: 1.35; }
+  h6 { font-size: 16px; line-height: 1.4; }
 
   /* Focus ring premium */
   :focus-visible {
@@ -207,6 +214,18 @@
     box-shadow: var(--shadow-glow);
     border-radius: 6px;
   }
+}
+
+@layer utilities {
+  .doxa-display-xl { font-family: 'Sora', system-ui, sans-serif; font-size: 48px; line-height: 1.1; letter-spacing: -0.025em; font-weight: 700; }
+  .doxa-display-lg { font-family: 'Sora', system-ui, sans-serif; font-size: 40px; line-height: 1.15; letter-spacing: -0.02em; font-weight: 700; }
+  .doxa-h1 { font-family: 'Sora', system-ui, sans-serif; font-size: 32px; line-height: 1.15; font-weight: 700; }
+  .doxa-h2 { font-family: 'Sora', system-ui, sans-serif; font-size: 28px; line-height: 1.2; font-weight: 600; }
+  .doxa-h3 { font-family: 'Sora', system-ui, sans-serif; font-size: 24px; line-height: 1.25; font-weight: 600; }
+  .doxa-h4 { font-family: 'Sora', system-ui, sans-serif; font-size: 20px; line-height: 1.3; font-weight: 600; }
+  .doxa-body { font-size: 16px; line-height: 1.55; }
+  .doxa-body-sm { font-size: 15px; line-height: 1.5; }
+  .doxa-caption { font-size: 14px; line-height: 1.45; }
 }
 
 @layer utilities {
