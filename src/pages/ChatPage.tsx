@@ -774,17 +774,45 @@ export default function ChatPage() {
       {/* Rail izquierdo */}
       <aside className="hidden md:flex w-64 shrink-0 border-r bg-card/40 flex-col">
         <div className="p-3 border-b space-y-2">
-          <Button onClick={createThread} className="w-full justify-start gap-2 h-9" size="sm">
-            <Plus className="h-4 w-4" /> Nueva conversación
-          </Button>
+          <div className="flex items-center gap-1.5">
+            <Button onClick={createThread} className="flex-1 justify-start gap-2 h-9" size="sm">
+              <Plus className="h-4 w-4" /> Nueva conversación
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              className="h-9 w-9 shrink-0"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={importing}
+              title="Importar desde .txt, .md o .docx"
+              aria-label="Importar conversaciones"
+            >
+              {importing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+            </Button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".txt,.md,.markdown,.docx,text/plain,text/markdown,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+              multiple
+              hidden
+              onChange={(e) => onImportFiles(e.target.files)}
+            />
+          </div>
           <div className="relative">
             <Search className="h-3.5 w-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
             <Input
               value={threadQuery}
-              onChange={(e) => setThreadQuery(e.target.value)}
+              onChange={(e) => {
+                const v = e.target.value;
+                startTransition(() => setThreadQuery(v));
+              }}
               placeholder="Buscar en títulos y mensajes…"
               className="pl-8 h-8 text-[13px]"
             />
+            {isSearchPending && (
+              <Loader2 className="h-3.5 w-3.5 absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground animate-spin" />
+            )}
           </div>
           <Select value={dateFilter} onValueChange={(v) => setDateFilter(v as DateFilter)}>
             <SelectTrigger className="h-8 text-[12.5px]">
@@ -805,10 +833,26 @@ export default function ChatPage() {
           )}
         </div>
         <div className="flex-1 overflow-y-auto py-1">
-          {filteredThreads.length === 0 && (
+          {bootstrapping && threads.length <= 1 && (
+            <div className="px-2 py-2 space-y-2">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <div key={i} className="flex items-center gap-2 px-2 py-1.5">
+                  <Skeleton className="h-3.5 w-3.5 rounded" />
+                  <div className="flex-1 space-y-1.5">
+                    <Skeleton className="h-3 w-4/5" />
+                    <Skeleton className="h-2.5 w-2/5" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+          {!bootstrapping && filteredThreads.length === 0 && (
             <p className="text-xs text-muted-foreground text-center py-6">Sin conversaciones</p>
           )}
-          {filteredThreads.map((t) => {
+          {visibleThreads.map((t) => {
+            const isActive = t.id === activeId;
+            const isRenaming = renamingId === t.id;
+            return (
             const isActive = t.id === activeId;
             const isRenaming = renamingId === t.id;
             return (
