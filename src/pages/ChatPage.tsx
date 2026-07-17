@@ -909,6 +909,13 @@ export default function ChatPage() {
                         : <><Pin className="h-3.5 w-3.5 mr-2" /> Fijar arriba</>}
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      onClick={() => openShare(t)}
+                      disabled={userId === "__anon" || t.messages.length === 0}
+                    >
+                      <Share2 className="h-3.5 w-3.5 mr-2" /> Compartir enlace…
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
                     <DropdownMenuItem onClick={() => exportThreadAsPdf(t)}>
                       <FileType2 className="h-3.5 w-3.5 mr-2" /> Exportar a PDF
                     </DropdownMenuItem>
