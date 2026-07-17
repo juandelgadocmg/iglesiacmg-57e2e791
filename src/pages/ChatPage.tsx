@@ -253,6 +253,18 @@ export default function ChatPage() {
     });
   };
 
+  const insertPrompt = (text: string) => {
+    setInput(text);
+    setTimeout(() => {
+      const el = inputRef.current;
+      if (el) {
+        el.focus();
+        try { el.setSelectionRange(el.value.length, el.value.length); } catch { /* ignore */ }
+      }
+    }, 20);
+  };
+
+
   const sendWith = async (text: string) => {
     const clean = text.trim();
     if (!clean || isLoading) return;
