@@ -78,35 +78,35 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
       className={cn(
         "h-full flex flex-col bg-sidebar",
         !isMobile && "transition-[width] duration-300 border-r border-sidebar-border",
-        !isMobile && (showCollapsed ? "w-[72px]" : "w-[260px]")
+        !isMobile && (showCollapsed ? "w-[80px]" : "w-[280px]")
       )}
     >
       {/* Brand */}
-      <div className="flex items-center gap-3 px-5 py-5">
+      <div className="flex items-center gap-3 px-6 py-6">
         <div className="relative shrink-0">
           <img
             src={logo}
             alt="DOXA"
-            className="w-9 h-9 rounded-xl object-cover ring-1 ring-black/5"
+            className="w-11 h-11 rounded-xl object-cover ring-1 ring-black/5"
           />
-          <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-accent ring-2 ring-sidebar" />
+          <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-accent ring-2 ring-sidebar" />
         </div>
         {!showCollapsed && (
           <div className="flex flex-col min-w-0">
-            <span className="font-heading text-[15px] font-bold text-foreground leading-tight tracking-tight">DOXA</span>
-            <span className="text-[10.5px] text-muted-foreground truncate">Centro Mundial de Gloria</span>
+            <span className="font-heading text-lg font-bold text-foreground leading-tight tracking-tight">DOXA</span>
+            <span className="text-sm text-muted-foreground truncate">Centro Mundial de Gloria</span>
           </div>
         )}
       </div>
 
       {/* Nav */}
-      <nav className="flex-1 overflow-y-auto px-3 pb-3">
+      <nav className="flex-1 overflow-y-auto px-3 pb-4">
         {grouped.map((group, gi) => (
-          <div key={group.section} className={cn(gi === 0 ? "mt-1" : "mt-2")}>
+          <div key={group.section} className={cn(gi === 0 ? "mt-1" : "mt-4")}>
             {!showCollapsed && (
               <div className="sidebar-section-label">{group.section}</div>
             )}
-            <div className="space-y-0.5">
+            <div className="space-y-1">
               {group.items.map((item) => {
                 const isActive = location.pathname.startsWith(item.path);
                 return (
@@ -123,7 +123,7 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
                   >
                     <item.icon
                       className={cn(
-                        "h-[17px] w-[17px] shrink-0 transition-colors",
+                        "h-6 w-6 shrink-0 transition-colors",
                         isActive ? "text-primary" : "text-muted-foreground"
                       )}
                     />
@@ -137,7 +137,7 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
       </nav>
 
       {/* Footer */}
-      <div className="border-t border-sidebar-border p-2 space-y-0.5">
+      <div className="border-t border-sidebar-border p-3 space-y-1">
         {!isMobile && (
           <button
             onClick={() => setCollapsed(!collapsed)}
@@ -146,7 +146,7 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
               showCollapsed && "justify-center px-2"
             )}
           >
-            {showCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
+            {showCollapsed ? <ChevronRight className="h-5 w-5" /> : <ChevronLeft className="h-5 w-5" />}
             {!showCollapsed && <span>Colapsar</span>}
           </button>
         )}
@@ -157,7 +157,7 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
             showCollapsed && "justify-center px-2"
           )}
         >
-          <LogOut className="h-4 w-4" />
+          <LogOut className="h-5 w-5" />
           {!showCollapsed && <span>Cerrar sesión</span>}
         </button>
       </div>
