@@ -25,6 +25,7 @@ import UsuariosPage from "@/pages/UsuariosPage";
 import MensajesPage from "@/pages/MensajesPage";
 import ConfiguracionPage from "@/pages/ConfiguracionPage";
 import ChatPage from "@/pages/ChatPage";
+import ChatSharePage from "@/pages/ChatSharePage";
 import ResetPasswordPage from "@/pages/ResetPasswordPage";
 import CheckInPage from "@/pages/CheckInPage";
 import VerificarAcademicoPage from "@/pages/VerificarAcademicoPage";
