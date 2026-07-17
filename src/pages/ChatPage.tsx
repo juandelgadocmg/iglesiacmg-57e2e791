@@ -940,6 +940,18 @@ export default function ChatPage() {
               </div>
             );
           })}
+          {hasMoreThreads && (
+            <div ref={sentinelRef} className="px-3 py-3 text-center">
+              <span className="inline-flex items-center gap-1.5 text-[10.5px] text-muted-foreground">
+                <Loader2 className="h-3 w-3 animate-spin" /> Cargando más…
+              </span>
+            </div>
+          )}
+          {!bootstrapping && filteredThreads.length > 0 && !hasMoreThreads && filteredThreads.length > 30 && (
+            <p className="text-[10.5px] text-muted-foreground text-center py-3">
+              Mostrando {filteredThreads.length} conversaciones
+            </p>
+          )}
         </div>
         <div className="p-3 border-t text-[10.5px] text-muted-foreground flex items-center gap-1.5">
           <SyncIcon className={cn("h-3 w-3", syncState === "loading" && "animate-spin", syncState === "synced" && "text-emerald-600", syncState === "error" && "text-amber-600")} />
