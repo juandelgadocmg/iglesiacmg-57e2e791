@@ -432,7 +432,9 @@ export default function ReporteGrupoFormDialog({ open, onOpenChange, editReporte
             .insert(records as any);
         }
 
-        toast.success("Reporte actualizado exitosamente.");
+        toast.success("Reporte actualizado", {
+          description: `Los cambios del ${selectedDateKey} se guardaron correctamente.`,
+        });
         resetForm();
         onOpenChange(false);
       } else {
@@ -464,13 +466,19 @@ export default function ReporteGrupoFormDialog({ open, onOpenChange, editReporte
           asistentes: attendance,
         });
         setShowReceipt(true);
-        toast.success("Reporte enviado exitosamente.");
+        toast.success("Reporte enviado", {
+          description: `${selectedGrupo?.nombre ?? "Grupo"} · ${selectedDateKey} · ${presentesCount} presentes / ${ausentesCount} ausentes`,
+          duration: 6000,
+        });
       }
     } catch (err: any) {
-      const message = err.message?.includes("Ya existe un reporte")
-        ? "Ya existe un reporte para este grupo en esta fecha."
-        : (err.message || "");
-      toast.error("Error: " + message);
+      const { formatSupabaseError } = await import("@/lib/supabaseError");
+      const message = formatSupabaseError(err, "No se pudo guardar el reporte.");
+      toast.error("No se pudo guardar el reporte", {
+        description: message,
+        duration: 8000,
+        action: { label: "Reintentar", onClick: () => handleSubmit() },
+      });
     }
   };
 
