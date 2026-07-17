@@ -13,7 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import logo from "@/assets/logo.jpeg";
 import {
   Home, Users, UsersRound, Church, CalendarDays, GraduationCap, BookMarked,
-  Award, DollarSign, BarChart3, HandHeart, MessageCircle, Mail, Settings,
+  Award, DollarSign, BarChart3, HandHeart, LifeBuoy, Mail, Settings,
   UserCog, ShieldCheck, ChevronLeft, ChevronRight, LogOut, Star, Clock,
   ChevronDown, Sparkles, BookOpenText, ExternalLink,
 } from "lucide-react";
