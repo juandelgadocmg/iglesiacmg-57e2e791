@@ -56,6 +56,7 @@ const App = () => (
             <Route path="/check-in/:servicioId" element={<CheckInPage />} />
             <Route path="/.lovable/oauth/consent" element={<OAuthConsentPage />} />
             <Route path="/design-system" element={<DesignSystemPage />} />
+            <Route path="/chat/compartida/:token" element={<ChatSharePage />} />
             <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
               <Route path="/hoy" element={<HoyPage />} />
               <Route path="/dashboard" element={<Dashboard />} />
