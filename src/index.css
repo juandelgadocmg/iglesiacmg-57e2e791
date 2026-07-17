@@ -229,6 +229,23 @@
   .doxa-body { font-size: 20px; line-height: 1.55; }
   .doxa-body-sm { font-size: 18px; line-height: 1.5; }
   .doxa-caption { font-size: 17px; line-height: 1.45; }
+
+  /* ── DOXA Global Uplift — override ALL hardcoded arbitrary
+     Tailwind text sizes across the app so legacy components
+     inherit the +25/30% scale without file-by-file refactor.
+     Sizes ≤ 15px get bumped; larger ones already scale well. */
+  .text-\[6px\]  { font-size: 11px !important; line-height: 1.4 !important; }
+  .text-\[8px\]  { font-size: 13px !important; line-height: 1.4 !important; }
+  .text-\[9px\]  { font-size: 14px !important; line-height: 1.4 !important; }
+  .text-\[10px\] { font-size: 15px !important; line-height: 1.45 !important; }
+  .text-\[11px\] { font-size: 16px !important; line-height: 1.45 !important; }
+  .text-\[12px\] { font-size: 17px !important; line-height: 1.5 !important; }
+  .text-\[13px\] { font-size: 18px !important; line-height: 1.5 !important; }
+  .text-\[14px\] { font-size: 19px !important; line-height: 1.55 !important; }
+  .text-\[15px\] { font-size: 20px !important; line-height: 1.55 !important; }
+  .text-\[16px\] { font-size: 21px !important; line-height: 1.55 !important; }
+  .text-\[17px\] { font-size: 22px !important; line-height: 1.55 !important; }
+  .text-\[18px\] { font-size: 23px !important; line-height: 1.55 !important; }
 }
 
 
