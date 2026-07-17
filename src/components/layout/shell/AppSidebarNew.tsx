@@ -45,7 +45,7 @@ const ZONES: { label: string; items: Item[] }[] = [
     items: [
       { label: "Mensajes", icon: Mail, to: "/mensajes", badgeKey: "mensajes" },
       { label: "Peticiones", icon: HandHeart, to: "/peticiones" },
-      { label: "Chat IA", icon: MessageCircle, to: "/chat" },
+      { label: "Asistente DOXA IA", icon: LifeBuoy, to: "/chat" },
     ],
   },
   {
