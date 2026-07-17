@@ -369,11 +369,32 @@ export default function ChatPage() {
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [syncState, setSyncState] = useState<SyncState>("offline");
 
+  // Pagination + skeleton
+  const [visibleCount, setVisibleCount] = useState(30);
+  const [bootstrapping, setBootstrapping] = useState(true);
+
+  // Share dialog
+  const [shareThread, setShareThread] = useState<Thread | null>(null);
+  const [shareTtlHours, setShareTtlHours] = useState<number>(24);
+  const [shareBusy, setShareBusy] = useState(false);
+  const [shareResult, setShareResult] = useState<{ url: string; expiresAt: Date } | null>(null);
+  const [shareCopied, setShareCopied] = useState(false);
+
+  // Import
+  const [importing, setImporting] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Deferred search (non-blocking)
+  const deferredQuery = useDeferredValue(threadQuery);
+  const [, startTransition] = useTransition();
+
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const sentinelRef = useRef<HTMLDivElement>(null);
   const draftLoadedRef = useRef<string>("");
   const lastSyncedRef = useRef<Map<string, number>>(new Map());
   const pushTimerRef = useRef<number | null>(null);
+  const searchIndexRef = useRef<Map<string, { sig: number; blob: string }>>(new Map());
 
   const active = threads.find((t) => t.id === activeId) || threads[0];
   const messages = active?.messages || [];
