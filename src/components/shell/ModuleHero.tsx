@@ -424,16 +424,16 @@ export default function ModuleHero({
       {/* Radial glow */}
       <div className={cn("absolute -right-24 -top-24 h-64 w-64 rounded-full blur-3xl opacity-20 bg-gradient-to-br", v.gradient)} />
 
-      <div className="relative p-5 md:p-6">
-        <div className="flex items-start justify-between gap-4 flex-wrap">
-          <div className="flex items-start gap-4 min-w-0">
+      <div className="relative p-4 sm:p-5 md:p-6">
+        <div className="flex items-start justify-between gap-3 sm:gap-4 flex-wrap">
+          <div className="flex items-start gap-3 sm:gap-4 min-w-0 flex-1">
             <div className={cn(
-              "h-12 w-12 rounded-xl flex items-center justify-center shrink-0 text-white shadow-lg bg-gradient-to-br",
+              "h-10 w-10 sm:h-12 sm:w-12 rounded-xl flex items-center justify-center shrink-0 text-white shadow-lg bg-gradient-to-br",
               v.gradient
             )}>
-              <Icon className="h-6 w-6" />
+              <Icon className="h-5 w-5 sm:h-6 sm:w-6" />
             </div>
-            <div className="min-w-0">
+            <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2 flex-wrap">
                 <span className={cn("text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ring-1", v.chip)}>
                   {v.tag}
@@ -453,12 +453,16 @@ export default function ModuleHero({
                   </span>
                 )}
               </div>
-              <h1 className="text-xl md:text-2xl font-bold tracking-tight mt-1.5">{title}</h1>
+              <h1 className="text-lg sm:text-xl md:text-2xl font-bold tracking-tight mt-1.5 break-words">{title}</h1>
               {description && <p className="text-[13px] text-muted-foreground mt-1 max-w-2xl">{description}</p>}
-              <p className="text-[10.5px] text-muted-foreground/70 mt-1.5">Inspirado en {v.inspiredBy}</p>
+              <p className="text-[10.5px] text-muted-foreground/70 mt-1.5 hidden sm:block">Inspirado en {v.inspiredBy}</p>
             </div>
           </div>
-          {actions && <div className="flex items-center gap-2 flex-wrap">{actions}</div>}
+          {actions && (
+            <div className="flex items-center gap-2 flex-wrap w-full sm:w-auto justify-start sm:justify-end">
+              {actions}
+            </div>
+          )}
         </div>
 
         {kpis.length > 0 && (

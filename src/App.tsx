@@ -34,6 +34,9 @@ import SeguridadPage from "@/pages/SeguridadPage";
 import NotFound from "./pages/NotFound";
 import DesignSystemPage from "@/pages/_design-system/DesignSystemPage";
 import HoyPage from "@/pages/HoyPage";
+import CumpleanosPage from "@/pages/CumpleanosPage";
+import AlertasPage from "@/pages/AlertasPage";
+import ActividadPage from "@/pages/ActividadPage";
 import PWAUpdatePrompt from "@/components/pwa/PWAUpdatePrompt";
 
 const queryClient = new QueryClient();
@@ -76,6 +79,9 @@ const App = () => (
               <Route path="/configuracion" element={<RoleGuard><ConfiguracionPage /></RoleGuard>} />
               <Route path="/seguridad" element={<RoleGuard><SeguridadPage /></RoleGuard>} />
               <Route path="/chat" element={<ChatPage />} />
+              <Route path="/cumpleanos" element={<CumpleanosPage />} />
+              <Route path="/alertas" element={<AlertasPage />} />
+              <Route path="/actividad" element={<ActividadPage />} />
               <Route path="/verificar-academico/:id" element={<VerificarAcademicoPage />} />
             </Route>
             <Route path="*" element={<NotFound />} />
