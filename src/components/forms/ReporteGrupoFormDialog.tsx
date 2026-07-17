@@ -467,10 +467,13 @@ export default function ReporteGrupoFormDialog({ open, onOpenChange, editReporte
         toast.success("Reporte enviado exitosamente.");
       }
     } catch (err: any) {
-      const message = err.message?.includes("Ya existe un reporte")
-        ? "Ya existe un reporte para este grupo en esta fecha."
-        : (err.message || "");
-      toast.error("Error: " + message);
+      const { formatSupabaseError } = await import("@/lib/supabaseError");
+      const message = formatSupabaseError(err, "No se pudo guardar el reporte.");
+      toast.error("No se pudo guardar el reporte", {
+        description: message,
+        duration: 8000,
+        action: { label: "Reintentar", onClick: () => handleSubmit() },
+      });
     }
   };
 
