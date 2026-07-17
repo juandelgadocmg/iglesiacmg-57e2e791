@@ -17,6 +17,7 @@ import { useUnreadCount } from "@/hooks/useMensajes";
 import NotificationDropdown from "@/components/layout/NotificationDropdown";
 import CommandBar from "./CommandBar";
 import QuickCreateMenu from "./QuickCreateMenu";
+import InstallPWAButton from "@/components/pwa/InstallPWAButton";
 import HotkeysHelpDialog from "./HotkeysHelpDialog";
 import { useHotkeys } from "@/hooks/useHotkeys";
 import { useNavigate } from "react-router-dom";
@@ -163,6 +164,8 @@ export default function AppTopBar({ onMenuClick }: { onMenuClick?: () => void })
           </TooltipProvider>
 
           <QuickCreateMenu />
+          <InstallPWAButton />
+
 
           <Link to="/mensajes" className="relative p-2 rounded-md hover:bg-muted" title="Mensajes">
             <Mail className="h-[18px] w-[18px] text-muted-foreground" />
