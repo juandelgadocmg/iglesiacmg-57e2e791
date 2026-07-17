@@ -35,7 +35,7 @@ const menuItems: MenuItem[] = [
   { label: "Mensajes", icon: Mail, path: "/mensajes", section: "Operación" },
   { label: "Peticiones", icon: HandHeart, path: "/peticiones", section: "Operación" },
   { label: "Reportes", icon: BarChart3, path: "/reportes", section: "Operación" },
-  { label: "Chat IA", icon: MessageCircle, path: "/chat", section: "Inteligencia" },
+  { label: "Asistente DOXA IA", icon: LifeBuoy, path: "/chat", section: "Inteligencia" },
   { label: "Usuarios", icon: UserCog, path: "/usuarios", section: "Administración" },
   { label: "Configuración", icon: Settings, path: "/configuracion", section: "Administración" },
   { label: "Seguridad", icon: ShieldCheck, path: "/seguridad", section: "Administración" },
