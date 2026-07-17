@@ -182,7 +182,10 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
-    font-size: 16px;
+    /* DOXA Global Scale — +25% across the entire product.
+       All rem-based Tailwind sizes (text-sm, p-4, h-10, gap-2…)
+       inherit this bump automatically. */
+    font-size: 20px;
   }
 
   body {
@@ -190,7 +193,7 @@
     font-family: 'Manrope', system-ui, sans-serif;
     font-feature-settings: 'ss01', 'cv11';
     letter-spacing: -0.005em;
-    font-size: 16px;
+    font-size: 1rem;
     line-height: 1.55;
   }
 
@@ -200,13 +203,13 @@
     letter-spacing: -0.02em;
   }
 
-  /* DOXA Global Type Scale */
-  h1 { font-size: 32px; line-height: 1.15; }
-  h2 { font-size: 28px; line-height: 1.2; }
-  h3 { font-size: 24px; line-height: 1.25; }
-  h4 { font-size: 20px; line-height: 1.3; }
-  h5 { font-size: 18px; line-height: 1.35; }
-  h6 { font-size: 16px; line-height: 1.4; }
+  /* DOXA Global Type Scale — +25% */
+  h1 { font-size: 40px; line-height: 1.15; }
+  h2 { font-size: 34px; line-height: 1.2; }
+  h3 { font-size: 30px; line-height: 1.25; }
+  h4 { font-size: 25px; line-height: 1.3; }
+  h5 { font-size: 22px; line-height: 1.35; }
+  h6 { font-size: 20px; line-height: 1.4; }
 
   /* Focus ring premium */
   :focus-visible {
@@ -217,16 +220,17 @@
 }
 
 @layer utilities {
-  .doxa-display-xl { font-family: 'Sora', system-ui, sans-serif; font-size: 48px; line-height: 1.1; letter-spacing: -0.025em; font-weight: 700; }
-  .doxa-display-lg { font-family: 'Sora', system-ui, sans-serif; font-size: 40px; line-height: 1.15; letter-spacing: -0.02em; font-weight: 700; }
-  .doxa-h1 { font-family: 'Sora', system-ui, sans-serif; font-size: 32px; line-height: 1.15; font-weight: 700; }
-  .doxa-h2 { font-family: 'Sora', system-ui, sans-serif; font-size: 28px; line-height: 1.2; font-weight: 600; }
-  .doxa-h3 { font-family: 'Sora', system-ui, sans-serif; font-size: 24px; line-height: 1.25; font-weight: 600; }
-  .doxa-h4 { font-family: 'Sora', system-ui, sans-serif; font-size: 20px; line-height: 1.3; font-weight: 600; }
-  .doxa-body { font-size: 16px; line-height: 1.55; }
-  .doxa-body-sm { font-size: 15px; line-height: 1.5; }
-  .doxa-caption { font-size: 14px; line-height: 1.45; }
+  .doxa-display-xl { font-family: 'Sora', system-ui, sans-serif; font-size: 60px; line-height: 1.1; letter-spacing: -0.025em; font-weight: 700; }
+  .doxa-display-lg { font-family: 'Sora', system-ui, sans-serif; font-size: 50px; line-height: 1.15; letter-spacing: -0.02em; font-weight: 700; }
+  .doxa-h1 { font-family: 'Sora', system-ui, sans-serif; font-size: 40px; line-height: 1.15; font-weight: 700; }
+  .doxa-h2 { font-family: 'Sora', system-ui, sans-serif; font-size: 34px; line-height: 1.2; font-weight: 600; }
+  .doxa-h3 { font-family: 'Sora', system-ui, sans-serif; font-size: 30px; line-height: 1.25; font-weight: 600; }
+  .doxa-h4 { font-family: 'Sora', system-ui, sans-serif; font-size: 25px; line-height: 1.3; font-weight: 600; }
+  .doxa-body { font-size: 20px; line-height: 1.55; }
+  .doxa-body-sm { font-size: 18px; line-height: 1.5; }
+  .doxa-caption { font-size: 17px; line-height: 1.45; }
 }
+
 
 @layer utilities {
   /* ── SaaS premium surfaces ─────────────────────────────── */
