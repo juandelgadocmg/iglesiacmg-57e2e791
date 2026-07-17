@@ -72,18 +72,18 @@ export default function AppTopBar({ onMenuClick }: { onMenuClick?: () => void })
 
   return (
     <>
-      <header className="h-14 flex items-center gap-3 px-3 md:px-5 border-b bg-background/80 backdrop-blur sticky top-0 z-20">
-        <Button variant="ghost" size="icon" className="md:hidden h-8 w-8" onClick={onMenuClick} aria-label="Abrir menú de navegación">
+      <header className="h-14 flex items-center gap-2 md:gap-3 px-3 md:px-5 border-b bg-background/80 backdrop-blur sticky top-0 z-20 overflow-hidden">
+        <Button variant="ghost" size="icon" className="md:hidden h-8 w-8 shrink-0" onClick={onMenuClick} aria-label="Abrir menú de navegación">
           <Menu className="h-5 w-5" />
         </Button>
 
 
         {/* Breadcrumbs */}
-        <div className="hidden md:flex items-center gap-1.5 text-[13px] min-w-0">
+        <div className="hidden md:flex items-center gap-1.5 text-[13px] min-w-0 shrink">
           {segments.length === 0 && <span className="font-medium">DOXA</span>}
           {segments.map((s, i) => (
             <span key={i} className="flex items-center gap-1.5 min-w-0">
-              {i > 0 && <ChevronRight className="h-3 w-3 text-muted-foreground/60" />}
+              {i > 0 && <ChevronRight className="h-3 w-3 text-muted-foreground/60 shrink-0" />}
               <span className={i === segments.length - 1 ? "font-medium truncate" : "text-muted-foreground truncate"}>
                 {BREADCRUMB[s] || s}
               </span>
@@ -92,28 +92,30 @@ export default function AppTopBar({ onMenuClick }: { onMenuClick?: () => void })
         </div>
 
         {/* Center — command bar trigger */}
-        <div className="flex-1 flex justify-center">
+        <div className="flex-1 flex justify-center min-w-0">
           <button
             onClick={() => setCmdOpen(true)}
-            className="group flex items-center gap-2 h-9 w-full max-w-md rounded-lg border bg-muted/50 hover:bg-muted transition-colors px-3 text-left"
+            aria-label="Abrir búsqueda global"
+            className="group flex items-center gap-2 h-9 w-full max-w-md min-w-0 rounded-lg border bg-muted/50 hover:bg-muted transition-colors px-3 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
-            <Search className="h-4 w-4 text-muted-foreground" />
-            <span className="flex-1 text-[13px] text-muted-foreground truncate">
-              Buscar personas, ejecutar acciones…
+            <Search className="h-4 w-4 text-muted-foreground shrink-0" aria-hidden="true" />
+            <span className="flex-1 min-w-0 text-[13px] text-muted-foreground truncate">
+              <span className="hidden sm:inline">Buscar personas, ejecutar acciones…</span>
+              <span className="sm:hidden">Buscar…</span>
             </span>
-            <kbd className="hidden md:inline-flex items-center rounded border bg-background px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">⌘K</kbd>
+            <kbd className="hidden md:inline-flex items-center rounded border bg-background px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground shrink-0">⌘K</kbd>
           </button>
         </div>
 
         {/* Right cluster */}
-        <div className="flex items-center gap-1.5 md:gap-2">
+        <div className="flex items-center gap-1 md:gap-2 shrink-0">
           {/* Sede */}
           {sedes.length > 1 ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="sm" className="h-8 gap-1.5 px-2 text-[12.5px]">
+                <Button variant="ghost" size="sm" className="hidden md:inline-flex h-8 gap-1.5 px-2 text-[12.5px]">
                   <Building2 className="h-3.5 w-3.5" />
-                  <span className="hidden lg:inline">{sede}</span>
+                  <span className="hidden xl:inline">{sede}</span>
                   <ChevronDown className="h-3 w-3 opacity-60" />
                 </Button>
               </DropdownMenuTrigger>
@@ -137,12 +139,12 @@ export default function AppTopBar({ onMenuClick }: { onMenuClick?: () => void })
                   type="button"
                   onClick={() => openDiscipulando()}
                   aria-label="Abrir Discipulando Naciones en una nueva pestaña"
-                  className="shrink-0 inline-flex items-center justify-center h-8 px-1.5 rounded-md hover:bg-muted transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  className="hidden lg:inline-flex shrink-0 items-center justify-center h-8 px-1.5 rounded-md hover:bg-muted transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
                   {logoFailed ? (
                     <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-foreground/80">
                       <BookOpenText className="h-4 w-4" aria-hidden="true" />
-                      <span className="hidden sm:inline">Discipulando</span>
+                      <span className="hidden xl:inline">Discipulando</span>
                     </span>
                   ) : (
                     <img
@@ -154,7 +156,7 @@ export default function AppTopBar({ onMenuClick }: { onMenuClick?: () => void })
                       loading="lazy"
                       decoding="async"
                       onError={() => setLogoFailed(true)}
-                      className="h-6 md:h-7 w-auto object-contain select-none dark:brightness-0 dark:invert"
+                      className="h-6 md:h-7 w-auto max-w-[110px] object-contain select-none dark:brightness-0 dark:invert"
                     />
                   )}
                 </button>
@@ -163,12 +165,12 @@ export default function AppTopBar({ onMenuClick }: { onMenuClick?: () => void })
             </Tooltip>
           </TooltipProvider>
 
-          <QuickCreateMenu />
-          <InstallPWAButton />
+          <div className="hidden md:inline-flex"><QuickCreateMenu /></div>
+          <div className="hidden lg:inline-flex"><InstallPWAButton /></div>
 
 
-          <Link to="/mensajes" className="relative p-2 rounded-md hover:bg-muted" title="Mensajes">
-            <Mail className="h-[18px] w-[18px] text-muted-foreground" />
+          <Link to="/mensajes" className="relative p-2 rounded-md hover:bg-muted hidden md:inline-flex" title="Mensajes" aria-label={`Mensajes${unread > 0 ? ` (${unread} sin leer)` : ""}`}>
+            <Mail className="h-[18px] w-[18px] text-muted-foreground" aria-hidden="true" />
             {unread > 0 && (
               <Badge className="absolute -top-0.5 -right-0.5 h-4 min-w-4 px-1 flex items-center justify-center text-[10px] bg-primary text-primary-foreground border-0">
                 {unread > 9 ? "9+" : unread}
@@ -181,11 +183,11 @@ export default function AppTopBar({ onMenuClick }: { onMenuClick?: () => void })
           {allRoles.length > 1 ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <button className="flex items-center gap-2 hover:bg-muted rounded-md px-1.5 py-1 transition-colors">
+                <button className="flex items-center gap-2 hover:bg-muted rounded-md px-1.5 py-1 transition-colors" aria-label={`Cambiar rol activo (actual: ${roleLabel})`}>
                   <Avatar className="h-7 w-7">
                     <AvatarFallback className="bg-primary text-primary-foreground text-[11px] font-semibold">{initials}</AvatarFallback>
                   </Avatar>
-                  <div className="hidden lg:flex items-center gap-1">
+                  <div className="hidden xl:flex items-center gap-1">
                     <span className="text-[11.5px] text-muted-foreground">{roleLabel}</span>
                     <ChevronDown className="h-3 w-3 text-muted-foreground" />
                   </div>
@@ -210,6 +212,7 @@ export default function AppTopBar({ onMenuClick }: { onMenuClick?: () => void })
           )}
         </div>
       </header>
+
 
       <CommandBar open={cmdOpen} onOpenChange={setCmdOpen} />
       <HotkeysHelpDialog open={helpOpen} onOpenChange={setHelpOpen} />
