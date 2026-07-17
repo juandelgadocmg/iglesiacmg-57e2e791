@@ -432,11 +432,15 @@ export default function ChatPage() {
       } catch (e) {
         console.warn("[doxa-chat] sync error", e);
         if (mounted) setSyncState("error");
+      } finally {
+        if (mounted) setBootstrapping(false);
       }
     };
     supabase.auth.getUser().then(({ data }) => {
       if (!mounted) return;
-      bootstrap(data.user?.id || "__anon");
+      const uid = data.user?.id || "__anon";
+      if (uid === "__anon") setBootstrapping(false);
+      bootstrap(uid);
     });
     const { data: sub } = supabase.auth.onAuthStateChange((_evt, session) => {
       bootstrap(session?.user?.id || "__anon");
