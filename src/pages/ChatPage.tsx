@@ -64,6 +64,25 @@ const LIMITATIONS = [
   "No responde temas fuera del uso de la plataforma.",
 ];
 
+// Módulos DOXA — click => inserta pregunta ejemplo en el composer
+const MODULES: { icon: any; name: string; example: string }[] = [
+  { icon: Users, name: "Personas", example: "¿Cómo crear una persona nueva y vincularla a un grupo?" },
+  { icon: UsersRound, name: "Grupos / Casas de Paz", example: "¿Cómo crear una Casa de Paz y asignar un líder?" },
+  { icon: ClipboardList, name: "Asistencia", example: "¿Cómo registrar la asistencia de una reunión?" },
+  { icon: CalendarDays, name: "Reuniones", example: "¿Cómo programar una reunión y a sus servidores?" },
+  { icon: GraduationCap, name: "Academia", example: "¿Cómo crear un curso y matricular estudiantes?" },
+  { icon: Award, name: "Certificados", example: "¿Cómo generar un certificado y descargarlo en PDF?" },
+  { icon: DollarSign, name: "Finanzas", example: "¿Cómo registrar un ingreso o una donación?" },
+  { icon: HandHeart, name: "Tesorería CDP", example: "¿Cómo consignar la ofrenda semanal de una Casa de Paz?" },
+  { icon: HeartHandshake, name: "Consejería", example: "¿Cómo agendar una cita de consejería?" },
+  { icon: Megaphone, name: "Peticiones de oración", example: "¿Cómo registrar y hacer seguimiento a una petición de oración?" },
+  { icon: BarChart3, name: "Reportes / Exportar", example: "¿Cómo exportar un reporte a Excel o PDF?" },
+  { icon: FileText, name: "Multimedia", example: "¿Cómo publicar un banner o un video en la plataforma?" },
+  { icon: SettingsIcon, name: "Usuarios y roles", example: "¿Cómo crear un usuario y asignarle un rol?" },
+  { icon: LayoutGrid, name: "Configuración", example: "¿Cómo configurar la información general de la iglesia?" },
+];
+
+
 // ------- helpers -------
 function newThread(): Thread {
   return { id: crypto.randomUUID(), title: "Nueva conversación", updatedAt: Date.now(), messages: [] };
