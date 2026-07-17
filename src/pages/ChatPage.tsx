@@ -690,6 +690,85 @@ export default function ChatPage() {
     syncState === "synced" ? "Sincronizado en tu cuenta" :
     syncState === "error" ? "Sin conexión con el servidor" : "Local";
 
+  // --------- Share handlers ---------
+  const openShare = (t: Thread) => {
+    if (userId === "__anon") {
+      toast.error("Inicia sesión para generar un enlace de solo lectura.");
+      return;
+    }
+    if (t.messages.length === 0) {
+      toast.error("La conversación está vacía; no hay nada que compartir.");
+      return;
+    }
+    setShareThread(t);
+    setShareTtlHours(24);
+    setShareResult(null);
+    setShareCopied(false);
+  };
+  const generateShare = async () => {
+    if (!shareThread) return;
+    setShareBusy(true);
+    try {
+      const { url, expiresAt } = await createShare(userId, shareThread, shareTtlHours);
+      setShareResult({ url, expiresAt });
+    } catch (e: any) {
+      console.error(e);
+      toast.error(e.message || "No se pudo generar el enlace de compartir.");
+    } finally {
+      setShareBusy(false);
+    }
+  };
+  const copyShareLink = async () => {
+    if (!shareResult) return;
+    try {
+      await navigator.clipboard.writeText(shareResult.url);
+      setShareCopied(true);
+      toast.success("Enlace copiado al portapapeles");
+      setTimeout(() => setShareCopied(false), 2000);
+    } catch {
+      toast.error("No se pudo copiar el enlace");
+    }
+  };
+
+  // --------- Import handler ---------
+  const onImportFiles = async (fileList: FileList | null) => {
+    if (!fileList || fileList.length === 0) return;
+    setImporting(true);
+    const files = Array.from(fileList);
+    let imported: Thread[] = [];
+    const errors: string[] = [];
+    for (const f of files) {
+      try {
+        const t = await importThreadFromFile(f);
+        imported.push(t);
+      } catch (e: any) {
+        errors.push(`${f.name}: ${e.message || "error"}`);
+      }
+    }
+    if (imported.length > 0) {
+      setState((prev) => ({
+        threads: [...imported, ...prev.threads],
+        activeId: imported[0].id,
+      }));
+      if (userId !== "__anon") {
+        // Empuja al remoto para fusionar entre dispositivos.
+        for (const t of imported) {
+          try { await upsertRemoteThread(userId, t); lastSyncedRef.current.set(t.id, t.updatedAt); }
+          catch (e) { console.warn("[doxa-chat] import upsert error", e); }
+        }
+      }
+      toast.success(
+        `Se ${imported.length === 1 ? "importó 1 conversación" : `importaron ${imported.length} conversaciones`}`,
+        { description: errors.length ? `${errors.length} archivo(s) fallaron.` : undefined }
+      );
+    }
+    if (imported.length === 0 && errors.length > 0) {
+      toast.error("No se pudo importar", { description: errors.join(" · ") });
+    }
+    setImporting(false);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
   return (
     <div className="animate-fade-in -m-3 md:-m-6 flex h-[calc(100vh-3.5rem)] bg-background">
       {/* Rail izquierdo */}
