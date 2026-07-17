@@ -26,7 +26,7 @@ const BREADCRUMB: Record<string, string> = {
   hoy: "Hoy", dashboard: "Dashboard", personas: "Personas", grupos: "Grupos",
   servicios: "Reuniones", eventos: "Eventos", academia: "Academia", seminario: "Seminario",
   certificados: "Certificados", finanzas: "Finanzas", mensajes: "Mensajes",
-  peticiones: "Peticiones", reportes: "Reportes", chat: "Chat IA",
+  peticiones: "Peticiones", reportes: "Reportes", chat: "Asistente DOXA IA",
   usuarios: "Usuarios", configuracion: "Configuración", seguridad: "Seguridad",
 };
 
