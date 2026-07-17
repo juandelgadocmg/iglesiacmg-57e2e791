@@ -358,12 +358,13 @@ export default function PersonaPerfilPage() {
           <div className="absolute top-4 right-4 flex gap-2">
             <Button
               variant="ghost" size="icon"
-              className="h-9 w-9 bg-background/20 backdrop-blur-md text-primary-foreground hover:bg-background/30 border border-white/20"
+              className="h-11 w-11 bg-background/20 backdrop-blur-md text-primary-foreground hover:bg-background/30 border border-white/20 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
               onClick={() => coverInputRef.current?.click()}
               disabled={uploadingCover}
               title="Cambiar portada"
+              aria-label="Cambiar portada"
             >
-              <Camera className="h-4 w-4" />
+              <Camera className="h-5 w-5" />
             </Button>
             <input ref={coverInputRef} type="file" accept="image/*" className="hidden" />
           </div>
@@ -1195,13 +1196,13 @@ function DiscipuladoRoadmap({ procesos, procesosMap, progressPercent, completedC
                         {done ? "Finalizado" : doing ? "En curso" : "Iniciar"}
                       </Button>
                       <Popover>
-                        <PopoverTrigger asChild><Button size="icon" variant="ghost" className="h-7 w-7" aria-label="Elegir fecha"><Calendar className="h-3.5 w-3.5" /></Button></PopoverTrigger>
+                        <PopoverTrigger asChild><Button size="icon" variant="ghost" className="h-11 w-11" aria-label="Elegir fecha"><Calendar className="h-5 w-5" /></Button></PopoverTrigger>
                         <PopoverContent className="w-auto p-0" align="end">
                           <CalendarComponent mode="single" selected={pp?.fecha_completado ? parseISO(pp.fecha_completado) : undefined}
                             onSelect={(d) => d && onSetDate(p.id, d, estado, (pp as any)?.observacion || null)} locale={es} />
                         </PopoverContent>
                       </Popover>
-                      <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => onOpenDetail(p.id, p.nombre)}><Pencil className="h-3.5 w-3.5" /></Button>
+                      <Button size="icon" variant="ghost" className="h-11 w-11" aria-label={`Editar ${p.nombre}`} onClick={() => onOpenDetail(p.id, p.nombre)}><Pencil className="h-5 w-5" /></Button>
                     </div>
                   </div>
                 </div>
@@ -1469,8 +1470,8 @@ function FamiliaCards({
         </div>
         <div className="mt-3 flex items-center justify-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
           {fam && <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => navigate(`/personas/${fam.id}`)}>Ver perfil</Button>}
-          <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive/60 hover:text-destructive" onClick={() => onDelete(rel.id)}>
-            <Trash2 className="h-3 w-3" />
+          <Button size="icon" variant="ghost" className="h-11 w-11 text-destructive/70 hover:text-destructive focus-visible:ring-2 focus-visible:ring-destructive" onClick={() => onDelete(rel.id)} aria-label="Eliminar relación">
+            <Trash2 className="h-5 w-5" />
           </Button>
         </div>
       </motion.div>
