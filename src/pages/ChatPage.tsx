@@ -164,7 +164,10 @@ async function streamChat({
 }
 
 export default function ChatPage() {
-  const [{ threads, activeId }, setState] = useState(() => loadThreads());
+  const [userId, setUserId] = useState<string>("__anon");
+  const [{ threads, activeId }, setState] = useState<{ threads: Thread[]; activeId: string }>(
+    () => loadThreads("__anon")
+  );
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [threadQuery, setThreadQuery] = useState("");
@@ -175,13 +178,31 @@ export default function ChatPage() {
   const active = threads.find((t) => t.id === activeId) || threads[0];
   const messages = active?.messages || [];
 
-  useEffect(() => { saveThreads(threads, activeId); }, [threads, activeId]);
+  // Resolve current user and load per-user history; react to sign-in/out.
+  useEffect(() => {
+    let mounted = true;
+    supabase.auth.getUser().then(({ data }) => {
+      if (!mounted) return;
+      const uid = data.user?.id || "__anon";
+      setUserId(uid);
+      setState(loadThreads(uid));
+    });
+    const { data: sub } = supabase.auth.onAuthStateChange((_evt, session) => {
+      const uid = session?.user?.id || "__anon";
+      setUserId(uid);
+      setState(loadThreads(uid));
+    });
+    return () => { mounted = false; sub.subscription.unsubscribe(); };
+  }, []);
+
+  useEffect(() => { saveThreads(userId, threads, activeId); }, [userId, threads, activeId]);
 
   useEffect(() => {
     if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
   }, [messages.length, activeId]);
 
   useEffect(() => { inputRef.current?.focus(); }, [activeId]);
+
 
   const updateActive = (updater: (t: Thread) => Thread) => {
     setState((prev) => ({
