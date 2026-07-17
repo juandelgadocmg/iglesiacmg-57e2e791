@@ -999,6 +999,18 @@ export default function ChatPage() {
           </DropdownMenu>
 
           <Button
+            variant="ghost" size="sm" className="h-8 gap-1.5"
+            onClick={() => active && openShare(active)}
+            disabled={!active || active.messages.length === 0 || userId === "__anon"}
+            title={userId === "__anon" ? "Inicia sesión para compartir" : "Generar enlace temporal de solo lectura"}
+            aria-label="Compartir conversación"
+          >
+            <Share2 className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline text-[12px]">Compartir</span>
+          </Button>
+
+
+          <Button
             variant="ghost" size="icon" className="h-8 w-8"
             onClick={() => setContextOpen((v) => !v)}
             aria-label="Panel de ayuda"
