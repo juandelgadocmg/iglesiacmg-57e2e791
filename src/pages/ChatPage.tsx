@@ -1,11 +1,11 @@
-import { useState, useRef, useEffect, useMemo } from "react";
+import React, { useState, useRef, useEffect, useMemo, useCallback } from "react";
 import {
   Send, User, Loader2, LifeBuoy, Plus, MessageSquare, Trash2, Search,
   PanelRightClose, PanelRightOpen, BookOpen, Compass, ListChecks, ShieldCheck,
   Users, UsersRound, Award, GraduationCap, DollarSign, BarChart3, ClipboardList,
   Filter, Settings as SettingsIcon, LayoutGrid, CalendarDays, HeartHandshake,
   Megaphone, FileText, HandHeart, MoreHorizontal, Pin, PinOff, Pencil,
-  Download, FileDown, FileType2,
+  Download, FileDown, FileType2, FileText as FileTxt, Cloud, CloudOff, RefreshCw,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -17,6 +17,10 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import ReactMarkdown from "react-markdown";
 import { cn } from "@/lib/utils";
@@ -24,20 +28,22 @@ import { formatDistanceToNow, format } from "date-fns";
 import { es } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
 import jsPDF from "jspdf";
+import {
+  Document as DocxDocument, Packer, Paragraph, TextRun, HeadingLevel,
+} from "docx";
+import {
+  fetchRemoteThreads, upsertRemoteThread, deleteRemoteThread,
+  mergeThreads, addTombstone, loadTombstones, clearTombstone,
+  type ChatThread, type ChatMessage,
+} from "@/lib/doxaChatSync";
 
-type Message = { role: "user" | "assistant"; content: string };
-type Thread = {
-  id: string;
-  title: string;
-  updatedAt: number;
-  messages: Message[];
-  pinned?: boolean;
-};
+type Message = ChatMessage;
+type Thread = ChatThread;
 
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat`;
 const STORAGE_PREFIX = "doxa.chat.threads.v2::";
 const ACTIVE_PREFIX = "doxa.chat.activeThread.v2::";
-const DRAFT_PREFIX = "doxa.chat.draft.v1::"; // por usuario + thread
+const DRAFT_PREFIX = "doxa.chat.draft.v1::";
 const storageKeyFor = (uid: string) => `${STORAGE_PREFIX}${uid}`;
 const activeKeyFor = (uid: string) => `${ACTIVE_PREFIX}${uid}`;
 const draftKeyFor = (uid: string, threadId: string) => `${DRAFT_PREFIX}${uid}::${threadId}`;
@@ -96,12 +102,14 @@ const MODULES: { icon: any; name: string; example: string }[] = [
 ];
 
 type DateFilter = "all" | "today" | "7d" | "30d";
+type SyncState = "offline" | "loading" | "synced" | "error";
 
+// ---------- helpers ----------
 function newThread(): Thread {
   return { id: crypto.randomUUID(), title: "Nueva conversación", updatedAt: Date.now(), messages: [], pinned: false };
 }
 
-function loadThreads(uid: string): { threads: Thread[]; activeId: string } {
+function loadLocalThreads(uid: string): { threads: Thread[]; activeId: string } {
   if (typeof window === "undefined") {
     const t = newThread();
     return { threads: [t], activeId: t.id };
@@ -121,7 +129,7 @@ function loadThreads(uid: string): { threads: Thread[]; activeId: string } {
   return { threads: [t], activeId: t.id };
 }
 
-function saveThreads(uid: string, threads: Thread[], activeId: string) {
+function saveLocalThreads(uid: string, threads: Thread[], activeId: string) {
   try {
     localStorage.setItem(storageKeyFor(uid), JSON.stringify(threads));
     localStorage.setItem(activeKeyFor(uid), activeId);
@@ -144,22 +152,38 @@ function deriveTitle(text: string): string {
   return t.length > 44 ? t.slice(0, 44) + "…" : t || "Nueva conversación";
 }
 
-function exportThreadAsMarkdown(thread: Thread) {
-  const header = `# ${thread.title}\n\n_Exportado ${format(new Date(), "PPpp", { locale: es })}_\n\n---\n\n`;
-  const body = thread.messages.map((m) => {
-    const who = m.role === "user" ? "**🧑 Usuario**" : "**🤖 Asistente DOXA IA**";
-    return `${who}:\n\n${m.content}\n`;
-  }).join("\n---\n\n");
-  const blob = new Blob([header + body], { type: "text/markdown;charset=utf-8" });
+function fileSafe(name: string) {
+  return name.replace(/[^\w\-]+/g, "_").slice(0, 60) || "conversacion";
+}
+
+function downloadBlob(blob: Blob, filename: string) {
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  a.download = `${thread.title.replace(/[^\w\-]+/g, "_").slice(0, 60) || "conversacion"}.md`;
+  a.download = filename;
   a.click();
   setTimeout(() => URL.revokeObjectURL(url), 500);
 }
 
-function exportThreadAsPdf(thread: Thread) {
+function exportThreadAsMarkdown(t: Thread) {
+  const header = `# ${t.title}\n\n_Exportado ${format(new Date(), "PPpp", { locale: es })}_\n\n---\n\n`;
+  const body = t.messages.map((m) => {
+    const who = m.role === "user" ? "**🧑 Usuario**" : "**🤖 Asistente DOXA IA**";
+    return `${who}:\n\n${m.content}\n`;
+  }).join("\n---\n\n");
+  downloadBlob(new Blob([header + body], { type: "text/markdown;charset=utf-8" }), `${fileSafe(t.title)}.md`);
+}
+
+function exportThreadAsTxt(t: Thread) {
+  const header = `Asistente DOXA IA\n${t.title}\nExportado: ${format(new Date(), "PPpp", { locale: es })}\n${"=".repeat(60)}\n\n`;
+  const body = t.messages.map((m) => {
+    const who = m.role === "user" ? "USUARIO" : "ASISTENTE DOXA IA";
+    return `[${who}]\n${m.content}\n`;
+  }).join("\n" + "-".repeat(60) + "\n\n");
+  downloadBlob(new Blob([header + body], { type: "text/plain;charset=utf-8" }), `${fileSafe(t.title)}.txt`);
+}
+
+function exportThreadAsPdf(t: Thread) {
   const doc = new jsPDF({ unit: "pt", format: "a4" });
   const pageW = doc.internal.pageSize.getWidth();
   const pageH = doc.internal.pageSize.getHeight();
@@ -167,28 +191,21 @@ function exportThreadAsPdf(thread: Thread) {
   const maxW = pageW - margin * 2;
   let y = margin;
 
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(16);
+  doc.setFont("helvetica", "bold"); doc.setFontSize(16);
   doc.text("Asistente DOXA IA", margin, y); y += 22;
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(11);
-  doc.text(thread.title, margin, y); y += 16;
-  doc.setFontSize(9);
-  doc.setTextColor(120);
+  doc.setFont("helvetica", "normal"); doc.setFontSize(11);
+  doc.text(t.title, margin, y); y += 16;
+  doc.setFontSize(9); doc.setTextColor(120);
   doc.text(`Exportado: ${format(new Date(), "PPpp", { locale: es })}`, margin, y); y += 18;
-  doc.setTextColor(0);
-  doc.setDrawColor(200);
+  doc.setTextColor(0); doc.setDrawColor(200);
   doc.line(margin, y, pageW - margin, y); y += 16;
 
   const writeBlock = (label: string, text: string, color: [number, number, number]) => {
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(10);
+    doc.setFont("helvetica", "bold"); doc.setFontSize(10);
     doc.setTextColor(...color);
     if (y > pageH - margin - 20) { doc.addPage(); y = margin; }
     doc.text(label, margin, y); y += 12;
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(10);
-    doc.setTextColor(30);
+    doc.setFont("helvetica", "normal"); doc.setFontSize(10); doc.setTextColor(30);
     const lines = doc.splitTextToSize(text || "(sin contenido)", maxW);
     for (const ln of lines) {
       if (y > pageH - margin) { doc.addPage(); y = margin; }
@@ -196,15 +213,79 @@ function exportThreadAsPdf(thread: Thread) {
     }
     y += 8;
   };
-
-  for (const m of thread.messages) {
+  for (const m of t.messages) {
     if (m.role === "user") writeBlock("Usuario", m.content, [37, 99, 235]);
     else writeBlock("Asistente DOXA IA", m.content, [16, 122, 87]);
   }
-
-  doc.save(`${thread.title.replace(/[^\w\-]+/g, "_").slice(0, 60) || "conversacion"}.pdf`);
+  doc.save(`${fileSafe(t.title)}.pdf`);
 }
 
+async function exportThreadAsDocx(t: Thread) {
+  const children: Paragraph[] = [
+    new Paragraph({ heading: HeadingLevel.HEADING_1, children: [new TextRun("Asistente DOXA IA")] }),
+    new Paragraph({ children: [new TextRun({ text: t.title, bold: true, size: 26 })] }),
+    new Paragraph({ children: [new TextRun({ text: `Exportado: ${format(new Date(), "PPpp", { locale: es })}`, italics: true, color: "888888", size: 18 })] }),
+    new Paragraph({ children: [new TextRun("")] }),
+  ];
+  for (const m of t.messages) {
+    const who = m.role === "user" ? "Usuario" : "Asistente DOXA IA";
+    const color = m.role === "user" ? "2563EB" : "107A57";
+    children.push(new Paragraph({ children: [new TextRun({ text: who, bold: true, color, size: 22 })] }));
+    for (const line of (m.content || "(sin contenido)").split(/\n/)) {
+      children.push(new Paragraph({ children: [new TextRun({ text: line, size: 22 })] }));
+    }
+    children.push(new Paragraph({ children: [new TextRun("")] }));
+  }
+  const doc = new DocxDocument({
+    styles: { default: { document: { run: { font: "Arial", size: 22 } } } },
+    sections: [{ children }],
+  });
+  const blob = await Packer.toBlob(doc);
+  downloadBlob(blob, `${fileSafe(t.title)}.docx`);
+}
+
+// --------- highlight helpers ---------
+function escapeRegex(s: string) { return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"); }
+
+function highlightNodes(node: React.ReactNode, query: string): React.ReactNode {
+  if (!query) return node;
+  if (typeof node === "string") {
+    const re = new RegExp(`(${escapeRegex(query)})`, "gi");
+    const parts = node.split(re);
+    if (parts.length <= 1) return node;
+    return parts.map((p, i) =>
+      p.toLowerCase() === query.toLowerCase()
+        ? <mark key={i} className="bg-amber-200/80 text-foreground rounded px-0.5">{p}</mark>
+        : <React.Fragment key={i}>{p}</React.Fragment>
+    );
+  }
+  if (typeof node === "number") return node;
+  if (Array.isArray(node)) {
+    return node.map((c, i) => <React.Fragment key={i}>{highlightNodes(c, query)}</React.Fragment>);
+  }
+  if (React.isValidElement(node)) {
+    const el = node as React.ReactElement<any>;
+    return React.cloneElement(el, {
+      ...el.props,
+      children: highlightNodes(el.props.children, query),
+    });
+  }
+  return node;
+}
+
+function makeMarkdownComponents(query: string) {
+  const wrap = (Tag: any) => ({ children, node, ...rest }: any) =>
+    <Tag {...rest}>{highlightNodes(children, query)}</Tag>;
+  return {
+    p: wrap("p"), li: wrap("li"), strong: wrap("strong"), em: wrap("em"),
+    a: wrap("a"), code: wrap("code"), blockquote: wrap("blockquote"),
+    h1: wrap("h1"), h2: wrap("h2"), h3: wrap("h3"),
+    h4: wrap("h4"), h5: wrap("h5"), h6: wrap("h6"),
+    td: wrap("td"), th: wrap("th"),
+  };
+}
+
+// --------- streaming ---------
 async function streamChat({
   messages, onDelta, onDone,
 }: { messages: Message[]; onDelta: (text: string) => void; onDone: () => void }) {
@@ -243,10 +324,7 @@ async function streamChat({
         const parsed = JSON.parse(jsonStr);
         const content = parsed.choices?.[0]?.delta?.content;
         if (content) onDelta(content);
-      } catch {
-        buffer = line + "\n" + buffer;
-        break;
-      }
+      } catch { buffer = line + "\n" + buffer; break; }
     }
   }
   if (buffer.trim()) {
@@ -266,10 +344,11 @@ async function streamChat({
   onDone();
 }
 
+// ============================================================
 export default function ChatPage() {
   const [userId, setUserId] = useState<string>("__anon");
   const [{ threads, activeId }, setState] = useState<{ threads: Thread[]; activeId: string }>(
-    () => loadThreads("__anon")
+    () => loadLocalThreads("__anon")
   );
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -278,33 +357,87 @@ export default function ChatPage() {
   const [contextOpen, setContextOpen] = useState(true);
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState("");
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [syncState, setSyncState] = useState<SyncState>("offline");
+
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const draftLoadedRef = useRef<string>("");
+  const lastSyncedRef = useRef<Map<string, number>>(new Map());
+  const pushTimerRef = useRef<number | null>(null);
 
   const active = threads.find((t) => t.id === activeId) || threads[0];
   const messages = active?.messages || [];
 
-  // Resolve current user and load per-user history; react to sign-in/out.
+  // --- auth + carga inicial + sync remota ---
   useEffect(() => {
     let mounted = true;
+    const bootstrap = async (uid: string) => {
+      setUserId(uid);
+      const local = loadLocalThreads(uid);
+      setState(local);
+      if (uid === "__anon") { setSyncState("offline"); return; }
+      setSyncState("loading");
+      try {
+        const remote = await fetchRemoteThreads(uid);
+        const tombs = loadTombstones(uid);
+        const { merged, toPushRemote } = mergeThreads(local.threads, remote, tombs);
+        // Aplica el merge
+        if (mounted) {
+          const activeId = merged.find((t) => t.id === local.activeId)?.id || merged[0]?.id || local.activeId;
+          const finalThreads = merged.length > 0 ? merged : local.threads;
+          setState({ threads: finalThreads, activeId });
+          saveLocalThreads(uid, finalThreads, activeId);
+          for (const r of remote) lastSyncedRef.current.set(r.id, r.updatedAt);
+        }
+        // Empuja locales más frescos
+        await Promise.all(toPushRemote.map(async (t) => {
+          try { await upsertRemoteThread(uid, t); lastSyncedRef.current.set(t.id, t.updatedAt); } catch { /* siguiente ciclo */ }
+        }));
+        // Elimina remotamente los tombstones y límpialos
+        for (const id of tombs) {
+          try { await deleteRemoteThread(uid, id); clearTombstone(uid, id); } catch { /* reintenta luego */ }
+        }
+        if (mounted) setSyncState("synced");
+      } catch (e) {
+        console.warn("[doxa-chat] sync error", e);
+        if (mounted) setSyncState("error");
+      }
+    };
     supabase.auth.getUser().then(({ data }) => {
       if (!mounted) return;
-      const uid = data.user?.id || "__anon";
-      setUserId(uid);
-      setState(loadThreads(uid));
+      bootstrap(data.user?.id || "__anon");
     });
     const { data: sub } = supabase.auth.onAuthStateChange((_evt, session) => {
-      const uid = session?.user?.id || "__anon";
-      setUserId(uid);
-      setState(loadThreads(uid));
+      bootstrap(session?.user?.id || "__anon");
     });
     return () => { mounted = false; sub.subscription.unsubscribe(); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  useEffect(() => { saveThreads(userId, threads, activeId); }, [userId, threads, activeId]);
+  // --- persist local + push remote (debounced) ---
+  useEffect(() => {
+    saveLocalThreads(userId, threads, activeId);
+    if (userId === "__anon") return;
+    if (pushTimerRef.current) window.clearTimeout(pushTimerRef.current);
+    pushTimerRef.current = window.setTimeout(async () => {
+      const dirty = threads.filter((t) => (lastSyncedRef.current.get(t.id) ?? -1) < t.updatedAt);
+      if (dirty.length === 0) return;
+      setSyncState("loading");
+      try {
+        await Promise.all(dirty.map(async (t) => {
+          await upsertRemoteThread(userId, t);
+          lastSyncedRef.current.set(t.id, t.updatedAt);
+        }));
+        setSyncState("synced");
+      } catch (e) {
+        console.warn("[doxa-chat] push error", e);
+        setSyncState("error");
+      }
+    }, 900);
+  }, [threads, activeId, userId]);
 
-  // Cargar borrador del composer al cambiar de usuario o hilo activo
+  // --- draft por hilo/usuario ---
   useEffect(() => {
     if (!activeId) return;
     const key = `${userId}::${activeId}`;
@@ -313,11 +446,10 @@ export default function ChatPage() {
     setInput(loadDraft(userId, activeId));
   }, [userId, activeId]);
 
-  // Autosave del borrador (debounced)
   useEffect(() => {
     if (!activeId) return;
-    const handle = setTimeout(() => saveDraft(userId, activeId, input), 300);
-    return () => clearTimeout(handle);
+    const h = setTimeout(() => saveDraft(userId, activeId, input), 300);
+    return () => clearTimeout(h);
   }, [input, userId, activeId]);
 
   useEffect(() => {
@@ -326,6 +458,7 @@ export default function ChatPage() {
 
   useEffect(() => { inputRef.current?.focus(); }, [activeId]);
 
+  // --- state helpers ---
   const updateActive = (updater: (t: Thread) => Thread) => {
     setState((prev) => ({
       ...prev,
@@ -340,41 +473,60 @@ export default function ChatPage() {
     setTimeout(() => inputRef.current?.focus(), 30);
   };
 
-  const selectThread = (id: string) => {
-    setState((prev) => ({ ...prev, activeId: id }));
-  };
+  const selectThread = (id: string) => setState((prev) => ({ ...prev, activeId: id }));
 
-  const deleteThread = (id: string) => {
-    saveDraft(userId, id, ""); // limpia borrador
+  const performDelete = useCallback(async (thread: Thread) => {
+    saveDraft(userId, thread.id, "");
     setState((prev) => {
-      const remaining = prev.threads.filter((t) => t.id !== id);
+      const remaining = prev.threads.filter((t) => t.id !== thread.id);
       if (remaining.length === 0) {
         const t = newThread();
         return { threads: [t], activeId: t.id };
       }
-      const nextActive = prev.activeId === id ? remaining[0].id : prev.activeId;
+      const nextActive = prev.activeId === thread.id ? remaining[0].id : prev.activeId;
       return { threads: remaining, activeId: nextActive };
     });
-    toast.success("Conversación eliminada");
-  };
+    if (userId !== "__anon") {
+      try { await deleteRemoteThread(userId, thread.id); }
+      catch { addTombstone(userId, thread.id); }
+    }
+    lastSyncedRef.current.delete(thread.id);
+  }, [userId]);
+
+  const restoreThread = useCallback((thread: Thread) => {
+    setState((prev) => ({ threads: [thread, ...prev.threads], activeId: thread.id }));
+    clearTombstone(userId, thread.id);
+    if (userId !== "__anon") {
+      upsertRemoteThread(userId, { ...thread, updatedAt: Date.now() })
+        .then(() => lastSyncedRef.current.set(thread.id, Date.now()))
+        .catch(() => setSyncState("error"));
+    }
+    toast.success("Conversación restaurada");
+  }, [userId]);
+
+  const confirmAndDelete = useCallback(async (thread: Thread) => {
+    await performDelete(thread);
+    toast.success("Conversación eliminada", {
+      description: `${thread.title} · ${thread.messages.length} mensaje(s)`,
+      duration: 8000,
+      action: { label: "Deshacer", onClick: () => restoreThread(thread) },
+    });
+  }, [performDelete, restoreThread]);
 
   const togglePin = (id: string) => {
     setState((prev) => ({
       ...prev,
-      threads: prev.threads.map((t) => (t.id === id ? { ...t, pinned: !t.pinned } : t)),
+      threads: prev.threads.map((t) => (t.id === id ? { ...t, pinned: !t.pinned, updatedAt: Date.now() } : t)),
     }));
   };
 
-  const startRename = (t: Thread) => {
-    setRenamingId(t.id);
-    setRenameValue(t.title);
-  };
+  const startRename = (t: Thread) => { setRenamingId(t.id); setRenameValue(t.title); };
   const commitRename = () => {
     if (!renamingId) return;
     const v = renameValue.trim();
     setState((prev) => ({
       ...prev,
-      threads: prev.threads.map((t) => (t.id === renamingId ? { ...t, title: v || t.title } : t)),
+      threads: prev.threads.map((t) => (t.id === renamingId ? { ...t, title: v || t.title, updatedAt: Date.now() } : t)),
     }));
     setRenamingId(null);
     setRenameValue("");
@@ -405,7 +557,7 @@ export default function ChatPage() {
       updatedAt: Date.now(),
     }));
     setInput("");
-    saveDraft(userId, activeId, ""); // limpia borrador al enviar
+    saveDraft(userId, activeId, "");
     setIsLoading(true);
 
     let assistantSoFar = "";
@@ -434,7 +586,6 @@ export default function ChatPage() {
   };
 
   const send = () => sendWith(input);
-
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); }
   };
@@ -461,10 +612,25 @@ export default function ChatPage() {
   }, [threads, threadQuery, dateFilter]);
 
   const isEmpty = messages.length === 0;
+  const q = threadQuery.trim();
+  const markdownComponents = useMemo(() => makeMarkdownComponents(q), [q]);
+  const matchCount = useMemo(() => {
+    if (!q) return 0;
+    const re = new RegExp(escapeRegex(q), "gi");
+    return messages.reduce((n, m) => n + ((m.content.match(re) || []).length), 0);
+  }, [q, messages]);
+  const threadToDelete = threads.find((t) => t.id === confirmDeleteId) || null;
+
+  const SyncIcon = syncState === "loading" ? RefreshCw : syncState === "synced" ? Cloud : CloudOff;
+  const syncLabel =
+    userId === "__anon" ? "Solo este navegador (sin sesión)" :
+    syncState === "loading" ? "Sincronizando…" :
+    syncState === "synced" ? "Sincronizado en tu cuenta" :
+    syncState === "error" ? "Sin conexión con el servidor" : "Local";
 
   return (
     <div className="animate-fade-in -m-3 md:-m-6 flex h-[calc(100vh-3.5rem)] bg-background">
-      {/* Rail izquierdo: threads */}
+      {/* Rail izquierdo */}
       <aside className="hidden md:flex w-64 shrink-0 border-r bg-card/40 flex-col">
         <div className="p-3 border-b space-y-2">
           <Button onClick={createThread} className="w-full justify-start gap-2 h-9" size="sm">
@@ -475,7 +641,7 @@ export default function ChatPage() {
             <Input
               value={threadQuery}
               onChange={(e) => setThreadQuery(e.target.value)}
-              placeholder="Buscar por palabra clave…"
+              placeholder="Buscar en títulos y mensajes…"
               className="pl-8 h-8 text-[13px]"
             />
           </div>
@@ -490,6 +656,12 @@ export default function ChatPage() {
               <SelectItem value="30d">Últimos 30 días</SelectItem>
             </SelectContent>
           </Select>
+          {q && (
+            <p className="text-[10.5px] text-muted-foreground">
+              {filteredThreads.length} conversación(es) coinciden con “{q}”
+              {matchCount > 0 && <> · {matchCount} coincidencia(s) en el hilo activo</>}
+            </p>
+          )}
         </div>
         <div className="flex-1 overflow-y-auto py-1">
           {filteredThreads.length === 0 && (
@@ -513,8 +685,7 @@ export default function ChatPage() {
                 <div className="flex-1 min-w-0">
                   {isRenaming ? (
                     <Input
-                      autoFocus
-                      value={renameValue}
+                      autoFocus value={renameValue}
                       onChange={(e) => setRenameValue(e.target.value)}
                       onKeyDown={(e) => {
                         if (e.key === "Enter") { e.preventDefault(); commitRename(); }
@@ -526,7 +697,9 @@ export default function ChatPage() {
                     />
                   ) : (
                     <>
-                      <p className="text-[13px] font-medium truncate">{t.title}</p>
+                      <p className="text-[13px] font-medium truncate">
+                        {highlightNodes(t.title, q)}
+                      </p>
                       <p className="text-[10.5px] text-muted-foreground truncate">
                         {t.messages.length > 0
                           ? formatDistanceToNow(t.updatedAt, { addSuffix: true, locale: es })
@@ -544,7 +717,7 @@ export default function ChatPage() {
                       <MoreHorizontal className="h-3.5 w-3.5" />
                     </button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-48" onClick={(e) => e.stopPropagation()}>
+                  <DropdownMenuContent align="end" className="w-52" onClick={(e) => e.stopPropagation()}>
                     <DropdownMenuItem onClick={() => startRename(t)}>
                       <Pencil className="h-3.5 w-3.5 mr-2" /> Renombrar
                     </DropdownMenuItem>
@@ -557,15 +730,21 @@ export default function ChatPage() {
                     <DropdownMenuItem onClick={() => exportThreadAsPdf(t)}>
                       <FileType2 className="h-3.5 w-3.5 mr-2" /> Exportar a PDF
                     </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => exportThreadAsDocx(t)}>
+                      <FileText className="h-3.5 w-3.5 mr-2" /> Exportar a Word (.docx)
+                    </DropdownMenuItem>
                     <DropdownMenuItem onClick={() => exportThreadAsMarkdown(t)}>
                       <FileDown className="h-3.5 w-3.5 mr-2" /> Exportar como .md
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => exportThreadAsTxt(t)}>
+                      <FileTxt className="h-3.5 w-3.5 mr-2" /> Exportar como .txt
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem
                       className="text-destructive focus:text-destructive"
-                      onClick={() => deleteThread(t.id)}
+                      onClick={() => setConfirmDeleteId(t.id)}
                     >
-                      <Trash2 className="h-3.5 w-3.5 mr-2" /> Eliminar
+                      <Trash2 className="h-3.5 w-3.5 mr-2" /> Eliminar…
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
@@ -573,14 +752,14 @@ export default function ChatPage() {
             );
           })}
         </div>
-        <div className="p-3 border-t text-[10.5px] text-muted-foreground">
-          {threads.length} conversación{threads.length === 1 ? "" : "es"} guardada{threads.length === 1 ? "" : "s"} en tu cuenta{userId === "__anon" ? " (este navegador)" : ""}.
+        <div className="p-3 border-t text-[10.5px] text-muted-foreground flex items-center gap-1.5">
+          <SyncIcon className={cn("h-3 w-3", syncState === "loading" && "animate-spin", syncState === "synced" && "text-emerald-600", syncState === "error" && "text-amber-600")} />
+          <span className="truncate">{syncLabel}</span>
         </div>
       </aside>
 
-      {/* Centro: hilo */}
+      {/* Centro */}
       <section className="flex-1 min-w-0 flex flex-col">
-        {/* Header hilo */}
         <header className="h-12 shrink-0 border-b flex items-center gap-3 px-4 bg-background/95 backdrop-blur">
           <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-primary to-primary-glow flex items-center justify-center shrink-0">
             <LifeBuoy className="h-4 w-4 text-primary-foreground" />
@@ -593,9 +772,7 @@ export default function ChatPage() {
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
-                variant="ghost"
-                size="sm"
-                className="h-8 gap-1.5"
+                variant="ghost" size="sm" className="h-8 gap-1.5"
                 disabled={!active || active.messages.length === 0}
                 aria-label="Exportar conversación"
               >
@@ -603,13 +780,19 @@ export default function ChatPage() {
                 <span className="hidden sm:inline text-[12px]">Exportar</span>
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-52">
+            <DropdownMenuContent align="end" className="w-56">
               <DropdownMenuLabel className="text-[11px]">Descargar conversación</DropdownMenuLabel>
               <DropdownMenuItem onClick={() => active && exportThreadAsPdf(active)}>
-                <FileType2 className="h-3.5 w-3.5 mr-2" /> Como PDF
+                <FileType2 className="h-3.5 w-3.5 mr-2" /> PDF (.pdf)
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => active && exportThreadAsDocx(active)}>
+                <FileText className="h-3.5 w-3.5 mr-2" /> Word (.docx)
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => active && exportThreadAsMarkdown(active)}>
-                <FileDown className="h-3.5 w-3.5 mr-2" /> Como Markdown (.md)
+                <FileDown className="h-3.5 w-3.5 mr-2" /> Markdown (.md)
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => active && exportThreadAsTxt(active)}>
+                <FileTxt className="h-3.5 w-3.5 mr-2" /> Texto (.txt)
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -623,7 +806,6 @@ export default function ChatPage() {
           </Button>
         </header>
 
-        {/* Mensajes */}
         <div ref={scrollRef} className="flex-1 overflow-y-auto">
           <div className="max-w-3xl mx-auto px-4 md:px-6 py-6">
             {isEmpty ? (
@@ -695,10 +877,10 @@ export default function ChatPage() {
                     >
                       {msg.role === "assistant" ? (
                         <div className="prose prose-sm max-w-none [&>p]:mb-2 [&>ul]:mb-2 [&>ol]:mb-2 [&>*:last-child]:mb-0 prose-headings:text-foreground prose-strong:text-foreground prose-a:text-accent">
-                          <ReactMarkdown>{msg.content}</ReactMarkdown>
+                          <ReactMarkdown components={markdownComponents}>{msg.content}</ReactMarkdown>
                         </div>
                       ) : (
-                        <p className="whitespace-pre-wrap">{msg.content}</p>
+                        <p className="whitespace-pre-wrap">{highlightNodes(msg.content, q)}</p>
                       )}
                     </div>
                     {msg.role === "user" && (
@@ -728,7 +910,6 @@ export default function ChatPage() {
           </div>
         </div>
 
-        {/* Composer */}
         <div className="border-t bg-background/95 backdrop-blur px-4 md:px-6 py-3">
           <div className="max-w-3xl mx-auto space-y-2">
             <div className="relative rounded-xl border bg-card p-2 flex items-end gap-2 focus-within:shadow-md focus-within:border-primary/40 transition-all">
@@ -747,31 +928,28 @@ export default function ChatPage() {
               </Button>
             </div>
 
-            {/* Chips de sugerencias rápidas */}
             <div className="flex flex-wrap gap-1.5">
-              {QUICK_CHIPS.map((q) => (
+              {QUICK_CHIPS.map((qc) => (
                 <button
-                  key={q}
-                  onClick={() => sendWith(q)}
+                  key={qc}
+                  onClick={() => sendWith(qc)}
                   disabled={isLoading}
                   className="text-[11.5px] px-2.5 py-1 rounded-full border bg-card hover:bg-muted/60 hover:border-primary/40 text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
                 >
-                  {q}
+                  {qc}
                 </button>
               ))}
             </div>
 
             <p className="text-[10px] text-muted-foreground text-center">
-              {input.trim()
-                ? "Borrador guardado automáticamente · "
-                : ""}
+              {input.trim() ? "Borrador guardado automáticamente · " : ""}
               Asistente DOXA IA · Solo enseña a usar la plataforma. No consulta datos internos.
             </p>
           </div>
         </div>
       </section>
 
-      {/* Panel derecho de ayuda */}
+      {/* Panel derecho */}
       {contextOpen && (
         <aside className="hidden xl:flex w-72 shrink-0 border-l bg-card/40 flex-col animate-in slide-in-from-right">
           <div className="p-4 border-b">
@@ -843,6 +1021,50 @@ export default function ChatPage() {
           </div>
         </aside>
       )}
+
+      {/* Confirmar eliminación con resumen + deshacer en toast */}
+      <AlertDialog open={!!threadToDelete} onOpenChange={(open) => !open && setConfirmDeleteId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Eliminar esta conversación?</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-2 text-sm">
+                <div className="rounded-md border bg-muted/40 p-3">
+                  <p className="font-medium text-foreground truncate">{threadToDelete?.title}</p>
+                  <p className="text-[12px] text-muted-foreground mt-0.5">
+                    {threadToDelete?.messages.length ?? 0} mensaje(s)
+                    {threadToDelete?.updatedAt
+                      ? <> · actualizada {formatDistanceToNow(threadToDelete.updatedAt, { addSuffix: true, locale: es })}</>
+                      : null}
+                  </p>
+                  {threadToDelete?.messages[0] && (
+                    <p className="text-[12px] text-muted-foreground mt-2 line-clamp-2">
+                      “{threadToDelete.messages[0].content.slice(0, 160)}
+                      {threadToDelete.messages[0].content.length > 160 ? "…" : ""}”
+                    </p>
+                  )}
+                </div>
+                <p>Podrás <span className="font-medium">deshacer</span> esta acción desde la notificación durante unos segundos.</p>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => {
+                if (threadToDelete) {
+                  const t = threadToDelete;
+                  setConfirmDeleteId(null);
+                  confirmAndDelete(t);
+                }
+              }}
+            >
+              Eliminar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
