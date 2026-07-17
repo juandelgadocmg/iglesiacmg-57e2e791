@@ -358,12 +358,13 @@ export default function PersonaPerfilPage() {
           <div className="absolute top-4 right-4 flex gap-2">
             <Button
               variant="ghost" size="icon"
-              className="h-9 w-9 bg-background/20 backdrop-blur-md text-primary-foreground hover:bg-background/30 border border-white/20"
+              className="h-11 w-11 bg-background/20 backdrop-blur-md text-primary-foreground hover:bg-background/30 border border-white/20 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
               onClick={() => coverInputRef.current?.click()}
               disabled={uploadingCover}
               title="Cambiar portada"
+              aria-label="Cambiar portada"
             >
-              <Camera className="h-4 w-4" />
+              <Camera className="h-5 w-5" />
             </Button>
             <input ref={coverInputRef} type="file" accept="image/*" className="hidden" />
           </div>
