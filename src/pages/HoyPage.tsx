@@ -7,13 +7,14 @@ import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import {
   QrCode, UserPlus, HandHeart, Mail, CalendarDays, ArrowRight,
-  Cake, Users, Church, Bell, Sparkles, Clock, MapPin, Zap, TrendingUp,
+  Cake, Users, Bell, Sparkles, Clock, MapPin, Zap, TrendingUp,
   ChevronRight,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Icon } from "@/design-system/primitives/Icon";
 import { useAuth } from "@/hooks/useAuth";
 import { useActiveRole } from "@/hooks/useActiveRole";
 import { useCan } from "@/hooks/useCan";
@@ -126,18 +127,18 @@ export default function HoyPage() {
   const totalPersonas = (personas as any[]).length;
 
   return (
-    <div className="max-w-[1400px] mx-auto p-1">
+    <div className="max-w-[1400px] mx-auto p-2 md:p-4">
       {/* ============ BENTO GRID ============ */}
-      <div className="grid grid-cols-6 gap-3 md:gap-4 auto-rows-[minmax(120px,auto)]">
+      <div className="grid grid-cols-6 gap-4 md:gap-5 auto-rows-[minmax(140px,auto)]">
         {/* HERO — col-span-6 */}
         <div className="col-span-6 relative overflow-hidden rounded-3xl border bg-gradient-to-br from-primary/15 via-card to-card p-6 md:p-8">
           <div className="absolute -top-24 -right-24 w-80 h-80 rounded-full bg-primary/15 blur-3xl" />
           <div className="absolute -bottom-16 -left-16 w-72 h-72 rounded-full bg-accent/10 blur-3xl" />
           <div className="relative flex flex-col md:flex-row md:items-end md:justify-between gap-6">
-            <div className="flex items-center gap-4 md:gap-5">
-              <Avatar className="h-16 w-16 md:h-20 md:w-20 ring-2 ring-primary/30 shadow-md shrink-0">
+            <div className="flex items-center gap-5">
+              <Avatar className="h-20 w-20 md:h-24 md:w-24 ring-2 ring-primary/30 shadow-md shrink-0">
                 {avatarUrl && <img src={avatarUrl} alt={nameCap} className="h-full w-full object-cover" />}
-                <AvatarFallback className="bg-primary/15 text-primary text-lg md:text-2xl font-semibold">
+                <AvatarFallback className="bg-primary/15 text-primary doxa-h3 font-semibold">
                   {(personaFull || rawName)
                     .split(" ")
                     .filter(Boolean)
@@ -147,22 +148,20 @@ export default function HoyPage() {
                 </AvatarFallback>
               </Avatar>
               <div>
-                <div className="flex items-center gap-2 text-[11px] text-muted-foreground uppercase tracking-widest mb-2">
-                  <Sparkles className="h-3.5 w-3.5 text-primary" />
+                <div className="flex items-center gap-2 doxa-caption text-muted-foreground uppercase tracking-widest mb-2">
+                  <Icon icon={Sparkles} size="sm" className="text-primary" />
                   {todayStr}
                 </div>
-                <h1 className="text-3xl md:text-5xl font-bold tracking-tight leading-none">
+                <h1 className="doxa-display-lg leading-none">
                   {greeting()}, <span className="bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">{nameCap}</span>
-
-              </h1>
-              <div className="flex items-center gap-2 mt-3">
-                {roleLabel && <Badge variant="secondary" className="rounded-full">{roleLabel}</Badge>}
-                <span className="text-sm text-muted-foreground">Panel de comando</span>
-              </div>
+                </h1>
+                <div className="flex items-center gap-2 mt-3">
+                  {roleLabel && <Badge variant="secondary" className="rounded-full doxa-caption">{roleLabel}</Badge>}
+                  <span className="doxa-body-sm text-muted-foreground">Panel de comando</span>
+                </div>
               </div>
             </div>
-            <div className="grid grid-cols-4 gap-2 md:gap-3 min-w-[280px]">
-
+            <div className="grid grid-cols-4 gap-3 md:gap-4 min-w-[320px]">
               <KpiRing icon={Users} label="Personas" value={totalPersonas} loading={personasLoading} tone="text-primary" />
               <KpiRing icon={CalendarDays} label="Hoy" value={eventosHoy.length} loading={eventosLoading} tone="text-emerald-600" />
               <KpiRing icon={HandHeart} label="Petic." value={peticionesAbiertas.length} tone="text-rose-600" />
@@ -179,22 +178,21 @@ export default function HoyPage() {
         )}
 
         {/* PRÓXIMA REUNIÓN — col-span-4 row-span-2 */}
-
         <BentoCard className="col-span-6 md:col-span-4 md:row-span-2 relative overflow-hidden bg-gradient-to-br from-primary/10 via-card to-card">
           <div className="absolute top-0 right-0 w-40 h-40 rounded-full bg-primary/10 blur-2xl" />
           <div className="relative h-full flex flex-col">
             <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-2">
-                <div className="w-9 h-9 rounded-xl bg-primary/15 text-primary flex items-center justify-center">
-                  <Zap className="h-4 w-4" />
+              <div className="flex items-center gap-3">
+                <div className="w-11 h-11 rounded-xl bg-primary/15 text-primary flex items-center justify-center">
+                  <Icon icon={Zap} size="md" />
                 </div>
                 <div>
-                  <div className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">Próximo evento</div>
-                  <div className="text-[13px] font-medium">Lo que viene</div>
+                  <div className="doxa-caption uppercase tracking-widest text-muted-foreground font-semibold">Próximo evento</div>
+                  <div className="doxa-body-sm font-medium">Lo que viene</div>
                 </div>
               </div>
-              <Link to="/eventos" className="text-[11px] text-primary hover:underline flex items-center gap-0.5">
-                Ver todos <ChevronRight className="h-3 w-3" />
+              <Link to="/eventos" className="doxa-caption text-primary hover:underline flex items-center gap-1">
+                Ver todos <Icon icon={ChevronRight} size="xs" />
               </Link>
             </div>
 
@@ -205,23 +203,23 @@ export default function HoyPage() {
             ) : (
               <>
                 <div className="flex-1">
-                  <h2 className="text-2xl md:text-3xl font-bold tracking-tight leading-tight">
+                  <h2 className="doxa-h2 leading-tight">
                     {proximoEvento.nombre || (proximoEvento as any).titulo}
                   </h2>
-                  <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[13px] text-muted-foreground">
-                    <span className="flex items-center gap-1.5">
-                      <CalendarDays className="h-3.5 w-3.5 text-primary" />
+                  <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1.5 doxa-body-sm text-muted-foreground">
+                    <span className="flex items-center gap-2">
+                      <Icon icon={CalendarDays} size="sm" className="text-primary" />
                       {proximoEvento.fecha ? format(new Date(proximoEvento.fecha), "EEEE d MMM", { locale: es }) : "—"}
                     </span>
                     {(proximoEvento as any).hora && (
-                      <span className="flex items-center gap-1.5">
-                        <Clock className="h-3.5 w-3.5 text-primary" />
+                      <span className="flex items-center gap-2">
+                        <Icon icon={Clock} size="sm" className="text-primary" />
                         {(proximoEvento as any).hora}
                       </span>
                     )}
                     {(proximoEvento as any).lugar && (
-                      <span className="flex items-center gap-1.5">
-                        <MapPin className="h-3.5 w-3.5 text-primary" />
+                      <span className="flex items-center gap-2">
+                        <Icon icon={MapPin} size="sm" className="text-primary" />
                         {(proximoEvento as any).lugar}
                       </span>
                     )}
@@ -230,21 +228,21 @@ export default function HoyPage() {
 
                 {eventosProximos.length > 1 && (
                   <div className="mt-4 pt-4 border-t border-border/50">
-                    <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-2">Después</div>
-                    <div className="space-y-1.5">
+                    <div className="doxa-caption uppercase tracking-wider text-muted-foreground font-semibold mb-2">Después</div>
+                    <div className="space-y-2">
                       {eventosProximos.slice(1, 4).map((e: any) => (
-                        <Link key={e.id} to="/eventos" className="flex items-center gap-2.5 p-1.5 -mx-1 rounded-md hover:bg-muted/50 transition-colors">
-                          <div className="w-9 text-center shrink-0">
-                            <div className="text-[9px] uppercase text-muted-foreground leading-none">
+                        <Link key={e.id} to="/eventos" className="flex items-center gap-3 p-2 -mx-1 rounded-md hover:bg-muted/50 transition-colors">
+                          <div className="w-11 text-center shrink-0">
+                            <div className="doxa-caption uppercase text-muted-foreground leading-none">
                               {e.fecha ? format(new Date(e.fecha), "MMM", { locale: es }) : "—"}
                             </div>
-                            <div className="text-sm font-bold leading-tight mt-0.5">
+                            <div className="doxa-h4 leading-tight mt-1">
                               {e.fecha ? format(new Date(e.fecha), "dd") : "?"}
                             </div>
                           </div>
                           <div className="flex-1 min-w-0">
-                            <div className="text-[12.5px] font-medium truncate">{e.nombre || e.titulo}</div>
-                            <div className="text-[10.5px] text-muted-foreground truncate">{e.hora || e.lugar || ""}</div>
+                            <div className="doxa-body-sm font-medium truncate">{e.nombre || e.titulo}</div>
+                            <div className="doxa-caption text-muted-foreground truncate">{e.hora || e.lugar || ""}</div>
                           </div>
                         </Link>
                       ))}
@@ -258,24 +256,24 @@ export default function HoyPage() {
 
         {/* PETICIONES — col-span-2 */}
         <BentoCard className="col-span-3 md:col-span-2 bg-gradient-to-br from-rose-500/5 to-card">
-          <div className="flex items-center gap-2 mb-3">
-            <div className="w-8 h-8 rounded-lg bg-rose-500/15 text-rose-600 flex items-center justify-center">
-              <HandHeart className="h-4 w-4" />
+          <div className="flex items-center gap-3 mb-3">
+            <div className="w-11 h-11 rounded-lg bg-rose-500/15 text-rose-600 flex items-center justify-center">
+              <Icon icon={HandHeart} size="md" />
             </div>
             <div>
-              <div className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">Bandeja</div>
-              <div className="text-[13px] font-semibold">Peticiones</div>
+              <div className="doxa-caption uppercase tracking-widest text-muted-foreground font-semibold">Bandeja</div>
+              <div className="doxa-body-sm font-semibold">Peticiones</div>
             </div>
           </div>
           {peticionesAbiertas.length === 0 ? (
             <EmptyBlock text="Sin pendientes." />
           ) : (
-            <ul className="space-y-1.5">
+            <ul className="space-y-2">
               {peticionesAbiertas.slice(0, 4).map((p: any) => (
                 <li key={p.id}>
-                  <Link to="/peticiones" className="block py-1.5 px-2 -mx-2 rounded-md hover:bg-muted/50 transition-colors">
-                    <div className="text-[12.5px] font-medium truncate">{p.titulo || "Sin título"}</div>
-                    <div className="text-[10.5px] text-muted-foreground truncate">{p.persona_nombre || "Anónima"}</div>
+                  <Link to="/peticiones" className="block py-2 px-2 -mx-2 rounded-md hover:bg-muted/50 transition-colors">
+                    <div className="doxa-body-sm font-medium truncate">{p.titulo || "Sin título"}</div>
+                    <div className="doxa-caption text-muted-foreground truncate">{p.persona_nombre || "Anónima"}</div>
                   </Link>
                 </li>
               ))}
@@ -286,20 +284,20 @@ export default function HoyPage() {
         {/* MENSAJES — col-span-2 */}
         <BentoCard className="col-span-3 md:col-span-2 bg-gradient-to-br from-amber-500/5 to-card">
           <div className="h-full flex flex-col justify-between">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-amber-500/15 text-amber-600 flex items-center justify-center">
-                <Bell className="h-4 w-4" />
+            <div className="flex items-center gap-3">
+              <div className="w-11 h-11 rounded-lg bg-amber-500/15 text-amber-600 flex items-center justify-center">
+                <Icon icon={Bell} size="md" />
               </div>
               <div>
-                <div className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">Inbox</div>
-                <div className="text-[13px] font-semibold">Mensajes</div>
+                <div className="doxa-caption uppercase tracking-widest text-muted-foreground font-semibold">Inbox</div>
+                <div className="doxa-body-sm font-semibold">Mensajes</div>
               </div>
             </div>
             <div className="mt-3">
-              <div className="text-4xl font-bold tabular-nums">{unreadMsgs}</div>
-              <p className="text-[11px] text-muted-foreground mt-0.5">sin leer</p>
-              <Button variant="ghost" size="sm" className="h-7 px-0 mt-2 text-[11.5px] text-primary hover:bg-transparent" onClick={() => nav("/mensajes")}>
-                Abrir bandeja <ArrowRight className="h-3 w-3 ml-1" />
+              <div className="doxa-display-lg tabular-nums">{unreadMsgs}</div>
+              <p className="doxa-caption text-muted-foreground mt-1">sin leer</p>
+              <Button variant="ghost" size="sm" className="px-0 mt-2 text-primary hover:bg-transparent" onClick={() => nav("/mensajes")}>
+                Abrir bandeja <Icon icon={ArrowRight} size="xs" className="ml-1" />
               </Button>
             </div>
           </div>
@@ -308,33 +306,33 @@ export default function HoyPage() {
         {/* CUMPLEAÑOS — col-span-3 */}
         <BentoCard className="col-span-6 md:col-span-3 bg-gradient-to-br from-amber-500/8 via-card to-card">
           <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-amber-400/20 text-amber-600 flex items-center justify-center">
-                <Cake className="h-4 w-4" />
+            <div className="flex items-center gap-3">
+              <div className="w-11 h-11 rounded-lg bg-amber-400/20 text-amber-600 flex items-center justify-center">
+                <Icon icon={Cake} size="md" />
               </div>
               <div>
-                <div className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">Próximos 14 días</div>
-                <div className="text-[13px] font-semibold">Cumpleaños</div>
+                <div className="doxa-caption uppercase tracking-widest text-muted-foreground font-semibold">Próximos 14 días</div>
+                <div className="doxa-body-sm font-semibold">Cumpleaños</div>
               </div>
             </div>
-            <Badge variant="secondary" className="text-[10px]">{cumples.length}</Badge>
+            <Badge variant="secondary" className="doxa-caption">{cumples.length}</Badge>
           </div>
           {personasLoading ? (
-            <div className="space-y-2">{[...Array(3)].map((_, i) => <Skeleton key={i} className="h-9 w-full" />)}</div>
+            <div className="space-y-2">{[...Array(3)].map((_, i) => <Skeleton key={i} className="h-10 w-full" />)}</div>
           ) : cumples.length === 0 ? (
             <EmptyBlock text="Sin cumpleaños próximos." />
           ) : (
-            <div className="grid grid-cols-2 gap-1.5">
+            <div className="grid grid-cols-2 gap-2">
               {cumples.map(({ p, days }) => (
-                <Link key={p.id} to={`/personas/${p.id}`} className="flex items-center gap-2 py-1.5 px-2 rounded-md hover:bg-muted/50 transition-colors">
-                  <Avatar className="h-7 w-7">
-                    <AvatarFallback className="text-[10px] bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-400">
+                <Link key={p.id} to={`/personas/${p.id}`} className="flex items-center gap-2 py-2 px-2 rounded-md hover:bg-muted/50 transition-colors">
+                  <Avatar className="h-9 w-9">
+                    <AvatarFallback className="doxa-caption bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-400">
                       {(p.nombres || "?").slice(0, 2).toUpperCase()}
                     </AvatarFallback>
                   </Avatar>
                   <div className="flex-1 min-w-0">
-                    <div className="text-[11.5px] font-medium truncate">{p.nombres}</div>
-                    <div className="text-[10px] text-muted-foreground">
+                    <div className="doxa-body-sm font-medium truncate">{p.nombres}</div>
+                    <div className="doxa-caption text-muted-foreground">
                       {days === 0 ? "🎂 Hoy" : days === 1 ? "Mañana" : `${days}d`}
                     </div>
                   </div>
@@ -347,13 +345,13 @@ export default function HoyPage() {
         {/* RECIENTES — col-span-3 */}
         <BentoCard className="col-span-6 md:col-span-3">
           <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-primary/15 text-primary flex items-center justify-center">
-                <TrendingUp className="h-4 w-4" />
+            <div className="flex items-center gap-3">
+              <div className="w-11 h-11 rounded-lg bg-primary/15 text-primary flex items-center justify-center">
+                <Icon icon={TrendingUp} size="md" />
               </div>
               <div>
-                <div className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">Actividad</div>
-                <div className="text-[13px] font-semibold">Recientes</div>
+                <div className="doxa-caption uppercase tracking-widest text-muted-foreground font-semibold">Actividad</div>
+                <div className="doxa-body-sm font-semibold">Recientes</div>
               </div>
             </div>
           </div>
@@ -363,10 +361,10 @@ export default function HoyPage() {
             <ul className="space-y-1">
               {recents.slice(0, 5).map((r) => (
                 <li key={r.id}>
-                  <Link to={r.to} className="flex items-center gap-2 py-1.5 px-2 -mx-2 rounded-md hover:bg-muted/50 transition-colors">
-                    <Users className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                    <span className="text-[12px] truncate flex-1">{r.label}</span>
-                    <ChevronRight className="h-3 w-3 text-muted-foreground/60" />
+                  <Link to={r.to} className="flex items-center gap-3 py-2 px-2 -mx-2 rounded-md hover:bg-muted/50 transition-colors">
+                    <Icon icon={Users} size="sm" className="text-muted-foreground" />
+                    <span className="doxa-body-sm truncate flex-1">{r.label}</span>
+                    <Icon icon={ChevronRight} size="xs" className="text-muted-foreground/60" />
                   </Link>
                 </li>
               ))}
@@ -392,42 +390,40 @@ export default function HoyPage() {
           </div>
         )}
 
-
-
         {/* QUICK ACTIONS — col-span-6 */}
-        <div className="col-span-6 grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div className="col-span-6 grid grid-cols-2 md:grid-cols-4 gap-4">
           {quickActions.map((a) => (
             <button
               key={a.label}
               onClick={() => nav(a.to)}
               className={cn(
-                "group relative overflow-hidden flex items-center gap-3 p-4 rounded-2xl border bg-gradient-to-br transition-all text-left",
+                "group relative overflow-hidden flex items-center gap-3 p-5 rounded-2xl border bg-gradient-to-br transition-all text-left",
                 a.tone,
                 "hover:shadow-md hover:-translate-y-0.5 hover:border-primary/40"
               )}
             >
-              <span className="w-10 h-10 rounded-xl bg-card border shadow-sm text-primary flex items-center justify-center shrink-0">
-                <a.icon className="h-4 w-4" />
+              <span className="w-12 h-12 rounded-xl bg-card border shadow-sm text-primary flex items-center justify-center shrink-0">
+                <Icon icon={a.icon} size="md" />
               </span>
-              <span className="flex-1 text-[13px] font-semibold">{a.label}</span>
-              <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:text-primary group-hover:translate-x-0.5 transition-all" />
+              <span className="flex-1 doxa-body-sm font-semibold">{a.label}</span>
+              <Icon icon={ArrowRight} size="sm" className="text-muted-foreground group-hover:text-primary group-hover:translate-x-0.5 transition-all" />
             </button>
           ))}
         </div>
 
         {/* CONSEJO — col-span-6 */}
-        <div className="col-span-6 rounded-3xl border bg-gradient-to-r from-primary/8 via-primary/5 to-transparent p-5 flex items-center gap-4">
-          <div className="w-11 h-11 rounded-2xl bg-primary text-primary-foreground flex items-center justify-center shrink-0 shadow-md">
-            <Sparkles className="h-5 w-5" />
+        <div className="col-span-6 rounded-3xl border bg-gradient-to-r from-primary/8 via-primary/5 to-transparent p-6 flex items-center gap-4">
+          <div className="w-14 h-14 rounded-2xl bg-primary text-primary-foreground flex items-center justify-center shrink-0 shadow-md">
+            <Icon icon={Sparkles} size="md" />
           </div>
           <div className="flex-1 min-w-0">
-            <div className="text-[13px] font-semibold">Consejo del día</div>
-            <p className="text-[12.5px] text-muted-foreground mt-0.5">
-              Presiona <kbd className="px-1.5 py-0.5 rounded border bg-card text-[10.5px] font-mono">⌘K</kbd> para saltar a cualquier persona, grupo o acción en menos de un segundo.
+            <div className="doxa-body-sm font-semibold">Consejo del día</div>
+            <p className="doxa-caption text-muted-foreground mt-1">
+              Presiona <kbd className="kbd">⌘K</kbd> para saltar a cualquier persona, grupo o acción en menos de un segundo.
             </p>
           </div>
-          <Button variant="outline" size="sm" onClick={() => nav("/personas")} className="hidden md:flex gap-1.5">
-            Explorar <ArrowRight className="h-3.5 w-3.5" />
+          <Button variant="outline" size="sm" onClick={() => nav("/personas")} className="hidden md:flex gap-2">
+            Explorar <Icon icon={ArrowRight} size="xs" />
           </Button>
         </div>
       </div>
@@ -439,29 +435,29 @@ export default function HoyPage() {
 
 function BentoCard({ className, children }: { className?: string; children: React.ReactNode }) {
   return (
-    <div className={cn("rounded-3xl border bg-card p-5 overflow-hidden", className)}>
+    <div className={cn("rounded-3xl border bg-card p-6 overflow-hidden", className)}>
       {children}
     </div>
   );
 }
 
-function KpiRing({ icon: Icon, label, value, loading, tone }: { icon: any; label: string; value: number; loading?: boolean; tone?: string }) {
+function KpiRing({ icon, label, value, loading, tone }: { icon: any; label: string; value: number; loading?: boolean; tone?: string }) {
   return (
-    <div className="px-2 py-2.5 rounded-2xl bg-card/80 backdrop-blur border shadow-sm text-center">
-      <div className={cn("flex items-center justify-center mb-0.5", tone || "text-primary")}>
-        <Icon className="h-3.5 w-3.5" />
+    <div className="px-3 py-4 rounded-2xl bg-card/80 backdrop-blur border shadow-sm text-center">
+      <div className={cn("flex items-center justify-center mb-1", tone || "text-primary")}>
+        <Icon icon={icon} size="sm" />
       </div>
-      <div className="text-lg md:text-xl font-bold tabular-nums leading-none">{loading ? "—" : value}</div>
-      <div className="text-[9.5px] uppercase tracking-wider text-muted-foreground mt-0.5">{label}</div>
+      <div className="doxa-h3 tabular-nums leading-none">{loading ? "—" : value}</div>
+      <div className="doxa-caption uppercase tracking-wider text-muted-foreground mt-1">{label}</div>
     </div>
   );
 }
 
-function EmptyBlock({ icon: Icon, text }: { icon?: any; text: string }) {
+function EmptyBlock({ icon, text }: { icon?: any; text: string }) {
   return (
     <div className="flex flex-col items-center justify-center py-6 text-center">
-      {Icon && <Icon className="h-8 w-8 text-muted-foreground/30 mb-2" />}
-      <p className="text-[11.5px] text-muted-foreground">{text}</p>
+      {icon && <Icon icon={icon} size="xl" className="text-muted-foreground/30 mb-2" />}
+      <p className="doxa-body-sm text-muted-foreground">{text}</p>
     </div>
   );
 }
