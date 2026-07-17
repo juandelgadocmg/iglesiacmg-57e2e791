@@ -254,7 +254,7 @@ export default function GrupoPerfilView({ grupoId, onBack, readOnly = false, can
                 <Pencil className="h-3.5 w-3.5" /> Editar
               </Button>
             )}
-            {!readOnly && (() => {
+            {allowReportAndPlan && (() => {
               const now = new Date();
               const day = now.getDay();
               const mins = now.getHours() * 60 + now.getMinutes();
