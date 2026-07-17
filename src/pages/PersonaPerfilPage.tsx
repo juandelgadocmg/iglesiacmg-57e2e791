@@ -524,7 +524,7 @@ export default function PersonaPerfilPage() {
                   <User className="h-3.5 w-3.5" /> Acerca de
                 </div>
                 {persona.observaciones ? (
-                  <p className="text-[15px] text-foreground/90 leading-relaxed whitespace-pre-wrap line-clamp-6">{persona.observaciones}</p>
+                  <p className="text-base text-foreground/90 leading-relaxed whitespace-pre-wrap line-clamp-6">{persona.observaciones}</p>
                 ) : (
                   <p className="text-sm text-muted-foreground italic">Sin biografía. Añade una nota pastoral desde "Editar perfil".</p>
                 )}
@@ -555,7 +555,7 @@ export default function PersonaPerfilPage() {
                       <p className="text-base font-bold text-foreground mt-1 leading-tight">{next.nombre}</p>
                       <p className="text-xs text-muted-foreground mt-1">Próximo paso del discipulado</p>
                       <div className="mt-auto pt-3">
-                        <div className="flex items-center justify-between text-[11px] text-muted-foreground mb-1">
+                        <div className="flex items-center justify-between text-xs text-muted-foreground mb-1">
                           <span>Progreso general</span><span className="font-bold text-primary">{progressPercent}%</span>
                         </div>
                         <Progress value={progressPercent} className="h-1.5" />
@@ -596,7 +596,7 @@ export default function PersonaPerfilPage() {
                   {(relaciones || []).slice(0, 5).map((r: any) => (
                     <Avatar key={r.id} className="h-8 w-8 border-2 border-card">
                       <AvatarImage src={r.familiar?.foto_url} />
-                      <AvatarFallback className="text-[10px]">{(r.familiar?.nombres?.[0] || r.familiar_nombre?.[0] || "?")}</AvatarFallback>
+                      <AvatarFallback className="text-xs">{(r.familiar?.nombres?.[0] || r.familiar_nombre?.[0] || "?")}</AvatarFallback>
                     </Avatar>
                   ))}
                 </div>
@@ -608,7 +608,7 @@ export default function PersonaPerfilPage() {
                 </div>
                 <p className="text-3xl font-bold text-foreground">${totalContribuido.toLocaleString()}</p>
                 <p className="text-xs text-muted-foreground mt-1">total histórico</p>
-                <div className="mt-3 flex items-center gap-3 text-[11px]">
+                <div className="mt-3 flex items-center gap-3 text-xs">
                   <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-primary" />Aportes ${totalAportesIngreso.toLocaleString()}</span>
                   <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-accent" />Don. ${totalDonaciones.toLocaleString()}</span>
                 </div>
@@ -882,7 +882,7 @@ function KpiTile({ icon, label, value, sub, tone = "primary", progress }: {
   return (
     <div className="rounded-2xl border border-border/60 bg-card p-4 shadow-sm hover:shadow-md transition-shadow">
       <div className="flex items-center justify-between mb-2">
-        <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{label}</span>
+        <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{label}</span>
         <div className={cn("w-7 h-7 rounded-lg flex items-center justify-center", toneMap[tone])}>{icon}</div>
       </div>
       <p className="text-2xl font-bold tracking-tight text-foreground">{value}</p>
@@ -896,7 +896,7 @@ function MiniKpi({ label, value, sub, tone }: { label: string; value: string; su
   const border = tone === "primary" ? "border-l-primary" : tone === "success" ? "border-l-success" : "border-l-accent";
   return (
     <div className={cn("rounded-xl border border-border/60 bg-card p-4 border-l-4", border)}>
-      <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{label}</p>
+      <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{label}</p>
       <p className="text-xl font-bold mt-1">{value}</p>
       {sub && <p className="text-xs text-muted-foreground mt-0.5">{sub}</p>}
     </div>
@@ -1008,7 +1008,7 @@ function ActivityFeedTab({ timeline, auditoria, canSeeAudit, auditoriaLoading, o
               )}
             >
               <c.icon className="h-3.5 w-3.5" /> {c.label}
-              <span className={cn("text-[10px] px-1.5 rounded-full", filter === c.id ? "bg-primary-foreground/20" : "bg-muted")}>{c.count}</span>
+              <span className={cn("text-xs px-1.5 rounded-full", filter === c.id ? "bg-primary-foreground/20" : "bg-muted")}>{c.count}</span>
             </button>
           ))}
           <div className="ml-auto flex gap-2">
@@ -1029,7 +1029,7 @@ function ActivityFeedTab({ timeline, auditoria, canSeeAudit, auditoriaLoading, o
               <div key={month}>
                 <div className="flex items-center gap-3 mb-3">
                   <div className="h-px flex-1 bg-border" />
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">{month}</p>
+                  <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">{month}</p>
                   <div className="h-px flex-1 bg-border" />
                 </div>
                 <div className="space-y-3">
@@ -1048,7 +1048,7 @@ function ActivityFeedTab({ timeline, auditoria, canSeeAudit, auditoriaLoading, o
                           <div className="flex-1 min-w-0">
                             <div className="flex items-start justify-between gap-3">
                               <p className="text-sm font-semibold text-foreground leading-snug">{e.title}</p>
-                              <span className="text-[11px] text-muted-foreground whitespace-nowrap shrink-0">
+                              <span className="text-xs text-muted-foreground whitespace-nowrap shrink-0">
                                 {e.date ? format(new Date(e.date), "d MMM", { locale: es }) : ""}
                               </span>
                             </div>
@@ -1056,7 +1056,7 @@ function ActivityFeedTab({ timeline, auditoria, canSeeAudit, auditoriaLoading, o
                             {e.meta && (
                               <div className="mt-2 flex items-center gap-1.5 flex-wrap">
                                 {e.meta.split(" · ").filter(Boolean).map((m, j) => (
-                                  <span key={j} className="text-[10px] px-2 py-0.5 rounded-full bg-muted text-muted-foreground">{m}</span>
+                                  <span key={j} className="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground">{m}</span>
                                 ))}
                               </div>
                             )}
@@ -1090,7 +1090,7 @@ function ActivityFeedTab({ timeline, auditoria, canSeeAudit, auditoriaLoading, o
           <div className="rounded-2xl border border-border/60 bg-card">
             <button className="w-full flex items-center justify-between p-4 text-left" onClick={() => setShowAudit(v => !v)}>
               <span className="flex items-center gap-2 text-sm font-semibold"><Shield className="h-4 w-4 text-primary" /> Auditoría</span>
-              <Badge variant="outline" className="text-[10px]">{auditoria.length}</Badge>
+              <Badge variant="outline" className="text-xs">{auditoria.length}</Badge>
             </button>
             {showAudit && (
               <div className="border-t border-border/50 p-4 max-h-96 overflow-y-auto">
@@ -1102,7 +1102,7 @@ function ActivityFeedTab({ timeline, auditoria, canSeeAudit, auditoriaLoading, o
                       <div key={row.id} className="text-xs border-l-2 border-primary/40 pl-2">
                         <p className="font-semibold text-foreground">{row.operation}</p>
                         <p className="text-muted-foreground">{row.actor_email || "Sistema"}</p>
-                        <p className="text-[10px] text-muted-foreground">{row.created_at ? format(parseISO(row.created_at), "d MMM · HH:mm", { locale: es }) : ""}</p>
+                        <p className="text-xs text-muted-foreground">{row.created_at ? format(parseISO(row.created_at), "d MMM · HH:mm", { locale: es }) : ""}</p>
                       </div>
                     ))}
                   </div>
@@ -1138,7 +1138,7 @@ function DiscipuladoRoadmap({ procesos, procesosMap, progressPercent, completedC
             </svg>
             <div className="absolute inset-0 flex flex-col items-center justify-center">
               <p className="text-3xl font-bold text-foreground">{progressPercent}%</p>
-              <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Completado</p>
+              <p className="text-xs uppercase tracking-wider text-muted-foreground">Completado</p>
             </div>
           </div>
           <p className="mt-4 text-sm font-semibold">{completedCount} de {totalProcesos} hitos</p>
@@ -1146,7 +1146,7 @@ function DiscipuladoRoadmap({ procesos, procesosMap, progressPercent, completedC
         </div>
 
         <div className="rounded-2xl border border-border/60 bg-card p-4">
-          <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-3">Leyenda</p>
+          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Leyenda</p>
           <div className="space-y-2 text-xs">
             <div className="flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-success" /> Finalizado</div>
             <div className="flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-primary" /> En curso</div>
@@ -1172,7 +1172,7 @@ function DiscipuladoRoadmap({ procesos, procesosMap, progressPercent, completedC
                 className="relative pl-16"
               >
                 <div className={cn("absolute left-3 top-3 w-6 h-6 rounded-full flex items-center justify-center border-2 border-card ring-4 z-10", nodeColor)}>
-                  {done ? <CheckCircle2 className="h-3.5 w-3.5" /> : <span className="text-[10px] font-bold">{idx + 1}</span>}
+                  {done ? <CheckCircle2 className="h-3.5 w-3.5" /> : <span className="text-xs font-bold">{idx + 1}</span>}
                 </div>
                 <div className={cn(
                   "rounded-2xl border p-4 transition-all",
@@ -1183,7 +1183,7 @@ function DiscipuladoRoadmap({ procesos, procesosMap, progressPercent, completedC
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
                       <p className="text-sm font-semibold text-foreground">{p.nombre}</p>
-                      <div className="flex items-center gap-2 mt-1.5 text-[11px] text-muted-foreground">
+                      <div className="flex items-center gap-2 mt-1.5 text-xs text-muted-foreground">
                         {pp?.fecha_completado ? (
                           <span className="flex items-center gap-1"><Calendar className="h-3 w-3" /> {format(parseISO(pp.fecha_completado), "dd MMM yyyy", { locale: es })}</span>
                         ) : <span>Sin fecha registrada</span>}
@@ -1242,7 +1242,7 @@ function GruposGallery({ grupos }: { grupos: any[] }) {
         >
           <div className={cn("relative h-24 bg-gradient-to-br", gradients[i % gradients.length])}>
             <div className="absolute inset-0 opacity-20" style={{ backgroundImage: "radial-gradient(circle at 30% 40%, white 1px, transparent 1px)", backgroundSize: "24px 24px" }} />
-            <Badge variant="outline" className="absolute top-3 right-3 bg-background/80 backdrop-blur text-[10px] capitalize">
+            <Badge variant="outline" className="absolute top-3 right-3 bg-background/80 backdrop-blur text-xs capitalize">
               {gm.rol || "asistente"}
             </Badge>
           </div>
@@ -1252,7 +1252,7 @@ function GruposGallery({ grupos }: { grupos: any[] }) {
             </div>
             <p className="text-base font-bold text-foreground mt-3 truncate">{gm.grupos?.nombre || "—"}</p>
             <p className="text-xs text-muted-foreground truncate">{gm.grupos?.tipo || "—"}{gm.grupos?.red ? ` · ${gm.grupos.red}` : ""}</p>
-            <div className="mt-3 flex items-center gap-2 pt-3 border-t border-border/50 text-[11px] text-muted-foreground">
+            <div className="mt-3 flex items-center gap-2 pt-3 border-t border-border/50 text-xs text-muted-foreground">
               <span className="flex items-center gap-1"><Church className="h-3 w-3" /> Grupo activo</span>
             </div>
           </div>
@@ -1311,11 +1311,11 @@ function FinanzasBankPanel({ finanzas, donaciones, totalAportes, totalDonaciones
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div className="rounded-2xl bg-primary-foreground/10 backdrop-blur px-4 py-3 border border-primary-foreground/20">
-              <p className="text-[10px] uppercase tracking-wider opacity-80 flex items-center gap-1"><ArrowUpRight className="h-3 w-3" /> Aportes</p>
+              <p className="text-xs uppercase tracking-wider opacity-80 flex items-center gap-1"><ArrowUpRight className="h-3 w-3" /> Aportes</p>
               <p className="text-xl font-bold mt-1">${totalAportes.toLocaleString()}</p>
             </div>
             <div className="rounded-2xl bg-primary-foreground/10 backdrop-blur px-4 py-3 border border-primary-foreground/20">
-              <p className="text-[10px] uppercase tracking-wider opacity-80 flex items-center gap-1"><Gift className="h-3 w-3" /> Donaciones</p>
+              <p className="text-xs uppercase tracking-wider opacity-80 flex items-center gap-1"><Gift className="h-3 w-3" /> Donaciones</p>
               <p className="text-xl font-bold mt-1">${totalDonaciones.toLocaleString()}</p>
             </div>
           </div>
@@ -1379,7 +1379,7 @@ function FinanzasBankPanel({ finanzas, donaciones, totalAportes, totalDonaciones
       <div className="rounded-2xl border border-border/60 bg-card overflow-hidden">
         <div className="flex items-center justify-between px-5 py-4 border-b border-border/50">
           <div className="flex items-center gap-2"><Wallet className="h-4 w-4 text-primary" /><p className="text-sm font-semibold">Movimientos</p></div>
-          <Badge variant="outline" className="text-[10px]">{combined.length} total</Badge>
+          <Badge variant="outline" className="text-xs">{combined.length} total</Badge>
         </div>
         {combined.length > 0 ? (
           <div className="divide-y divide-border/50">
@@ -1396,7 +1396,7 @@ function FinanzasBankPanel({ finanzas, donaciones, totalAportes, totalDonaciones
                       <p className="text-sm font-medium truncate">
                         {row._kind === "donacion" ? `Donación${row.tipo ? " · " + row.tipo : ""}` : (row.categoria_nombre || row.descripcion || row.tipo || "Movimiento")}
                       </p>
-                      <p className="text-[11px] text-muted-foreground truncate">
+                      <p className="text-xs text-muted-foreground truncate">
                         {row.fecha ? format(parseISO(row.fecha), "dd MMM yyyy", { locale: es }) : "—"}
                         {row.metodo_pago ? ` · ${row.metodo_pago}` : ""}
                         {row.estado ? ` · ${row.estado}` : ""}
@@ -1465,7 +1465,7 @@ function FamiliaCards({
             {featured && <div className="absolute -bottom-1 -right-1 bg-destructive text-destructive-foreground rounded-full p-1"><Heart className="h-3 w-3" /></div>}
           </div>
           <p className={cn("font-semibold text-foreground mt-3 truncate max-w-full", featured ? "text-base" : "text-sm")}>{nombre}</p>
-          <Badge variant="outline" className="mt-1 text-[10px]">{rel.parentesco}</Badge>
+          <Badge variant="outline" className="mt-1 text-xs">{rel.parentesco}</Badge>
         </div>
         <div className="mt-3 flex items-center justify-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
           {fam && <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => navigate(`/personas/${fam.id}`)}>Ver perfil</Button>}
@@ -1651,7 +1651,7 @@ function QrHero({ personaNombre, qrCode, servicios, qrCheckinServicio, setQrChec
                   <FileText className="h-3.5 w-3.5" /> Imprimir
                 </Button>
               </div>
-              <p className="text-[10px] text-muted-foreground font-mono mt-4 break-all max-w-full">{qrCode}</p>
+              <p className="text-xs text-muted-foreground font-mono mt-4 break-all max-w-full">{qrCode}</p>
             </>
           ) : (
             <div className="py-12">
@@ -1689,7 +1689,7 @@ function QrHero({ personaNombre, qrCode, servicios, qrCheckinServicio, setQrChec
                 <div className="w-9 h-9 rounded-lg bg-primary-foreground/20 flex items-center justify-center"><QrCode className="h-4 w-4" /></div>
                 <div className="text-left">
                   <p className="text-sm font-bold">Check-in manual</p>
-                  <p className="text-[11px] opacity-80 font-normal">Confirmar sin escanear</p>
+                  <p className="text-xs opacity-80 font-normal">Confirmar sin escanear</p>
                 </div>
               </Button>
               <PersonaQrCameraCheckin
@@ -1699,8 +1699,8 @@ function QrHero({ personaNombre, qrCode, servicios, qrCheckinServicio, setQrChec
               />
             </div>
 
-            {!qrCode && <p className="text-[11px] text-destructive">Esta persona no tiene QR generado aún.</p>}
-            {!qrCheckinServicio && qrCode && <p className="text-[11px] text-muted-foreground">Selecciona un servicio para habilitar el check-in.</p>}
+            {!qrCode && <p className="text-xs text-destructive">Esta persona no tiene QR generado aún.</p>}
+            {!qrCheckinServicio && qrCode && <p className="text-xs text-muted-foreground">Selecciona un servicio para habilitar el check-in.</p>}
           </div>
         </div>
 
