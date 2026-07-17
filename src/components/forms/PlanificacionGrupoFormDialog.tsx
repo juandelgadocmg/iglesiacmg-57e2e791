@@ -102,10 +102,17 @@ export default function PlanificacionGrupoFormDialog({ open, onOpenChange }: Pro
         responsable_consolidacion: responsableConsolidacion,
         responsable_seguimiento: responsableSeguimiento,
       });
-      toast.success("Planificación guardada");
+      toast.success("Planificación guardada", {
+        description: "La planificación quedó registrada correctamente.",
+      });
       onOpenChange(false);
-    } catch {
-      toast.error("Error al guardar");
+    } catch (err: any) {
+      const { formatSupabaseError } = await import("@/lib/supabaseError");
+      toast.error("No se pudo guardar la planificación", {
+        description: formatSupabaseError(err, "Revisa los datos e intenta de nuevo."),
+        duration: 8000,
+        action: { label: "Reintentar", onClick: () => handleSubmit() },
+      });
     }
   };
 
