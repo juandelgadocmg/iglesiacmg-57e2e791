@@ -1470,8 +1470,8 @@ function FamiliaCards({
         </div>
         <div className="mt-3 flex items-center justify-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
           {fam && <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => navigate(`/personas/${fam.id}`)}>Ver perfil</Button>}
-          <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive/60 hover:text-destructive" onClick={() => onDelete(rel.id)}>
-            <Trash2 className="h-3 w-3" />
+          <Button size="icon" variant="ghost" className="h-11 w-11 text-destructive/70 hover:text-destructive focus-visible:ring-2 focus-visible:ring-destructive" onClick={() => onDelete(rel.id)} aria-label="Eliminar relación">
+            <Trash2 className="h-5 w-5" />
           </Button>
         </div>
       </motion.div>
