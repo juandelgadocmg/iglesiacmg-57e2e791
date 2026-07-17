@@ -1,8 +1,9 @@
 import { useState, useRef, useEffect, useMemo } from "react";
 import {
-  Send, Bot, User, Loader2, Sparkles, Users, CalendarDays, HandHeart, TrendingUp,
-  Plus, MessageSquare, Trash2, Search, PanelRightClose, PanelRightOpen,
-  BookOpen, Database, Zap, Wand2,
+  Send, Bot, User, Loader2, LifeBuoy, Plus, MessageSquare, Trash2, Search,
+  PanelRightClose, PanelRightOpen, BookOpen, Compass, ListChecks, ShieldCheck,
+  Users, UsersRound, Award, GraduationCap, DollarSign, BarChart3, ClipboardList,
+  Filter, Settings as SettingsIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -20,18 +21,42 @@ const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat`;
 const STORAGE_KEY = "doxa.chat.threads.v1";
 const ACTIVE_KEY = "doxa.chat.activeThread.v1";
 
+// Sugerencias iniciales (tarjetas de bienvenida)
 const PROMPT_CARDS: { icon: any; title: string; prompt: string; color: string }[] = [
-  { icon: Users, title: "Personas activas", prompt: "¿Cuántas personas activas hay actualmente y cómo se comparan con el mes anterior?", color: "text-primary bg-primary/10" },
-  { icon: HandHeart, title: "Peticiones de oración", prompt: "Resúmeme las peticiones de oración pendientes y en oración.", color: "text-rose-600 bg-rose-500/10" },
-  { icon: CalendarDays, title: "Próximos eventos", prompt: "Lístame los próximos eventos con sus cupos disponibles.", color: "text-blue-600 bg-blue-500/10" },
-  { icon: TrendingUp, title: "Crecimiento", prompt: "Muéstrame el crecimiento de membresía de los últimos 6 meses.", color: "text-emerald-600 bg-emerald-500/10" },
+  { icon: Users, title: "Crear una persona", prompt: "¿Cómo crear una persona?", color: "text-primary bg-primary/10" },
+  { icon: ClipboardList, title: "Registrar asistencia", prompt: "¿Cómo registrar una asistencia?", color: "text-blue-600 bg-blue-500/10" },
+  { icon: UsersRound, title: "Crear un grupo", prompt: "¿Cómo crear un grupo o Casa de Paz?", color: "text-emerald-600 bg-emerald-500/10" },
+  { icon: Award, title: "Generar un certificado", prompt: "¿Cómo generar un certificado?", color: "text-amber-600 bg-amber-500/10" },
+  { icon: GraduationCap, title: "Crear un curso", prompt: "¿Cómo crear un curso en Academia?", color: "text-violet-600 bg-violet-500/10" },
+  { icon: DollarSign, title: "Administrar Finanzas", prompt: "¿Cómo administrar las finanzas?", color: "text-teal-600 bg-teal-500/10" },
+  { icon: BarChart3, title: "Exportar un reporte", prompt: "¿Cómo exportar un reporte?", color: "text-rose-600 bg-rose-500/10" },
+  { icon: SettingsIcon, title: "Configurar usuarios", prompt: "¿Cómo configurar usuarios?", color: "text-slate-600 bg-slate-500/10" },
+];
+
+// Chips rápidos debajo del composer
+const QUICK_CHIPS = [
+  "¿Cómo crear una persona?",
+  "¿Cómo registrar una asistencia?",
+  "¿Cómo crear un grupo?",
+  "¿Cómo crear un curso?",
+  "¿Cómo generar un certificado?",
+  "¿Cómo exportar un reporte?",
+  "¿Cómo configurar un usuario?",
+  "¿Cómo usar el módulo de Finanzas?",
+  "¿Cómo administrar la Academia?",
 ];
 
 const CAPABILITIES = [
-  { icon: Database, title: "Consulta la base", desc: "Pregunta por personas, grupos, eventos, finanzas o academia con lenguaje natural." },
-  { icon: Zap, title: "Resúmenes rápidos", desc: "Genera resúmenes de peticiones, asistencias o estados financieros." },
-  { icon: Wand2, title: "Ideas pastorales", desc: "Sugerencias de mensajes, seguimientos o dinámicas para grupos." },
-  { icon: BookOpen, title: "Referencias", desc: "Solicita citas bíblicas, enseñanzas o material de apoyo." },
+  { icon: Compass, title: "Guía por módulos", desc: "Aprende cómo funciona cada módulo: Personas, Grupos, Reuniones, Academia, Finanzas y más." },
+  { icon: ListChecks, title: "Procedimientos paso a paso", desc: "Recibe instrucciones numeradas para completar cualquier tarea dentro de DOXA." },
+  { icon: Filter, title: "Uso de filtros y formularios", desc: "Explica cómo usar filtros, buscadores y formularios de cada pantalla." },
+  { icon: BookOpen, title: "Buenas prácticas", desc: "Recomendaciones para sacar el máximo provecho de la plataforma." },
+];
+
+const LIMITATIONS = [
+  "No consulta datos almacenados en DOXA.",
+  "No genera estadísticas ni reportes.",
+  "No responde temas fuera del uso de la plataforma.",
 ];
 
 // ------- helpers -------
@@ -133,7 +158,6 @@ async function streamChat({
 }
 
 export default function ChatPage() {
-  // Bootstrap threads once (client-safe)
   const [{ threads, activeId }, setState] = useState(() => loadThreads());
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -145,15 +169,12 @@ export default function ChatPage() {
   const active = threads.find((t) => t.id === activeId) || threads[0];
   const messages = active?.messages || [];
 
-  // Persist on change
   useEffect(() => { saveThreads(threads, activeId); }, [threads, activeId]);
 
-  // Scroll on new message
   useEffect(() => {
     if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
   }, [messages.length, activeId]);
 
-  // Focus input on mount + thread switch
   useEffect(() => { inputRef.current?.focus(); }, [activeId]);
 
   const updateActive = (updater: (t: Thread) => Thread) => {
@@ -307,16 +328,16 @@ export default function ChatPage() {
         {/* Header hilo */}
         <header className="h-12 shrink-0 border-b flex items-center gap-3 px-4 bg-background/95 backdrop-blur">
           <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-primary to-primary-glow flex items-center justify-center shrink-0">
-            <Sparkles className="h-4 w-4 text-primary-foreground" />
+            <LifeBuoy className="h-4 w-4 text-primary-foreground" />
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-[13px] font-semibold truncate">{active?.title || "Asistente IA"}</p>
-            <p className="text-[10.5px] text-muted-foreground">Conectado a los datos de tu iglesia</p>
+            <p className="text-[13px] font-semibold truncate">{active?.title || "Asistente DOXA IA"}</p>
+            <p className="text-[10.5px] text-muted-foreground">Aprende a utilizar la plataforma DOXA</p>
           </div>
           <Button
             variant="ghost" size="icon" className="h-8 w-8"
             onClick={() => setContextOpen((v) => !v)}
-            aria-label="Panel de contexto"
+            aria-label="Panel de ayuda"
           >
             {contextOpen ? <PanelRightClose className="h-4 w-4" /> : <PanelRightOpen className="h-4 w-4" />}
           </Button>
@@ -326,30 +347,50 @@ export default function ChatPage() {
         <div ref={scrollRef} className="flex-1 overflow-y-auto">
           <div className="max-w-3xl mx-auto px-4 md:px-6 py-6">
             {isEmpty ? (
-              <div className="h-full flex flex-col items-center justify-center gap-6 py-10 animate-fade-in">
+              <div className="h-full flex flex-col items-center justify-center gap-6 py-6 animate-fade-in">
                 <div className="flex flex-col items-center gap-3 text-center">
-                  <div className="h-14 w-14 rounded-2xl bg-gradient-to-br from-primary to-primary-glow flex items-center justify-center shadow-lg">
-                    <Sparkles className="h-7 w-7 text-primary-foreground" />
+                  <div className="h-16 w-16 rounded-2xl bg-gradient-to-br from-primary to-primary-glow flex items-center justify-center shadow-lg">
+                    <LifeBuoy className="h-8 w-8 text-primary-foreground" />
                   </div>
-                  <h2 className="text-2xl font-semibold">¿En qué puedo ayudarte hoy?</h2>
-                  <p className="text-sm text-muted-foreground max-w-md">
-                    Asistente pastoral conectado con toda la información de tu iglesia: personas, grupos, finanzas, academia y más.
+                  <h1 className="text-2xl font-semibold">👋 Hola, soy Asistente DOXA IA</h1>
+                  <p className="text-sm text-muted-foreground max-w-lg">
+                    Estoy aquí para ayudarte a <span className="font-medium text-foreground">aprender a utilizar la plataforma DOXA</span>.
+                    Pregúntame cómo hacer cualquier tarea y te guiaré paso a paso.
                   </p>
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full max-w-2xl">
+
+                <div className="w-full max-w-2xl rounded-xl border bg-card/60 p-4">
+                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground font-semibold mb-2">
+                    Puedes preguntarme, por ejemplo
+                  </p>
+                  <ul className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1 text-[13px] text-muted-foreground">
+                    <li>• ¿Cómo crear una persona?</li>
+                    <li>• ¿Cómo registrar una asistencia?</li>
+                    <li>• ¿Cómo crear un grupo?</li>
+                    <li>• ¿Cómo generar un certificado?</li>
+                    <li>• ¿Cómo crear un curso?</li>
+                    <li>• ¿Cómo administrar las finanzas?</li>
+                    <li>• ¿Cómo exportar un reporte?</li>
+                    <li>• ¿Cómo configurar usuarios?</li>
+                    <li>• ¿Cómo usar los filtros?</li>
+                    <li>• ¿Qué hace este módulo?</li>
+                  </ul>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 w-full max-w-3xl">
                   {PROMPT_CARDS.map((c) => {
                     const Icon = c.icon;
                     return (
                       <button
                         key={c.title}
                         onClick={() => sendWith(c.prompt)}
-                        className="text-left rounded-xl border bg-card p-4 hover:border-primary/40 hover:shadow-sm transition-all group"
+                        className="text-left rounded-xl border bg-card p-3 hover:border-primary/40 hover:shadow-sm transition-all group"
                       >
-                        <div className={cn("inline-flex p-2 rounded-lg mb-3", c.color)}>
+                        <div className={cn("inline-flex p-2 rounded-lg mb-2", c.color)}>
                           <Icon className="h-4 w-4" />
                         </div>
-                        <p className="text-sm font-semibold mb-1">{c.title}</p>
-                        <p className="text-xs text-muted-foreground line-clamp-2">{c.prompt}</p>
+                        <p className="text-[13px] font-semibold mb-0.5">{c.title}</p>
+                        <p className="text-[11px] text-muted-foreground line-clamp-2">{c.prompt}</p>
                       </button>
                     );
                   })}
@@ -361,7 +402,7 @@ export default function ChatPage() {
                   <div key={i} className={cn("flex gap-3 animate-fade-in", msg.role === "user" ? "justify-end" : "justify-start")}>
                     {msg.role === "assistant" && (
                       <div className="flex-shrink-0 h-8 w-8 rounded-lg bg-gradient-to-br from-primary to-primary-glow flex items-center justify-center shadow-sm">
-                        <Bot className="h-4 w-4 text-primary-foreground" />
+                        <LifeBuoy className="h-4 w-4 text-primary-foreground" />
                       </div>
                     )}
                     <div
@@ -391,7 +432,7 @@ export default function ChatPage() {
                 {isLoading && messages[messages.length - 1]?.role !== "assistant" && (
                   <div className="flex gap-3 animate-fade-in">
                     <div className="flex-shrink-0 h-8 w-8 rounded-lg bg-gradient-to-br from-primary to-primary-glow flex items-center justify-center">
-                      <Bot className="h-4 w-4 text-primary-foreground" />
+                      <LifeBuoy className="h-4 w-4 text-primary-foreground" />
                     </div>
                     <div className="bg-card border border-border/70 rounded-2xl rounded-tl-sm px-4 py-3">
                       <div className="flex items-center gap-1.5">
@@ -409,14 +450,14 @@ export default function ChatPage() {
 
         {/* Composer */}
         <div className="border-t bg-background/95 backdrop-blur px-4 md:px-6 py-3">
-          <div className="max-w-3xl mx-auto">
+          <div className="max-w-3xl mx-auto space-y-2">
             <div className="relative rounded-xl border bg-card p-2 flex items-end gap-2 focus-within:shadow-md focus-within:border-primary/40 transition-all">
               <Textarea
                 ref={inputRef}
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={handleKeyDown}
-                placeholder="Escribe tu pregunta… (Enter para enviar, Shift+Enter para salto de línea)"
+                placeholder="Pregúntame cómo usar DOXA… (Enter para enviar, Shift+Enter para salto de línea)"
                 className="min-h-[44px] max-h-[160px] resize-none border-0 focus-visible:ring-0 shadow-none bg-transparent px-3 py-2"
                 rows={1}
                 disabled={isLoading}
@@ -425,19 +466,34 @@ export default function ChatPage() {
                 {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
               </Button>
             </div>
-            <p className="text-[10px] text-muted-foreground text-center mt-2">
-              Respuestas generadas con IA. Verifica los datos importantes antes de tomar decisiones.
+
+            {/* Chips de sugerencias rápidas */}
+            <div className="flex flex-wrap gap-1.5">
+              {QUICK_CHIPS.map((q) => (
+                <button
+                  key={q}
+                  onClick={() => sendWith(q)}
+                  disabled={isLoading}
+                  className="text-[11.5px] px-2.5 py-1 rounded-full border bg-card hover:bg-muted/60 hover:border-primary/40 text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
+                >
+                  {q}
+                </button>
+              ))}
+            </div>
+
+            <p className="text-[10px] text-muted-foreground text-center">
+              Asistente DOXA IA · Solo enseña a usar la plataforma. No consulta datos internos.
             </p>
           </div>
         </div>
       </section>
 
-      {/* Panel derecho de contexto */}
+      {/* Panel derecho de ayuda */}
       {contextOpen && (
         <aside className="hidden xl:flex w-72 shrink-0 border-l bg-card/40 flex-col animate-in slide-in-from-right">
           <div className="p-4 border-b">
-            <p className="text-[10.5px] uppercase tracking-wide text-muted-foreground font-semibold">Contexto</p>
-            <h3 className="text-sm font-semibold mt-0.5">Capacidades del asistente</h3>
+            <p className="text-[10.5px] uppercase tracking-wide text-muted-foreground font-semibold">Acerca del asistente</p>
+            <h3 className="text-sm font-semibold mt-0.5">¿En qué puedo ayudarte?</h3>
           </div>
           <div className="flex-1 overflow-y-auto p-4 space-y-3">
             {CAPABILITIES.map((c) => (
@@ -452,13 +508,15 @@ export default function ChatPage() {
               </div>
             ))}
 
-            <div className="rounded-lg border bg-gradient-to-br from-primary/5 to-card p-3 mt-4">
-              <p className="text-[11px] uppercase tracking-wide text-muted-foreground font-semibold mb-2">Consejos</p>
-              <ul className="space-y-1.5 text-[12px] text-muted-foreground">
-                <li>• Sé específico con fechas y sedes.</li>
-                <li>• Solicita el formato: tabla, lista o resumen.</li>
-                <li>• Pide desglose por red o grupo cuando aplique.</li>
-                <li>• Reformula si la respuesta no cubre el punto.</li>
+            <div className="rounded-lg border bg-gradient-to-br from-amber-500/5 to-card p-3 mt-4">
+              <div className="flex items-center gap-1.5 mb-2">
+                <ShieldCheck className="h-3.5 w-3.5 text-amber-600" />
+                <p className="text-[11px] uppercase tracking-wide text-muted-foreground font-semibold">Limitaciones</p>
+              </div>
+              <ul className="space-y-1 text-[12px] text-muted-foreground">
+                {LIMITATIONS.map((l) => (
+                  <li key={l}>• {l}</li>
+                ))}
               </ul>
             </div>
           </div>
