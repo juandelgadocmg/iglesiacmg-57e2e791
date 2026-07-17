@@ -33,6 +33,7 @@ import SeguridadPage from "@/pages/SeguridadPage";
 import NotFound from "./pages/NotFound";
 import DesignSystemPage from "@/pages/_design-system/DesignSystemPage";
 import HoyPage from "@/pages/HoyPage";
+import PWAUpdatePrompt from "@/components/pwa/PWAUpdatePrompt";
 
 const queryClient = new QueryClient();
 if (typeof window !== "undefined") (window as any).__lovableQueryClient = queryClient;
@@ -42,6 +43,8 @@ const App = () => (
     <TooltipProvider>
       <Toaster />
       <Sonner />
+      <PWAUpdatePrompt />
+
       <BrowserRouter>
         <AuthProvider>
           <ActiveRoleProvider>
