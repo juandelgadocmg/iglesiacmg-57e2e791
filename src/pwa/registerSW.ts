@@ -65,7 +65,7 @@ export async function registerPWA() {
     };
 
     wb.addEventListener("waiting", notifyUpdate);
-    wb.addEventListener("externalwaiting", notifyUpdate);
+    wb.addEventListener("externalwaiting" as any, notifyUpdate);
 
     await wb.register();
   } catch {
