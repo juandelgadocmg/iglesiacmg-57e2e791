@@ -466,7 +466,10 @@ export default function ReporteGrupoFormDialog({ open, onOpenChange, editReporte
           asistentes: attendance,
         });
         setShowReceipt(true);
-        toast.success("Reporte enviado exitosamente.");
+        toast.success("Reporte enviado", {
+          description: `${selectedGrupo?.nombre ?? "Grupo"} · ${selectedDateKey} · ${presentesCount} presentes / ${ausentesCount} ausentes`,
+          duration: 6000,
+        });
       }
     } catch (err: any) {
       const { formatSupabaseError } = await import("@/lib/supabaseError");
