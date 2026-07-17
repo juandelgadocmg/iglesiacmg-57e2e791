@@ -1236,6 +1236,95 @@ export default function ChatPage() {
       )}
 
       {/* Confirmar eliminación con resumen + deshacer en toast */}
+      {/* Diálogo de compartir enlace de solo lectura */}
+      <Dialog
+        open={!!shareThread}
+        onOpenChange={(open) => {
+          if (!open) { setShareThread(null); setShareResult(null); setShareCopied(false); }
+        }}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Share2 className="h-4 w-4 text-primary" />
+              Compartir conversación
+            </DialogTitle>
+            <DialogDescription>
+              Genera un enlace de <strong>solo lectura</strong> con fecha de expiración. Cualquier persona con el enlace podrá abrir la copia hasta la fecha indicada.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 pt-1">
+            <div className="rounded-md border bg-muted/40 p-3">
+              <p className="text-[12.5px] font-medium truncate">{shareThread?.title}</p>
+              <p className="text-[11px] text-muted-foreground">
+                {shareThread?.messages.length ?? 0} mensaje(s) · copia instantánea
+              </p>
+            </div>
+
+            {!shareResult ? (
+              <div>
+                <Label className="text-[12px] font-medium">Expira en</Label>
+                <RadioGroup
+                  className="grid grid-cols-2 gap-2 mt-2"
+                  value={String(shareTtlHours)}
+                  onValueChange={(v) => setShareTtlHours(Number(v))}
+                >
+                  {[
+                    { v: 1, label: "1 hora" },
+                    { v: 24, label: "24 horas" },
+                    { v: 24 * 7, label: "7 días" },
+                    { v: 24 * 30, label: "30 días" },
+                  ].map((opt) => (
+                    <Label
+                      key={opt.v}
+                      htmlFor={`ttl-${opt.v}`}
+                      className={cn(
+                        "flex items-center gap-2 rounded-md border px-3 py-2 text-[12.5px] cursor-pointer transition-colors",
+                        shareTtlHours === opt.v ? "border-primary bg-primary/5" : "hover:bg-muted/50"
+                      )}
+                    >
+                      <RadioGroupItem id={`ttl-${opt.v}`} value={String(opt.v)} />
+                      {opt.label}
+                    </Label>
+                  ))}
+                </RadioGroup>
+                <p className="text-[10.5px] text-muted-foreground mt-2">
+                  Después de la fecha de expiración, el enlace deja de funcionar automáticamente.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <Label className="text-[12px] font-medium">Enlace generado</Label>
+                <div className="flex items-center gap-1.5">
+                  <Input readOnly value={shareResult.url} className="h-9 text-[12px] font-mono" />
+                  <Button type="button" size="icon" variant="outline" className="h-9 w-9 shrink-0" onClick={copyShareLink}>
+                    {shareCopied ? <Check className="h-4 w-4 text-emerald-600" /> : <Copy className="h-4 w-4" />}
+                  </Button>
+                </div>
+                <p className="text-[11px] text-muted-foreground flex items-center gap-1.5">
+                  <Clock className="h-3.5 w-3.5" />
+                  Expira {formatDistanceToNowStrict(shareResult.expiresAt, { addSuffix: true, locale: es })} · {format(shareResult.expiresAt, "PPpp", { locale: es })}
+                </p>
+              </div>
+            )}
+          </div>
+
+          <DialogFooter>
+            {!shareResult ? (
+              <>
+                <Button variant="outline" onClick={() => setShareThread(null)}>Cancelar</Button>
+                <Button onClick={generateShare} disabled={shareBusy}>
+                  {shareBusy ? <><Loader2 className="h-4 w-4 mr-1.5 animate-spin" />Generando…</> : "Generar enlace"}
+                </Button>
+              </>
+            ) : (
+              <Button onClick={() => { setShareThread(null); setShareResult(null); }}>Listo</Button>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <AlertDialog open={!!threadToDelete} onOpenChange={(open) => !open && setConfirmDeleteId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
