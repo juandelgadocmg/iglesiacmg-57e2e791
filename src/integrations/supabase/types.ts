@@ -824,6 +824,39 @@ export type Database = {
           },
         ]
       }
+      doxa_chat_threads: {
+        Row: {
+          created_at: string
+          id: string
+          messages: Json
+          pinned: boolean
+          title: string
+          updated_at: string
+          updated_at_ms: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id: string
+          messages?: Json
+          pinned?: boolean
+          title?: string
+          updated_at?: string
+          updated_at_ms?: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          messages?: Json
+          pinned?: boolean
+          title?: string
+          updated_at?: string
+          updated_at_ms?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
       email_send_log: {
         Row: {
           created_at: string
