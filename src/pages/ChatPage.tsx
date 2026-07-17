@@ -1,32 +1,47 @@
 import { useState, useRef, useEffect, useMemo } from "react";
 import {
-  Send, Bot, User, Loader2, LifeBuoy, Plus, MessageSquare, Trash2, Search,
+  Send, User, Loader2, LifeBuoy, Plus, MessageSquare, Trash2, Search,
   PanelRightClose, PanelRightOpen, BookOpen, Compass, ListChecks, ShieldCheck,
   Users, UsersRound, Award, GraduationCap, DollarSign, BarChart3, ClipboardList,
   Filter, Settings as SettingsIcon, LayoutGrid, CalendarDays, HeartHandshake,
-  Megaphone, FileText, HandHeart,
+  Megaphone, FileText, HandHeart, MoreHorizontal, Pin, PinOff, Pencil,
+  Download, FileDown, FileType2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem,
+  DropdownMenuTrigger, DropdownMenuSeparator, DropdownMenuLabel,
+} from "@/components/ui/dropdown-menu";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
 import { toast } from "sonner";
 import ReactMarkdown from "react-markdown";
 import { cn } from "@/lib/utils";
-import { formatDistanceToNow } from "date-fns";
+import { formatDistanceToNow, format } from "date-fns";
 import { es } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
+import jsPDF from "jspdf";
 
 type Message = { role: "user" | "assistant"; content: string };
-type Thread = { id: string; title: string; updatedAt: number; messages: Message[] };
+type Thread = {
+  id: string;
+  title: string;
+  updatedAt: number;
+  messages: Message[];
+  pinned?: boolean;
+};
 
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat`;
 const STORAGE_PREFIX = "doxa.chat.threads.v2::";
 const ACTIVE_PREFIX = "doxa.chat.activeThread.v2::";
+const DRAFT_PREFIX = "doxa.chat.draft.v1::"; // por usuario + thread
 const storageKeyFor = (uid: string) => `${STORAGE_PREFIX}${uid}`;
 const activeKeyFor = (uid: string) => `${ACTIVE_PREFIX}${uid}`;
+const draftKeyFor = (uid: string, threadId: string) => `${DRAFT_PREFIX}${uid}::${threadId}`;
 
-
-// Sugerencias iniciales (tarjetas de bienvenida)
 const PROMPT_CARDS: { icon: any; title: string; prompt: string; color: string }[] = [
   { icon: Users, title: "Crear una persona", prompt: "¿Cómo crear una persona?", color: "text-primary bg-primary/10" },
   { icon: ClipboardList, title: "Registrar asistencia", prompt: "¿Cómo registrar una asistencia?", color: "text-blue-600 bg-blue-500/10" },
@@ -38,7 +53,6 @@ const PROMPT_CARDS: { icon: any; title: string; prompt: string; color: string }[
   { icon: SettingsIcon, title: "Configurar usuarios", prompt: "¿Cómo configurar usuarios?", color: "text-slate-600 bg-slate-500/10" },
 ];
 
-// Chips rápidos debajo del composer
 const QUICK_CHIPS = [
   "¿Cómo crear una persona?",
   "¿Cómo registrar una asistencia?",
@@ -64,7 +78,6 @@ const LIMITATIONS = [
   "No responde temas fuera del uso de la plataforma.",
 ];
 
-// Módulos DOXA — click => inserta pregunta ejemplo en el composer
 const MODULES: { icon: any; name: string; example: string }[] = [
   { icon: Users, name: "Personas", example: "¿Cómo crear una persona nueva y vincularla a un grupo?" },
   { icon: UsersRound, name: "Grupos / Casas de Paz", example: "¿Cómo crear una Casa de Paz y asignar un líder?" },
@@ -82,10 +95,10 @@ const MODULES: { icon: any; name: string; example: string }[] = [
   { icon: LayoutGrid, name: "Configuración", example: "¿Cómo configurar la información general de la iglesia?" },
 ];
 
+type DateFilter = "all" | "today" | "7d" | "30d";
 
-// ------- helpers -------
 function newThread(): Thread {
-  return { id: crypto.randomUUID(), title: "Nueva conversación", updatedAt: Date.now(), messages: [] };
+  return { id: crypto.randomUUID(), title: "Nueva conversación", updatedAt: Date.now(), messages: [], pinned: false };
 }
 
 function loadThreads(uid: string): { threads: Thread[]; activeId: string } {
@@ -115,10 +128,81 @@ function saveThreads(uid: string, threads: Thread[], activeId: string) {
   } catch { /* ignore */ }
 }
 
+function loadDraft(uid: string, threadId: string): string {
+  try { return localStorage.getItem(draftKeyFor(uid, threadId)) || ""; } catch { return ""; }
+}
+function saveDraft(uid: string, threadId: string, value: string) {
+  try {
+    const k = draftKeyFor(uid, threadId);
+    if (value) localStorage.setItem(k, value);
+    else localStorage.removeItem(k);
+  } catch { /* ignore */ }
+}
 
 function deriveTitle(text: string): string {
   const t = text.replace(/\s+/g, " ").trim();
   return t.length > 44 ? t.slice(0, 44) + "…" : t || "Nueva conversación";
+}
+
+function exportThreadAsMarkdown(thread: Thread) {
+  const header = `# ${thread.title}\n\n_Exportado ${format(new Date(), "PPpp", { locale: es })}_\n\n---\n\n`;
+  const body = thread.messages.map((m) => {
+    const who = m.role === "user" ? "**🧑 Usuario**" : "**🤖 Asistente DOXA IA**";
+    return `${who}:\n\n${m.content}\n`;
+  }).join("\n---\n\n");
+  const blob = new Blob([header + body], { type: "text/markdown;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `${thread.title.replace(/[^\w\-]+/g, "_").slice(0, 60) || "conversacion"}.md`;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 500);
+}
+
+function exportThreadAsPdf(thread: Thread) {
+  const doc = new jsPDF({ unit: "pt", format: "a4" });
+  const pageW = doc.internal.pageSize.getWidth();
+  const pageH = doc.internal.pageSize.getHeight();
+  const margin = 40;
+  const maxW = pageW - margin * 2;
+  let y = margin;
+
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(16);
+  doc.text("Asistente DOXA IA", margin, y); y += 22;
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(11);
+  doc.text(thread.title, margin, y); y += 16;
+  doc.setFontSize(9);
+  doc.setTextColor(120);
+  doc.text(`Exportado: ${format(new Date(), "PPpp", { locale: es })}`, margin, y); y += 18;
+  doc.setTextColor(0);
+  doc.setDrawColor(200);
+  doc.line(margin, y, pageW - margin, y); y += 16;
+
+  const writeBlock = (label: string, text: string, color: [number, number, number]) => {
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(10);
+    doc.setTextColor(...color);
+    if (y > pageH - margin - 20) { doc.addPage(); y = margin; }
+    doc.text(label, margin, y); y += 12;
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(10);
+    doc.setTextColor(30);
+    const lines = doc.splitTextToSize(text || "(sin contenido)", maxW);
+    for (const ln of lines) {
+      if (y > pageH - margin) { doc.addPage(); y = margin; }
+      doc.text(ln, margin, y); y += 13;
+    }
+    y += 8;
+  };
+
+  for (const m of thread.messages) {
+    if (m.role === "user") writeBlock("Usuario", m.content, [37, 99, 235]);
+    else writeBlock("Asistente DOXA IA", m.content, [16, 122, 87]);
+  }
+
+  doc.save(`${thread.title.replace(/[^\w\-]+/g, "_").slice(0, 60) || "conversacion"}.pdf`);
 }
 
 async function streamChat({
@@ -190,9 +274,13 @@ export default function ChatPage() {
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [threadQuery, setThreadQuery] = useState("");
+  const [dateFilter, setDateFilter] = useState<DateFilter>("all");
   const [contextOpen, setContextOpen] = useState(true);
+  const [renamingId, setRenamingId] = useState<string | null>(null);
+  const [renameValue, setRenameValue] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const draftLoadedRef = useRef<string>("");
 
   const active = threads.find((t) => t.id === activeId) || threads[0];
   const messages = active?.messages || [];
@@ -216,12 +304,27 @@ export default function ChatPage() {
 
   useEffect(() => { saveThreads(userId, threads, activeId); }, [userId, threads, activeId]);
 
+  // Cargar borrador del composer al cambiar de usuario o hilo activo
+  useEffect(() => {
+    if (!activeId) return;
+    const key = `${userId}::${activeId}`;
+    if (draftLoadedRef.current === key) return;
+    draftLoadedRef.current = key;
+    setInput(loadDraft(userId, activeId));
+  }, [userId, activeId]);
+
+  // Autosave del borrador (debounced)
+  useEffect(() => {
+    if (!activeId) return;
+    const handle = setTimeout(() => saveDraft(userId, activeId, input), 300);
+    return () => clearTimeout(handle);
+  }, [input, userId, activeId]);
+
   useEffect(() => {
     if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
   }, [messages.length, activeId]);
 
   useEffect(() => { inputRef.current?.focus(); }, [activeId]);
-
 
   const updateActive = (updater: (t: Thread) => Thread) => {
     setState((prev) => ({
@@ -242,6 +345,7 @@ export default function ChatPage() {
   };
 
   const deleteThread = (id: string) => {
+    saveDraft(userId, id, ""); // limpia borrador
     setState((prev) => {
       const remaining = prev.threads.filter((t) => t.id !== id);
       if (remaining.length === 0) {
@@ -251,6 +355,30 @@ export default function ChatPage() {
       const nextActive = prev.activeId === id ? remaining[0].id : prev.activeId;
       return { threads: remaining, activeId: nextActive };
     });
+    toast.success("Conversación eliminada");
+  };
+
+  const togglePin = (id: string) => {
+    setState((prev) => ({
+      ...prev,
+      threads: prev.threads.map((t) => (t.id === id ? { ...t, pinned: !t.pinned } : t)),
+    }));
+  };
+
+  const startRename = (t: Thread) => {
+    setRenamingId(t.id);
+    setRenameValue(t.title);
+  };
+  const commitRename = () => {
+    if (!renamingId) return;
+    const v = renameValue.trim();
+    setState((prev) => ({
+      ...prev,
+      threads: prev.threads.map((t) => (t.id === renamingId ? { ...t, title: v || t.title } : t)),
+    }));
+    setRenamingId(null);
+    setRenameValue("");
+    toast.success("Conversación renombrada");
   };
 
   const insertPrompt = (text: string) => {
@@ -263,7 +391,6 @@ export default function ChatPage() {
       }
     }, 20);
   };
-
 
   const sendWith = async (text: string) => {
     const clean = text.trim();
@@ -278,6 +405,7 @@ export default function ChatPage() {
       updatedAt: Date.now(),
     }));
     setInput("");
+    saveDraft(userId, activeId, ""); // limpia borrador al enviar
     setIsLoading(true);
 
     let assistantSoFar = "";
@@ -313,13 +441,24 @@ export default function ChatPage() {
 
   const filteredThreads = useMemo(() => {
     const q = threadQuery.trim().toLowerCase();
-    const sorted = [...threads].sort((a, b) => b.updatedAt - a.updatedAt);
-    if (!q) return sorted;
-    return sorted.filter((t) =>
+    const now = Date.now();
+    const windowMs =
+      dateFilter === "today" ? 24 * 3600 * 1000 :
+      dateFilter === "7d" ? 7 * 24 * 3600 * 1000 :
+      dateFilter === "30d" ? 30 * 24 * 3600 * 1000 : 0;
+
+    const inWindow = (t: Thread) => !windowMs || (now - t.updatedAt) <= windowMs;
+    const matchesQuery = (t: Thread) => !q ||
       t.title.toLowerCase().includes(q) ||
-      t.messages.some((m) => m.content.toLowerCase().includes(q))
-    );
-  }, [threads, threadQuery]);
+      t.messages.some((m) => m.content.toLowerCase().includes(q));
+
+    return [...threads]
+      .filter((t) => inWindow(t) && matchesQuery(t))
+      .sort((a, b) => {
+        if (!!b.pinned !== !!a.pinned) return (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0);
+        return b.updatedAt - a.updatedAt;
+      });
+  }, [threads, threadQuery, dateFilter]);
 
   const isEmpty = messages.length === 0;
 
@@ -336,10 +475,21 @@ export default function ChatPage() {
             <Input
               value={threadQuery}
               onChange={(e) => setThreadQuery(e.target.value)}
-              placeholder="Buscar…"
+              placeholder="Buscar por palabra clave…"
               className="pl-8 h-8 text-[13px]"
             />
           </div>
+          <Select value={dateFilter} onValueChange={(v) => setDateFilter(v as DateFilter)}>
+            <SelectTrigger className="h-8 text-[12.5px]">
+              <SelectValue placeholder="Fecha" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todas las fechas</SelectItem>
+              <SelectItem value="today">Hoy</SelectItem>
+              <SelectItem value="7d">Últimos 7 días</SelectItem>
+              <SelectItem value="30d">Últimos 30 días</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
         <div className="flex-1 overflow-y-auto py-1">
           {filteredThreads.length === 0 && (
@@ -347,6 +497,7 @@ export default function ChatPage() {
           )}
           {filteredThreads.map((t) => {
             const isActive = t.id === activeId;
+            const isRenaming = renamingId === t.id;
             return (
               <div
                 key={t.id}
@@ -354,24 +505,70 @@ export default function ChatPage() {
                   "group flex items-center gap-2 px-3 py-2 mx-1 rounded-md cursor-pointer transition-colors",
                   isActive ? "bg-primary/10 text-primary" : "hover:bg-muted/60"
                 )}
-                onClick={() => selectThread(t.id)}
+                onClick={() => !isRenaming && selectThread(t.id)}
               >
-                <MessageSquare className="h-3.5 w-3.5 shrink-0 opacity-70" />
+                {t.pinned
+                  ? <Pin className="h-3.5 w-3.5 shrink-0 text-primary" />
+                  : <MessageSquare className="h-3.5 w-3.5 shrink-0 opacity-70" />}
                 <div className="flex-1 min-w-0">
-                  <p className="text-[13px] font-medium truncate">{t.title}</p>
-                  <p className="text-[10.5px] text-muted-foreground truncate">
-                    {t.messages.length > 0
-                      ? formatDistanceToNow(t.updatedAt, { addSuffix: true, locale: es })
-                      : "Vacía"}
-                  </p>
+                  {isRenaming ? (
+                    <Input
+                      autoFocus
+                      value={renameValue}
+                      onChange={(e) => setRenameValue(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") { e.preventDefault(); commitRename(); }
+                        if (e.key === "Escape") { setRenamingId(null); setRenameValue(""); }
+                      }}
+                      onBlur={commitRename}
+                      onClick={(e) => e.stopPropagation()}
+                      className="h-6 text-[12.5px] px-1"
+                    />
+                  ) : (
+                    <>
+                      <p className="text-[13px] font-medium truncate">{t.title}</p>
+                      <p className="text-[10.5px] text-muted-foreground truncate">
+                        {t.messages.length > 0
+                          ? formatDistanceToNow(t.updatedAt, { addSuffix: true, locale: es })
+                          : "Vacía"}
+                      </p>
+                    </>
+                  )}
                 </div>
-                <button
-                  onClick={(e) => { e.stopPropagation(); deleteThread(t.id); }}
-                  className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive transition-opacity"
-                  aria-label="Eliminar"
-                >
-                  <Trash2 className="h-3.5 w-3.5" />
-                </button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                    <button
+                      className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-foreground transition-opacity"
+                      aria-label="Opciones de conversación"
+                    >
+                      <MoreHorizontal className="h-3.5 w-3.5" />
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-48" onClick={(e) => e.stopPropagation()}>
+                    <DropdownMenuItem onClick={() => startRename(t)}>
+                      <Pencil className="h-3.5 w-3.5 mr-2" /> Renombrar
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => togglePin(t.id)}>
+                      {t.pinned
+                        ? <><PinOff className="h-3.5 w-3.5 mr-2" /> Desfijar</>
+                        : <><Pin className="h-3.5 w-3.5 mr-2" /> Fijar arriba</>}
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={() => exportThreadAsPdf(t)}>
+                      <FileType2 className="h-3.5 w-3.5 mr-2" /> Exportar a PDF
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => exportThreadAsMarkdown(t)}>
+                      <FileDown className="h-3.5 w-3.5 mr-2" /> Exportar como .md
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      className="text-destructive focus:text-destructive"
+                      onClick={() => deleteThread(t.id)}
+                    >
+                      <Trash2 className="h-3.5 w-3.5 mr-2" /> Eliminar
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
             );
           })}
@@ -392,6 +589,31 @@ export default function ChatPage() {
             <p className="text-[13px] font-semibold truncate">{active?.title || "Asistente DOXA IA"}</p>
             <p className="text-[10.5px] text-muted-foreground">Aprende a utilizar la plataforma DOXA</p>
           </div>
+
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 gap-1.5"
+                disabled={!active || active.messages.length === 0}
+                aria-label="Exportar conversación"
+              >
+                <Download className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline text-[12px]">Exportar</span>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-52">
+              <DropdownMenuLabel className="text-[11px]">Descargar conversación</DropdownMenuLabel>
+              <DropdownMenuItem onClick={() => active && exportThreadAsPdf(active)}>
+                <FileType2 className="h-3.5 w-3.5 mr-2" /> Como PDF
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => active && exportThreadAsMarkdown(active)}>
+                <FileDown className="h-3.5 w-3.5 mr-2" /> Como Markdown (.md)
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
           <Button
             variant="ghost" size="icon" className="h-8 w-8"
             onClick={() => setContextOpen((v) => !v)}
@@ -540,6 +762,9 @@ export default function ChatPage() {
             </div>
 
             <p className="text-[10px] text-muted-foreground text-center">
+              {input.trim()
+                ? "Borrador guardado automáticamente · "
+                : ""}
               Asistente DOXA IA · Solo enseña a usar la plataforma. No consulta datos internos.
             </p>
           </div>
@@ -554,7 +779,6 @@ export default function ChatPage() {
             <h3 className="text-sm font-semibold mt-0.5">¿En qué puedo ayudarte?</h3>
           </div>
           <div className="flex-1 overflow-y-auto p-4 space-y-4">
-            {/* Módulos DOXA — click inserta una pregunta ejemplo en el composer */}
             <div>
               <div className="flex items-center gap-1.5 mb-2">
                 <LayoutGrid className="h-3.5 w-3.5 text-primary" />
@@ -601,7 +825,6 @@ export default function ChatPage() {
                 </div>
               ))}
             </div>
-
 
             <div className="rounded-lg border bg-gradient-to-br from-amber-500/5 to-card p-3 mt-4">
               <div className="flex items-center gap-1.5 mb-2">
