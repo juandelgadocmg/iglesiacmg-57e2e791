@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useMemo, useCallback } from "react";
+import React, { useState, useRef, useEffect, useMemo, useCallback, useDeferredValue, useTransition } from "react";
 import {
   Send, User, Loader2, LifeBuoy, Plus, MessageSquare, Trash2, Search,
   PanelRightClose, PanelRightOpen, BookOpen, Compass, ListChecks, ShieldCheck,
@@ -6,6 +6,7 @@ import {
   Filter, Settings as SettingsIcon, LayoutGrid, CalendarDays, HeartHandshake,
   Megaphone, FileText, HandHeart, MoreHorizontal, Pin, PinOff, Pencil,
   Download, FileDown, FileType2, FileText as FileTxt, Cloud, CloudOff, RefreshCw,
+  Share2, Copy, Check, Upload, Clock,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -21,10 +22,16 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
+} from "@/components/ui/dialog";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Label } from "@/components/ui/label";
+import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import ReactMarkdown from "react-markdown";
 import { cn } from "@/lib/utils";
-import { formatDistanceToNow, format } from "date-fns";
+import { formatDistanceToNow, formatDistanceToNowStrict, format } from "date-fns";
 import { es } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
 import jsPDF from "jspdf";
@@ -36,6 +43,8 @@ import {
   mergeThreads, addTombstone, loadTombstones, clearTombstone,
   type ChatThread, type ChatMessage,
 } from "@/lib/doxaChatSync";
+import { createShare } from "@/lib/doxaChatShare";
+import { importThreadFromFile } from "@/lib/doxaChatImport";
 
 type Message = ChatMessage;
 type Thread = ChatThread;
@@ -360,11 +369,32 @@ export default function ChatPage() {
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [syncState, setSyncState] = useState<SyncState>("offline");
 
+  // Pagination + skeleton
+  const [visibleCount, setVisibleCount] = useState(30);
+  const [bootstrapping, setBootstrapping] = useState(true);
+
+  // Share dialog
+  const [shareThread, setShareThread] = useState<Thread | null>(null);
+  const [shareTtlHours, setShareTtlHours] = useState<number>(24);
+  const [shareBusy, setShareBusy] = useState(false);
+  const [shareResult, setShareResult] = useState<{ url: string; expiresAt: Date } | null>(null);
+  const [shareCopied, setShareCopied] = useState(false);
+
+  // Import
+  const [importing, setImporting] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Deferred search (non-blocking)
+  const deferredQuery = useDeferredValue(threadQuery);
+  const [, startTransition] = useTransition();
+
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const sentinelRef = useRef<HTMLDivElement>(null);
   const draftLoadedRef = useRef<string>("");
   const lastSyncedRef = useRef<Map<string, number>>(new Map());
   const pushTimerRef = useRef<number | null>(null);
+  const searchIndexRef = useRef<Map<string, { sig: number; blob: string }>>(new Map());
 
   const active = threads.find((t) => t.id === activeId) || threads[0];
   const messages = active?.messages || [];
@@ -402,11 +432,15 @@ export default function ChatPage() {
       } catch (e) {
         console.warn("[doxa-chat] sync error", e);
         if (mounted) setSyncState("error");
+      } finally {
+        if (mounted) setBootstrapping(false);
       }
     };
     supabase.auth.getUser().then(({ data }) => {
       if (!mounted) return;
-      bootstrap(data.user?.id || "__anon");
+      const uid = data.user?.id || "__anon";
+      if (uid === "__anon") setBootstrapping(false);
+      bootstrap(uid);
     });
     const { data: sub } = supabase.auth.onAuthStateChange((_evt, session) => {
       bootstrap(session?.user?.id || "__anon");
@@ -590,8 +624,17 @@ export default function ChatPage() {
     if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); }
   };
 
+  // Search index: memoized lowercased "title + messages" blob per thread, invalidated by updatedAt.
+  const getBlob = useCallback((t: Thread): string => {
+    const cached = searchIndexRef.current.get(t.id);
+    if (cached && cached.sig === t.updatedAt) return cached.blob;
+    const blob = (t.title + "\n" + t.messages.map((m) => m.content).join("\n")).toLowerCase();
+    searchIndexRef.current.set(t.id, { sig: t.updatedAt, blob });
+    return blob;
+  }, []);
+
   const filteredThreads = useMemo(() => {
-    const q = threadQuery.trim().toLowerCase();
+    const q = deferredQuery.trim().toLowerCase();
     const now = Date.now();
     const windowMs =
       dateFilter === "today" ? 24 * 3600 * 1000 :
@@ -599,9 +642,7 @@ export default function ChatPage() {
       dateFilter === "30d" ? 30 * 24 * 3600 * 1000 : 0;
 
     const inWindow = (t: Thread) => !windowMs || (now - t.updatedAt) <= windowMs;
-    const matchesQuery = (t: Thread) => !q ||
-      t.title.toLowerCase().includes(q) ||
-      t.messages.some((m) => m.content.toLowerCase().includes(q));
+    const matchesQuery = (t: Thread) => !q || getBlob(t).includes(q);
 
     return [...threads]
       .filter((t) => inWindow(t) && matchesQuery(t))
@@ -609,7 +650,28 @@ export default function ChatPage() {
         if (!!b.pinned !== !!a.pinned) return (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0);
         return b.updatedAt - a.updatedAt;
       });
-  }, [threads, threadQuery, dateFilter]);
+  }, [threads, deferredQuery, dateFilter, getBlob]);
+
+  const isSearchPending = deferredQuery !== threadQuery;
+
+  // Reset pagination when filter/query changes
+  useEffect(() => { setVisibleCount(30); }, [deferredQuery, dateFilter]);
+
+  // Infinite scroll sentinel in the sidebar
+  useEffect(() => {
+    const el = sentinelRef.current;
+    if (!el) return;
+    const io = new IntersectionObserver((entries) => {
+      if (entries.some((e) => e.isIntersecting)) {
+        setVisibleCount((v) => Math.min(v + 30, filteredThreads.length));
+      }
+    }, { rootMargin: "120px" });
+    io.observe(el);
+    return () => io.disconnect();
+  }, [filteredThreads.length]);
+
+  const visibleThreads = filteredThreads.slice(0, visibleCount);
+  const hasMoreThreads = filteredThreads.length > visibleThreads.length;
 
   const isEmpty = messages.length === 0;
   const q = threadQuery.trim();
@@ -628,22 +690,129 @@ export default function ChatPage() {
     syncState === "synced" ? "Sincronizado en tu cuenta" :
     syncState === "error" ? "Sin conexión con el servidor" : "Local";
 
+  // --------- Share handlers ---------
+  const openShare = (t: Thread) => {
+    if (userId === "__anon") {
+      toast.error("Inicia sesión para generar un enlace de solo lectura.");
+      return;
+    }
+    if (t.messages.length === 0) {
+      toast.error("La conversación está vacía; no hay nada que compartir.");
+      return;
+    }
+    setShareThread(t);
+    setShareTtlHours(24);
+    setShareResult(null);
+    setShareCopied(false);
+  };
+  const generateShare = async () => {
+    if (!shareThread) return;
+    setShareBusy(true);
+    try {
+      const { url, expiresAt } = await createShare(userId, shareThread, shareTtlHours);
+      setShareResult({ url, expiresAt });
+    } catch (e: any) {
+      console.error(e);
+      toast.error(e.message || "No se pudo generar el enlace de compartir.");
+    } finally {
+      setShareBusy(false);
+    }
+  };
+  const copyShareLink = async () => {
+    if (!shareResult) return;
+    try {
+      await navigator.clipboard.writeText(shareResult.url);
+      setShareCopied(true);
+      toast.success("Enlace copiado al portapapeles");
+      setTimeout(() => setShareCopied(false), 2000);
+    } catch {
+      toast.error("No se pudo copiar el enlace");
+    }
+  };
+
+  // --------- Import handler ---------
+  const onImportFiles = async (fileList: FileList | null) => {
+    if (!fileList || fileList.length === 0) return;
+    setImporting(true);
+    const files = Array.from(fileList);
+    let imported: Thread[] = [];
+    const errors: string[] = [];
+    for (const f of files) {
+      try {
+        const t = await importThreadFromFile(f);
+        imported.push(t);
+      } catch (e: any) {
+        errors.push(`${f.name}: ${e.message || "error"}`);
+      }
+    }
+    if (imported.length > 0) {
+      setState((prev) => ({
+        threads: [...imported, ...prev.threads],
+        activeId: imported[0].id,
+      }));
+      if (userId !== "__anon") {
+        // Empuja al remoto para fusionar entre dispositivos.
+        for (const t of imported) {
+          try { await upsertRemoteThread(userId, t); lastSyncedRef.current.set(t.id, t.updatedAt); }
+          catch (e) { console.warn("[doxa-chat] import upsert error", e); }
+        }
+      }
+      toast.success(
+        `Se ${imported.length === 1 ? "importó 1 conversación" : `importaron ${imported.length} conversaciones`}`,
+        { description: errors.length ? `${errors.length} archivo(s) fallaron.` : undefined }
+      );
+    }
+    if (imported.length === 0 && errors.length > 0) {
+      toast.error("No se pudo importar", { description: errors.join(" · ") });
+    }
+    setImporting(false);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
   return (
     <div className="animate-fade-in -m-3 md:-m-6 flex h-[calc(100vh-3.5rem)] bg-background">
       {/* Rail izquierdo */}
       <aside className="hidden md:flex w-64 shrink-0 border-r bg-card/40 flex-col">
         <div className="p-3 border-b space-y-2">
-          <Button onClick={createThread} className="w-full justify-start gap-2 h-9" size="sm">
-            <Plus className="h-4 w-4" /> Nueva conversación
-          </Button>
+          <div className="flex items-center gap-1.5">
+            <Button onClick={createThread} className="flex-1 justify-start gap-2 h-9" size="sm">
+              <Plus className="h-4 w-4" /> Nueva conversación
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              className="h-9 w-9 shrink-0"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={importing}
+              title="Importar desde .txt, .md o .docx"
+              aria-label="Importar conversaciones"
+            >
+              {importing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+            </Button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".txt,.md,.markdown,.docx,text/plain,text/markdown,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+              multiple
+              hidden
+              onChange={(e) => onImportFiles(e.target.files)}
+            />
+          </div>
           <div className="relative">
             <Search className="h-3.5 w-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
             <Input
               value={threadQuery}
-              onChange={(e) => setThreadQuery(e.target.value)}
+              onChange={(e) => {
+                const v = e.target.value;
+                startTransition(() => setThreadQuery(v));
+              }}
               placeholder="Buscar en títulos y mensajes…"
               className="pl-8 h-8 text-[13px]"
             />
+            {isSearchPending && (
+              <Loader2 className="h-3.5 w-3.5 absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground animate-spin" />
+            )}
           </div>
           <Select value={dateFilter} onValueChange={(v) => setDateFilter(v as DateFilter)}>
             <SelectTrigger className="h-8 text-[12.5px]">
@@ -664,10 +833,23 @@ export default function ChatPage() {
           )}
         </div>
         <div className="flex-1 overflow-y-auto py-1">
-          {filteredThreads.length === 0 && (
+          {bootstrapping && threads.length <= 1 && (
+            <div className="px-2 py-2 space-y-2">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <div key={i} className="flex items-center gap-2 px-2 py-1.5">
+                  <Skeleton className="h-3.5 w-3.5 rounded" />
+                  <div className="flex-1 space-y-1.5">
+                    <Skeleton className="h-3 w-4/5" />
+                    <Skeleton className="h-2.5 w-2/5" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+          {!bootstrapping && filteredThreads.length === 0 && (
             <p className="text-xs text-muted-foreground text-center py-6">Sin conversaciones</p>
           )}
-          {filteredThreads.map((t) => {
+          {visibleThreads.map((t) => {
             const isActive = t.id === activeId;
             const isRenaming = renamingId === t.id;
             return (
@@ -727,6 +909,13 @@ export default function ChatPage() {
                         : <><Pin className="h-3.5 w-3.5 mr-2" /> Fijar arriba</>}
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      onClick={() => openShare(t)}
+                      disabled={userId === "__anon" || t.messages.length === 0}
+                    >
+                      <Share2 className="h-3.5 w-3.5 mr-2" /> Compartir enlace…
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
                     <DropdownMenuItem onClick={() => exportThreadAsPdf(t)}>
                       <FileType2 className="h-3.5 w-3.5 mr-2" /> Exportar a PDF
                     </DropdownMenuItem>
@@ -751,6 +940,18 @@ export default function ChatPage() {
               </div>
             );
           })}
+          {hasMoreThreads && (
+            <div ref={sentinelRef} className="px-3 py-3 text-center">
+              <span className="inline-flex items-center gap-1.5 text-[10.5px] text-muted-foreground">
+                <Loader2 className="h-3 w-3 animate-spin" /> Cargando más…
+              </span>
+            </div>
+          )}
+          {!bootstrapping && filteredThreads.length > 0 && !hasMoreThreads && filteredThreads.length > 30 && (
+            <p className="text-[10.5px] text-muted-foreground text-center py-3">
+              Mostrando {filteredThreads.length} conversaciones
+            </p>
+          )}
         </div>
         <div className="p-3 border-t text-[10.5px] text-muted-foreground flex items-center gap-1.5">
           <SyncIcon className={cn("h-3 w-3", syncState === "loading" && "animate-spin", syncState === "synced" && "text-emerald-600", syncState === "error" && "text-amber-600")} />
@@ -796,6 +997,18 @@ export default function ChatPage() {
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
+
+          <Button
+            variant="ghost" size="sm" className="h-8 gap-1.5"
+            onClick={() => active && openShare(active)}
+            disabled={!active || active.messages.length === 0 || userId === "__anon"}
+            title={userId === "__anon" ? "Inicia sesión para compartir" : "Generar enlace temporal de solo lectura"}
+            aria-label="Compartir conversación"
+          >
+            <Share2 className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline text-[12px]">Compartir</span>
+          </Button>
+
 
           <Button
             variant="ghost" size="icon" className="h-8 w-8"
@@ -1023,6 +1236,95 @@ export default function ChatPage() {
       )}
 
       {/* Confirmar eliminación con resumen + deshacer en toast */}
+      {/* Diálogo de compartir enlace de solo lectura */}
+      <Dialog
+        open={!!shareThread}
+        onOpenChange={(open) => {
+          if (!open) { setShareThread(null); setShareResult(null); setShareCopied(false); }
+        }}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Share2 className="h-4 w-4 text-primary" />
+              Compartir conversación
+            </DialogTitle>
+            <DialogDescription>
+              Genera un enlace de <strong>solo lectura</strong> con fecha de expiración. Cualquier persona con el enlace podrá abrir la copia hasta la fecha indicada.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 pt-1">
+            <div className="rounded-md border bg-muted/40 p-3">
+              <p className="text-[12.5px] font-medium truncate">{shareThread?.title}</p>
+              <p className="text-[11px] text-muted-foreground">
+                {shareThread?.messages.length ?? 0} mensaje(s) · copia instantánea
+              </p>
+            </div>
+
+            {!shareResult ? (
+              <div>
+                <Label className="text-[12px] font-medium">Expira en</Label>
+                <RadioGroup
+                  className="grid grid-cols-2 gap-2 mt-2"
+                  value={String(shareTtlHours)}
+                  onValueChange={(v) => setShareTtlHours(Number(v))}
+                >
+                  {[
+                    { v: 1, label: "1 hora" },
+                    { v: 24, label: "24 horas" },
+                    { v: 24 * 7, label: "7 días" },
+                    { v: 24 * 30, label: "30 días" },
+                  ].map((opt) => (
+                    <Label
+                      key={opt.v}
+                      htmlFor={`ttl-${opt.v}`}
+                      className={cn(
+                        "flex items-center gap-2 rounded-md border px-3 py-2 text-[12.5px] cursor-pointer transition-colors",
+                        shareTtlHours === opt.v ? "border-primary bg-primary/5" : "hover:bg-muted/50"
+                      )}
+                    >
+                      <RadioGroupItem id={`ttl-${opt.v}`} value={String(opt.v)} />
+                      {opt.label}
+                    </Label>
+                  ))}
+                </RadioGroup>
+                <p className="text-[10.5px] text-muted-foreground mt-2">
+                  Después de la fecha de expiración, el enlace deja de funcionar automáticamente.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <Label className="text-[12px] font-medium">Enlace generado</Label>
+                <div className="flex items-center gap-1.5">
+                  <Input readOnly value={shareResult.url} className="h-9 text-[12px] font-mono" />
+                  <Button type="button" size="icon" variant="outline" className="h-9 w-9 shrink-0" onClick={copyShareLink}>
+                    {shareCopied ? <Check className="h-4 w-4 text-emerald-600" /> : <Copy className="h-4 w-4" />}
+                  </Button>
+                </div>
+                <p className="text-[11px] text-muted-foreground flex items-center gap-1.5">
+                  <Clock className="h-3.5 w-3.5" />
+                  Expira {formatDistanceToNowStrict(shareResult.expiresAt, { addSuffix: true, locale: es })} · {format(shareResult.expiresAt, "PPpp", { locale: es })}
+                </p>
+              </div>
+            )}
+          </div>
+
+          <DialogFooter>
+            {!shareResult ? (
+              <>
+                <Button variant="outline" onClick={() => setShareThread(null)}>Cancelar</Button>
+                <Button onClick={generateShare} disabled={shareBusy}>
+                  {shareBusy ? <><Loader2 className="h-4 w-4 mr-1.5 animate-spin" />Generando…</> : "Generar enlace"}
+                </Button>
+              </>
+            ) : (
+              <Button onClick={() => { setShareThread(null); setShareResult(null); }}>Listo</Button>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <AlertDialog open={!!threadToDelete} onOpenChange={(open) => !open && setConfirmDeleteId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>

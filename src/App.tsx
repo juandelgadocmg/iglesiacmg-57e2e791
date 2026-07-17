@@ -25,6 +25,7 @@ import UsuariosPage from "@/pages/UsuariosPage";
 import MensajesPage from "@/pages/MensajesPage";
 import ConfiguracionPage from "@/pages/ConfiguracionPage";
 import ChatPage from "@/pages/ChatPage";
+import ChatSharePage from "@/pages/ChatSharePage";
 import ResetPasswordPage from "@/pages/ResetPasswordPage";
 import CheckInPage from "@/pages/CheckInPage";
 import VerificarAcademicoPage from "@/pages/VerificarAcademicoPage";
@@ -55,6 +56,7 @@ const App = () => (
             <Route path="/check-in/:servicioId" element={<CheckInPage />} />
             <Route path="/.lovable/oauth/consent" element={<OAuthConsentPage />} />
             <Route path="/design-system" element={<DesignSystemPage />} />
+            <Route path="/chat/compartida/:token" element={<ChatSharePage />} />
             <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
               <Route path="/hoy" element={<HoyPage />} />
               <Route path="/dashboard" element={<Dashboard />} />
