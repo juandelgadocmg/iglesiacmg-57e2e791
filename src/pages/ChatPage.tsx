@@ -853,9 +853,6 @@ export default function ChatPage() {
             const isActive = t.id === activeId;
             const isRenaming = renamingId === t.id;
             return (
-            const isActive = t.id === activeId;
-            const isRenaming = renamingId === t.id;
-            return (
               <div
                 key={t.id}
                 className={cn(
