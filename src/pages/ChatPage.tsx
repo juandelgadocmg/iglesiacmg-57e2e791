@@ -624,8 +624,17 @@ export default function ChatPage() {
     if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); }
   };
 
+  // Search index: memoized lowercased "title + messages" blob per thread, invalidated by updatedAt.
+  const getBlob = useCallback((t: Thread): string => {
+    const cached = searchIndexRef.current.get(t.id);
+    if (cached && cached.sig === t.updatedAt) return cached.blob;
+    const blob = (t.title + "\n" + t.messages.map((m) => m.content).join("\n")).toLowerCase();
+    searchIndexRef.current.set(t.id, { sig: t.updatedAt, blob });
+    return blob;
+  }, []);
+
   const filteredThreads = useMemo(() => {
-    const q = threadQuery.trim().toLowerCase();
+    const q = deferredQuery.trim().toLowerCase();
     const now = Date.now();
     const windowMs =
       dateFilter === "today" ? 24 * 3600 * 1000 :
@@ -633,9 +642,7 @@ export default function ChatPage() {
       dateFilter === "30d" ? 30 * 24 * 3600 * 1000 : 0;
 
     const inWindow = (t: Thread) => !windowMs || (now - t.updatedAt) <= windowMs;
-    const matchesQuery = (t: Thread) => !q ||
-      t.title.toLowerCase().includes(q) ||
-      t.messages.some((m) => m.content.toLowerCase().includes(q));
+    const matchesQuery = (t: Thread) => !q || getBlob(t).includes(q);
 
     return [...threads]
       .filter((t) => inWindow(t) && matchesQuery(t))
@@ -643,7 +650,28 @@ export default function ChatPage() {
         if (!!b.pinned !== !!a.pinned) return (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0);
         return b.updatedAt - a.updatedAt;
       });
-  }, [threads, threadQuery, dateFilter]);
+  }, [threads, deferredQuery, dateFilter, getBlob]);
+
+  const isSearchPending = deferredQuery !== threadQuery;
+
+  // Reset pagination when filter/query changes
+  useEffect(() => { setVisibleCount(30); }, [deferredQuery, dateFilter]);
+
+  // Infinite scroll sentinel in the sidebar
+  useEffect(() => {
+    const el = sentinelRef.current;
+    if (!el) return;
+    const io = new IntersectionObserver((entries) => {
+      if (entries.some((e) => e.isIntersecting)) {
+        setVisibleCount((v) => Math.min(v + 30, filteredThreads.length));
+      }
+    }, { rootMargin: "120px" });
+    io.observe(el);
+    return () => io.disconnect();
+  }, [filteredThreads.length]);
+
+  const visibleThreads = filteredThreads.slice(0, visibleCount);
+  const hasMoreThreads = filteredThreads.length > visibleThreads.length;
 
   const isEmpty = messages.length === 0;
   const q = threadQuery.trim();
