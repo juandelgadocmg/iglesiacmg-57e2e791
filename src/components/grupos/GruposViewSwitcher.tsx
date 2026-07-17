@@ -69,13 +69,14 @@ export default function GruposViewSwitcher({ grupos, onOpen, onEdit, onDelete, c
     <div className="space-y-4">
       {/* Barra de vista */}
       <div className="flex flex-wrap items-center gap-2">
-        <div className="inline-flex rounded-lg border bg-muted/40 p-0.5">
+        <div className="inline-flex rounded-lg border bg-muted/40 p-0.5 max-w-full overflow-x-auto">
           {VIEWS.map((v) => (
             <button
               key={v.id}
               onClick={() => setView(v.id)}
+              aria-pressed={view === v.id}
               className={cn(
-                "inline-flex items-center gap-1.5 px-3 h-8 rounded-md text-[12.5px] font-medium transition-all",
+                "inline-flex items-center gap-1.5 px-3 h-8 rounded-md text-[12.5px] font-medium transition-all shrink-0",
                 view === v.id
                   ? "bg-card shadow-sm text-foreground"
                   : "text-muted-foreground hover:text-foreground"
@@ -85,18 +86,20 @@ export default function GruposViewSwitcher({ grupos, onOpen, onEdit, onDelete, c
             </button>
           ))}
         </div>
-        <div className="flex-1" />
+        <div className="flex-1 min-w-0" />
         <Input
           placeholder="Buscar grupo, líder, red…"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="h-8 w-56 text-[12.5px]"
+          aria-label="Buscar grupo, líder o red"
+          className="h-8 w-full sm:w-56 text-[12.5px]"
         />
         {tipos.length > 1 && (
-          <div className="inline-flex rounded-lg border bg-muted/40 p-0.5">
+          <div className="inline-flex rounded-lg border bg-muted/40 p-0.5 max-w-full overflow-x-auto">
             <button
               onClick={() => setTipoFilter("all")}
-              className={cn("px-2.5 h-7 rounded-md text-[11.5px]", tipoFilter === "all" ? "bg-card shadow-sm" : "text-muted-foreground")}
+              aria-pressed={tipoFilter === "all"}
+              className={cn("px-2.5 h-7 rounded-md text-[11.5px] shrink-0", tipoFilter === "all" ? "bg-card shadow-sm" : "text-muted-foreground")}
             >
               Todos
             </button>
@@ -104,7 +107,8 @@ export default function GruposViewSwitcher({ grupos, onOpen, onEdit, onDelete, c
               <button
                 key={t}
                 onClick={() => setTipoFilter(t)}
-                className={cn("px-2.5 h-7 rounded-md text-[11.5px]", tipoFilter === t ? "bg-card shadow-sm" : "text-muted-foreground")}
+                aria-pressed={tipoFilter === t}
+                className={cn("px-2.5 h-7 rounded-md text-[11.5px] shrink-0", tipoFilter === t ? "bg-card shadow-sm" : "text-muted-foreground")}
               >
                 {t}
               </button>
@@ -112,6 +116,7 @@ export default function GruposViewSwitcher({ grupos, onOpen, onEdit, onDelete, c
           </div>
         )}
       </div>
+
 
       {view === "cards" && <CardsView grupos={filtered} onOpen={onOpen} onEdit={onEdit} canEdit={canEdit} />}
       {view === "kanban" && <KanbanView grupos={filtered} onOpen={onOpen} />}

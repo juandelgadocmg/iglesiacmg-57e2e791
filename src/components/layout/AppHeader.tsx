@@ -66,19 +66,19 @@ export default function AppHeader({ onMenuClick }: AppHeaderProps) {
   useEffect(() => { setLogoFailed(false); }, [logoSrc]);
 
   return (
-    <header className="h-14 md:h-16 surface-glass flex items-center justify-between px-3 md:px-6 sticky top-0 z-20">
+    <header className="h-14 md:h-16 surface-glass flex items-center justify-between gap-2 px-3 md:px-6 sticky top-0 z-20 overflow-hidden">
 
       {/* Breadcrumb */}
-      <div className="flex items-center gap-1.5 text-sm min-w-0">
+      <div className="flex items-center gap-1.5 text-sm min-w-0 flex-1">
         <Button variant="ghost" size="icon" className="md:hidden shrink-0 h-8 w-8" onClick={onMenuClick} aria-label="Abrir menú de navegación">
           <Menu className="h-5 w-5" />
         </Button>
 
         <span className="text-muted-foreground hidden md:inline">CMG</span>
         {segments.map((seg, i) => (
-          <span key={i} className={`flex items-center gap-1.5 ${i < segments.length - 1 ? "hidden md:flex" : "flex"}`}>
-            <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/50 hidden md:block" />
-            <span className={i === segments.length - 1 ? "font-medium text-foreground truncate" : "text-muted-foreground"}>
+          <span key={i} className={`flex items-center gap-1.5 min-w-0 ${i < segments.length - 1 ? "hidden md:flex" : "flex"}`}>
+            <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/50 hidden md:block shrink-0" />
+            <span className={i === segments.length - 1 ? "font-medium text-foreground truncate" : "text-muted-foreground truncate"}>
               {breadcrumbMap[seg] || seg}
             </span>
           </span>
@@ -86,17 +86,20 @@ export default function AppHeader({ onMenuClick }: AppHeaderProps) {
       </div>
 
       {/* Right side */}
-      <div className="flex items-center gap-2 md:gap-4 shrink-0">
-        <div className="relative hidden md:block">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+      <div className="flex items-center gap-2 md:gap-3 shrink-0">
+        <div className="relative hidden lg:block">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" aria-hidden="true" />
+          <label htmlFor="header-search" className="sr-only">Buscar en DOXA</label>
           <Input
+            id="header-search"
             placeholder="Buscar en DOXA..."
-            className="pl-9 pr-16 w-72 h-9 bg-muted/60 border-transparent text-[13px] rounded-xl focus-visible:bg-card focus-visible:ring-2 focus-visible:ring-accent/20 focus-visible:border-accent/30 transition-colors"
+            className="pl-9 pr-16 w-56 xl:w-72 h-9 bg-muted/60 border-transparent text-[13px] rounded-xl focus-visible:bg-card focus-visible:ring-2 focus-visible:ring-accent/20 focus-visible:border-accent/30 transition-colors"
           />
-          <kbd className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 hidden lg:inline-flex items-center gap-0.5 rounded border bg-card px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
+          <kbd className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 hidden xl:inline-flex items-center gap-0.5 rounded border bg-card px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
             ⌘K
           </kbd>
         </div>
+
 
 
         <TooltipProvider delayDuration={200}>
@@ -107,12 +110,12 @@ export default function AppHeader({ onMenuClick }: AppHeaderProps) {
                 target="_blank"
                 rel="noopener noreferrer"
                 aria-label="Abrir Discipulando Naciones en una nueva pestaña"
-                className="shrink-0 inline-flex items-center justify-center h-10 md:h-12 px-2.5 rounded-lg hover:bg-muted transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                className="hidden md:inline-flex shrink-0 items-center justify-center h-10 md:h-12 px-2 rounded-lg hover:bg-muted transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
               >
                 {logoFailed ? (
                   <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-foreground/80">
                     <BookOpenText className="h-5 w-5" aria-hidden="true" />
-                    <span className="hidden sm:inline">Discipulando</span>
+                    <span className="hidden lg:inline">Discipulando</span>
                   </span>
                 ) : (
                   <img
@@ -125,10 +128,11 @@ export default function AppHeader({ onMenuClick }: AppHeaderProps) {
                     decoding="async"
                     fetchPriority="low"
                     onError={() => setLogoFailed(true)}
-                    className="block h-9 sm:h-10 md:h-11 lg:h-12 w-auto max-w-[140px] sm:max-w-[170px] md:max-w-[200px] object-contain select-none"
+                    className="block h-8 md:h-9 lg:h-10 w-auto max-w-[110px] md:max-w-[130px] lg:max-w-[160px] object-contain select-none"
                   />
                 )}
               </a>
+
 
             </TooltipTrigger>
             <TooltipContent side="bottom">Discipulando Naciones</TooltipContent>

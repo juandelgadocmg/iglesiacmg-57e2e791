@@ -152,21 +152,22 @@ export default function HoyPage() {
                   <Icon icon={Sparkles} size="sm" className="text-primary" />
                   {todayStr}
                 </div>
-                <h1 className="doxa-display-lg leading-none">
+                <h1 className="doxa-h1 md:doxa-display-lg leading-tight break-words">
                   {greeting()}, <span className="bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">{nameCap}</span>
                 </h1>
-                <div className="flex items-center gap-2 mt-3">
+                <div className="flex items-center gap-2 mt-3 flex-wrap">
                   {roleLabel && <Badge variant="secondary" className="rounded-full doxa-caption">{roleLabel}</Badge>}
                   <span className="doxa-body-sm text-muted-foreground">Panel de comando</span>
                 </div>
               </div>
             </div>
-            <div className="grid grid-cols-4 gap-3 md:gap-4 min-w-[320px]">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 md:gap-4 w-full md:min-w-[320px]">
               <KpiRing icon={Users} label="Personas" value={totalPersonas} loading={personasLoading} tone="text-primary" />
               <KpiRing icon={CalendarDays} label="Hoy" value={eventosHoy.length} loading={eventosLoading} tone="text-emerald-600" />
               <KpiRing icon={HandHeart} label="Petic." value={peticionesAbiertas.length} tone="text-rose-600" />
               <KpiRing icon={Bell} label="Msgs" value={unreadMsgs} tone="text-amber-600" />
             </div>
+
           </div>
         </div>
 
