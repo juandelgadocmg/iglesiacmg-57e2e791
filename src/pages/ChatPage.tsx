@@ -3,7 +3,8 @@ import {
   Send, Bot, User, Loader2, LifeBuoy, Plus, MessageSquare, Trash2, Search,
   PanelRightClose, PanelRightOpen, BookOpen, Compass, ListChecks, ShieldCheck,
   Users, UsersRound, Award, GraduationCap, DollarSign, BarChart3, ClipboardList,
-  Filter, Settings as SettingsIcon,
+  Filter, Settings as SettingsIcon, LayoutGrid, CalendarDays, HeartHandshake,
+  Megaphone, FileText, HandHeart,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -13,13 +14,17 @@ import ReactMarkdown from "react-markdown";
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
+import { supabase } from "@/integrations/supabase/client";
 
 type Message = { role: "user" | "assistant"; content: string };
 type Thread = { id: string; title: string; updatedAt: number; messages: Message[] };
 
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat`;
-const STORAGE_KEY = "doxa.chat.threads.v1";
-const ACTIVE_KEY = "doxa.chat.activeThread.v1";
+const STORAGE_PREFIX = "doxa.chat.threads.v2::";
+const ACTIVE_PREFIX = "doxa.chat.activeThread.v2::";
+const storageKeyFor = (uid: string) => `${STORAGE_PREFIX}${uid}`;
+const activeKeyFor = (uid: string) => `${ACTIVE_PREFIX}${uid}`;
+
 
 // Sugerencias iniciales (tarjetas de bienvenida)
 const PROMPT_CARDS: { icon: any; title: string; prompt: string; color: string }[] = [
@@ -59,19 +64,38 @@ const LIMITATIONS = [
   "No responde temas fuera del uso de la plataforma.",
 ];
 
+// Módulos DOXA — click => inserta pregunta ejemplo en el composer
+const MODULES: { icon: any; name: string; example: string }[] = [
+  { icon: Users, name: "Personas", example: "¿Cómo crear una persona nueva y vincularla a un grupo?" },
+  { icon: UsersRound, name: "Grupos / Casas de Paz", example: "¿Cómo crear una Casa de Paz y asignar un líder?" },
+  { icon: ClipboardList, name: "Asistencia", example: "¿Cómo registrar la asistencia de una reunión?" },
+  { icon: CalendarDays, name: "Reuniones", example: "¿Cómo programar una reunión y a sus servidores?" },
+  { icon: GraduationCap, name: "Academia", example: "¿Cómo crear un curso y matricular estudiantes?" },
+  { icon: Award, name: "Certificados", example: "¿Cómo generar un certificado y descargarlo en PDF?" },
+  { icon: DollarSign, name: "Finanzas", example: "¿Cómo registrar un ingreso o una donación?" },
+  { icon: HandHeart, name: "Tesorería CDP", example: "¿Cómo consignar la ofrenda semanal de una Casa de Paz?" },
+  { icon: HeartHandshake, name: "Consejería", example: "¿Cómo agendar una cita de consejería?" },
+  { icon: Megaphone, name: "Peticiones de oración", example: "¿Cómo registrar y hacer seguimiento a una petición de oración?" },
+  { icon: BarChart3, name: "Reportes / Exportar", example: "¿Cómo exportar un reporte a Excel o PDF?" },
+  { icon: FileText, name: "Multimedia", example: "¿Cómo publicar un banner o un video en la plataforma?" },
+  { icon: SettingsIcon, name: "Usuarios y roles", example: "¿Cómo crear un usuario y asignarle un rol?" },
+  { icon: LayoutGrid, name: "Configuración", example: "¿Cómo configurar la información general de la iglesia?" },
+];
+
+
 // ------- helpers -------
 function newThread(): Thread {
   return { id: crypto.randomUUID(), title: "Nueva conversación", updatedAt: Date.now(), messages: [] };
 }
 
-function loadThreads(): { threads: Thread[]; activeId: string } {
+function loadThreads(uid: string): { threads: Thread[]; activeId: string } {
   if (typeof window === "undefined") {
     const t = newThread();
     return { threads: [t], activeId: t.id };
   }
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    const active = localStorage.getItem(ACTIVE_KEY) || "";
+    const raw = localStorage.getItem(storageKeyFor(uid));
+    const active = localStorage.getItem(activeKeyFor(uid)) || "";
     if (raw) {
       const parsed: Thread[] = JSON.parse(raw);
       if (Array.isArray(parsed) && parsed.length > 0) {
@@ -84,12 +108,13 @@ function loadThreads(): { threads: Thread[]; activeId: string } {
   return { threads: [t], activeId: t.id };
 }
 
-function saveThreads(threads: Thread[], activeId: string) {
+function saveThreads(uid: string, threads: Thread[], activeId: string) {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(threads));
-    localStorage.setItem(ACTIVE_KEY, activeId);
+    localStorage.setItem(storageKeyFor(uid), JSON.stringify(threads));
+    localStorage.setItem(activeKeyFor(uid), activeId);
   } catch { /* ignore */ }
 }
+
 
 function deriveTitle(text: string): string {
   const t = text.replace(/\s+/g, " ").trim();
@@ -158,7 +183,10 @@ async function streamChat({
 }
 
 export default function ChatPage() {
-  const [{ threads, activeId }, setState] = useState(() => loadThreads());
+  const [userId, setUserId] = useState<string>("__anon");
+  const [{ threads, activeId }, setState] = useState<{ threads: Thread[]; activeId: string }>(
+    () => loadThreads("__anon")
+  );
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [threadQuery, setThreadQuery] = useState("");
@@ -169,13 +197,31 @@ export default function ChatPage() {
   const active = threads.find((t) => t.id === activeId) || threads[0];
   const messages = active?.messages || [];
 
-  useEffect(() => { saveThreads(threads, activeId); }, [threads, activeId]);
+  // Resolve current user and load per-user history; react to sign-in/out.
+  useEffect(() => {
+    let mounted = true;
+    supabase.auth.getUser().then(({ data }) => {
+      if (!mounted) return;
+      const uid = data.user?.id || "__anon";
+      setUserId(uid);
+      setState(loadThreads(uid));
+    });
+    const { data: sub } = supabase.auth.onAuthStateChange((_evt, session) => {
+      const uid = session?.user?.id || "__anon";
+      setUserId(uid);
+      setState(loadThreads(uid));
+    });
+    return () => { mounted = false; sub.subscription.unsubscribe(); };
+  }, []);
+
+  useEffect(() => { saveThreads(userId, threads, activeId); }, [userId, threads, activeId]);
 
   useEffect(() => {
     if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
   }, [messages.length, activeId]);
 
   useEffect(() => { inputRef.current?.focus(); }, [activeId]);
+
 
   const updateActive = (updater: (t: Thread) => Thread) => {
     setState((prev) => ({
@@ -206,6 +252,18 @@ export default function ChatPage() {
       return { threads: remaining, activeId: nextActive };
     });
   };
+
+  const insertPrompt = (text: string) => {
+    setInput(text);
+    setTimeout(() => {
+      const el = inputRef.current;
+      if (el) {
+        el.focus();
+        try { el.setSelectionRange(el.value.length, el.value.length); } catch { /* ignore */ }
+      }
+    }, 20);
+  };
+
 
   const sendWith = async (text: string) => {
     const clean = text.trim();
@@ -319,7 +377,7 @@ export default function ChatPage() {
           })}
         </div>
         <div className="p-3 border-t text-[10.5px] text-muted-foreground">
-          {threads.length} conversación{threads.length === 1 ? "" : "es"} guardada{threads.length === 1 ? "" : "s"} en este navegador.
+          {threads.length} conversación{threads.length === 1 ? "" : "es"} guardada{threads.length === 1 ? "" : "s"} en tu cuenta{userId === "__anon" ? " (este navegador)" : ""}.
         </div>
       </aside>
 
@@ -495,18 +553,55 @@ export default function ChatPage() {
             <p className="text-[10.5px] uppercase tracking-wide text-muted-foreground font-semibold">Acerca del asistente</p>
             <h3 className="text-sm font-semibold mt-0.5">¿En qué puedo ayudarte?</h3>
           </div>
-          <div className="flex-1 overflow-y-auto p-4 space-y-3">
-            {CAPABILITIES.map((c) => (
-              <div key={c.title} className="rounded-lg border bg-card p-3">
-                <div className="flex items-center gap-2 mb-1">
-                  <div className="h-6 w-6 rounded-md bg-primary/10 flex items-center justify-center">
-                    <c.icon className="h-3.5 w-3.5 text-primary" />
-                  </div>
-                  <p className="text-[13px] font-semibold">{c.title}</p>
-                </div>
-                <p className="text-[11.5px] text-muted-foreground leading-relaxed">{c.desc}</p>
+          <div className="flex-1 overflow-y-auto p-4 space-y-4">
+            {/* Módulos DOXA — click inserta una pregunta ejemplo en el composer */}
+            <div>
+              <div className="flex items-center gap-1.5 mb-2">
+                <LayoutGrid className="h-3.5 w-3.5 text-primary" />
+                <p className="text-[11px] uppercase tracking-wide text-muted-foreground font-semibold">Módulos DOXA</p>
               </div>
-            ))}
+              <p className="text-[11px] text-muted-foreground mb-2 leading-relaxed">
+                Toca un módulo para insertar una pregunta de ejemplo en el chat.
+              </p>
+              <div className="grid grid-cols-1 gap-1">
+                {MODULES.map((m) => {
+                  const Icon = m.icon;
+                  return (
+                    <button
+                      key={m.name}
+                      type="button"
+                      onClick={() => insertPrompt(m.example)}
+                      title={m.example}
+                      className="w-full flex items-center gap-2 rounded-md border bg-card hover:border-primary/40 hover:bg-primary/5 px-2.5 py-1.5 text-left transition-colors group"
+                    >
+                      <div className="h-6 w-6 rounded-md bg-primary/10 flex items-center justify-center shrink-0 group-hover:bg-primary/15">
+                        <Icon className="h-3.5 w-3.5 text-primary" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-[12.5px] font-medium truncate">{m.name}</p>
+                        <p className="text-[10.5px] text-muted-foreground truncate">{m.example}</p>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="pt-1">
+              <p className="text-[11px] uppercase tracking-wide text-muted-foreground font-semibold mb-2">Capacidades</p>
+              {CAPABILITIES.map((c) => (
+                <div key={c.title} className="rounded-lg border bg-card p-3 mb-2 last:mb-0">
+                  <div className="flex items-center gap-2 mb-1">
+                    <div className="h-6 w-6 rounded-md bg-primary/10 flex items-center justify-center">
+                      <c.icon className="h-3.5 w-3.5 text-primary" />
+                    </div>
+                    <p className="text-[13px] font-semibold">{c.title}</p>
+                  </div>
+                  <p className="text-[11.5px] text-muted-foreground leading-relaxed">{c.desc}</p>
+                </div>
+              ))}
+            </div>
+
 
             <div className="rounded-lg border bg-gradient-to-br from-amber-500/5 to-card p-3 mt-4">
               <div className="flex items-center gap-1.5 mb-2">
