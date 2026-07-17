@@ -38,7 +38,7 @@ export function SeguimientoTab({
       {/* Salud pastoral */}
       <Card className="lg:col-span-2 overflow-hidden">
         <div className="p-6 bg-gradient-to-br from-primary/10 via-card to-card">
-          <div className="flex items-center gap-2 text-[11px] uppercase tracking-widest text-muted-foreground font-semibold mb-2">
+          <div className="flex items-center gap-2 text-xs uppercase tracking-widest text-muted-foreground font-semibold mb-2">
             <Target className="h-3.5 w-3.5" /> Índice de salud pastoral
           </div>
           <div className="flex items-end gap-3">
@@ -50,12 +50,12 @@ export function SeguimientoTab({
           </div>
           <div className="mt-5 grid grid-cols-2 gap-3">
             <div className="p-3 rounded-xl border bg-card">
-              <div className="text-[10px] uppercase text-muted-foreground font-semibold">Discipulado</div>
+              <div className="text-xs uppercase text-muted-foreground font-semibold">Discipulado</div>
               <div className="text-xl font-bold mt-1">{progresoPct}%</div>
               <Progress value={progresoPct} className="h-1 mt-2" />
             </div>
             <div className="p-3 rounded-xl border bg-card">
-              <div className="text-[10px] uppercase text-muted-foreground font-semibold flex items-center gap-1">
+              <div className="text-xs uppercase text-muted-foreground font-semibold flex items-center gap-1">
                 Asistencia
                 {trendUp ? <TrendingUp className="h-3 w-3 text-emerald-500" /> : <TrendingDown className="h-3 w-3 text-rose-500" />}
               </div>
@@ -73,26 +73,26 @@ export function SeguimientoTab({
             <div className="w-8 h-8 rounded-lg bg-rose-500/15 text-rose-600 flex items-center justify-center">
               <HandHeart className="h-4 w-4" />
             </div>
-            <div className="text-[12px] font-semibold">Peticiones activas</div>
+            <div className="text-sm font-semibold">Peticiones activas</div>
           </div>
           <div className="text-2xl font-bold">{abiertas}</div>
-          <p className="text-[11px] text-muted-foreground">de {peticiones.length} totales</p>
+          <p className="text-xs text-muted-foreground">de {peticiones.length} totales</p>
         </Card>
         <Card className="p-4 bg-gradient-to-br from-accent/8 to-card">
           <div className="flex items-center gap-2 mb-2">
             <div className="w-8 h-8 rounded-lg bg-accent/15 text-accent flex items-center justify-center">
               <Heart className="h-4 w-4" />
             </div>
-            <div className="text-[12px] font-semibold">Consejerías</div>
+            <div className="text-sm font-semibold">Consejerías</div>
           </div>
           <div className="text-2xl font-bold">{consejeriasCount}</div>
-          <p className="text-[11px] text-muted-foreground">sesiones registradas</p>
+          <p className="text-xs text-muted-foreground">sesiones registradas</p>
         </Card>
       </div>
 
       {/* Peticiones listado */}
       <Card className="lg:col-span-2 p-5">
-        <CardTitle className="text-[14px] flex items-center gap-2 mb-3">
+        <CardTitle className="text-base flex items-center gap-2 mb-3">
           <HandHeart className="h-4 w-4 text-primary" /> Peticiones y seguimiento
         </CardTitle>
         {peticiones.length === 0 ? (
@@ -106,12 +106,12 @@ export function SeguimientoTab({
                   p.estado === "cerrada" ? "bg-muted-foreground/40" : "bg-rose-500"
                 )} />
                 <div className="flex-1 min-w-0">
-                  <div className="text-[13px] font-medium truncate">{p.titulo || p.descripcion?.slice(0, 60) || "Sin título"}</div>
-                  <div className="text-[11px] text-muted-foreground mt-0.5">
+                  <div className="text-sm font-medium truncate">{p.titulo || p.descripcion?.slice(0, 60) || "Sin título"}</div>
+                  <div className="text-xs text-muted-foreground mt-0.5">
                     {p.fecha_creacion ? format(parseISO(p.fecha_creacion), "d MMM yyyy", { locale: es }) : ""} · {p.estado || "abierta"}
                   </div>
                 </div>
-                <Badge variant={p.estado === "cerrada" ? "secondary" : "outline"} className="text-[10px]">
+                <Badge variant={p.estado === "cerrada" ? "secondary" : "outline"} className="text-xs">
                   {p.estado || "abierta"}
                 </Badge>
               </li>
@@ -122,7 +122,7 @@ export function SeguimientoTab({
 
       {/* Consejerías listado */}
       <Card className="p-5">
-        <CardTitle className="text-[14px] flex items-center gap-2 mb-3">
+        <CardTitle className="text-base flex items-center gap-2 mb-3">
           <MessageSquareText className="h-4 w-4 text-primary" /> Consejerías
         </CardTitle>
         {consejerias.length === 0 ? (
@@ -131,7 +131,7 @@ export function SeguimientoTab({
           <ul className="space-y-2.5">
             {consejerias.slice(0, 6).map((c: any) => (
               <li key={c.id} className="p-2.5 rounded-lg border bg-muted/30">
-                <div className="text-[12px] font-medium">{c.tipo || "Consejería"}</div>
+                <div className="text-sm font-medium">{c.tipo || "Consejería"}</div>
                 <div className="text-[10.5px] text-muted-foreground mt-0.5">
                   {c.fecha ? format(parseISO(c.fecha), "d MMM yyyy", { locale: es }) : "—"}
                 </div>
@@ -179,11 +179,11 @@ export function MinisteriosTab({ persona, tipos = [], grupoMiembros = [] }: any)
               <div className="w-10 h-10 rounded-xl bg-card border shadow-sm flex items-center justify-center mb-3">
                 <Church className="h-4 w-4 text-primary" />
               </div>
-              <h3 className="text-[15px] font-bold">{tipo}</h3>
+              <h3 className="text-base font-bold">{tipo}</h3>
               <p className="text-[11.5px] text-muted-foreground mt-0.5">{meta.desc}</p>
               <div className="mt-3 flex items-center gap-1">
                 <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
-                <span className="text-[11px] text-muted-foreground">Activo</span>
+                <span className="text-xs text-muted-foreground">Activo</span>
               </div>
             </Card>
           );
@@ -192,7 +192,7 @@ export function MinisteriosTab({ persona, tipos = [], grupoMiembros = [] }: any)
 
       {grupoMiembros.length > 0 && (
         <Card className="md:col-span-2 lg:col-span-3 p-5">
-          <CardTitle className="text-[14px] flex items-center gap-2 mb-3">
+          <CardTitle className="text-base flex items-center gap-2 mb-3">
             <Users className="h-4 w-4 text-primary" /> Grupos donde sirve
           </CardTitle>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
@@ -202,7 +202,7 @@ export function MinisteriosTab({ persona, tipos = [], grupoMiembros = [] }: any)
                   <Users className="h-4 w-4" />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <div className="text-[13px] font-medium truncate">{gm.grupos?.nombre || "—"}</div>
+                  <div className="text-sm font-medium truncate">{gm.grupos?.nombre || "—"}</div>
                   <div className="text-[10.5px] text-muted-foreground truncate">
                     {gm.rol || "Miembro"} · {gm.grupos?.tipo || ""}
                   </div>
@@ -233,7 +233,7 @@ export function ProximasReunionesTab({ servicios = [], grupoMiembros = [], onReg
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
       <Card className="lg:col-span-2 p-5">
         <div className="flex items-center justify-between mb-4">
-          <CardTitle className="text-[14px] flex items-center gap-2">
+          <CardTitle className="text-base flex items-center gap-2">
             <Calendar className="h-4 w-4 text-primary" /> Próximas reuniones
           </CardTitle>
           <Button size="sm" variant="outline" className="gap-1.5" onClick={onRegistrar}>
@@ -253,16 +253,16 @@ export function ProximasReunionesTab({ servicios = [], grupoMiembros = [], onReg
                       {format(s._date, "MMM", { locale: es })}
                     </div>
                     <div className="text-xl font-bold leading-none mt-1">{format(s._date, "dd")}</div>
-                    <div className="text-[9px] text-muted-foreground mt-1">{format(s._date, "EEE", { locale: es })}</div>
+                    <div className="text-xs text-muted-foreground mt-1">{format(s._date, "EEE", { locale: es })}</div>
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="text-[13.5px] font-semibold truncate">{s.nombre}</div>
-                    <div className="text-[11px] text-muted-foreground flex items-center gap-2 mt-0.5">
+                    <div className="text-xs text-muted-foreground flex items-center gap-2 mt-0.5">
                       {s.hora && <span className="flex items-center gap-1"><Clock className="h-3 w-3" />{s.hora}</span>}
                       {s.tipo && <span>· {s.tipo}</span>}
                     </div>
                   </div>
-                  <Badge variant={days === 0 ? "default" : "secondary"} className="text-[10px]">
+                  <Badge variant={days === 0 ? "default" : "secondary"} className="text-xs">
                     {days === 0 ? "Hoy" : days === 1 ? "Mañana" : `en ${days}d`}
                   </Badge>
                 </div>
@@ -273,7 +273,7 @@ export function ProximasReunionesTab({ servicios = [], grupoMiembros = [], onReg
       </Card>
 
       <Card className="p-5 bg-gradient-to-br from-primary/8 to-card">
-        <CardTitle className="text-[14px] flex items-center gap-2 mb-3">
+        <CardTitle className="text-base flex items-center gap-2 mb-3">
           <Sparkles className="h-4 w-4 text-primary" /> Reuniones habituales
         </CardTitle>
         {grupoMiembros.length === 0 ? (
@@ -282,8 +282,8 @@ export function ProximasReunionesTab({ servicios = [], grupoMiembros = [], onReg
           <ul className="space-y-2">
             {grupoMiembros.map((gm: any) => (
               <li key={gm.id} className="p-3 rounded-lg bg-card border">
-                <div className="text-[13px] font-semibold truncate">{gm.grupos?.nombre || "Grupo"}</div>
-                <div className="text-[11px] text-muted-foreground mt-0.5 flex items-center gap-1">
+                <div className="text-sm font-semibold truncate">{gm.grupos?.nombre || "Grupo"}</div>
+                <div className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1">
                   <Clock className="h-3 w-3" />
                   {gm.grupos?.dia_reunion || "—"} {gm.grupos?.hora_reunion || ""}
                 </div>
@@ -329,7 +329,7 @@ export function NotasTab({ persona }: any) {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
       <Card className="lg:col-span-2 p-5 h-fit sticky top-16">
-        <CardTitle className="text-[14px] flex items-center gap-2 mb-3">
+        <CardTitle className="text-base flex items-center gap-2 mb-3">
           <FileText className="h-4 w-4 text-primary" /> Nueva nota
         </CardTitle>
         <Textarea
@@ -340,7 +340,7 @@ export function NotasTab({ persona }: any) {
           className="resize-none"
         />
         <div className="flex items-center justify-between mt-3">
-          <p className="text-[11px] text-muted-foreground">Las notas se guardan localmente en este dispositivo.</p>
+          <p className="text-xs text-muted-foreground">Las notas se guardan localmente en este dispositivo.</p>
           <Button size="sm" onClick={addNote} disabled={!draft.trim()} className="gap-1.5">
             Guardar
           </Button>
@@ -363,7 +363,7 @@ export function NotasTab({ persona }: any) {
                   <div className="text-[10.5px] uppercase tracking-wider text-muted-foreground font-semibold">
                     {format(new Date(n.date), "d MMM yyyy · HH:mm", { locale: es })}
                   </div>
-                  <p className="text-[13px] mt-1.5 whitespace-pre-wrap leading-relaxed">{n.text}</p>
+                  <p className="text-sm mt-1.5 whitespace-pre-wrap leading-relaxed">{n.text}</p>
                 </div>
                 <button
                   onClick={() => removeNote(n.id)}
@@ -397,7 +397,7 @@ export function ArchivosTab({ persona }: any) {
             <Upload className="h-6 w-6" />
           </div>
           <div className="flex-1">
-            <h3 className="text-[15px] font-bold">Repositorio de archivos</h3>
+            <h3 className="text-base font-bold">Repositorio de archivos</h3>
             <p className="text-[12.5px] text-muted-foreground mt-1">
               Este módulo estará disponible próximamente. Podrás subir, organizar y compartir documentos vinculados a cada persona con permisos granulares.
             </p>
@@ -431,7 +431,7 @@ function EmptyPastoral({ text, icon: Icon }: { text: string; icon: any }) {
   return (
     <div className="py-8 text-center">
       <Icon className="h-8 w-8 text-muted-foreground/40 mx-auto mb-2" />
-      <p className="text-[12px] text-muted-foreground">{text}</p>
+      <p className="text-sm text-muted-foreground">{text}</p>
     </div>
   );
 }
