@@ -615,7 +615,7 @@ export default function GrupoPerfilView({ grupoId, onBack, readOnly = false, can
 
         {/* ====== PLANIFICACIÓN TAB ====== */}
         <TabsContent value="planificacion">
-          <PlanificacionTab grupoId={grupoId} readOnly={readOnly} />
+          <PlanificacionTab grupoId={grupoId} readOnly={!allowReportAndPlan} />
         </TabsContent>
 
         {/* ====== MAPA TAB ====== */}
