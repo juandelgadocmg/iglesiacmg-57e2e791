@@ -69,14 +69,14 @@ function newThread(): Thread {
   return { id: crypto.randomUUID(), title: "Nueva conversación", updatedAt: Date.now(), messages: [] };
 }
 
-function loadThreads(): { threads: Thread[]; activeId: string } {
+function loadThreads(uid: string): { threads: Thread[]; activeId: string } {
   if (typeof window === "undefined") {
     const t = newThread();
     return { threads: [t], activeId: t.id };
   }
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    const active = localStorage.getItem(ACTIVE_KEY) || "";
+    const raw = localStorage.getItem(storageKeyFor(uid));
+    const active = localStorage.getItem(activeKeyFor(uid)) || "";
     if (raw) {
       const parsed: Thread[] = JSON.parse(raw);
       if (Array.isArray(parsed) && parsed.length > 0) {
@@ -89,12 +89,13 @@ function loadThreads(): { threads: Thread[]; activeId: string } {
   return { threads: [t], activeId: t.id };
 }
 
-function saveThreads(threads: Thread[], activeId: string) {
+function saveThreads(uid: string, threads: Thread[], activeId: string) {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(threads));
-    localStorage.setItem(ACTIVE_KEY, activeId);
+    localStorage.setItem(storageKeyFor(uid), JSON.stringify(threads));
+    localStorage.setItem(activeKeyFor(uid), activeId);
   } catch { /* ignore */ }
 }
+
 
 function deriveTitle(text: string): string {
   const t = text.replace(/\s+/g, " ").trim();
