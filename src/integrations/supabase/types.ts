@@ -5223,6 +5223,48 @@ export type Database = {
     }
     Functions: {
       can_create_personas: { Args: { _uid: string }; Returns: boolean }
+      create_persona_with_permission: {
+        Args: { _payload: Json }
+        Returns: {
+          apellidos: string
+          created_at: string
+          direccion: string | null
+          documento: string | null
+          email: string | null
+          estado_civil: string | null
+          estado_iglesia: Database["public"]["Enums"]["estado_iglesia"]
+          fecha_bautismo: string | null
+          fecha_conversion: string | null
+          fecha_ingreso: string | null
+          fecha_nacimiento: string | null
+          foto_url: string | null
+          grupo_id: string | null
+          id: string
+          invitado_por: string | null
+          lider_responsable: string | null
+          ministerio: string | null
+          nacionalidad: string | null
+          nombres: string
+          observaciones: string | null
+          ocupacion: string | null
+          qr_code: string | null
+          seguimiento_por: string | null
+          sexo: string | null
+          telefono: string | null
+          tipo_documento: string | null
+          tipo_persona: Database["public"]["Enums"]["tipo_persona"]
+          tipos_persona: string[] | null
+          updated_at: string
+          vinculacion: string | null
+          whatsapp: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "personas"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       delete_email: {
         Args: { message_id: number; queue_name: string }
         Returns: boolean
