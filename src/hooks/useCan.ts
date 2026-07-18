@@ -7,7 +7,9 @@ export function useCan() {
   const { roles } = useUserRoles();
   const { activeRole } = useActiveRole();
   const { data: overrides } = useRolePermissions();
-  const effectiveRoles = activeRole ? [activeRole as any] : roles;
+  const activeRoleList = activeRole ? [activeRole as any] : [];
+
   return (action: ActionPermission) =>
-    canPerformWithOverrides(effectiveRoles, action, overrides?.[action]);
+    canPerformWithOverrides(roles, action, overrides?.[action]) ||
+    canPerformWithOverrides(activeRoleList, action, overrides?.[action]);
 }
