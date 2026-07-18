@@ -82,6 +82,25 @@ export default function PersonasPage() {
   const [page, setPage] = useState(1);
   const [sortBy, setSortBy] = useState<"nombre" | "recientes">("recientes");
 
+  // Columnas de exportación seleccionables
+  const ALL_EXPORT_COLS = useMemo(() => ([
+    { header: "Nombres", key: "nombres" },
+    { header: "Apellidos", key: "apellidos" },
+    { header: "Documento", key: "documento" },
+    { header: "Teléfono", key: "telefono" },
+    { header: "WhatsApp", key: "whatsapp" },
+    { header: "Email", key: "email" },
+    { header: "Tipo", key: "tipo_persona" },
+    { header: "Grupo", key: "grupoNombre" },
+    { header: "Estado", key: "estado_iglesia" },
+    { header: "Dirección", key: "direccion" },
+    { header: "Nacimiento", key: "fecha_nacimiento" },
+    { header: "Ingreso", key: "fecha_ingreso" },
+  ]), []);
+  const [selectedCols, setSelectedCols] = useState<string[]>(
+    ["nombres", "apellidos", "telefono", "email", "tipo_persona", "grupoNombre", "estado_iglesia"]
+  );
+
   const [autoNewOpen, setAutoNewOpen] = useState(false);
   const [highlightId, setHighlightId] = useState<string | null>(null);
 
