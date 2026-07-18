@@ -32,4 +32,27 @@ BEGIN
   RAISE NOTICE '  ok: consolidador_lider puede INSERT personas (%)', v_id;
 END $$;
 
+RESET ROLE;
+
+-- Consolidador: también permitido para crear desde el perfil de consolidación.
+INSERT INTO public.user_roles (user_id, role)
+VALUES ('83333333-3333-3333-3333-333333333333'::uuid, 'consolidador'::public.app_role)
+ON CONFLICT DO NOTHING;
+
+SELECT pg_temp.become_authenticated('83333333-3333-3333-3333-333333333333'::uuid);
+
+DO $$
+DECLARE v_id uuid;
+BEGIN
+  INSERT INTO public.personas (nombres, apellidos, documento, telefono, direccion, fecha_nacimiento, tipo_persona, estado_iglesia)
+  VALUES ('RLS', 'Consolidador', 'RLS-C', '3000000001', 'Prueba RLS', '1991-01-01', 'Visitante', 'Activo')
+  RETURNING id INTO v_id;
+
+  IF v_id IS NULL THEN
+    RAISE EXCEPTION 'FAIL: consolidador debía poder crear personas';
+  END IF;
+
+  RAISE NOTICE '  ok: consolidador puede INSERT personas (%)', v_id;
+END $$;
+
 ROLLBACK;
