@@ -488,10 +488,10 @@ export default function PersonasPage() {
                             </button>
                           )}
                           {canDelete && (
-                            <DeleteConfirmDialog
+                            <DeletePersonaDialog
+                              personaId={p.id}
+                              personaNombre={`${p.nombres} ${p.apellidos}`}
                               onConfirm={() => handleDelete(p.id)}
-                              title="¿Eliminar persona?"
-                              description={`Se eliminará a ${p.nombres} ${p.apellidos} permanentemente.`}
                             />
                           )}
                         </div>
