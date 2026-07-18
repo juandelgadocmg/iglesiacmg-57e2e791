@@ -80,13 +80,21 @@ export default function PersonasPage() {
   const [page, setPage] = useState(1);
   const [sortBy, setSortBy] = useState<"nombre" | "recientes">("recientes");
 
+  const [autoNewOpen, setAutoNewOpen] = useState(false);
+
   useEffect(() => {
     const state = location.state as any;
     if (state?.estadoFilter) {
       setEstado(state.estadoFilter === "Inactivo" ? "Inactivo" : state.estadoFilter);
       window.history.replaceState({}, "");
     }
-  }, []);
+    const sp = new URLSearchParams(location.search);
+    if (sp.get("new") === "1" && canCreate) {
+      setAutoNewOpen(true);
+      sp.delete("new");
+      navigate({ pathname: location.pathname, search: sp.toString() ? `?${sp.toString()}` : "" }, { replace: true });
+    }
+  }, [location.search, canCreate]);
 
   const activeSegment = useMemo(
     () => [...SMART_SEGMENTS, ...TIPO_SEGMENTS].find((s) => s.id === segment) || SMART_SEGMENTS[0],
