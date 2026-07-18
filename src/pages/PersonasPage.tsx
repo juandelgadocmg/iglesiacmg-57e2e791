@@ -100,7 +100,9 @@ export default function PersonasPage() {
     ["nombres", "apellidos", "telefono", "email", "tipo_persona", "grupoNombre", "estado_iglesia"]
   );
 
-  const [autoNewOpen, setAutoNewOpen] = useState(false);
+  const [autoNewOpen, setAutoNewOpen] = useState(
+    () => typeof window !== "undefined" && new URLSearchParams(window.location.search).get("new") === "1"
+  );
   const [highlightId, setHighlightId] = useState<string | null>(null);
 
   const handleCreated = (p: any) => {
