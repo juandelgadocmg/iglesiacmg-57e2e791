@@ -131,14 +131,12 @@ export default function PersonasPage() {
     }
     const sp = new URLSearchParams(location.search);
     if (sp.get("new") === "1") {
+      setAutoNewOpen(true);
       if (!permissionsReady) return;
-      if (canCreate) {
-        setAutoNewOpen(true);
-      } else {
-        setAutoNewOpen(false);
+      if (!canCreate) {
         toast.error("No tienes permiso para crear personas", {
           id: "personas-create-permission-denied",
-          description: "Falta el permiso personas:create para tu rol. Pide a un administrador revisar tus permisos.",
+          description: "La pantalla se abrirá, pero el backend solo guardará si tu rol tiene personas:create.",
         });
       }
       sp.delete("new");
@@ -214,7 +212,7 @@ export default function PersonasPage() {
   if (isLoading) {
     return (
       <div className="flex gap-6 h-[calc(100vh-8rem)]">
-        {canCreate && (
+        {(canCreate || autoNewOpen) && (
           <PersonaFormDialog open={autoNewOpen} onOpenChange={setAutoNewOpen} onCreated={handleCreated} />
         )}
         <Skeleton className="w-56 h-full" />
@@ -229,7 +227,7 @@ export default function PersonasPage() {
   return (
     <div className="flex gap-4 md:gap-6 h-[calc(100vh-6.5rem)] min-h-[560px]">
       {editing && <PersonaFormDialog initialData={editing} onClose={() => setEditing(null)} />}
-      {canCreate && (
+      {(canCreate || autoNewOpen) && (
         <PersonaFormDialog open={autoNewOpen} onOpenChange={setAutoNewOpen} onCreated={handleCreated} />
       )}
 

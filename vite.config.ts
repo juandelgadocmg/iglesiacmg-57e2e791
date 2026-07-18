@@ -31,7 +31,7 @@ export default defineConfig(({ mode }) => ({
         navigateFallbackDenylist: [/^\/~oauth/, /^\/api/, /^\/functions/],
         cleanupOutdatedCaches: true,
         clientsClaim: true,
-        skipWaiting: false,
+          skipWaiting: true,
         runtimeCaching: [
           {
             urlPattern: ({ request }) => request.mode === "navigate",
@@ -45,7 +45,7 @@ export default defineConfig(({ mode }) => ({
           {
             urlPattern: ({ url, sameOrigin }) =>
               sameOrigin && /\.(?:js|css|woff2|png|jpg|jpeg|svg|webp|ico)$/.test(url.pathname),
-            handler: "CacheFirst",
+            handler: "StaleWhileRevalidate",
             options: {
               cacheName: "cmg-assets",
               expiration: { maxEntries: 200, maxAgeSeconds: 60 * 60 * 24 * 30 },

@@ -153,6 +153,7 @@ export default function PersonaFormDialog({ initialData, onClose, open: openProp
       sexo: clean("sexo"),
       fecha_nacimiento: clean("fecha_nacimiento"),
       tipo_persona: (tiposSeleccionados[0] || "Miembro") as any,
+      tipos_persona: tiposSeleccionados,
       estado_iglesia: clean("estado_iglesia") || "Activo",
       grupo_id: clean("grupo_id"),
       estado_civil: clean("estado_civil"),
