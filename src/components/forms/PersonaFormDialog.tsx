@@ -16,6 +16,7 @@ interface Props {
   onClose?: () => void;
   open?: boolean;
   onOpenChange?: (v: boolean) => void;
+  onCreated?: (persona: any) => void;
 }
 
 const TIPOS_PETICION = ["Financiera", "Familiar", "Sanidad", "Emocional", "Espiritual", "Otros"];
