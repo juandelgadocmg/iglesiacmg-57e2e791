@@ -24,6 +24,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { SlidersHorizontal } from "lucide-react";
 import { usePersonas, useDeletePersona } from "@/hooks/useDatabase";
 import { useCan } from "@/hooks/useCan";
+import { useActiveRole } from "@/hooks/useActiveRole";
 import { useUserRoles } from "@/hooks/useUserRoles";
 import { useRolePermissions } from "@/hooks/useRolePermissions";
 import { useContextDock } from "@/components/layout/context-dock/ContextDock";
@@ -66,6 +67,7 @@ export default function PersonasPage() {
   const { data: personas, isLoading } = usePersonas();
   const deletePersona = useDeletePersona();
   const [editing, setEditing] = useState<any>(null);
+  const { activeRole } = useActiveRole();
   const { isLoading: rolesLoading } = useUserRoles();
   const { isLoading: permissionOverridesLoading, isError: permissionOverridesError } = useRolePermissions();
   const can = useCan();
