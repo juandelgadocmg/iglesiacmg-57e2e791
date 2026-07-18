@@ -14,6 +14,8 @@ import { toast } from "sonner";
 interface Props {
   initialData?: any;
   onClose?: () => void;
+  open?: boolean;
+  onOpenChange?: (v: boolean) => void;
 }
 
 const TIPOS_PETICION = ["Financiera", "Familiar", "Sanidad", "Emocional", "Espiritual", "Otros"];
