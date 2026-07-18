@@ -15,11 +15,13 @@ import {
 import { Icon } from "@/design-system/primitives/Icon";
 import { toast } from "sonner";
 import PersonaFormDialog from "@/components/forms/PersonaFormDialog";
-import DeleteConfirmDialog from "@/components/shared/DeleteConfirmDialog";
+import DeletePersonaDialog from "@/components/persona/DeletePersonaDialog";
 import ExportDropdown from "@/components/shared/ExportDropdown";
 import ExportPersonasDialog from "@/components/forms/ExportPersonasDialog";
 import ImportPersonasDialog from "@/components/forms/ImportPersonasDialog";
 import PersonaQuickView from "@/components/persona/PersonaQuickView";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { SlidersHorizontal } from "lucide-react";
 import { usePersonas, useDeletePersona } from "@/hooks/useDatabase";
 import { useUserRoles } from "@/hooks/useUserRoles";
 import { canPerform } from "@/lib/permissions";
