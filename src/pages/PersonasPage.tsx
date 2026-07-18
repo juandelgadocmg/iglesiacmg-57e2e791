@@ -182,7 +182,7 @@ export default function PersonasPage() {
     <div className="flex gap-4 md:gap-6 h-[calc(100vh-6.5rem)] min-h-[560px]">
       {editing && <PersonaFormDialog initialData={editing} onClose={() => setEditing(null)} />}
       {canCreate && (
-        <PersonaFormDialog open={autoNewOpen} onOpenChange={setAutoNewOpen} />
+        <PersonaFormDialog open={autoNewOpen} onOpenChange={setAutoNewOpen} onCreated={handleCreated} />
       )}
 
       {/* Rail izquierdo — segmentos */}
