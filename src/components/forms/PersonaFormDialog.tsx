@@ -190,8 +190,9 @@ export default function PersonaFormDialog({ initialData, onClose, open: openProp
       // La sincronización con grupo_miembros la maneja el trigger de BD
       // (sync_grupo_miembros_from_persona) automáticamente al insertar/actualizar grupo_id.
 
-      // Save tipos_persona array separately — column may not exist yet if migration pending
-      if (personaId && tiposSeleccionados.length > 0) {
+      // Save tipos_persona array separately for edits. New records are created through
+      // the backend helper with tipos_persona already included, avoiding a second write.
+      if (isEdit && personaId && tiposSeleccionados.length > 0) {
         const { error: tiposErr } = await supabase
           .from("personas")
           .update({ tipos_persona: tiposSeleccionados } as any)

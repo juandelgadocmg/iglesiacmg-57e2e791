@@ -39,7 +39,9 @@ export function useCreatePersona() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (persona: TablesInsert<"personas">) => {
-      const { data, error } = await supabase.from("personas").insert(persona).select().single();
+      const { data, error } = await (supabase.rpc as any)("create_persona_with_permission", {
+        _payload: persona,
+      });
       if (error) throw error;
       return data;
     },
