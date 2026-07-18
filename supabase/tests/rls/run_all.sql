@@ -26,8 +26,11 @@
 \echo '==> [6/7] auditoría: security_audit_log solo lectura por admin'
 \i supabase/tests/rls/06_audit_log.sql
 
-\echo '==> [7/7] scan: funciones SECURITY DEFINER sin control interno'
+\echo '==> [7/8] scan: funciones SECURITY DEFINER sin control interno'
 \i supabase/tests/rls/07_security_definer_scan.sql
+
+\echo '==> [8/8] personas: creación protegida por permiso personas:create'
+\i supabase/tests/rls/08_personas_create_permission.sql
 
 \echo ''
 \echo '===================================================='

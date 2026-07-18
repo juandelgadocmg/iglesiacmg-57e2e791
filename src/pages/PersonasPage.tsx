@@ -24,7 +24,8 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { SlidersHorizontal } from "lucide-react";
 import { usePersonas, useDeletePersona } from "@/hooks/useDatabase";
 import { useCan } from "@/hooks/useCan";
-import { useActiveRole } from "@/hooks/useActiveRole";
+import { useUserRoles } from "@/hooks/useUserRoles";
+import { useRolePermissions } from "@/hooks/useRolePermissions";
 import { useContextDock } from "@/components/layout/context-dock/ContextDock";
 import { useRecentEntities } from "@/hooks/useRecentEntities";
 import { useUserPins } from "@/hooks/useUserPins";
@@ -65,11 +66,13 @@ export default function PersonasPage() {
   const { data: personas, isLoading } = usePersonas();
   const deletePersona = useDeletePersona();
   const [editing, setEditing] = useState<any>(null);
-  const { activeRole } = useActiveRole();
+  const { isLoading: rolesLoading } = useUserRoles();
+  const { isLoading: permissionOverridesLoading, isError: permissionOverridesError } = useRolePermissions();
   const can = useCan();
   const canEdit = can("personas:edit");
   const canCreate = can("personas:create");
   const canDelete = can("personas:delete");
+  const permissionsReady = !rolesLoading && (!permissionOverridesLoading || permissionOverridesError);
   const dock = useContextDock();
   const { push: pushRecent } = useRecentEntities();
   const { pins, toggle } = useUserPins();
@@ -125,12 +128,21 @@ export default function PersonasPage() {
       window.history.replaceState({}, "");
     }
     const sp = new URLSearchParams(location.search);
-    if (sp.get("new") === "1" && canCreate) {
-      setAutoNewOpen(true);
+    if (sp.get("new") === "1") {
+      if (!permissionsReady) return;
+      if (canCreate) {
+        setAutoNewOpen(true);
+      } else {
+        setAutoNewOpen(false);
+        toast.error("No tienes permiso para crear personas", {
+          id: "personas-create-permission-denied",
+          description: "Falta el permiso personas:create para tu rol. Pide a un administrador revisar tus permisos.",
+        });
+      }
       sp.delete("new");
       navigate({ pathname: location.pathname, search: sp.toString() ? `?${sp.toString()}` : "" }, { replace: true });
     }
-  }, [location.search, canCreate]);
+  }, [location.pathname, location.search, canCreate, permissionsReady, navigate]);
 
   const activeSegment = useMemo(
     () => [...SMART_SEGMENTS, ...TIPO_SEGMENTS].find((s) => s.id === segment) || SMART_SEGMENTS[0],

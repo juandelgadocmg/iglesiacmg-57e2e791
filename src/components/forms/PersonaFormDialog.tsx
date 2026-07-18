@@ -218,7 +218,14 @@ export default function PersonaFormDialog({ initialData, onClose, open: openProp
 
       handleClose();
     } catch (err: any) {
-      toast.error(isEdit ? "Error al actualizar" : "Error al crear persona", { description: err.message });
+      const message = String(err?.message || "");
+      if (!isEdit && /row-level security|permission denied|violates row-level security|42501/i.test(message)) {
+        toast.error("No tienes permiso para crear personas", {
+          description: "El backend bloqueó el guardado porque falta el permiso personas:create para tu rol.",
+        });
+        return;
+      }
+      toast.error(isEdit ? "Error al actualizar" : "Error al crear persona", { description: message });
     }
   };
 
