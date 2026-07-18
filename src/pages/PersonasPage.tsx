@@ -80,13 +80,21 @@ export default function PersonasPage() {
   const [page, setPage] = useState(1);
   const [sortBy, setSortBy] = useState<"nombre" | "recientes">("recientes");
 
+  const [autoNewOpen, setAutoNewOpen] = useState(false);
+
   useEffect(() => {
     const state = location.state as any;
     if (state?.estadoFilter) {
       setEstado(state.estadoFilter === "Inactivo" ? "Inactivo" : state.estadoFilter);
       window.history.replaceState({}, "");
     }
-  }, []);
+    const sp = new URLSearchParams(location.search);
+    if (sp.get("new") === "1" && canCreate) {
+      setAutoNewOpen(true);
+      sp.delete("new");
+      navigate({ pathname: location.pathname, search: sp.toString() ? `?${sp.toString()}` : "" }, { replace: true });
+    }
+  }, [location.search, canCreate]);
 
   const activeSegment = useMemo(
     () => [...SMART_SEGMENTS, ...TIPO_SEGMENTS].find((s) => s.id === segment) || SMART_SEGMENTS[0],
@@ -159,6 +167,9 @@ export default function PersonasPage() {
   return (
     <div className="flex gap-4 md:gap-6 h-[calc(100vh-6.5rem)] min-h-[560px]">
       {editing && <PersonaFormDialog initialData={editing} onClose={() => setEditing(null)} />}
+      {canCreate && (
+        <PersonaFormDialog open={autoNewOpen} onOpenChange={setAutoNewOpen} />
+      )}
 
       {/* Rail izquierdo — segmentos */}
       <aside className="hidden lg:flex w-60 shrink-0 flex-col rounded-xl border bg-card overflow-hidden">

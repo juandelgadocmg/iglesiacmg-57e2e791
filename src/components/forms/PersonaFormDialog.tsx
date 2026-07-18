@@ -14,6 +14,8 @@ import { toast } from "sonner";
 interface Props {
   initialData?: any;
   onClose?: () => void;
+  open?: boolean;
+  onOpenChange?: (v: boolean) => void;
 }
 
 const TIPOS_PETICION = ["Financiera", "Familiar", "Sanidad", "Emocional", "Espiritual", "Otros"];
@@ -68,9 +70,15 @@ const MINISTERIOS = [
   "Adolescentes y Jóvenes",
 ];
 
-export default function PersonaFormDialog({ initialData, onClose }: Props) {
+export default function PersonaFormDialog({ initialData, onClose, open: openProp, onOpenChange }: Props) {
   const isEdit = !!initialData;
-  const [open, setOpen] = useState(false);
+  const [openInternal, setOpenInternal] = useState(false);
+  const isControlled = openProp !== undefined;
+  const open = isControlled ? openProp : openInternal;
+  const setOpen = (v: boolean) => {
+    if (!isControlled) setOpenInternal(v);
+    onOpenChange?.(v);
+  };
   const createPersona = useCreatePersona();
   const updatePersona = useUpdatePersona();
   const { data: grupos } = useGrupos();
@@ -212,7 +220,7 @@ export default function PersonaFormDialog({ initialData, onClose }: Props) {
 
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!v) handleClose(); else setOpen(true); }}>
-      {!isEdit && (
+      {!isEdit && !isControlled && (
         <DialogTrigger asChild>
           <Button className="gap-2 bg-primary text-primary-foreground hover:bg-primary/90">
             <Plus className="h-4 w-4" /> Nueva Persona
