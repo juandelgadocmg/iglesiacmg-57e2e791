@@ -200,6 +200,9 @@ export default function PersonasPage() {
   if (isLoading) {
     return (
       <div className="flex gap-6 h-[calc(100vh-8rem)]">
+        {canCreate && (
+          <PersonaFormDialog open={autoNewOpen} onOpenChange={setAutoNewOpen} onCreated={handleCreated} />
+        )}
         <Skeleton className="w-56 h-full" />
         <div className="flex-1 space-y-3">
           <Skeleton className="h-10 w-full" />
