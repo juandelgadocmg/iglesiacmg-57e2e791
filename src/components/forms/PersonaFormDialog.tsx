@@ -179,7 +179,12 @@ export default function PersonaFormDialog({ initialData, onClose, open: openProp
       } else {
         const result = await createPersona.mutateAsync(payload);
         personaId = (result as any)?.id;
-        toast.success("Persona creada exitosamente");
+        const tipoResumen = tiposSeleccionados[0] || "Miembro";
+        toast.success(`Persona creada: ${nombres} ${apellidos}`, {
+          description: `Tipo: ${tipoResumen}${clean("telefono") ? ` • Tel: ${clean("telefono")}` : ""}${clean("email") ? ` • ${clean("email")}` : ""}`,
+          duration: 6000,
+        });
+        if (result) onCreated?.(result);
       }
 
       // La sincronización con grupo_miembros la maneja el trigger de BD
