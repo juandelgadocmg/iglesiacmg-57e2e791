@@ -292,12 +292,44 @@ export default function PersonasPage() {
             </Button>
           </div>
           <div className="flex items-center gap-1">
-            <ExportDropdown title="Personas" filename="personas" columns={[
-              { header: "Nombres", key: "nombres" }, { header: "Apellidos", key: "apellidos" },
-              { header: "Teléfono", key: "telefono" }, { header: "Email", key: "email" },
-              { header: "Tipo", key: "tipo_persona" }, { header: "Grupo", key: "grupoNombre" },
-              { header: "Estado", key: "estado_iglesia" },
-            ]} data={tableData} />
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" size="sm" className="gap-1.5" title="Columnas de exportación">
+                  <SlidersHorizontal className="h-4 w-4" />
+                  <span className="hidden lg:inline">Columnas</span>
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent align="end" className="w-64 p-3 space-y-2">
+                <p className="doxa-caption font-semibold">Columnas a exportar</p>
+                <p className="doxa-caption text-muted-foreground">{selectedCols.length} de {ALL_EXPORT_COLS.length}</p>
+                <div className="max-h-64 overflow-auto space-y-1 pr-1">
+                  {ALL_EXPORT_COLS.map(c => (
+                    <label key={c.key} className="flex items-center gap-2 py-1 doxa-caption cursor-pointer hover:bg-muted rounded px-1">
+                      <Checkbox
+                        checked={selectedCols.includes(c.key)}
+                        onCheckedChange={(v) => setSelectedCols(prev =>
+                          v ? [...prev, c.key] : prev.filter(k => k !== c.key)
+                        )}
+                      />
+                      {c.header}
+                    </label>
+                  ))}
+                </div>
+                <div className="flex gap-2 pt-2 border-t">
+                  <Button size="sm" variant="ghost" className="flex-1 doxa-caption"
+                    onClick={() => setSelectedCols(ALL_EXPORT_COLS.map(c => c.key))}>Todas</Button>
+                  <Button size="sm" variant="ghost" className="flex-1 doxa-caption"
+                    onClick={() => setSelectedCols([])}>Ninguna</Button>
+                </div>
+              </PopoverContent>
+            </Popover>
+            <ExportDropdown
+              title="Personas"
+              filename={`personas${segment !== "todos" ? "_" + segment.replace(":", "-") : ""}${estado !== "all" ? "_" + estado : ""}`}
+              columns={exportColumns.length ? exportColumns : ALL_EXPORT_COLS.slice(0, 7)}
+              data={exportData}
+              filters={exportFilters}
+            />
             <ExportPersonasDialog />
             {canCreate && <ImportPersonasDialog />}
             {canCreate && <PersonaFormDialog onCreated={handleCreated} />}
