@@ -81,6 +81,20 @@ export default function PersonasPage() {
   const [sortBy, setSortBy] = useState<"nombre" | "recientes">("recientes");
 
   const [autoNewOpen, setAutoNewOpen] = useState(false);
+  const [highlightId, setHighlightId] = useState<string | null>(null);
+
+  const handleCreated = (p: any) => {
+    if (!p?.id) return;
+    setHighlightId(p.id);
+    setSortBy("recientes");
+    setPage(1);
+    setSearch("");
+    setSegment("todos");
+    setTimeout(() => {
+      document.getElementById(`persona-card-${p.id}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 150);
+    setTimeout(() => setHighlightId((cur) => (cur === p.id ? null : cur)), 4000);
+  };
 
   useEffect(() => {
     const state = location.state as any;
@@ -168,7 +182,7 @@ export default function PersonasPage() {
     <div className="flex gap-4 md:gap-6 h-[calc(100vh-6.5rem)] min-h-[560px]">
       {editing && <PersonaFormDialog initialData={editing} onClose={() => setEditing(null)} />}
       {canCreate && (
-        <PersonaFormDialog open={autoNewOpen} onOpenChange={setAutoNewOpen} />
+        <PersonaFormDialog open={autoNewOpen} onOpenChange={setAutoNewOpen} onCreated={handleCreated} />
       )}
 
       {/* Rail izquierdo — segmentos */}
@@ -256,7 +270,7 @@ export default function PersonasPage() {
             ]} data={tableData} />
             <ExportPersonasDialog />
             {canCreate && <ImportPersonasDialog />}
-            {canCreate && <PersonaFormDialog />}
+            {canCreate && <PersonaFormDialog onCreated={handleCreated} />}
           </div>
         </div>
 
@@ -283,7 +297,7 @@ export default function PersonasPage() {
               icon={UsersRound}
               title="Sin resultados"
               description="Ajusta los filtros o la vista para encontrar personas."
-              action={canCreate ? <PersonaFormDialog /> : undefined}
+              action={canCreate ? <PersonaFormDialog onCreated={handleCreated} /> : undefined}
             />
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4">
@@ -301,12 +315,14 @@ export default function PersonasPage() {
                 return (
                   <div
                     key={p.id}
+                    id={`persona-card-${p.id}`}
                     onClick={() => openQuickView(p)}
                     onDoubleClick={() => navigate(`/personas/${p.id}`)}
                     className={cn(
                       "group relative rounded-2xl border bg-gradient-to-br from-card to-muted/30 overflow-hidden cursor-pointer",
                       "hover:shadow-lg hover:border-primary/30 hover:-translate-y-0.5 transition-all duration-200",
-                      isSel && "ring-2 ring-primary border-primary/40"
+                      isSel && "ring-2 ring-primary border-primary/40",
+                      highlightId === p.id && "ring-2 ring-emerald-500 border-emerald-500/50 animate-pulse"
                     )}
                   >
                     {/* banda superior con color por estado */}
