@@ -167,6 +167,9 @@ export default function PersonasPage() {
   return (
     <div className="flex gap-4 md:gap-6 h-[calc(100vh-6.5rem)] min-h-[560px]">
       {editing && <PersonaFormDialog initialData={editing} onClose={() => setEditing(null)} />}
+      {canCreate && (
+        <PersonaFormDialog open={autoNewOpen} onOpenChange={setAutoNewOpen} />
+      )}
 
       {/* Rail izquierdo — segmentos */}
       <aside className="hidden lg:flex w-60 shrink-0 flex-col rounded-xl border bg-card overflow-hidden">
