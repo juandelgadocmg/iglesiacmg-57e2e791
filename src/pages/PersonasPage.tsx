@@ -270,7 +270,7 @@ export default function PersonasPage() {
             ]} data={tableData} />
             <ExportPersonasDialog />
             {canCreate && <ImportPersonasDialog />}
-            {canCreate && <PersonaFormDialog />}
+            {canCreate && <PersonaFormDialog onCreated={handleCreated} />}
           </div>
         </div>
 
