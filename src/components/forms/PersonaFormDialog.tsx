@@ -220,7 +220,7 @@ export default function PersonaFormDialog({ initialData, onClose, open: openProp
 
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!v) handleClose(); else setOpen(true); }}>
-      {!isEdit && (
+      {!isEdit && !isControlled && (
         <DialogTrigger asChild>
           <Button className="gap-2 bg-primary text-primary-foreground hover:bg-primary/90">
             <Plus className="h-4 w-4" /> Nueva Persona
