@@ -185,7 +185,16 @@ export default function PersonasPage() {
     });
 
   const segmentCount = (seg: Segment) => (personas || []).filter(seg.filter).length;
-  const tableData = (personas || []).map((p: any) => ({ ...p, grupoNombre: p.grupos?.nombre || "" }));
+  // Datos filtrados listos para exportar (respeta segmento, estado, búsqueda, orden)
+  const exportData = useMemo(
+    () => filtered.map((p: any) => ({ ...p, grupoNombre: p.grupos?.nombre || "" })),
+    [filtered]
+  );
+  const exportColumns = useMemo(
+    () => ALL_EXPORT_COLS.filter(c => selectedCols.includes(c.key)),
+    [ALL_EXPORT_COLS, selectedCols]
+  );
+  const exportFilters = { segmento: segment, estado, busqueda: search, orden: sortBy };
 
   if (isLoading) {
     return (
