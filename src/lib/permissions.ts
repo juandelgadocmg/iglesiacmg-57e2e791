@@ -15,7 +15,7 @@ type AppRole = Database["public"]["Enums"]["app_role"];
  *  5. tesoreria             → finanzas, donaciones, reportes
  *  6. lider                 → personas, grupos, servicios, eventos
  *  7. consolidador_lider    → personas (no delete), peticiones
- *  8. consolidador          → personas (edit growth only)
+ *  8. consolidador          → personas (create/edit growth only)
  *  9. lider_intercesion     → peticiones (view/respond)
  * 10. lider_red             → personas (own network), reportes grupos
  * 11. lider_casa_paz        → reportes grupos (create only)
@@ -80,7 +80,7 @@ export type ActionPermission =
   | "programa:confirm:colaborador";
 
 export const ACTION_PERMISSIONS: Record<ActionPermission, AppRole[]> = {
-  "personas:create": ["admin", "super_admin", "pastor", "lider", "secretaria", "consolidador_lider"],
+  "personas:create": ["admin", "super_admin", "pastor", "lider", "secretaria", "consolidador_lider", "consolidador"],
   "personas:edit":   ["admin", "super_admin", "pastor", "lider", "secretaria", "consolidador_lider", "consolidador"],
   "personas:delete": ["admin", "super_admin", "pastor"],
   "grupos:create":   ["admin", "super_admin", "pastor", "lider"],
