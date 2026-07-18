@@ -81,6 +81,20 @@ export default function PersonasPage() {
   const [sortBy, setSortBy] = useState<"nombre" | "recientes">("recientes");
 
   const [autoNewOpen, setAutoNewOpen] = useState(false);
+  const [highlightId, setHighlightId] = useState<string | null>(null);
+
+  const handleCreated = (p: any) => {
+    if (!p?.id) return;
+    setHighlightId(p.id);
+    setSortBy("recientes");
+    setPage(1);
+    setSearch("");
+    setSegment("todos");
+    setTimeout(() => {
+      document.getElementById(`persona-card-${p.id}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 150);
+    setTimeout(() => setHighlightId((cur) => (cur === p.id ? null : cur)), 4000);
+  };
 
   useEffect(() => {
     const state = location.state as any;
