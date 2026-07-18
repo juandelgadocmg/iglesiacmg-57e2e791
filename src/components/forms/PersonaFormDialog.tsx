@@ -71,7 +71,7 @@ const MINISTERIOS = [
   "Adolescentes y Jóvenes",
 ];
 
-export default function PersonaFormDialog({ initialData, onClose, open: openProp, onOpenChange }: Props) {
+export default function PersonaFormDialog({ initialData, onClose, open: openProp, onOpenChange, onCreated }: Props) {
   const isEdit = !!initialData;
   const [openInternal, setOpenInternal] = useState(false);
   const isControlled = openProp !== undefined;
