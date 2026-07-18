@@ -297,7 +297,7 @@ export default function PersonasPage() {
               icon={UsersRound}
               title="Sin resultados"
               description="Ajusta los filtros o la vista para encontrar personas."
-              action={canCreate ? <PersonaFormDialog /> : undefined}
+              action={canCreate ? <PersonaFormDialog onCreated={handleCreated} /> : undefined}
             />
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4">
