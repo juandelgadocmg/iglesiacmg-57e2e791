@@ -315,12 +315,14 @@ export default function PersonasPage() {
                 return (
                   <div
                     key={p.id}
+                    id={`persona-card-${p.id}`}
                     onClick={() => openQuickView(p)}
                     onDoubleClick={() => navigate(`/personas/${p.id}`)}
                     className={cn(
                       "group relative rounded-2xl border bg-gradient-to-br from-card to-muted/30 overflow-hidden cursor-pointer",
                       "hover:shadow-lg hover:border-primary/30 hover:-translate-y-0.5 transition-all duration-200",
-                      isSel && "ring-2 ring-primary border-primary/40"
+                      isSel && "ring-2 ring-primary border-primary/40",
+                      highlightId === p.id && "ring-2 ring-emerald-500 border-emerald-500/50 animate-pulse"
                     )}
                   >
                     {/* banda superior con color por estado */}
