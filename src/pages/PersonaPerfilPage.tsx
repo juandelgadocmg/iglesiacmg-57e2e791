@@ -30,6 +30,8 @@ import StatusBadge from "@/components/shared/StatusBadge";
 import PersonaFormDialog from "@/components/forms/PersonaFormDialog";
 import PersonaActivityTimeline, { type TimelineEvent } from "@/components/persona/PersonaActivityTimeline";
 import { SeguimientoTab, MinisteriosTab, ProximasReunionesTab, NotasTab, ArchivosTab } from "@/components/persona/PersonaExtraTabs";
+import PersonaHistorialTab from "@/components/persona/PersonaHistorialTab";
+import { History } from "lucide-react";
 import {
   ArrowLeft, Phone, Mail, MapPin, Calendar, Church, Users, Briefcase,
   Heart, BookOpen, CheckCircle2, XCircle, Clock, User, FileText,
@@ -498,6 +500,7 @@ export default function PersonaPerfilPage() {
               { v: "finanzas", label: "Finanzas", icon: Wallet },
               { v: "certificados", label: "Certificados", icon: Award },
               { v: "qr", label: "QR", icon: QrCode },
+              { v: "historial", label: "Historial", icon: History },
             ].map(t => (
               <TabsTrigger
                 key={t.v}
@@ -781,6 +784,11 @@ export default function PersonaPerfilPage() {
         {/* ======== TAB · ARCHIVOS ======== */}
         <TabsContent value="archivos" className="mt-0">
           <ArchivosTab persona={persona} />
+        </TabsContent>
+
+        {/* ======== TAB · HISTORIAL (auditoría) ======== */}
+        <TabsContent value="historial" className="mt-0">
+          <PersonaHistorialTab personaId={persona.id} personaEmail={persona.email} />
         </TabsContent>
       </Tabs>
 
