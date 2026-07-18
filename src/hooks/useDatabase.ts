@@ -43,7 +43,7 @@ export function useCreatePersona() {
         _payload: persona,
       });
       if (error) throw error;
-      return data;
+      return Array.isArray(data) ? data[0] : data;
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["personas"] });
