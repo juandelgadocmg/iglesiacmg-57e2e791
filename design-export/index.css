@@ -1,0 +1,494 @@
+@import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&family=Manrope:wght@300;400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/*
+ * CMG Admin — Portable Style Kit
+ * Reemplaza SOLO los tokens dentro de los bloques marcados
+ *   /* PALETA — reemplazar con Discipulando Naciones */
+ * El resto (surfaces, sombras, sidebar, KPI, motion) queda igual a CMG Admin.
+ */
+
+@layer base {
+  :root {
+    /* ▼ PALETA — reemplazar con Discipulando Naciones (HSL sin coma) ▼ */
+    /* Surfaces */
+    --background: 210 30% 98.5%;
+    --foreground: 215 32% 12%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 215 32% 12%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 215 32% 12%;
+
+    /* Ocean Deep — institutional palette */
+    --primary: 215 68% 15%;           /* #0c2340 deep navy */
+    --primary-foreground: 210 40% 98%;
+    --primary-glow: 205 62% 27%;      /* #1a4a6e mid navy */
+
+    --secondary: 210 25% 96%;
+    --secondary-foreground: 215 32% 15%;
+
+    --muted: 210 25% 96%;
+    --muted-foreground: 215 15% 45%;
+
+    --accent: 190 55% 40%;            /* #2d8a9e teal */
+    --accent-foreground: 0 0% 100%;
+    --accent-soft: 177 40% 55%;       /* #5cbdb9 light teal */
+
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+    /* ▲ FIN PALETA ▲ */
+
+    --success: 152 55% 42%;
+    --success-foreground: 0 0% 100%;
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 100%;
+    --info: 205 80% 50%;
+    --info-foreground: 0 0% 100%;
+
+    /* Borders 1px very sutil */
+    --border: 215 20% 91%;
+    --input: 215 20% 91%;
+    --ring: 190 55% 40%;
+
+    --radius: 0.875rem; /* 14px — cards se sienten a 16px con padding */
+
+    /* Sidebar — Linear-style white sidebar with subtle bg */
+    --sidebar-background: 210 30% 99%;
+    --sidebar-foreground: 215 20% 40%;
+    --sidebar-primary: 215 68% 15%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 210 30% 95%;
+    --sidebar-accent-foreground: 215 68% 15%;
+    --sidebar-border: 215 20% 92%;
+    --sidebar-ring: 190 55% 40%;
+
+    /* Legacy compat tokens used elsewhere */
+    --sidebar-bg: 210 30% 99%;
+    --sidebar-fg: 215 20% 40%;
+    --sidebar-hover: 210 30% 95%;
+    --sidebar-active: 215 68% 15%;
+    --sidebar-active-fg: 0 0% 100%;
+
+    /* Gradients & shadows */
+    --gradient-primary: linear-gradient(135deg, hsl(215 68% 15%), hsl(205 62% 27%));
+    --gradient-accent: linear-gradient(135deg, hsl(190 55% 40%), hsl(177 40% 55%));
+    --gradient-subtle: linear-gradient(180deg, hsl(210 30% 99%), hsl(210 30% 97%));
+
+    --shadow-xs: 0 1px 2px hsl(215 32% 12% / 0.04);
+    --shadow-sm: 0 1px 3px hsl(215 32% 12% / 0.05), 0 1px 2px hsl(215 32% 12% / 0.03);
+    --shadow-md: 0 4px 12px -2px hsl(215 32% 12% / 0.06), 0 2px 4px -2px hsl(215 32% 12% / 0.04);
+    --shadow-lg: 0 12px 32px -8px hsl(215 32% 12% / 0.10), 0 4px 12px -4px hsl(215 32% 12% / 0.06);
+    --shadow-xl: 0 24px 48px -12px hsl(215 32% 12% / 0.15);
+    --shadow-glow: 0 0 0 4px hsl(190 55% 40% / 0.10);
+
+    /* ── Design System v1 — extra semantic tokens ─────────── */
+    /* Surface scale (elevated backgrounds) */
+    --surface-0: 210 30% 98.5%;
+    --surface-1: 0 0% 100%;
+    --surface-2: 210 30% 97%;
+    --surface-3: 210 25% 94%;
+    --surface-4: 210 20% 90%;
+
+    /* Foreground scale */
+    --fg-default: 215 32% 12%;
+    --fg-muted: 215 15% 45%;
+    --fg-subtle: 215 12% 60%;
+    --fg-on-brand: 210 40% 98%;
+
+    /* Border scale */
+    --border-subtle: 215 20% 94%;
+    --border-strong: 215 20% 82%;
+
+    /* Semantic soft variants */
+    --success-soft: 152 55% 92%;
+    --warning-soft: 38 92% 92%;
+    --danger-soft: 0 72% 94%;
+    --info-soft: 205 80% 93%;
+
+    /* Data viz — 8-color perceptual palette */
+    --chart-1: 215 68% 35%;
+    --chart-2: 190 55% 45%;
+    --chart-3: 262 52% 55%;
+    --chart-4: 152 55% 42%;
+    --chart-5: 38 92% 50%;
+    --chart-6: 340 68% 55%;
+    --chart-7: 22 88% 55%;
+    --chart-8: 200 25% 55%;
+
+    /* Overlays */
+    --scrim: 215 32% 12% / 0.55;
+    --glass: 0 0% 100% / 0.72;
+
+    /* Focus ring */
+    --ring-focus: 190 55% 40%;
+
+    /* Motion */
+    --motion-fast: 120ms;
+    --motion-base: 180ms;
+    --motion-slow: 240ms;
+    --motion-page: 320ms;
+    --ease-standard: cubic-bezier(.2,.8,.2,1);
+    --ease-emphasized: cubic-bezier(.16,1,.3,1);
+    --ease-exit: cubic-bezier(.4,0,1,1);
+  }
+
+  .dark {
+    --background: 215 32% 7%;
+    --foreground: 210 30% 96%;
+    --card: 215 30% 10%;
+    --card-foreground: 210 30% 96%;
+    --popover: 215 30% 10%;
+    --popover-foreground: 210 30% 96%;
+    --primary: 190 55% 55%;
+    --primary-foreground: 215 32% 8%;
+    --primary-glow: 190 55% 45%;
+    --secondary: 215 25% 15%;
+    --secondary-foreground: 210 30% 96%;
+    --muted: 215 25% 15%;
+    --muted-foreground: 215 12% 62%;
+    --accent: 190 55% 55%;
+    --accent-foreground: 215 32% 8%;
+    --border: 215 20% 18%;
+    --input: 215 20% 18%;
+    --ring: 190 55% 55%;
+    --surface-0: 215 32% 7%;
+    --surface-1: 215 30% 10%;
+    --surface-2: 215 28% 12%;
+    --surface-3: 215 25% 15%;
+    --surface-4: 215 22% 20%;
+    --fg-default: 210 30% 96%;
+    --fg-muted: 215 12% 62%;
+    --fg-subtle: 215 10% 45%;
+    --border-subtle: 215 20% 14%;
+    --border-strong: 215 20% 28%;
+    --sidebar-background: 215 30% 9%;
+    --sidebar-foreground: 215 12% 65%;
+    --sidebar-accent: 215 25% 14%;
+    --sidebar-accent-foreground: 210 30% 96%;
+    --sidebar-border: 215 20% 16%;
+  }
+
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  html {
+    font-family: 'Manrope', system-ui, -apple-system, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    /* DOXA Global Scale — +25% across the entire product.
+       All rem-based Tailwind sizes (text-sm, p-4, h-10, gap-2…)
+       inherit this bump automatically. */
+    font-size: 20px;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-family: 'Manrope', system-ui, sans-serif;
+    font-feature-settings: 'ss01', 'cv11';
+    letter-spacing: -0.005em;
+    font-size: 1rem;
+    line-height: 1.55;
+    overflow-x: hidden;
+  }
+
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Sora', system-ui, sans-serif;
+    @apply font-semibold tracking-tight text-foreground;
+    letter-spacing: -0.02em;
+  }
+
+  /* DOXA Global Type Scale — +25% */
+  h1 { font-size: 40px; line-height: 1.15; }
+  h2 { font-size: 34px; line-height: 1.2; }
+  h3 { font-size: 30px; line-height: 1.25; }
+  h4 { font-size: 25px; line-height: 1.3; }
+  h5 { font-size: 22px; line-height: 1.35; }
+  h6 { font-size: 20px; line-height: 1.4; }
+
+  /* Focus ring premium */
+  :focus-visible {
+    outline: none;
+    box-shadow: var(--shadow-glow);
+    border-radius: 6px;
+  }
+}
+
+@layer utilities {
+  .doxa-display-xl { font-family: 'Sora', system-ui, sans-serif; font-size: 60px; line-height: 1.1; letter-spacing: -0.025em; font-weight: 700; }
+  .doxa-display-lg { font-family: 'Sora', system-ui, sans-serif; font-size: 50px; line-height: 1.15; letter-spacing: -0.02em; font-weight: 700; }
+  .doxa-h1 { font-family: 'Sora', system-ui, sans-serif; font-size: 40px; line-height: 1.15; font-weight: 700; }
+  .doxa-h2 { font-family: 'Sora', system-ui, sans-serif; font-size: 34px; line-height: 1.2; font-weight: 600; }
+  .doxa-h3 { font-family: 'Sora', system-ui, sans-serif; font-size: 30px; line-height: 1.25; font-weight: 600; }
+  .doxa-h4 { font-family: 'Sora', system-ui, sans-serif; font-size: 25px; line-height: 1.3; font-weight: 600; }
+  .doxa-body { font-size: 20px; line-height: 1.55; }
+  .doxa-body-sm { font-size: 18px; line-height: 1.5; }
+  .doxa-caption { font-size: 17px; line-height: 1.45; }
+
+  /* ── DOXA Global Uplift — override ALL hardcoded arbitrary
+     Tailwind text sizes across the app so legacy components
+     inherit the +25/30% scale without file-by-file refactor.
+     Sizes ≤ 15px get bumped; larger ones already scale well. */
+  .text-\[6px\]  { font-size: 11px !important; line-height: 1.4 !important; }
+  .text-\[8px\]  { font-size: 13px !important; line-height: 1.4 !important; }
+  .text-\[9px\]  { font-size: 14px !important; line-height: 1.4 !important; }
+  .text-\[10px\] { font-size: 15px !important; line-height: 1.45 !important; }
+  .text-\[11px\] { font-size: 16px !important; line-height: 1.45 !important; }
+  .text-\[12px\] { font-size: 17px !important; line-height: 1.5 !important; }
+  .text-\[13px\] { font-size: 18px !important; line-height: 1.5 !important; }
+  .text-\[14px\] { font-size: 19px !important; line-height: 1.55 !important; }
+  .text-\[15px\] { font-size: 20px !important; line-height: 1.55 !important; }
+  .text-\[16px\] { font-size: 21px !important; line-height: 1.55 !important; }
+  .text-\[17px\] { font-size: 22px !important; line-height: 1.55 !important; }
+  .text-\[18px\] { font-size: 23px !important; line-height: 1.55 !important; }
+}
+
+
+@layer utilities {
+  /* ── SaaS premium surfaces ─────────────────────────────── */
+  .surface-card {
+    @apply bg-card rounded-2xl border border-border/70;
+    box-shadow: var(--shadow-sm);
+  }
+
+  .surface-elevated {
+    @apply bg-card rounded-2xl border border-border/60;
+    box-shadow: var(--shadow-md);
+  }
+
+  .surface-glass {
+    background-color: hsl(var(--card) / 0.72);
+    backdrop-filter: saturate(180%) blur(14px);
+    -webkit-backdrop-filter: saturate(180%) blur(14px);
+    border-bottom: 1px solid hsl(var(--border) / 0.7);
+  }
+
+  .card-hover {
+    @apply transition-all duration-200;
+  }
+  .card-hover:hover {
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-md);
+    border-color: hsl(var(--border));
+  }
+
+  /* Legacy compat — sidebar gradient now solid white surface */
+  .sidebar-gradient {
+    background: hsl(var(--sidebar-background));
+  }
+
+  .gold-gradient {
+    background: var(--gradient-accent);
+  }
+
+  .metric-card {
+    @apply surface-card p-5 card-hover;
+  }
+
+  /* ── KPI premium ───────────────────────────────────────── */
+  .kpi-value {
+    @apply text-[32px] md:text-[36px] font-bold tracking-tight text-foreground;
+    font-family: 'Sora', system-ui, sans-serif;
+    font-feature-settings: 'tnum';
+    line-height: 1.1;
+  }
+
+  .kpi-label {
+    @apply text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground;
+  }
+
+  .kpi-delta-up {
+    @apply inline-flex items-center gap-1 text-[11px] font-semibold text-success bg-success/10 rounded-full px-2 py-0.5;
+  }
+  .kpi-delta-down {
+    @apply inline-flex items-center gap-1 text-[11px] font-semibold text-destructive bg-destructive/10 rounded-full px-2 py-0.5;
+  }
+  .kpi-delta-neutral {
+    @apply inline-flex items-center gap-1 text-[11px] font-semibold text-muted-foreground bg-muted rounded-full px-2 py-0.5;
+  }
+
+  /* ── Sidebar Linear-style — DOXA Global Standard ───────── */
+  .sidebar-link {
+    @apply relative flex items-center gap-3 px-3 rounded-lg text-base font-medium
+           text-sidebar-foreground transition-colors duration-150;
+    height: 52px;
+  }
+  .sidebar-link:hover {
+    @apply bg-sidebar-accent text-sidebar-accent-foreground;
+  }
+  .sidebar-link[data-active="true"] {
+    color: hsl(var(--sidebar-primary));
+    background: hsl(var(--sidebar-accent));
+  }
+  .sidebar-link[data-active="true"]::before {
+    content: "";
+    position: absolute;
+    left: -6px;
+    top: 20%;
+    bottom: 20%;
+    width: 3px;
+    border-radius: 2px;
+    background: hsl(var(--accent));
+  }
+
+  .sidebar-section-label {
+    @apply text-[12px] font-bold uppercase tracking-[0.1em] text-muted-foreground/70 px-3 pt-6 pb-2;
+  }
+
+  /* ── Interactive utilities ─────────────────────────────── */
+  .story-link {
+    @apply relative inline-block after:content-[''] after:absolute after:w-full after:scale-x-0
+           after:h-0.5 after:bottom-0 after:left-0 after:bg-accent after:origin-bottom-right
+           after:transition-transform after:duration-300
+           hover:after:scale-x-100 hover:after:origin-bottom-left;
+  }
+
+  .hover-scale {
+    @apply transition-transform duration-200 hover:scale-[1.01];
+  }
+
+  .btn-premium {
+    @apply inline-flex items-center justify-center gap-2 h-11 px-5 rounded-xl text-sm font-semibold
+           transition-all duration-200;
+    box-shadow: var(--shadow-sm);
+  }
+  .btn-premium:hover {
+    box-shadow: var(--shadow-md);
+    transform: translateY(-1px);
+  }
+}
+
+/* ── Custom scrollbar — Linear/Notion style ─────────────── */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: hsl(215 15% 82%);
+  border: 2px solid transparent;
+  background-clip: padding-box;
+  border-radius: 8px;
+  transition: background 150ms;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(215 15% 65%);
+  background-clip: padding-box;
+  border: 2px solid transparent;
+}
+.dark ::-webkit-scrollbar-thumb {
+  background: hsl(215 15% 28%);
+  background-clip: padding-box;
+}
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: hsl(215 15% 40%);
+  background-clip: padding-box;
+}
+* { scrollbar-color: hsl(215 15% 82%) transparent; scrollbar-width: thin; }
+.dark * { scrollbar-color: hsl(215 15% 28%) transparent; }
+
+/* ── Text selection ─────────────────────────────────────── */
+::selection {
+  background: hsl(var(--accent) / 0.28);
+  color: hsl(var(--foreground));
+}
+
+/* ── Remove mobile tap highlight ────────────────────────── */
+html { -webkit-tap-highlight-color: transparent; }
+
+/* ── Fade-in animation for page enter ───────────────────── */
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+main > * { animation: fade-in 0.3s var(--ease-standard); }
+
+/* ── Skeleton shimmer (premium loading) ─────────────────── */
+@keyframes doxa-shimmer {
+  0% { background-position: -400px 0; }
+  100% { background-position: 400px 0; }
+}
+.skeleton-shimmer {
+  background: linear-gradient(
+    90deg,
+    hsl(var(--muted)) 0%,
+    hsl(var(--muted-foreground) / 0.08) 50%,
+    hsl(var(--muted)) 100%
+  );
+  background-size: 800px 100%;
+  animation: doxa-shimmer 1.4s linear infinite;
+}
+
+/* ── Focus ring — enterprise-grade ──────────────────────── */
+:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px hsl(var(--background)), 0 0 0 4px hsl(var(--ring) / 0.55);
+  border-radius: 8px;
+}
+button:focus-visible,
+a:focus-visible,
+[role="button"]:focus-visible {
+  transition: box-shadow 120ms var(--ease-standard);
+}
+
+/* ── Kbd chip (enterprise shortcut hint) ────────────────── */
+.kbd {
+  display: inline-flex;
+  align-items: center;
+  gap: 1px;
+  min-height: 18px;
+  padding: 1px 5px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 10.5px;
+  font-weight: 600;
+  color: hsl(var(--muted-foreground));
+  background: hsl(var(--muted));
+  border: 1px solid hsl(var(--border));
+  border-bottom-width: 2px;
+  border-radius: 5px;
+  line-height: 1;
+}
+
+/* ── Subtle hover utility — Linear/Vercel ───────────────── */
+.subtle-hover {
+  transition: background-color 120ms var(--ease-standard),
+              border-color 120ms var(--ease-standard),
+              color 120ms var(--ease-standard);
+}
+
+/* ── Prefers reduced motion ─────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+  main > * { animation: none !important; }
+}
+
+/* ── Print — clean auditable exports ────────────────────── */
+@media print {
+  header, aside, nav, [data-print="hide"] { display: none !important; }
+  main { padding: 0 !important; }
+  * { box-shadow: none !important; }
+}
+
+/* ── Smooth scroll for in-page anchors ──────────────────── */
+html { scroll-behavior: smooth; }
+
+/* ── Better underline offset for links ──────────────────── */
+a { text-underline-offset: 2px; }
+
