@@ -5,13 +5,15 @@
 @tailwind utilities;
 
 /*
- * DOXA Design System — Ocean Deep + Sora/Manrope
- * Inspired by Linear, Stripe, Notion, Vercel.
- * Institutional identity: deep navy blue with teal accents on warm whites.
+ * CMG Admin — Portable Style Kit
+ * Reemplaza SOLO los tokens dentro de los bloques marcados
+ *   /* PALETA — reemplazar con Discipulando Naciones */
+ * El resto (surfaces, sombras, sidebar, KPI, motion) queda igual a CMG Admin.
  */
 
 @layer base {
   :root {
+    /* ▼ PALETA — reemplazar con Discipulando Naciones (HSL sin coma) ▼ */
     /* Surfaces */
     --background: 210 30% 98.5%;
     --foreground: 215 32% 12%;
@@ -39,6 +41,7 @@
 
     --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 100%;
+    /* ▲ FIN PALETA ▲ */
 
     --success: 152 55% 42%;
     --success-foreground: 0 0% 100%;
