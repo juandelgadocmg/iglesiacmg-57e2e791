@@ -216,6 +216,9 @@ export default function Dashboard() {
             url={temaVigente?.url ?? config?.tema_semana_url}
             pdfUrl={temaVigente?.pdf_url ?? (config as any)?.tema_semana_pdf_url}
             fechaFin={temaVigente?.fecha_fin ?? null}
+            isLoading={temaLoading}
+            error={temaError}
+            onRetry={() => temaRefetch()}
           />
 
 
