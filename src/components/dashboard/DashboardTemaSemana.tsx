@@ -11,25 +11,58 @@ interface Props {
   url?: string | null;
   pdfUrl?: string | null;
   fechaFin?: string | null;
+  versionId?: string | null;
   isLoading?: boolean;
   error?: unknown;
   onRetry?: () => void;
 }
 
-export default function DashboardTemaSemana({ titulo, descripcion, url, pdfUrl, fechaFin, isLoading, error, onRetry }: Props) {
+/**
+ * Devuelve la URL del PDF con un parámetro `?v=<versión>` para invalidar caché
+ * del navegador y del service worker cuando el tema vigente cambia.
+ */
+function withCacheBust(rawUrl: string | null | undefined, version?: string | null): string | null {
+  if (!rawUrl) return null;
+  const v = version ?? "current";
+  try {
+    // URLs absolutas
+    const u = new URL(rawUrl, window.location.origin);
+    u.searchParams.set("v", v);
+    // Para URLs same-origin devolvemos ruta relativa para no forzar host
+    if (u.origin === window.location.origin) return u.pathname + u.search + u.hash;
+    return u.toString();
+  } catch {
+    const sep = rawUrl.includes("?") ? "&" : "?";
+    return `${rawUrl}${sep}v=${encodeURIComponent(v)}`;
+  }
+}
+
+export default function DashboardTemaSemana({ titulo, descripcion, url, pdfUrl, fechaFin, versionId, isLoading, error, onRetry }: Props) {
   const navigate = useNavigate();
   const { roles } = useUserRoles();
   const canEdit = (roles as string[])?.some((r) => ["admin", "super_admin", "pastor"].includes(r));
 
-
   const isEmpty = !titulo && !descripcion;
   const vigenteHasta = fechaFin ? (() => { try { return format(parseISO(fechaFin), "d MMM", { locale: es }); } catch { return null; } })() : null;
 
+  // 🔒 Validación: ambos botones deben apuntar al MISMO PDF del tema vigente.
+  // Si hay pdfUrl cargado, es la fuente única de verdad tanto para descargar
+  // como para "Abrir link". El campo `url` sólo se usa como fallback cuando no
+  // existe un PDF asociado a la versión vigente.
+  const sourcePdf = pdfUrl || url || null;
+  const effectivePdfUrl = withCacheBust(sourcePdf, versionId);
+  const effectiveOpenUrl = effectivePdfUrl; // mismo destino garantizado
+
+  if (import.meta.env.DEV && pdfUrl && url && pdfUrl !== url) {
+    // Aviso de diagnóstico: la BD tiene url ≠ pdf_url para la vigente.
+    console.warn("[TemaSemana] url y pdf_url difieren; se prioriza pdf_url para ambos botones.", { url, pdfUrl });
+  }
+
   const handleDownloadPDF = async () => {
-    // Si hay un PDF cargado, descargarlo directamente
-    if (pdfUrl) {
+    if (effectivePdfUrl) {
       try {
-        const res = await fetch(pdfUrl);
+        const res = await fetch(effectivePdfUrl, { cache: "no-store" });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const blob = await res.blob();
         const link = document.createElement("a");
         const objUrl = URL.createObjectURL(blob);
@@ -41,8 +74,7 @@ export default function DashboardTemaSemana({ titulo, descripcion, url, pdfUrl, 
         URL.revokeObjectURL(objUrl);
         return;
       } catch {
-        // Fallback: abrir en pestaña nueva
-        window.open(pdfUrl, "_blank", "noopener,noreferrer");
+        window.open(effectivePdfUrl, "_blank", "noopener,noreferrer");
         return;
       }
     }
@@ -68,12 +100,6 @@ export default function DashboardTemaSemana({ titulo, descripcion, url, pdfUrl, 
       doc.setTextColor(80, 80, 80);
       const lines = doc.splitTextToSize(descripcion, 170);
       doc.text(lines, 105, 95, { align: "center" });
-    }
-
-    if (url) {
-      doc.setFontSize(10);
-      doc.setTextColor(13, 148, 136);
-      doc.textWithLink("Ver recurso en línea", 105, 130, { align: "center", url });
     }
 
     doc.save("tema-de-la-semana.pdf");
