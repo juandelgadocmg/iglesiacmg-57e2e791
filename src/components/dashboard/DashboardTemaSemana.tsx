@@ -39,6 +39,11 @@ function withCacheBust(rawUrl: string | null | undefined, version?: string | nul
   }
 }
 
+// Cache en memoria del blob por versión: si ya se descargó una vez,
+// se reutiliza sin ir a la red (política "reutilizar si existe").
+const PDF_BLOB_CACHE = new Map<string, { url: string; ts: number }>();
+const PDF_CACHE_TTL_MS = 30 * 60 * 1000; // 30 min: renovar si expiró
+
 export default function DashboardTemaSemana({ titulo, descripcion, url, pdfUrl, fechaFin, versionId, isLoading, error, onRetry }: Props) {
   const navigate = useNavigate();
   const { roles } = useUserRoles();
@@ -47,6 +52,20 @@ export default function DashboardTemaSemana({ titulo, descripcion, url, pdfUrl, 
     action: null | "open" | "download";
     error: string | null;
   }>({ action: null, error: null });
+  const [isOffline, setIsOffline] = useState<boolean>(
+    typeof navigator !== "undefined" ? !navigator.onLine : false
+  );
+
+  useEffect(() => {
+    const on = () => setIsOffline(false);
+    const off = () => setIsOffline(true);
+    window.addEventListener("online", on);
+    window.addEventListener("offline", off);
+    return () => {
+      window.removeEventListener("online", on);
+      window.removeEventListener("offline", off);
+    };
+  }, []);
 
 
 
