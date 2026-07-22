@@ -87,8 +87,30 @@ export default function DashboardTemaSemana({ titulo, descripcion, url, pdfUrl, 
   }
 
   const fetchPdfBlobUrl = async (pdfHref: string) => {
+    const cacheKey = `${versionId ?? "current"}::${pdfHref}`;
+    const cached = PDF_BLOB_CACHE.get(cacheKey);
+    if (cached && Date.now() - cached.ts < PDF_CACHE_TTL_MS) {
+      return cached.url;
+    }
+    if (cached) {
+      // Expiró: intentar renovar, pero si falla (offline) reutilizar el existente.
+      try {
+        const fresh = await doFetch(pdfHref);
+        URL.revokeObjectURL(cached.url);
+        PDF_BLOB_CACHE.set(cacheKey, { url: fresh, ts: Date.now() });
+        return fresh;
+      } catch {
+        return cached.url;
+      }
+    }
+    const fresh = await doFetch(pdfHref);
+    PDF_BLOB_CACHE.set(cacheKey, { url: fresh, ts: Date.now() });
+    return fresh;
+  };
+
+  const doFetch = async (pdfHref: string) => {
     const res = await fetch(pdfHref, {
-      cache: "no-store",
+      cache: "default",
       headers: { Accept: "application/pdf,*/*" },
     });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
