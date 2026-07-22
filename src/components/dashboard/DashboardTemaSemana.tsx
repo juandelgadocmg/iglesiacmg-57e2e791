@@ -133,7 +133,7 @@ export default function DashboardTemaSemana({ titulo, descripcion, url, pdfUrl, 
       } else {
         window.open(objUrl, "_blank", "noopener,noreferrer");
       }
-      window.setTimeout(() => URL.revokeObjectURL(objUrl), 60_000);
+      // No revocamos: el blob queda cacheado por versión para reutilizar.
       setPdfState({ action: null, error: null });
     } catch (err: any) {
       if (popup) popup.close();
