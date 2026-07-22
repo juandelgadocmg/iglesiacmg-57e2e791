@@ -51,7 +51,7 @@ export default function HoyPage() {
   const { data: unreadMsgs = 0 } = useUnreadCount();
   const { items: recents } = useRecentEntities();
   const { data: config } = useConfiguracion();
-  const { data: temaVigente } = useTemaSemanaVigente();
+  const { data: temaVigente, isLoading: temaLoading, error: temaError, refetch: temaRefetch } = useTemaSemanaVigente();
   const { data: banners = [] } = useActiveBanners();
   const { data: videos = [] } = useActiveVideos();
 
@@ -381,6 +381,9 @@ export default function HoyPage() {
             url={temaVigente?.url ?? config?.tema_semana_url}
             pdfUrl={temaVigente?.pdf_url ?? (config as any)?.tema_semana_pdf_url}
             fechaFin={temaVigente?.fecha_fin ?? null}
+            isLoading={temaLoading}
+            error={temaError}
+            onRetry={() => temaRefetch()}
           />
         </div>
 

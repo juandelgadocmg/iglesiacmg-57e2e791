@@ -28,7 +28,7 @@ export default defineConfig(({ mode }) => ({
         globPatterns: ["**/*.{js,css,html,ico,png,svg,webp,woff2}"],
         maximumFileSizeToCacheInBytes: 8 * 1024 * 1024,
         navigateFallback: "/index.html",
-        navigateFallbackDenylist: [/^\/~oauth/, /^\/api/, /^\/functions/],
+        navigateFallbackDenylist: [/^\/~oauth/, /^\/api/, /^\/functions/, /^\/__l5e\//],
         cleanupOutdatedCaches: true,
         clientsClaim: true,
           skipWaiting: true,
@@ -40,6 +40,26 @@ export default defineConfig(({ mode }) => ({
               cacheName: "cmg-html",
               networkTimeoutSeconds: 5,
               expiration: { maxEntries: 30, maxAgeSeconds: 60 * 60 * 24 },
+            },
+          },
+          {
+            // Lesson PDFs & CDN assets: always fresh, never stale.
+            urlPattern: ({ url }) => url.pathname.startsWith("/__l5e/"),
+            handler: "NetworkFirst",
+            options: {
+              cacheName: "cmg-l5e-assets",
+              networkTimeoutSeconds: 5,
+              expiration: { maxEntries: 100, maxAgeSeconds: 60 * 60 * 24 },
+            },
+          },
+          {
+            // Supabase Storage (lesson PDFs uploaded to buckets) — always fresh.
+            urlPattern: ({ url }) => /\.supabase\.co\/storage\/v1\/object\//.test(url.href),
+            handler: "NetworkFirst",
+            options: {
+              cacheName: "cmg-supabase-storage",
+              networkTimeoutSeconds: 5,
+              expiration: { maxEntries: 100, maxAgeSeconds: 60 * 60 * 12 },
             },
           },
           {
