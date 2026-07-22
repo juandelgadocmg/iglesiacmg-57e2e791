@@ -51,7 +51,7 @@ export default function HoyPage() {
   const { data: unreadMsgs = 0 } = useUnreadCount();
   const { items: recents } = useRecentEntities();
   const { data: config } = useConfiguracion();
-  const { data: temaVigente } = useTemaSemanaVigente();
+  const { data: temaVigente, isLoading: temaLoading, error: temaError, refetch: temaRefetch } = useTemaSemanaVigente();
   const { data: banners = [] } = useActiveBanners();
   const { data: videos = [] } = useActiveVideos();
 
