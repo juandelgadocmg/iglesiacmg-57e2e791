@@ -145,7 +145,7 @@ export default function DashboardTemaSemana({ titulo, descripcion, url, pdfUrl, 
           </div>
         )}
         <div className="flex items-center justify-center gap-2 mt-4 flex-wrap">
-          {(!isEmpty || pdfUrl) && (
+          {effectivePdfUrl && (
             <button
               onClick={handleDownloadPDF}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-white/20 hover:bg-white/30 transition-colors"
@@ -153,9 +153,9 @@ export default function DashboardTemaSemana({ titulo, descripcion, url, pdfUrl, 
               <Download className="h-3.5 w-3.5" /> Descargar PDF
             </button>
           )}
-          {url && (
+          {effectiveOpenUrl && (
             <a
-              href={url}
+              href={effectiveOpenUrl}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-white/20 hover:bg-white/30 transition-colors"
