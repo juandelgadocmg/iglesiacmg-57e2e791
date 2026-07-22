@@ -1,0 +1,3 @@
+UPDATE public.tema_semana_versiones SET estado='revertido' WHERE estado='activo';
+INSERT INTO public.tema_semana_versiones (titulo, descripcion, pdf_url, fecha_inicio, fecha_fin, estado)
+VALUES ('Lección de esta semana', 'Lección de Casas de Paz — semana del ' || to_char(CURRENT_DATE, 'DD/MM/YYYY'), '/__l5e/assets-v1/bdc0c2ce-9ee4-413c-8f7a-2635e58823a4/leccion-semana.pdf', CURRENT_DATE, CURRENT_DATE + INTERVAL '6 days', 'activo');
