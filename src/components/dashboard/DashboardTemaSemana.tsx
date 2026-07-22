@@ -198,18 +198,26 @@ export default function DashboardTemaSemana({ titulo, descripcion, url, pdfUrl, 
           {effectivePdfUrl && (
             <button
               onClick={handleDownloadPDF}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-white/20 hover:bg-white/30 transition-colors"
+              disabled={pdfState.action !== null}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-white/20 hover:bg-white/30 transition-colors disabled:opacity-60"
             >
-              <Download className="h-3.5 w-3.5" /> Descargar PDF
+              {pdfState.action === "download"
+                ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                : <Download className="h-3.5 w-3.5" />}
+              {pdfState.action === "download" ? "Descargando…" : "Descargar PDF"}
             </button>
           )}
           {effectiveOpenUrl && (
             <button
               type="button"
               onClick={handleOpenPDF}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-white/20 hover:bg-white/30 transition-colors"
+              disabled={pdfState.action !== null}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-white/20 hover:bg-white/30 transition-colors disabled:opacity-60"
             >
-              <ExternalLink className="h-3.5 w-3.5" /> Abrir link
+              {pdfState.action === "open"
+                ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                : <ExternalLink className="h-3.5 w-3.5" />}
+              {pdfState.action === "open" ? "Abriendo…" : "Abrir link"}
             </button>
           )}
           {canEdit && (
@@ -220,9 +228,31 @@ export default function DashboardTemaSemana({ titulo, descripcion, url, pdfUrl, 
               <Pencil className="h-3.5 w-3.5" /> Editar
             </button>
           )}
-
         </div>
+        {pdfState.error && (
+          <div className="mt-3 mx-auto max-w-xs rounded-lg bg-white/15 border border-white/30 p-2.5 text-[11px] leading-snug">
+            <div className="flex items-start gap-1.5">
+              <AlertTriangle className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+              <span className="flex-1 text-left">{pdfState.error}</span>
+            </div>
+            <div className="flex gap-2 mt-2 justify-center">
+              <button
+                onClick={handleOpenPDF}
+                className="inline-flex items-center gap-1 px-2 py-1 rounded bg-white/20 hover:bg-white/30 font-semibold"
+              >
+                <RefreshCw className="h-3 w-3" /> Reintentar abrir
+              </button>
+              <button
+                onClick={handleDownloadPDF}
+                className="inline-flex items-center gap-1 px-2 py-1 rounded bg-white/20 hover:bg-white/30 font-semibold"
+              >
+                <RefreshCw className="h-3 w-3" /> Reintentar descarga
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
 }
+
