@@ -235,6 +235,11 @@ export default function DashboardTemaSemana({ titulo, descripcion, url, pdfUrl, 
             <CalendarClock className="h-3 w-3" /> Vigente hasta {vigenteHasta}
           </div>
         )}
+        {isOffline && (
+          <div className="mt-3 mx-auto max-w-xs rounded-lg bg-white/15 border border-white/30 px-2.5 py-1.5 text-[11px] font-medium">
+            Estás sin conexión. Se usará la copia guardada del PDF si está disponible.
+          </div>
+        )}
         <div className="flex items-center justify-center gap-2 mt-4 flex-wrap">
           {effectivePdfUrl && (
             <button
