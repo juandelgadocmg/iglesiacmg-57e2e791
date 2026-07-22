@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { BookOpen, ExternalLink, Pencil, Download, CalendarClock, AlertTriangle, RefreshCw, Loader2 } from "lucide-react";
 
 import { useNavigate } from "react-router-dom";
@@ -39,6 +39,11 @@ function withCacheBust(rawUrl: string | null | undefined, version?: string | nul
   }
 }
 
+// Cache en memoria del blob por versión: si ya se descargó una vez,
+// se reutiliza sin ir a la red (política "reutilizar si existe").
+const PDF_BLOB_CACHE = new Map<string, { url: string; ts: number }>();
+const PDF_CACHE_TTL_MS = 30 * 60 * 1000; // 30 min: renovar si expiró
+
 export default function DashboardTemaSemana({ titulo, descripcion, url, pdfUrl, fechaFin, versionId, isLoading, error, onRetry }: Props) {
   const navigate = useNavigate();
   const { roles } = useUserRoles();
@@ -47,6 +52,20 @@ export default function DashboardTemaSemana({ titulo, descripcion, url, pdfUrl, 
     action: null | "open" | "download";
     error: string | null;
   }>({ action: null, error: null });
+  const [isOffline, setIsOffline] = useState<boolean>(
+    typeof navigator !== "undefined" ? !navigator.onLine : false
+  );
+
+  useEffect(() => {
+    const on = () => setIsOffline(false);
+    const off = () => setIsOffline(true);
+    window.addEventListener("online", on);
+    window.addEventListener("offline", off);
+    return () => {
+      window.removeEventListener("online", on);
+      window.removeEventListener("offline", off);
+    };
+  }, []);
 
 
 
@@ -68,8 +87,30 @@ export default function DashboardTemaSemana({ titulo, descripcion, url, pdfUrl, 
   }
 
   const fetchPdfBlobUrl = async (pdfHref: string) => {
+    const cacheKey = `${versionId ?? "current"}::${pdfHref}`;
+    const cached = PDF_BLOB_CACHE.get(cacheKey);
+    if (cached && Date.now() - cached.ts < PDF_CACHE_TTL_MS) {
+      return cached.url;
+    }
+    if (cached) {
+      // Expiró: intentar renovar, pero si falla (offline) reutilizar el existente.
+      try {
+        const fresh = await doFetch(pdfHref);
+        URL.revokeObjectURL(cached.url);
+        PDF_BLOB_CACHE.set(cacheKey, { url: fresh, ts: Date.now() });
+        return fresh;
+      } catch {
+        return cached.url;
+      }
+    }
+    const fresh = await doFetch(pdfHref);
+    PDF_BLOB_CACHE.set(cacheKey, { url: fresh, ts: Date.now() });
+    return fresh;
+  };
+
+  const doFetch = async (pdfHref: string) => {
     const res = await fetch(pdfHref, {
-      cache: "no-store",
+      cache: "default",
       headers: { Accept: "application/pdf,*/*" },
     });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -92,7 +133,7 @@ export default function DashboardTemaSemana({ titulo, descripcion, url, pdfUrl, 
       } else {
         window.open(objUrl, "_blank", "noopener,noreferrer");
       }
-      window.setTimeout(() => URL.revokeObjectURL(objUrl), 60_000);
+      // No revocamos: el blob queda cacheado por versión para reutilizar.
       setPdfState({ action: null, error: null });
     } catch (err: any) {
       if (popup) popup.close();
@@ -115,7 +156,7 @@ export default function DashboardTemaSemana({ titulo, descripcion, url, pdfUrl, 
         document.body.appendChild(link);
         link.click();
         link.remove();
-        URL.revokeObjectURL(objUrl);
+        // No revocamos: el blob queda cacheado para futuras descargas/aperturas.
         setPdfState({ action: null, error: null });
         return;
       } catch (err: any) {
@@ -192,6 +233,11 @@ export default function DashboardTemaSemana({ titulo, descripcion, url, pdfUrl, 
         {vigenteHasta && (
           <div className="mt-2 inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/15 text-[10.5px] font-medium">
             <CalendarClock className="h-3 w-3" /> Vigente hasta {vigenteHasta}
+          </div>
+        )}
+        {isOffline && (
+          <div className="mt-3 mx-auto max-w-xs rounded-lg bg-white/15 border border-white/30 px-2.5 py-1.5 text-[11px] font-medium">
+            Estás sin conexión. Se usará la copia guardada del PDF si está disponible.
           </div>
         )}
         <div className="flex items-center justify-center gap-2 mt-4 flex-wrap">
