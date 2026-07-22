@@ -43,10 +43,11 @@ export default function DashboardTemaSemana({ titulo, descripcion, url, pdfUrl, 
   const navigate = useNavigate();
   const { roles } = useUserRoles();
   const canEdit = (roles as string[])?.some((r) => ["admin", "super_admin", "pastor"].includes(r));
-  const [pdfState, setPdfState] = (require("react") as typeof import("react")).useState<{
+  const [pdfState, setPdfState] = useState<{
     action: null | "open" | "download";
     error: string | null;
   }>({ action: null, error: null });
+
 
 
 
