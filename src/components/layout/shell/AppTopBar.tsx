@@ -72,7 +72,7 @@ export default function AppTopBar({ onMenuClick }: { onMenuClick?: () => void })
 
   return (
     <>
-      <header className="h-14 flex items-center gap-2 md:gap-3 px-3 md:px-5 border-b bg-background/80 backdrop-blur sticky top-0 z-20 overflow-hidden">
+      <header className="h-14 flex items-center gap-1.5 md:gap-3 px-2 md:px-5 border-b bg-background/80 backdrop-blur sticky top-0 z-20 w-full max-w-full overflow-hidden">
         <Button variant="ghost" size="icon" className="md:hidden h-11 w-11 shrink-0" onClick={onMenuClick} aria-label="Abrir menú de navegación">
           <Menu className="h-6 w-6" />
         </Button>
@@ -165,11 +165,11 @@ export default function AppTopBar({ onMenuClick }: { onMenuClick?: () => void })
             </Tooltip>
           </TooltipProvider>
 
-          <div className="hidden md:inline-flex"><QuickCreateMenu /></div>
-          <div className="hidden lg:inline-flex"><InstallPWAButton /></div>
+          <div className="hidden lg:inline-flex"><QuickCreateMenu /></div>
+          <div className="hidden xl:inline-flex"><InstallPWAButton /></div>
 
 
-          <Link to="/mensajes" className="relative p-2 rounded-md hover:bg-muted hidden md:inline-flex" title="Mensajes" aria-label={`Mensajes${unread > 0 ? ` (${unread} sin leer)` : ""}`}>
+          <Link to="/mensajes" className="relative p-2 rounded-md hover:bg-muted hidden lg:inline-flex" title="Mensajes" aria-label={`Mensajes${unread > 0 ? ` (${unread} sin leer)` : ""}`}>
             <Mail className="h-[18px] w-[18px] text-muted-foreground" aria-hidden="true" />
             {unread > 0 && (
               <Badge className="absolute -top-0.5 -right-0.5 h-4 min-w-4 px-1 flex items-center justify-center text-[10px] bg-primary text-primary-foreground border-0">
@@ -177,6 +177,7 @@ export default function AppTopBar({ onMenuClick }: { onMenuClick?: () => void })
               </Badge>
             )}
           </Link>
+
 
           <NotificationDropdown />
 
