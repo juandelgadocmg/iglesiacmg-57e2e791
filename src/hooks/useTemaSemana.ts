@@ -37,11 +37,16 @@ export function useTemaSemanaVigente() {
     queryKey: QK_VIGENTE,
     queryFn: async () => {
       const { data, error } = await (supabase as any).rpc("tema_semana_vigente");
-      if (error) throw error;
+      if (error) {
+        // eslint-disable-next-line no-console
+        console.error("[tema_semana_vigente] RPC error:", error);
+        throw error;
+      }
       const row = Array.isArray(data) ? data[0] : data;
       return row ?? null;
     },
     staleTime: 60_000,
+    retry: 1,
   });
 }
 
