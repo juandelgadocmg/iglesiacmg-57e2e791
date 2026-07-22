@@ -1,4 +1,6 @@
+import { useState } from "react";
 import { BookOpen, ExternalLink, Pencil, Download, CalendarClock, AlertTriangle, RefreshCw, Loader2 } from "lucide-react";
+
 import { useNavigate } from "react-router-dom";
 import jsPDF from "jspdf";
 import { format, parseISO } from "date-fns";
@@ -41,6 +43,13 @@ export default function DashboardTemaSemana({ titulo, descripcion, url, pdfUrl, 
   const navigate = useNavigate();
   const { roles } = useUserRoles();
   const canEdit = (roles as string[])?.some((r) => ["admin", "super_admin", "pastor"].includes(r));
+  const [pdfState, setPdfState] = useState<{
+    action: null | "open" | "download";
+    error: string | null;
+  }>({ action: null, error: null });
+
+
+
 
   const isEmpty = !titulo && !descripcion;
   const vigenteHasta = fechaFin ? (() => { try { return format(parseISO(fechaFin), "d MMM", { locale: es }); } catch { return null; } })() : null;
@@ -74,6 +83,7 @@ export default function DashboardTemaSemana({ titulo, descripcion, url, pdfUrl, 
 
   const handleOpenPDF = async () => {
     if (!effectiveOpenUrl) return;
+    setPdfState({ action: "open", error: null });
     const popup = window.open("about:blank", "_blank");
     try {
       const objUrl = await fetchPdfBlobUrl(effectiveOpenUrl);
@@ -83,15 +93,20 @@ export default function DashboardTemaSemana({ titulo, descripcion, url, pdfUrl, 
         window.open(objUrl, "_blank", "noopener,noreferrer");
       }
       window.setTimeout(() => URL.revokeObjectURL(objUrl), 60_000);
-    } catch (err) {
+      setPdfState({ action: null, error: null });
+    } catch (err: any) {
       if (popup) popup.close();
       console.error("[TemaSemana] No se pudo abrir el PDF vigente:", err);
-      window.open(effectiveOpenUrl, "_blank", "noopener,noreferrer");
+      setPdfState({
+        action: null,
+        error: `No se pudo abrir el PDF (${err?.message ?? "error de red o caché"}). Toca reintentar.`,
+      });
     }
   };
 
   const handleDownloadPDF = async () => {
     if (effectivePdfUrl) {
+      setPdfState({ action: "download", error: null });
       try {
         const link = document.createElement("a");
         const objUrl = await fetchPdfBlobUrl(effectivePdfUrl);
@@ -101,9 +116,14 @@ export default function DashboardTemaSemana({ titulo, descripcion, url, pdfUrl, 
         link.click();
         link.remove();
         URL.revokeObjectURL(objUrl);
+        setPdfState({ action: null, error: null });
         return;
-      } catch {
-        window.open(effectivePdfUrl, "_blank", "noopener,noreferrer");
+      } catch (err: any) {
+        console.error("[TemaSemana] Descarga falló:", err);
+        setPdfState({
+          action: null,
+          error: `No se pudo descargar el PDF (${err?.message ?? "error de red o caché"}). Toca reintentar.`,
+        });
         return;
       }
     }
@@ -133,6 +153,7 @@ export default function DashboardTemaSemana({ titulo, descripcion, url, pdfUrl, 
 
     doc.save("tema-de-la-semana.pdf");
   };
+
 
   if (error) {
     return (
@@ -177,18 +198,26 @@ export default function DashboardTemaSemana({ titulo, descripcion, url, pdfUrl, 
           {effectivePdfUrl && (
             <button
               onClick={handleDownloadPDF}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-white/20 hover:bg-white/30 transition-colors"
+              disabled={pdfState.action !== null}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-white/20 hover:bg-white/30 transition-colors disabled:opacity-60"
             >
-              <Download className="h-3.5 w-3.5" /> Descargar PDF
+              {pdfState.action === "download"
+                ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                : <Download className="h-3.5 w-3.5" />}
+              {pdfState.action === "download" ? "Descargando…" : "Descargar PDF"}
             </button>
           )}
           {effectiveOpenUrl && (
             <button
               type="button"
               onClick={handleOpenPDF}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-white/20 hover:bg-white/30 transition-colors"
+              disabled={pdfState.action !== null}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-white/20 hover:bg-white/30 transition-colors disabled:opacity-60"
             >
-              <ExternalLink className="h-3.5 w-3.5" /> Abrir link
+              {pdfState.action === "open"
+                ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                : <ExternalLink className="h-3.5 w-3.5" />}
+              {pdfState.action === "open" ? "Abriendo…" : "Abrir link"}
             </button>
           )}
           {canEdit && (
@@ -199,9 +228,31 @@ export default function DashboardTemaSemana({ titulo, descripcion, url, pdfUrl, 
               <Pencil className="h-3.5 w-3.5" /> Editar
             </button>
           )}
-
         </div>
+        {pdfState.error && (
+          <div className="mt-3 mx-auto max-w-xs rounded-lg bg-white/15 border border-white/30 p-2.5 text-[11px] leading-snug">
+            <div className="flex items-start gap-1.5">
+              <AlertTriangle className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+              <span className="flex-1 text-left">{pdfState.error}</span>
+            </div>
+            <div className="flex gap-2 mt-2 justify-center">
+              <button
+                onClick={handleOpenPDF}
+                className="inline-flex items-center gap-1 px-2 py-1 rounded bg-white/20 hover:bg-white/30 font-semibold"
+              >
+                <RefreshCw className="h-3 w-3" /> Reintentar abrir
+              </button>
+              <button
+                onClick={handleDownloadPDF}
+                className="inline-flex items-center gap-1 px-2 py-1 rounded bg-white/20 hover:bg-white/30 font-semibold"
+              >
+                <RefreshCw className="h-3 w-3" /> Reintentar descarga
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
 }
+
