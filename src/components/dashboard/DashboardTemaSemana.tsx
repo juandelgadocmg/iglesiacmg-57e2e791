@@ -83,6 +83,7 @@ export default function DashboardTemaSemana({ titulo, descripcion, url, pdfUrl, 
 
   const handleOpenPDF = async () => {
     if (!effectiveOpenUrl) return;
+    setPdfState({ action: "open", error: null });
     const popup = window.open("about:blank", "_blank");
     try {
       const objUrl = await fetchPdfBlobUrl(effectiveOpenUrl);
@@ -92,15 +93,20 @@ export default function DashboardTemaSemana({ titulo, descripcion, url, pdfUrl, 
         window.open(objUrl, "_blank", "noopener,noreferrer");
       }
       window.setTimeout(() => URL.revokeObjectURL(objUrl), 60_000);
-    } catch (err) {
+      setPdfState({ action: null, error: null });
+    } catch (err: any) {
       if (popup) popup.close();
       console.error("[TemaSemana] No se pudo abrir el PDF vigente:", err);
-      window.open(effectiveOpenUrl, "_blank", "noopener,noreferrer");
+      setPdfState({
+        action: null,
+        error: `No se pudo abrir el PDF (${err?.message ?? "error de red o caché"}). Toca reintentar.`,
+      });
     }
   };
 
   const handleDownloadPDF = async () => {
     if (effectivePdfUrl) {
+      setPdfState({ action: "download", error: null });
       try {
         const link = document.createElement("a");
         const objUrl = await fetchPdfBlobUrl(effectivePdfUrl);
@@ -110,9 +116,14 @@ export default function DashboardTemaSemana({ titulo, descripcion, url, pdfUrl, 
         link.click();
         link.remove();
         URL.revokeObjectURL(objUrl);
+        setPdfState({ action: null, error: null });
         return;
-      } catch {
-        window.open(effectivePdfUrl, "_blank", "noopener,noreferrer");
+      } catch (err: any) {
+        console.error("[TemaSemana] Descarga falló:", err);
+        setPdfState({
+          action: null,
+          error: `No se pudo descargar el PDF (${err?.message ?? "error de red o caché"}). Toca reintentar.`,
+        });
         return;
       }
     }
@@ -142,6 +153,7 @@ export default function DashboardTemaSemana({ titulo, descripcion, url, pdfUrl, 
 
     doc.save("tema-de-la-semana.pdf");
   };
+
 
   if (error) {
     return (
