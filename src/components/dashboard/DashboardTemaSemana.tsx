@@ -58,14 +58,43 @@ export default function DashboardTemaSemana({ titulo, descripcion, url, pdfUrl, 
     console.warn("[TemaSemana] url y pdf_url difieren; se prioriza pdf_url para ambos botones.", { url, pdfUrl });
   }
 
+  const fetchPdfBlobUrl = async (pdfHref: string) => {
+    const res = await fetch(pdfHref, {
+      cache: "no-store",
+      headers: { Accept: "application/pdf,*/*" },
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const blob = await res.blob();
+    const isPdf = blob.type === "application/pdf" || blob.type === "application/octet-stream";
+    if (!isPdf) {
+      throw new Error(`Respuesta no es PDF: ${blob.type || "sin tipo"}`);
+    }
+    return URL.createObjectURL(blob);
+  };
+
+  const handleOpenPDF = async () => {
+    if (!effectiveOpenUrl) return;
+    const popup = window.open("about:blank", "_blank");
+    try {
+      const objUrl = await fetchPdfBlobUrl(effectiveOpenUrl);
+      if (popup) {
+        popup.location.href = objUrl;
+      } else {
+        window.open(objUrl, "_blank", "noopener,noreferrer");
+      }
+      window.setTimeout(() => URL.revokeObjectURL(objUrl), 60_000);
+    } catch (err) {
+      if (popup) popup.close();
+      console.error("[TemaSemana] No se pudo abrir el PDF vigente:", err);
+      window.open(effectiveOpenUrl, "_blank", "noopener,noreferrer");
+    }
+  };
+
   const handleDownloadPDF = async () => {
     if (effectivePdfUrl) {
       try {
-        const res = await fetch(effectivePdfUrl, { cache: "no-store" });
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const blob = await res.blob();
         const link = document.createElement("a");
-        const objUrl = URL.createObjectURL(blob);
+        const objUrl = await fetchPdfBlobUrl(effectivePdfUrl);
         link.href = objUrl;
         link.download = `tema-de-la-semana-${new Date().toISOString().slice(0, 10)}.pdf`;
         document.body.appendChild(link);
@@ -154,14 +183,13 @@ export default function DashboardTemaSemana({ titulo, descripcion, url, pdfUrl, 
             </button>
           )}
           {effectiveOpenUrl && (
-            <a
-              href={effectiveOpenUrl}
-              target="_blank"
-              rel="noopener noreferrer"
+            <button
+              type="button"
+              onClick={handleOpenPDF}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-white/20 hover:bg-white/30 transition-colors"
             >
               <ExternalLink className="h-3.5 w-3.5" /> Abrir link
-            </a>
+            </button>
           )}
           {canEdit && (
             <button
