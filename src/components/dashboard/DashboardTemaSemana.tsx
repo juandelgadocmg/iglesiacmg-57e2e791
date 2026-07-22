@@ -79,11 +79,35 @@ export default function DashboardTemaSemana({ titulo, descripcion, url, pdfUrl, 
     doc.save("tema-de-la-semana.pdf");
   };
 
+  if (error) {
+    return (
+      <div className="rounded-xl overflow-hidden border shadow-sm bg-red-600 text-white">
+        <div className="px-6 py-6 text-center">
+          <div className="mx-auto mb-3 w-14 h-14 rounded-full bg-white/20 flex items-center justify-center">
+            <AlertTriangle className="h-7 w-7" />
+          </div>
+          <h3 className="font-bold text-lg">No se pudo cargar la lección</h3>
+          <p className="text-xs mt-2 opacity-90 break-words">
+            {(error as any)?.message ?? "Error desconocido al consultar tema_semana_vigente"}
+          </p>
+          {onRetry && (
+            <button
+              onClick={onRetry}
+              className="mt-4 inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-white/20 hover:bg-white/30 transition-colors"
+            >
+              <RefreshCw className="h-3.5 w-3.5" /> Reintentar
+            </button>
+          )}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="rounded-xl overflow-hidden border shadow-sm bg-teal-600 text-white">
       <div className="px-6 py-6 text-center">
         <div className="mx-auto mb-3 w-14 h-14 rounded-full bg-white/20 flex items-center justify-center">
-          <BookOpen className="h-7 w-7" />
+          {isLoading ? <Loader2 className="h-7 w-7 animate-spin" /> : <BookOpen className="h-7 w-7" />}
         </div>
         <h3 className="font-bold text-lg">Tema de la semana</h3>
         <p className="text-sm mt-2 uppercase tracking-wide font-semibold opacity-95">
