@@ -1,4 +1,4 @@
-import { BookOpen, ExternalLink, Pencil, Download, CalendarClock } from "lucide-react";
+import { BookOpen, ExternalLink, Pencil, Download, CalendarClock, AlertTriangle, RefreshCw, Loader2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import jsPDF from "jspdf";
 import { format, parseISO } from "date-fns";
@@ -11,9 +11,12 @@ interface Props {
   url?: string | null;
   pdfUrl?: string | null;
   fechaFin?: string | null;
+  isLoading?: boolean;
+  error?: unknown;
+  onRetry?: () => void;
 }
 
-export default function DashboardTemaSemana({ titulo, descripcion, url, pdfUrl, fechaFin }: Props) {
+export default function DashboardTemaSemana({ titulo, descripcion, url, pdfUrl, fechaFin, isLoading, error, onRetry }: Props) {
   const navigate = useNavigate();
   const { roles } = useUserRoles();
   const canEdit = (roles as string[])?.some((r) => ["admin", "super_admin", "pastor"].includes(r));
