@@ -14,7 +14,7 @@ export interface DrawerProps {
   className?: string;
 }
 
-const sizeMap = { sm: "w-[320px]", md: "w-[420px]", lg: "w-[560px]", xl: "w-[720px]" };
+const sizeMap = { sm: "sm:w-[320px]", md: "sm:w-[420px]", lg: "sm:w-[560px]", xl: "sm:w-[720px]" };
 
 export function Drawer({
   open, onOpenChange, title, description, side = "right", size = "md", footer, children, className,
