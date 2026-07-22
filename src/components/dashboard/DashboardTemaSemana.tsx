@@ -156,7 +156,7 @@ export default function DashboardTemaSemana({ titulo, descripcion, url, pdfUrl, 
         document.body.appendChild(link);
         link.click();
         link.remove();
-        URL.revokeObjectURL(objUrl);
+        // No revocamos: el blob queda cacheado para futuras descargas/aperturas.
         setPdfState({ action: null, error: null });
         return;
       } catch (err: any) {
