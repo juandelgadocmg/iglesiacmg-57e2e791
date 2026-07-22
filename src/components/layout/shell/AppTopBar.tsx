@@ -72,7 +72,7 @@ export default function AppTopBar({ onMenuClick }: { onMenuClick?: () => void })
 
   return (
     <>
-      <header className="h-14 flex items-center gap-2 md:gap-3 px-3 md:px-5 border-b bg-background/80 backdrop-blur sticky top-0 z-20 overflow-hidden">
+      <header className="h-14 flex items-center gap-1.5 md:gap-3 px-2 md:px-5 border-b bg-background/80 backdrop-blur sticky top-0 z-20 w-full max-w-full overflow-hidden">
         <Button variant="ghost" size="icon" className="md:hidden h-11 w-11 shrink-0" onClick={onMenuClick} aria-label="Abrir menú de navegación">
           <Menu className="h-6 w-6" />
         </Button>
