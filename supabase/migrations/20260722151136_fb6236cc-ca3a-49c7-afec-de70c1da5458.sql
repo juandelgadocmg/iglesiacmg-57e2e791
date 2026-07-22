@@ -1,0 +1,1 @@
+UPDATE public.tema_semana_versiones SET url = pdf_url WHERE id = '23fa7d09-c943-4fe5-809f-a83cd49681da';
