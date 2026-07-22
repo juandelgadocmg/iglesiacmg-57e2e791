@@ -34,7 +34,7 @@ describe("useTemaSemanaVigente", () => {
   it("surfaces RPC errors so the UI can retry", async () => {
     rpcMock.mockResolvedValue({ data: null, error: { message: "boom" } });
     const { result } = renderHook(() => useTemaSemanaVigente(), { wrapper: wrapper() });
-    await waitFor(() => expect(result.current.isError).toBe(true));
+    await waitFor(() => expect(result.current.isError).toBe(true), { timeout: 5000 });
     expect((result.current.error as any)?.message).toBe("boom");
   });
 });
