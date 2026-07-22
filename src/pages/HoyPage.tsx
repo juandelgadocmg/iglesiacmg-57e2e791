@@ -381,6 +381,7 @@ export default function HoyPage() {
             url={temaVigente?.url ?? config?.tema_semana_url}
             pdfUrl={temaVigente?.pdf_url ?? (config as any)?.tema_semana_pdf_url}
             fechaFin={temaVigente?.fecha_fin ?? null}
+            versionId={(temaVigente as any)?.id ?? null}
             isLoading={temaLoading}
             error={temaError}
             onRetry={() => temaRefetch()}
