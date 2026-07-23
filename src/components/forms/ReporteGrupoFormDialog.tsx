@@ -123,6 +123,8 @@ export default function ReporteGrupoFormDialog({ open, onOpenChange, editReporte
   const createReporte = useCreateReporteGrupo();
   const updateReporte = useUpdateReporteGrupo();
   const { data: editAsistencia } = useReporteAsistencia(editReporteId || null);
+  const { hasRole, isAdmin } = useUserRoles();
+  const canBypassDeadline = isAdmin || hasRole("super_admin" as any) || hasRole("pastor" as any);
 
   const selectedGrupo = grupos?.find((g) => g.id === grupoId);
   const diaReunion = (selectedGrupo as any)?.dia_reunion;
