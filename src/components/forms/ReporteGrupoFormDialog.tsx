@@ -788,6 +788,21 @@ export default function ReporteGrupoFormDialog({ open, onOpenChange, editReporte
                     ? "Diligencia la información general de tu reporte."
                     : "Registra las asistencias. Al terminar da CLIC en finalizar."}
                 </p>
+                {(() => {
+                  const deadline = thursdayDeadlineFor(new Date());
+                  const overdue = deadline.getTime() < Date.now();
+                  return (
+                    <div className="mt-2 inline-flex flex-wrap items-center gap-2 rounded-md border bg-muted/40 px-2.5 py-1 text-[11px]">
+                      <CalendarClock className="h-3 w-3 text-primary" />
+                      <span className="font-medium">Fecha límite:</span>
+                      <span className="capitalize">{formatDeadlineBogota(deadline)}</span>
+                      <span className="text-muted-foreground">(hora Bogotá)</span>
+                      <Badge variant={overdue ? "destructive" : "secondary"} className="h-4 px-1.5 text-[10px]">
+                        {deadlineCountdown(deadline)}
+                      </Badge>
+                    </div>
+                  );
+                })()}
               </div>
               <div className="flex items-center gap-2">
                 {step === 1 && (
