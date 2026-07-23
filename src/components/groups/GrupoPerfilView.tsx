@@ -34,6 +34,7 @@ import GrupoFormDialog from "@/components/forms/GrupoFormDialog";
 import ReporteGrupoFormDialog from "@/components/forms/ReporteGrupoFormDialog";
 import PlanificacionGrupoFormDialog from "@/components/forms/PlanificacionGrupoFormDialog";
 import { usePlanificaciones, useDeletePlanificacion } from "@/hooks/usePlanificaciones";
+import { tuesdayDeadlineFor, deadlineCountdown, wasOnTime, formatDeadlineBogota } from "@/lib/planificacionDeadline";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import DeleteConfirmDialog from "@/components/shared/DeleteConfirmDialog";
 import { exportGroupProfilePDF } from "@/lib/exportUtils";
@@ -777,6 +778,22 @@ function PlanificacionTab({ grupoId, readOnly = false }: { grupoId: string; read
         )}
       </div>
 
+      {(() => {
+        const deadline = tuesdayDeadlineFor(new Date());
+        const overdue = deadline.getTime() < Date.now();
+        return (
+          <div className="flex flex-wrap items-center gap-2 rounded-md border bg-muted/40 px-3 py-2 text-xs">
+            <Clock className="h-3.5 w-3.5 text-primary" />
+            <span className="font-medium">Fecha límite:</span>
+            <span className="capitalize">{formatDeadlineBogota(deadline)}</span>
+            <span className="text-muted-foreground">(hora Bogotá)</span>
+            <Badge variant={overdue ? "destructive" : "secondary"} className="ml-auto">
+              {deadlineCountdown(deadline)}
+            </Badge>
+          </div>
+        );
+      })()}
+
       {planificaciones && planificaciones.length > 0 ? (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {planificaciones.map((p: any) => (
@@ -798,7 +815,12 @@ function PlanificacionTab({ grupoId, readOnly = false }: { grupoId: string; read
                   )}
                 </div>
               </div>
-              <p className="text-[10px] text-muted-foreground">{new Date(p.created_at).toLocaleDateString()}</p>
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-[10px] text-muted-foreground">{new Date(p.created_at).toLocaleDateString()}</p>
+                {wasOnTime(p.created_at)
+                  ? <Badge variant="secondary" className="h-4 px-1.5 text-[10px]">A tiempo</Badge>
+                  : <Badge variant="destructive" className="h-4 px-1.5 text-[10px]">Vencida</Badge>}
+              </div>
               <div className="text-xs space-y-0.5">
                 <p>Invitados: {p.personas_invitadas}</p>
                 <p>Ayuno: {p.fecha_ayuno || "—"}</p>
