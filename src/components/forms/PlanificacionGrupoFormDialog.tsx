@@ -364,8 +364,8 @@ export default function PlanificacionGrupoFormDialog({ open, onOpenChange }: Pro
               </p>
             </div>
 
-            <Button onClick={handleSubmit} disabled={create.isPending || planDeadlinePassed} className="w-full">
-              {planDeadlinePassed ? "Fecha límite vencida" : create.isPending ? "Guardando..." : "Guardar Planificación"}
+            <Button onClick={handleSubmit} disabled={create.isPending || blockedForUser} className="w-full">
+              {blockedForUser ? "Fecha límite vencida" : create.isPending ? "Guardando..." : (planDeadlinePassed ? "Guardar (excepción Admin/Pastor)" : "Guardar Planificación")}
             </Button>
           </div>
         </ScrollArea>
