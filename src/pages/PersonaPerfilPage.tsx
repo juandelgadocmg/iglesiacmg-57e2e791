@@ -750,7 +750,7 @@ export default function PersonaPerfilPage() {
         {/* ======================================================
              TAB · QR — Hero destacado
         ====================================================== */}
-        <TabsContent value="qr" className="mt-0">
+        <TabsContent value="qr" className="mt-0 space-y-6">
           <QrHero
             personaNombre={fullName}
             qrCode={(persona as any).qr_code || ""}
@@ -759,6 +759,63 @@ export default function PersonaPerfilPage() {
             setQrCheckinServicio={setQrCheckinServicio}
             onOpenManual={() => setQrCheckinOpen(true)}
           />
+
+          {/* Historial de asistencias registradas por QR */}
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base flex items-center gap-2">
+                <QrCode className="h-4 w-4 text-primary" /> Historial de check-ins por QR
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {(() => {
+                const qrRows = (asistencias || []).filter((a: any) => a.metodo_registro === "qr");
+                if (!qrRows.length) {
+                  return (
+                    <p className="text-sm text-muted-foreground">
+                      Aún no hay asistencias registradas por QR.
+                    </p>
+                  );
+                }
+                return (
+                  <div className="divide-y">
+                    {qrRows.map((a: any) => (
+                      <div key={a.id} className="py-2.5 flex items-center justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium truncate">
+                            {a.servicios?.nombre || "Reunión"}
+                          </p>
+                          <p className="text-[11px] text-muted-foreground">
+                            {a.checkin_time
+                              ? new Date(a.checkin_time).toLocaleString("es-CO")
+                              : (a.servicios?.fecha
+                                  ? new Date(a.servicios.fecha).toLocaleDateString("es-CO")
+                                  : "—")}
+                          </p>
+                        </div>
+                        {a.puntualidad && (
+                          <Badge
+                            variant="outline"
+                            className={
+                              a.puntualidad === "Excelente" || a.puntualidad === "Puntual"
+                                ? "bg-success/10 text-success border-success/20"
+                                : a.puntualidad === "Tarde leve"
+                                ? "bg-amber-500/10 text-amber-700 border-amber-500/20"
+                                : a.puntualidad === "Tarde"
+                                ? "bg-orange-500/10 text-orange-700 border-orange-500/20"
+                                : "bg-destructive/10 text-destructive border-destructive/20"
+                            }
+                          >
+                            {a.puntualidad}
+                          </Badge>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                );
+              })()}
+            </CardContent>
+          </Card>
         </TabsContent>
 
         {/* ======== TAB · SEGUIMIENTO ======== */}

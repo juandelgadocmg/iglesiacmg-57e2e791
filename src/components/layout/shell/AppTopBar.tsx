@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/hooks/useAuth";
 import { useActiveRole } from "@/hooks/useActiveRole";
+import { useUserRoles } from "@/hooks/useUserRoles";
 import { useConfiguracion } from "@/hooks/useConfiguracion";
 import { useUnreadCount } from "@/hooks/useMensajes";
 import NotificationDropdown from "@/components/layout/NotificationDropdown";
@@ -38,6 +39,9 @@ export default function AppTopBar({ onMenuClick }: { onMenuClick?: () => void })
   const { user } = useAuth();
   const { activeRole, setActiveRole, allRoles, roleLabel } = useActiveRole();
   const { data: config } = useConfiguracion();
+  const { roles } = useUserRoles();
+  // Solo usuarios autenticados y con rol distinto a "consulta" pueden escanear QR
+  const canScanQr = !!user && !(roles.length === 1 && roles[0] === "consulta");
   const { data: unread = 0 } = useUnreadCount();
   const [cmdOpen, setCmdOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
@@ -168,21 +172,23 @@ export default function AppTopBar({ onMenuClick }: { onMenuClick?: () => void })
           </TooltipProvider>
 
           <div className="hidden lg:inline-flex"><QuickCreateMenu /></div>
-          <TooltipProvider delayDuration={200}>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <button
-                  type="button"
-                  onClick={() => setScanOpen(true)}
-                  className="p-2 rounded-md hover:bg-muted inline-flex"
-                  aria-label="Escanear QR de asistencia"
-                >
-                  <QrCode className="h-[18px] w-[18px] text-muted-foreground" aria-hidden="true" />
-                </button>
-              </TooltipTrigger>
-              <TooltipContent side="bottom">Escanear QR</TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+          {canScanQr && (
+            <TooltipProvider delayDuration={200}>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    type="button"
+                    onClick={() => setScanOpen(true)}
+                    className="p-2 rounded-md hover:bg-muted inline-flex"
+                    aria-label="Escanear QR de asistencia"
+                  >
+                    <QrCode className="h-[18px] w-[18px] text-muted-foreground" aria-hidden="true" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom">Escanear QR</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )}
           <div className="hidden xl:inline-flex"><InstallPWAButton /></div>
 
 
@@ -234,7 +240,7 @@ export default function AppTopBar({ onMenuClick }: { onMenuClick?: () => void })
 
       <CommandBar open={cmdOpen} onOpenChange={setCmdOpen} />
       <HotkeysHelpDialog open={helpOpen} onOpenChange={setHelpOpen} />
-      <ScanQrDialog open={scanOpen} onOpenChange={setScanOpen} />
+      {canScanQr && <ScanQrDialog open={scanOpen} onOpenChange={setScanOpen} />}
     </>
   );
 }
