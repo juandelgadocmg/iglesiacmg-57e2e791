@@ -3333,6 +3333,48 @@ export type Database = {
           },
         ]
       }
+      qr_scan_log: {
+        Row: {
+          code: string | null
+          created_at: string
+          id: string
+          ip: unknown
+          message: string | null
+          persona_id: string | null
+          result: string
+          servicio_id: string | null
+          token: string | null
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          code?: string | null
+          created_at?: string
+          id?: string
+          ip?: unknown
+          message?: string | null
+          persona_id?: string | null
+          result: string
+          servicio_id?: string | null
+          token?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          code?: string | null
+          created_at?: string
+          id?: string
+          ip?: unknown
+          message?: string | null
+          persona_id?: string | null
+          result?: string
+          servicio_id?: string | null
+          token?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       recursos_academicos: {
         Row: {
           archivo_nombre: string | null
