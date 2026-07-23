@@ -8,6 +8,7 @@ import ServicioFormDialog from "@/components/forms/ServicioFormDialog";
 import DeleteConfirmDialog from "@/components/shared/DeleteConfirmDialog";
 import MetricCard from "@/components/shared/MetricCard";
 import QrAttendanceScanner from "@/components/attendance/QrAttendanceScanner";
+import GenerateQrDialog from "@/components/servicios/GenerateQrDialog";
 import WeeklyTimeline from "@/components/servicios/WeeklyTimeline";
 import { Church, Pencil, ClipboardCheck, Check, X, Save, Search, TrendingUp, Calendar, Eye, FileText, Users, MapPin, Clock as ClockIcon, QrCode, Share2, Heart, CalendarDays, List } from "lucide-react";
 import ConsejeriaTab from "@/components/consejeria/ConsejeriaTab";
@@ -628,9 +629,18 @@ function ReunionesTimelineView({
                     </td>
                     <td className="px-2 py-2" onClick={(e) => e.stopPropagation()}>
                       <div className="flex items-center justify-end gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button title="QR" onClick={() => { setCheckinServicioId(s.id); setCheckinOpen(true); }} className="p-1 rounded hover:bg-muted">
-                          <QrCode className="h-3.5 w-3.5 text-primary" />
-                        </button>
+                        <GenerateQrDialog
+                          servicioId={s.id}
+                          servicioNombre={s.nombre}
+                          currentToken={s.qr_token}
+                          qrActivo={s.qr_activo}
+                          qrExpiresAt={s.qr_expires_at}
+                          trigger={
+                            <button title="Generar QR de Asistencia" className="p-1 rounded hover:bg-muted">
+                              <QrCode className={cn("h-3.5 w-3.5", s.qr_activo ? "text-success" : "text-primary")} />
+                            </button>
+                          }
+                        />
                         <button title="Editar" onClick={() => onEdit(s)} className="p-1 rounded hover:bg-muted">
                           <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
                         </button>

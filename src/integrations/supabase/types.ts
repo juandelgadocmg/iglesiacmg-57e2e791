@@ -85,30 +85,42 @@ export type Database = {
       }
       asistencia: {
         Row: {
+          checkin_time: string | null
           clasificacion: string | null
           created_at: string
           es_nuevo: boolean | null
           id: string
+          metodo_registro: string
+          observaciones: string | null
           persona_id: string
           presente: boolean
+          puntualidad: string | null
           servicio_id: string
         }
         Insert: {
+          checkin_time?: string | null
           clasificacion?: string | null
           created_at?: string
           es_nuevo?: boolean | null
           id?: string
+          metodo_registro?: string
+          observaciones?: string | null
           persona_id: string
           presente?: boolean
+          puntualidad?: string | null
           servicio_id: string
         }
         Update: {
+          checkin_time?: string | null
           clasificacion?: string | null
           created_at?: string
           es_nuevo?: boolean | null
           id?: string
+          metodo_registro?: string
+          observaciones?: string | null
           persona_id?: string
           presente?: boolean
+          puntualidad?: string | null
           servicio_id?: string
         }
         Relationships: [
@@ -4894,6 +4906,10 @@ export type Database = {
           lugar: string | null
           nombre: string
           predicador: string | null
+          qr_activated_at: string | null
+          qr_activo: boolean
+          qr_expires_at: string | null
+          qr_token: string | null
           sede: string | null
           tipo: Database["public"]["Enums"]["tipo_servicio"]
           updated_at: string
@@ -4911,6 +4927,10 @@ export type Database = {
           lugar?: string | null
           nombre: string
           predicador?: string | null
+          qr_activated_at?: string | null
+          qr_activo?: boolean
+          qr_expires_at?: string | null
+          qr_token?: string | null
           sede?: string | null
           tipo: Database["public"]["Enums"]["tipo_servicio"]
           updated_at?: string
@@ -4928,6 +4948,10 @@ export type Database = {
           lugar?: string | null
           nombre?: string
           predicador?: string | null
+          qr_activated_at?: string | null
+          qr_activo?: boolean
+          qr_expires_at?: string | null
+          qr_token?: string | null
           sede?: string | null
           tipo?: Database["public"]["Enums"]["tipo_servicio"]
           updated_at?: string
@@ -5224,6 +5248,10 @@ export type Database = {
     Functions: {
       can_create_personas: { Args: { _uid: string }; Returns: boolean }
       cdp_generate_deadline_alerts: { Args: never; Returns: number }
+      checkin_qr: {
+        Args: { _servicio_id: string; _token: string }
+        Returns: Json
+      }
       create_persona_with_permission: {
         Args: { _payload: Json }
         Returns: {
@@ -5482,6 +5510,11 @@ export type Database = {
           user_id: string
         }[]
       }
+      servicio_qr_activate: {
+        Args: { _minutes?: number; _servicio_id: string }
+        Returns: Json
+      }
+      servicio_qr_close: { Args: { _servicio_id: string }; Returns: undefined }
       tema_semana_revertir: { Args: { _version_id: string }; Returns: string }
       tema_semana_vigente: {
         Args: never
