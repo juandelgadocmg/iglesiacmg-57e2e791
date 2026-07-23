@@ -814,14 +814,26 @@ export default function ReporteGrupoFormDialog({ open, onOpenChange, editReporte
                   const deadline = thursdayDeadlineFor(new Date());
                   const overdue = deadline.getTime() < Date.now();
                   return (
-                    <div className="mt-2 inline-flex flex-wrap items-center gap-2 rounded-md border bg-muted/40 px-2.5 py-1 text-[11px]">
-                      <CalendarClock className="h-3 w-3 text-primary" />
-                      <span className="font-medium">Fecha límite:</span>
-                      <span className="capitalize">{formatDeadlineBogota(deadline)}</span>
-                      <span className="text-muted-foreground">(hora Bogotá)</span>
-                      <Badge variant={overdue ? "destructive" : "secondary"} className="h-4 px-1.5 text-[10px]">
-                        {deadlineCountdown(deadline)}
-                      </Badge>
+                    <div className="mt-2 space-y-1.5">
+                      <div className="inline-flex flex-wrap items-center gap-2 rounded-md border bg-muted/40 px-2.5 py-1 text-[11px]">
+                        <CalendarClock className="h-3 w-3 text-primary" />
+                        <span className="font-medium">Fecha límite:</span>
+                        <span className="capitalize">{formatDeadlineBogota(deadline)}</span>
+                        <span className="text-muted-foreground">(hora Bogotá)</span>
+                        <Badge variant={overdue ? "destructive" : "secondary"} className="h-4 px-1.5 text-[10px]">
+                          {deadlineCountdown(deadline)}
+                        </Badge>
+                      </div>
+                      {overdue && !isEditMode && (
+                        <div className={`flex items-start gap-2 rounded-md border px-2.5 py-1.5 text-[11px] ${canBypassDeadline ? "border-amber-300 bg-amber-50 text-amber-900" : "border-destructive/40 bg-destructive/10 text-destructive"}`}>
+                          <ShieldCheck className="h-3 w-3 mt-0.5 shrink-0" />
+                          <span>
+                            {canBypassDeadline
+                              ? "Plazo vencido. Como Admin/Pastor puedes crear este reporte fuera de plazo (excepción autorizada; quedará registrado en auditoría)."
+                              : "Plazo vencido. Solo Admin o Pastor pueden crear reportes después del jueves 11:59 PM (hora Bogotá)."}
+                          </span>
+                        </div>
+                      )}
                     </div>
                   );
                 })()}
