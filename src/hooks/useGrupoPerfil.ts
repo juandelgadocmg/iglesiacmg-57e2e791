@@ -40,6 +40,7 @@ export interface MiembroDetalle {
 export interface ReporteResumen {
   id: string;
   fecha: string;
+  created_at: string;
   estado: string;
   ofrenda_casa_paz: number | null;
   total_reportado: number | null;
