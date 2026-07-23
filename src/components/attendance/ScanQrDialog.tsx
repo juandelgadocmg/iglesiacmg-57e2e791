@@ -5,12 +5,14 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
-  QrCode, CheckCircle2, AlertTriangle, Loader2, Clock, Camera, Pause, Play, RotateCcw, SwitchCamera,
+  QrCode, CheckCircle2, AlertTriangle, Loader2, Clock, Camera, Pause, Play, RotateCcw, SwitchCamera, WifiOff,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
+import { enqueueScan, flushQueue } from "@/lib/qrOfflineQueue";
+import { toast } from "sonner";
 
 const PUNT_COLOR: Record<string, string> = {
   "Excelente": "bg-success/15 text-success",
