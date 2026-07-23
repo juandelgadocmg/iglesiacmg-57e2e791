@@ -8,10 +8,12 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
 import { useCreatePlanificacion } from "@/hooks/usePlanificaciones";
 import { useGrupos } from "@/hooks/useDatabase";
+import { useUserRoles } from "@/hooks/useUserRoles";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
-import { CalendarClock } from "lucide-react";
+import { CalendarClock, ShieldCheck } from "lucide-react";
 import { tuesdayDeadlineFor, formatDeadlineBogota, deadlineCountdown } from "@/lib/planificacionDeadline";
 
 const REDES = ["ADONAI", "ELOHIM", "JIREH", "NISSI", "ROHI", "SHADAI"];
