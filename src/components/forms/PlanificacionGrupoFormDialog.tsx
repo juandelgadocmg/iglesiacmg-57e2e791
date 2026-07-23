@@ -10,6 +10,9 @@ import { useCreatePlanificacion } from "@/hooks/usePlanificaciones";
 import { useGrupos } from "@/hooks/useDatabase";
 import { toast } from "sonner";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Badge } from "@/components/ui/badge";
+import { CalendarClock } from "lucide-react";
+import { tuesdayDeadlineFor, formatDeadlineBogota, deadlineCountdown } from "@/lib/planificacionDeadline";
 
 const REDES = ["ADONAI", "ELOHIM", "JIREH", "NISSI", "ROHI", "SHADAI"];
 
