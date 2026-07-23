@@ -8,6 +8,7 @@ import ServicioFormDialog from "@/components/forms/ServicioFormDialog";
 import DeleteConfirmDialog from "@/components/shared/DeleteConfirmDialog";
 import MetricCard from "@/components/shared/MetricCard";
 import QrAttendanceScanner from "@/components/attendance/QrAttendanceScanner";
+import GenerateQrDialog from "@/components/servicios/GenerateQrDialog";
 import WeeklyTimeline from "@/components/servicios/WeeklyTimeline";
 import { Church, Pencil, ClipboardCheck, Check, X, Save, Search, TrendingUp, Calendar, Eye, FileText, Users, MapPin, Clock as ClockIcon, QrCode, Share2, Heart, CalendarDays, List } from "lucide-react";
 import ConsejeriaTab from "@/components/consejeria/ConsejeriaTab";
