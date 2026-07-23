@@ -34,7 +34,7 @@ import GrupoFormDialog from "@/components/forms/GrupoFormDialog";
 import ReporteGrupoFormDialog from "@/components/forms/ReporteGrupoFormDialog";
 import PlanificacionGrupoFormDialog from "@/components/forms/PlanificacionGrupoFormDialog";
 import { usePlanificaciones, useDeletePlanificacion } from "@/hooks/usePlanificaciones";
-import { tuesdayDeadlineFor, deadlineCountdown, wasOnTime, formatDeadlineBogota } from "@/lib/planificacionDeadline";
+import { tuesdayDeadlineFor, thursdayDeadlineFor, deadlineCountdown, wasOnTime, formatDeadlineBogota } from "@/lib/planificacionDeadline";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import DeleteConfirmDialog from "@/components/shared/DeleteConfirmDialog";
 import { exportGroupProfilePDF } from "@/lib/exportUtils";
