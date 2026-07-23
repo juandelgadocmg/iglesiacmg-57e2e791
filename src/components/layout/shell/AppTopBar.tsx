@@ -41,6 +41,7 @@ export default function AppTopBar({ onMenuClick }: { onMenuClick?: () => void })
   const { data: unread = 0 } = useUnreadCount();
   const [cmdOpen, setCmdOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
+  const [scanOpen, setScanOpen] = useState(false);
   const initials = user?.email?.slice(0, 2).toUpperCase() || "U";
 
   const sedes: string[] = (config as any)?.sedes || ["Principal"];
