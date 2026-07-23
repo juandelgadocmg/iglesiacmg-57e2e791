@@ -56,9 +56,9 @@ export function deadlineCountdown(deadline: Date, now: Date = new Date()): strin
   return `Vence en ${d}d ${rh}h`;
 }
 
-/** Para una planeación existente: ¿se creó a tiempo respecto al martes de esa semana? */
-export function wasOnTime(createdAt: string | Date): boolean {
+/** ¿Se creó/registró a tiempo respecto al día límite indicado? */
+export function wasOnTime(createdAt: string | Date, targetDow: number = 2): boolean {
   const created = typeof createdAt === "string" ? new Date(createdAt) : createdAt;
-  const deadline = tuesdayDeadlineFor(created);
+  const deadline = weeklyDeadline(targetDow, created);
   return created.getTime() <= deadline.getTime();
 }
