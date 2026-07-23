@@ -50,7 +50,9 @@ interface Props {
 export default function PlanificacionGrupoFormDialog({ open, onOpenChange }: Props) {
   const { data: grupos } = useGrupos();
   const create = useCreatePlanificacion();
-  
+  const { hasRole, isAdmin } = useUserRoles();
+  const canBypassDeadline = isAdmin || hasRole("super_admin" as any) || hasRole("pastor" as any);
+
   const [grupoId, setGrupoId] = useState("");
   const [red, setRed] = useState("");
   const [liderNombre, setLiderNombre] = useState("");
