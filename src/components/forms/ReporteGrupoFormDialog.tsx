@@ -526,7 +526,8 @@ export default function ReporteGrupoFormDialog({ open, onOpenChange, editReporte
 
   // Deadline: Thursday 11:59 PM Bogotá. Block new reports after deadline (edits allowed).
   const reportDeadline = thursdayDeadlineFor(new Date());
-  const deadlinePassed = !isEditMode && reportDeadline.getTime() < Date.now();
+  const deadlineOverdue = reportDeadline.getTime() < Date.now();
+  const deadlinePassed = !isEditMode && deadlineOverdue && !canBypassDeadline;
 
   const canCreateReport = !!grupoId && !!mensaje && !duplicateReporte && !deadlinePassed;
 
