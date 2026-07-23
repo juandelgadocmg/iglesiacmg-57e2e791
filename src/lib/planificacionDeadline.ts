@@ -1,34 +1,32 @@
 /**
- * Fecha límite de las planeaciones de Casas de Paz:
- * cada martes a las 11:59 PM hora de Bogotá (UTC-5, sin DST).
+ * Fechas límite semanales (hora Bogotá, UTC-5 sin DST):
+ *  - Planeaciones CDP: martes 11:59 PM
+ *  - Reportes CDP:     jueves 11:59 PM
  */
 
 const BOGOTA_OFFSET_HOURS = -5;
 
-/** Convierte una fecha UTC a componentes en hora Bogotá. */
 function toBogota(d: Date) {
   return new Date(d.getTime() + BOGOTA_OFFSET_HOURS * 3600_000);
 }
 
-/** Devuelve el próximo (o mismo) martes 23:59 Bogotá >= `from`, como Date UTC. */
-export function tuesdayDeadlineFor(from: Date | string = new Date()): Date {
+/** Próximo (o mismo) día `targetDow` a las 23:59 Bogotá >= `from`, como Date UTC. */
+export function weeklyDeadline(targetDow: number, from: Date | string = new Date()): Date {
   const base = typeof from === "string" ? new Date(from) : from;
   const b = toBogota(base);
-  // getUTCDay en b representa el día en Bogotá (0=dom, 2=mar)
   const dow = b.getUTCDay();
-  let daysUntilTue = (2 - dow + 7) % 7;
+  let daysUntil = (targetDow - dow + 7) % 7;
   const bTime = b.getUTCHours() * 60 + b.getUTCMinutes();
-  // Si ya es martes después de 23:59, mover al siguiente martes
-  if (daysUntilTue === 0 && bTime > 23 * 60 + 59) daysUntilTue = 7;
+  if (daysUntil === 0 && bTime > 23 * 60 + 59) daysUntil = 7;
   const deadlineBogota = new Date(Date.UTC(
-    b.getUTCFullYear(),
-    b.getUTCMonth(),
-    b.getUTCDate() + daysUntilTue,
+    b.getUTCFullYear(), b.getUTCMonth(), b.getUTCDate() + daysUntil,
     23, 59, 0, 0,
   ));
-  // Regresar a UTC restando el offset
   return new Date(deadlineBogota.getTime() - BOGOTA_OFFSET_HOURS * 3600_000);
 }
+
+export const tuesdayDeadlineFor = (from: Date | string = new Date()) => weeklyDeadline(2, from);
+export const thursdayDeadlineFor = (from: Date | string = new Date()) => weeklyDeadline(4, from);
 
 export function formatDeadlineBogota(d: Date): string {
   return new Intl.DateTimeFormat("es-CO", {
