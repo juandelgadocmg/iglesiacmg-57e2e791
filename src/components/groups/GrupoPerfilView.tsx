@@ -573,6 +573,21 @@ export default function GrupoPerfilView({ grupoId, onBack, readOnly = false, can
         {/* ====== REPORTES TAB ====== */}
         <TabsContent value="reportes">
           <div className="space-y-3">
+            {(() => {
+              const deadline = thursdayDeadlineFor(new Date());
+              const overdue = deadline.getTime() < Date.now();
+              return (
+                <div className="flex flex-wrap items-center gap-2 rounded-md border bg-muted/40 px-3 py-2 text-xs">
+                  <Clock className="h-3.5 w-3.5 text-primary" />
+                  <span className="font-medium">Fecha límite del reporte:</span>
+                  <span className="capitalize">{formatDeadlineBogota(deadline)}</span>
+                  <span className="text-muted-foreground">(hora Bogotá)</span>
+                  <Badge variant={overdue ? "destructive" : "secondary"} className="ml-auto">
+                    {deadlineCountdown(deadline)}
+                  </Badge>
+                </div>
+              );
+            })()}
             {(!reportes || reportes.length === 0) ? (
               <EmptyState
                 icon={ClipboardList}
