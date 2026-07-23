@@ -76,7 +76,14 @@ export default function PlanificacionGrupoFormDialog({ open, onOpenChange }: Pro
     setList(list.includes(v) ? list.filter(x => x !== v) : [...list, v]);
   };
 
+  const planDeadline = tuesdayDeadlineFor(new Date());
+  const planDeadlinePassed = planDeadline.getTime() < Date.now();
+
   const handleSubmit = async () => {
+    if (planDeadlinePassed) {
+      toast.error("Fecha límite vencida: las planeaciones se cierran el martes a las 11:59 PM (hora Bogotá).");
+      return;
+    }
     if (!grupoId || !liderNombre) {
       toast.error("Completa los campos obligatorios");
       return;
