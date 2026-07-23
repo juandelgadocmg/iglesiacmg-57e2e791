@@ -617,6 +617,11 @@ export default function GrupoPerfilView({ grupoId, onBack, readOnly = false, can
                           {(r.ofrenda_casa_paz || 0) > 0 && (
                             <Badge variant="outline" className="text-xs gap-1"><DollarSign className="h-3 w-3" />${r.ofrenda_casa_paz}</Badge>
                           )}
+                          {r.created_at && (
+                            wasOnTime(r.created_at, 4)
+                              ? <Badge variant="secondary" className="h-5 px-1.5 text-[10px]">A tiempo</Badge>
+                              : <Badge variant="destructive" className="h-5 px-1.5 text-[10px]">Fuera de plazo</Badge>
+                          )}
                           <ReportStatusBadge estado={r.estado} />
                         </div>
                       </div>
