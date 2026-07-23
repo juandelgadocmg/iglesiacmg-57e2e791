@@ -381,6 +381,10 @@ export default function ReporteGrupoFormDialog({ open, onOpenChange, editReporte
   }, [attendance, seRealizo]);
 
   const handleSubmit = async () => {
+    if (!isEditMode && reportDeadline.getTime() < Date.now()) {
+      toast.error("Fecha límite vencida: los reportes se cierran el jueves a las 11:59 PM (hora Bogotá).");
+      return;
+    }
     if (!grupoId || !mensaje) {
       toast.error("Complete los datos obligatorios.");
       return;
@@ -507,7 +511,11 @@ export default function ReporteGrupoFormDialog({ open, onOpenChange, editReporte
     setEditAttendanceApplied(false);
   };
 
-  const canCreateReport = !!grupoId && !!mensaje && !duplicateReporte;
+  // Deadline: Thursday 11:59 PM Bogotá. Block new reports after deadline (edits allowed).
+  const reportDeadline = thursdayDeadlineFor(new Date());
+  const deadlinePassed = !isEditMode && reportDeadline.getTime() < Date.now();
+
+  const canCreateReport = !!grupoId && !!mensaje && !duplicateReporte && !deadlinePassed;
 
   // Day restriction - only for new reports, not edits
   const dayAllowed = isEditMode || isDayAllowed(diaReunion);
