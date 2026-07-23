@@ -815,7 +815,12 @@ function PlanificacionTab({ grupoId, readOnly = false }: { grupoId: string; read
                   )}
                 </div>
               </div>
-              <p className="text-[10px] text-muted-foreground">{new Date(p.created_at).toLocaleDateString()}</p>
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-[10px] text-muted-foreground">{new Date(p.created_at).toLocaleDateString()}</p>
+                {wasOnTime(p.created_at)
+                  ? <Badge variant="secondary" className="h-4 px-1.5 text-[10px]">A tiempo</Badge>
+                  : <Badge variant="destructive" className="h-4 px-1.5 text-[10px]">Vencida</Badge>}
+              </div>
               <div className="text-xs space-y-0.5">
                 <p>Invitados: {p.personas_invitadas}</p>
                 <p>Ayuno: {p.fecha_ayuno || "—"}</p>
