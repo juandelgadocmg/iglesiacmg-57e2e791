@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Plus, Trash2, ArrowUp, ArrowDown, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
+import { formatSupabaseError } from "@/lib/supabaseError";
 import type { IsoMinisterioTemplate } from "@/lib/isoMinisterioTemplates";
 import { findIsoTemplate } from "@/lib/isoMinisterioTemplates";
 import { useUpsertIsoTemplate, useDeleteIsoTemplate } from "@/hooks/useIsoTemplates";
@@ -71,7 +72,9 @@ export default function IsoTemplateEditorDialog({ open, onOpenChange, ministerio
       });
       toast.success("Formato ISO guardado");
       onOpenChange(false);
-    } catch (e: any) { toast.error(e.message); }
+    } catch (e: any) {
+      toast.error("No se pudo guardar el formato", { description: formatSupabaseError(e) });
+    }
   };
 
   const restaurar = async () => {
@@ -81,7 +84,9 @@ export default function IsoTemplateEditorDialog({ open, onOpenChange, ministerio
       const base = findIsoTemplate(ministerio.nombre);
       if (base) setForm(base);
       toast.success("Formato restaurado al original");
-    } catch (e: any) { toast.error(e.message); }
+    } catch (e: any) {
+      toast.error("No se pudo restaurar el formato", { description: formatSupabaseError(e) });
+    }
   };
 
   return (
