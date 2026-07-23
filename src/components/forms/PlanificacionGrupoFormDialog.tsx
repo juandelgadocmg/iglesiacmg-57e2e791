@@ -127,6 +127,21 @@ export default function PlanificacionGrupoFormDialog({ open, onOpenChange }: Pro
           <p className="text-sm text-muted-foreground">
             Descripción detallada de la preparación: Antes, Durante y Después
           </p>
+          {(() => {
+            const deadline = tuesdayDeadlineFor(new Date());
+            const overdue = deadline.getTime() < Date.now();
+            return (
+              <div className="mt-2 flex flex-wrap items-center gap-2 rounded-md border bg-muted/40 px-3 py-2 text-xs">
+                <CalendarClock className="h-3.5 w-3.5 text-primary" />
+                <span className="font-medium">Fecha límite semanal:</span>
+                <span className="capitalize">{formatDeadlineBogota(deadline)}</span>
+                <span className="text-muted-foreground">(hora Bogotá)</span>
+                <Badge variant={overdue ? "destructive" : "secondary"} className="ml-auto">
+                  {deadlineCountdown(deadline)}
+                </Badge>
+              </div>
+            );
+          })()}
         </DialogHeader>
 
         <ScrollArea className="max-h-[70vh] px-6 pb-6">
