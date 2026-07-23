@@ -113,6 +113,14 @@ export default function ScanQrDialog({ open, onOpenChange }: Props) {
       return;
     }
 
+    // Offline: enqueue and inform. Auto-sync when connectivity returns.
+    if (typeof navigator !== "undefined" && !navigator.onLine) {
+      enqueueScan(parsed.servicioId, parsed.token);
+      setStatus("queued");
+      setMessage("Sin conexión. Guardamos tu escaneo y lo enviaremos automáticamente cuando vuelvas a estar en línea.");
+      return;
+    }
+
     try {
       const { data, error } = await supabase.rpc("checkin_qr", {
         _servicio_id: parsed.servicioId,
@@ -120,10 +128,15 @@ export default function ScanQrDialog({ open, onOpenChange }: Props) {
       });
 
       if (error) {
+        // Network-ish error -> queue for retry instead of asking user to retry manually.
+        if (error.message?.toLowerCase().includes("failed to fetch") || error.message?.toLowerCase().includes("network")) {
+          enqueueScan(parsed.servicioId, parsed.token);
+          setStatus("queued");
+          setMessage("Conexión intermitente. Guardamos tu escaneo y lo reintentaremos automáticamente.");
+          return;
+        }
         setStatus("error");
-        setMessage(error.message?.includes("Failed to fetch")
-          ? "Sin conexión. Verifica tu internet e intenta de nuevo."
-          : (error.message || "No se pudo registrar la asistencia."));
+        setMessage(error.message || "No se pudo registrar la asistencia.");
         return;
       }
       const payload = data as any;
@@ -136,25 +149,40 @@ export default function ScanQrDialog({ open, onOpenChange }: Props) {
       if (payload.code === "already") {
         setStatus("already");
         setMessage("Ya registraste tu asistencia.");
+      } else if (payload.code === "throttled") {
+        setStatus("already");
+        setMessage(payload.message);
       } else {
         setStatus("success");
         setMessage(payload.message || "¡Asistencia registrada!");
       }
     } catch (e: any) {
-      setStatus("error");
-      setMessage("No se pudo conectar con el servidor. Revisa tu conexión.");
+      // Total fetch failure -> offline queue
+      enqueueScan(parsed.servicioId, parsed.token);
+      setStatus("queued");
+      setMessage("Sin conexión con el servidor. Guardamos tu escaneo y lo enviaremos cuando se restablezca la red.");
     }
   }, [stopScanner]);
 
-  // Auto-close after 3s on success/already
+  // Auto-close after 3s on success/already/queued
   useEffect(() => {
-    if (status !== "success" && status !== "already") return;
+    if (status !== "success" && status !== "already" && status !== "queued") return;
     const t = setTimeout(() => {
       onOpenChange(false);
       navigate("/");
-    }, 3000);
+    }, status === "queued" ? 3500 : 3000);
     return () => clearTimeout(t);
   }, [status, onOpenChange, navigate]);
+
+  // When we come back online while dialog is open, try to flush.
+  useEffect(() => {
+    const onOnline = async () => {
+      const { ok } = await flushQueue();
+      if (ok > 0) toast.success(`Se sincronizaron ${ok} check-in${ok === 1 ? "" : "s"} pendientes.`);
+    };
+    window.addEventListener("online", onOnline);
+    return () => window.removeEventListener("online", onOnline);
+  }, []);
 
   // Enumerate cameras once dialog opens
   useEffect(() => {
