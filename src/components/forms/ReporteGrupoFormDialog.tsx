@@ -384,8 +384,18 @@ export default function ReporteGrupoFormDialog({ open, onOpenChange, editReporte
   }, [attendance, seRealizo]);
 
   const handleSubmit = async () => {
-    if (!isEditMode && reportDeadline.getTime() < Date.now()) {
-      toast.error("Fecha límite vencida: los reportes se cierran el jueves a las 11:59 PM (hora Bogotá).");
+    if (!isEditMode && reportDeadline.getTime() < Date.now() && !canBypassDeadline) {
+      toast.error("Fecha límite vencida", {
+        description: "Los reportes se cierran el jueves a las 11:59 PM (hora Bogotá). Solo Admin o Pastor pueden crear fuera de plazo.",
+        duration: 8000,
+      });
+      try {
+        await (supabase as any).rpc("log_cdp_deadline_block", {
+          p_kind: "report",
+          p_grupo_id: grupoId || null,
+          p_reason: "Intento de creación de reporte fuera de plazo (jueves 11:59 PM Bogotá)",
+        });
+      } catch { /* logging best-effort */ }
       return;
     }
     if (!grupoId || !mensaje) {
