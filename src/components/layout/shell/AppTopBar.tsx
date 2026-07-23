@@ -234,6 +234,7 @@ export default function AppTopBar({ onMenuClick }: { onMenuClick?: () => void })
 
       <CommandBar open={cmdOpen} onOpenChange={setCmdOpen} />
       <HotkeysHelpDialog open={helpOpen} onOpenChange={setHelpOpen} />
+      <ScanQrDialog open={scanOpen} onOpenChange={setScanOpen} />
     </>
   );
 }
