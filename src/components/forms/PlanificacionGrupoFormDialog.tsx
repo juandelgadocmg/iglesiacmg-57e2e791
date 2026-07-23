@@ -153,14 +153,26 @@ export default function PlanificacionGrupoFormDialog({ open, onOpenChange }: Pro
             const deadline = tuesdayDeadlineFor(new Date());
             const overdue = deadline.getTime() < Date.now();
             return (
-              <div className="mt-2 flex flex-wrap items-center gap-2 rounded-md border bg-muted/40 px-3 py-2 text-xs">
-                <CalendarClock className="h-3.5 w-3.5 text-primary" />
-                <span className="font-medium">Fecha límite semanal:</span>
-                <span className="capitalize">{formatDeadlineBogota(deadline)}</span>
-                <span className="text-muted-foreground">(hora Bogotá)</span>
-                <Badge variant={overdue ? "destructive" : "secondary"} className="ml-auto">
-                  {deadlineCountdown(deadline)}
-                </Badge>
+              <div className="mt-2 space-y-2">
+                <div className="flex flex-wrap items-center gap-2 rounded-md border bg-muted/40 px-3 py-2 text-xs">
+                  <CalendarClock className="h-3.5 w-3.5 text-primary" />
+                  <span className="font-medium">Fecha límite semanal:</span>
+                  <span className="capitalize">{formatDeadlineBogota(deadline)}</span>
+                  <span className="text-muted-foreground">(hora Bogotá)</span>
+                  <Badge variant={overdue ? "destructive" : "secondary"} className="ml-auto">
+                    {deadlineCountdown(deadline)}
+                  </Badge>
+                </div>
+                {overdue && (
+                  <div className={`flex items-start gap-2 rounded-md border px-3 py-2 text-xs ${canBypassDeadline ? "border-amber-300 bg-amber-50 text-amber-900" : "border-destructive/40 bg-destructive/10 text-destructive"}`}>
+                    <ShieldCheck className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+                    <span>
+                      {canBypassDeadline
+                        ? "Plazo vencido. Como Admin/Pastor puedes crear esta planeación fuera de plazo (excepción autorizada; quedará registrado en auditoría)."
+                        : "Plazo vencido. Solo los roles Admin o Pastor pueden crear planeaciones después del martes 11:59 PM (hora Bogotá)."}
+                    </span>
+                  </div>
+                )}
               </div>
             );
           })()}
