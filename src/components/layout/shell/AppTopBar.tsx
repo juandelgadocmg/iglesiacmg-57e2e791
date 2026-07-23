@@ -168,6 +168,21 @@ export default function AppTopBar({ onMenuClick }: { onMenuClick?: () => void })
           </TooltipProvider>
 
           <div className="hidden lg:inline-flex"><QuickCreateMenu /></div>
+          <TooltipProvider delayDuration={200}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  type="button"
+                  onClick={() => setScanOpen(true)}
+                  className="p-2 rounded-md hover:bg-muted inline-flex"
+                  aria-label="Escanear QR de asistencia"
+                >
+                  <QrCode className="h-[18px] w-[18px] text-muted-foreground" aria-hidden="true" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom">Escanear QR</TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
           <div className="hidden xl:inline-flex"><InstallPWAButton /></div>
 
 
