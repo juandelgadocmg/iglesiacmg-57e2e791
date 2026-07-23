@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Menu, Search, ChevronRight, ChevronDown, Check, Mail, Building2, BookOpenText } from "lucide-react";
+import { Menu, Search, ChevronRight, ChevronDown, Check, Mail, Building2, BookOpenText, QrCode } from "lucide-react";
+import ScanQrDialog from "@/components/attendance/ScanQrDialog";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useDiscipulando } from "@/hooks/useDiscipulando";
 import { Button } from "@/components/ui/button";
@@ -40,6 +41,7 @@ export default function AppTopBar({ onMenuClick }: { onMenuClick?: () => void })
   const { data: unread = 0 } = useUnreadCount();
   const [cmdOpen, setCmdOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
+  const [scanOpen, setScanOpen] = useState(false);
   const initials = user?.email?.slice(0, 2).toUpperCase() || "U";
 
   const sedes: string[] = (config as any)?.sedes || ["Principal"];
@@ -166,6 +168,21 @@ export default function AppTopBar({ onMenuClick }: { onMenuClick?: () => void })
           </TooltipProvider>
 
           <div className="hidden lg:inline-flex"><QuickCreateMenu /></div>
+          <TooltipProvider delayDuration={200}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  type="button"
+                  onClick={() => setScanOpen(true)}
+                  className="p-2 rounded-md hover:bg-muted inline-flex"
+                  aria-label="Escanear QR de asistencia"
+                >
+                  <QrCode className="h-[18px] w-[18px] text-muted-foreground" aria-hidden="true" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom">Escanear QR</TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
           <div className="hidden xl:inline-flex"><InstallPWAButton /></div>
 
 
@@ -217,6 +234,7 @@ export default function AppTopBar({ onMenuClick }: { onMenuClick?: () => void })
 
       <CommandBar open={cmdOpen} onOpenChange={setCmdOpen} />
       <HotkeysHelpDialog open={helpOpen} onOpenChange={setHelpOpen} />
+      <ScanQrDialog open={scanOpen} onOpenChange={setScanOpen} />
     </>
   );
 }
