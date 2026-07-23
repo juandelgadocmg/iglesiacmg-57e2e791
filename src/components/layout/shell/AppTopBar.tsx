@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Menu, Search, ChevronRight, ChevronDown, Check, Mail, Building2, BookOpenText } from "lucide-react";
+import { Menu, Search, ChevronRight, ChevronDown, Check, Mail, Building2, BookOpenText, QrCode } from "lucide-react";
+import ScanQrDialog from "@/components/attendance/ScanQrDialog";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useDiscipulando } from "@/hooks/useDiscipulando";
 import { Button } from "@/components/ui/button";
