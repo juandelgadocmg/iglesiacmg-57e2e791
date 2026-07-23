@@ -22,7 +22,7 @@ const PUNT_COLOR: Record<string, string> = {
   "Muy tarde": "bg-destructive/15 text-destructive",
 };
 
-type Status = "scanning" | "paused" | "checking" | "success" | "already" | "error";
+type Status = "scanning" | "paused" | "checking" | "success" | "already" | "error" | "queued";
 
 interface Props {
   open: boolean;
