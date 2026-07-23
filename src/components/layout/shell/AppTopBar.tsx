@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/hooks/useAuth";
 import { useActiveRole } from "@/hooks/useActiveRole";
+import { useUserRoles } from "@/hooks/useUserRoles";
 import { useConfiguracion } from "@/hooks/useConfiguracion";
 import { useUnreadCount } from "@/hooks/useMensajes";
 import NotificationDropdown from "@/components/layout/NotificationDropdown";
