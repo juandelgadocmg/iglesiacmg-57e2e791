@@ -39,6 +39,9 @@ export default function AppTopBar({ onMenuClick }: { onMenuClick?: () => void })
   const { user } = useAuth();
   const { activeRole, setActiveRole, allRoles, roleLabel } = useActiveRole();
   const { data: config } = useConfiguracion();
+  const { roles } = useUserRoles();
+  // Solo usuarios autenticados y con rol distinto a "consulta" pueden escanear QR
+  const canScanQr = !!user && !(roles.length === 1 && roles[0] === "consulta");
   const { data: unread = 0 } = useUnreadCount();
   const [cmdOpen, setCmdOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
