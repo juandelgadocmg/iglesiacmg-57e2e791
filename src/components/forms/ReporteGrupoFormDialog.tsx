@@ -25,6 +25,8 @@ import { useGrupos } from "@/hooks/useDatabase";
 import { useCreateReporteGrupo, useUpdateReporteGrupo, useGrupoMiembrosForReport, useReportesGrupos, useReporteAsistencia } from "@/hooks/useReportesGrupos";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { CalendarClock } from "lucide-react";
+import { thursdayDeadlineFor, formatDeadlineBogota, deadlineCountdown } from "@/lib/planificacionDeadline";
 
 interface AttendanceRecord {
   persona_id: string;
