@@ -34,7 +34,7 @@ import GrupoFormDialog from "@/components/forms/GrupoFormDialog";
 import ReporteGrupoFormDialog from "@/components/forms/ReporteGrupoFormDialog";
 import PlanificacionGrupoFormDialog from "@/components/forms/PlanificacionGrupoFormDialog";
 import { usePlanificaciones, useDeletePlanificacion } from "@/hooks/usePlanificaciones";
-import { tuesdayDeadlineFor, deadlineCountdown, wasOnTime, formatDeadlineBogota } from "@/lib/planificacionDeadline";
+import { tuesdayDeadlineFor, thursdayDeadlineFor, deadlineCountdown, wasOnTime, formatDeadlineBogota } from "@/lib/planificacionDeadline";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import DeleteConfirmDialog from "@/components/shared/DeleteConfirmDialog";
 import { exportGroupProfilePDF } from "@/lib/exportUtils";
@@ -573,6 +573,21 @@ export default function GrupoPerfilView({ grupoId, onBack, readOnly = false, can
         {/* ====== REPORTES TAB ====== */}
         <TabsContent value="reportes">
           <div className="space-y-3">
+            {(() => {
+              const deadline = thursdayDeadlineFor(new Date());
+              const overdue = deadline.getTime() < Date.now();
+              return (
+                <div className="flex flex-wrap items-center gap-2 rounded-md border bg-muted/40 px-3 py-2 text-xs">
+                  <Clock className="h-3.5 w-3.5 text-primary" />
+                  <span className="font-medium">Fecha límite del reporte:</span>
+                  <span className="capitalize">{formatDeadlineBogota(deadline)}</span>
+                  <span className="text-muted-foreground">(hora Bogotá)</span>
+                  <Badge variant={overdue ? "destructive" : "secondary"} className="ml-auto">
+                    {deadlineCountdown(deadline)}
+                  </Badge>
+                </div>
+              );
+            })()}
             {(!reportes || reportes.length === 0) ? (
               <EmptyState
                 icon={ClipboardList}
@@ -601,6 +616,11 @@ export default function GrupoPerfilView({ grupoId, onBack, readOnly = false, can
                         <div className="flex items-center gap-2">
                           {(r.ofrenda_casa_paz || 0) > 0 && (
                             <Badge variant="outline" className="text-xs gap-1"><DollarSign className="h-3 w-3" />${r.ofrenda_casa_paz}</Badge>
+                          )}
+                          {r.created_at && (
+                            wasOnTime(r.created_at, 4)
+                              ? <Badge variant="secondary" className="h-5 px-1.5 text-[10px]">A tiempo</Badge>
+                              : <Badge variant="destructive" className="h-5 px-1.5 text-[10px]">Fuera de plazo</Badge>
                           )}
                           <ReportStatusBadge estado={r.estado} />
                         </div>

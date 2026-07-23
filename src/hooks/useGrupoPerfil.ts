@@ -40,6 +40,7 @@ export interface MiembroDetalle {
 export interface ReporteResumen {
   id: string;
   fecha: string;
+  created_at: string;
   estado: string;
   ofrenda_casa_paz: number | null;
   total_reportado: number | null;
@@ -94,7 +95,7 @@ export function useGrupoReportes(grupoId: string | null) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("reportes_grupos" as any)
-        .select("id, fecha, estado, ofrenda_casa_paz, total_reportado, no_realizado, mensaje")
+        .select("id, fecha, created_at, estado, ofrenda_casa_paz, total_reportado, no_realizado, mensaje")
         .eq("grupo_id", grupoId!)
         .order("fecha", { ascending: false })
         .limit(20) as any;
