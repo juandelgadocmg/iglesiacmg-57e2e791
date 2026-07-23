@@ -118,7 +118,18 @@ export default function InviteUserDialog({ onSuccess }: InviteUserDialogProps) {
         },
       });
 
-      if (error) throw error;
+      if (error) {
+        // Extraer el error real del cuerpo de la respuesta (FunctionsHttpError)
+        let detail = error.message;
+        try {
+          const ctx: any = (error as any).context;
+          if (ctx && typeof ctx.json === "function") {
+            const body = await ctx.json();
+            if (body?.error) detail = body.error;
+          }
+        } catch { /* ignore */ }
+        throw new Error(detail);
+      }
       if (data?.error) throw new Error(data.error);
 
       // Si la función no asigna grupo_id al profile, lo hacemos aquí
