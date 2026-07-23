@@ -82,10 +82,21 @@ export default function PlanificacionGrupoFormDialog({ open, onOpenChange }: Pro
 
   const planDeadline = tuesdayDeadlineFor(new Date());
   const planDeadlinePassed = planDeadline.getTime() < Date.now();
+  const blockedForUser = planDeadlinePassed && !canBypassDeadline;
 
   const handleSubmit = async () => {
-    if (planDeadlinePassed) {
-      toast.error("Fecha límite vencida: las planeaciones se cierran el martes a las 11:59 PM (hora Bogotá).");
+    if (blockedForUser) {
+      toast.error("Fecha límite vencida", {
+        description: "Las planeaciones se cierran el martes a las 11:59 PM (hora Bogotá). Solo Admin o Pastor pueden crear fuera de plazo.",
+        duration: 8000,
+      });
+      try {
+        await (supabase as any).rpc("log_cdp_deadline_block", {
+          p_kind: "plan",
+          p_grupo_id: grupoId || null,
+          p_reason: "Intento de creación de planeación fuera de plazo (martes 11:59 PM Bogotá)",
+        });
+      } catch { /* logging best-effort */ }
       return;
     }
     if (!grupoId || !liderNombre) {
