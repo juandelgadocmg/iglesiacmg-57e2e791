@@ -5223,6 +5223,7 @@ export type Database = {
     }
     Functions: {
       can_create_personas: { Args: { _uid: string }; Returns: boolean }
+      cdp_generate_deadline_alerts: { Args: never; Returns: number }
       create_persona_with_permission: {
         Args: { _payload: Json }
         Returns: {
@@ -5288,6 +5289,10 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      log_cdp_deadline_block: {
+        Args: { p_grupo_id: string; p_kind: string; p_reason: string }
+        Returns: undefined
       }
       log_grupo_load_failure: {
         Args: { _error?: string; _grupo_id: string; _section: string }

@@ -25,8 +25,9 @@ import { useGrupos } from "@/hooks/useDatabase";
 import { useCreateReporteGrupo, useUpdateReporteGrupo, useGrupoMiembrosForReport, useReportesGrupos, useReporteAsistencia } from "@/hooks/useReportesGrupos";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { CalendarClock } from "lucide-react";
+import { CalendarClock, ShieldCheck } from "lucide-react";
 import { thursdayDeadlineFor, formatDeadlineBogota, deadlineCountdown } from "@/lib/planificacionDeadline";
+import { useUserRoles } from "@/hooks/useUserRoles";
 
 interface AttendanceRecord {
   persona_id: string;
@@ -122,6 +123,8 @@ export default function ReporteGrupoFormDialog({ open, onOpenChange, editReporte
   const createReporte = useCreateReporteGrupo();
   const updateReporte = useUpdateReporteGrupo();
   const { data: editAsistencia } = useReporteAsistencia(editReporteId || null);
+  const { hasRole, isAdmin } = useUserRoles();
+  const canBypassDeadline = isAdmin || hasRole("super_admin" as any) || hasRole("pastor" as any);
 
   const selectedGrupo = grupos?.find((g) => g.id === grupoId);
   const diaReunion = (selectedGrupo as any)?.dia_reunion;
@@ -381,8 +384,18 @@ export default function ReporteGrupoFormDialog({ open, onOpenChange, editReporte
   }, [attendance, seRealizo]);
 
   const handleSubmit = async () => {
-    if (!isEditMode && reportDeadline.getTime() < Date.now()) {
-      toast.error("Fecha límite vencida: los reportes se cierran el jueves a las 11:59 PM (hora Bogotá).");
+    if (!isEditMode && reportDeadline.getTime() < Date.now() && !canBypassDeadline) {
+      toast.error("Fecha límite vencida", {
+        description: "Los reportes se cierran el jueves a las 11:59 PM (hora Bogotá). Solo Admin o Pastor pueden crear fuera de plazo.",
+        duration: 8000,
+      });
+      try {
+        await (supabase as any).rpc("log_cdp_deadline_block", {
+          p_kind: "report",
+          p_grupo_id: grupoId || null,
+          p_reason: "Intento de creación de reporte fuera de plazo (jueves 11:59 PM Bogotá)",
+        });
+      } catch { /* logging best-effort */ }
       return;
     }
     if (!grupoId || !mensaje) {
@@ -513,7 +526,8 @@ export default function ReporteGrupoFormDialog({ open, onOpenChange, editReporte
 
   // Deadline: Thursday 11:59 PM Bogotá. Block new reports after deadline (edits allowed).
   const reportDeadline = thursdayDeadlineFor(new Date());
-  const deadlinePassed = !isEditMode && reportDeadline.getTime() < Date.now();
+  const deadlineOverdue = reportDeadline.getTime() < Date.now();
+  const deadlinePassed = !isEditMode && deadlineOverdue && !canBypassDeadline;
 
   const canCreateReport = !!grupoId && !!mensaje && !duplicateReporte && !deadlinePassed;
 
@@ -800,14 +814,26 @@ export default function ReporteGrupoFormDialog({ open, onOpenChange, editReporte
                   const deadline = thursdayDeadlineFor(new Date());
                   const overdue = deadline.getTime() < Date.now();
                   return (
-                    <div className="mt-2 inline-flex flex-wrap items-center gap-2 rounded-md border bg-muted/40 px-2.5 py-1 text-[11px]">
-                      <CalendarClock className="h-3 w-3 text-primary" />
-                      <span className="font-medium">Fecha límite:</span>
-                      <span className="capitalize">{formatDeadlineBogota(deadline)}</span>
-                      <span className="text-muted-foreground">(hora Bogotá)</span>
-                      <Badge variant={overdue ? "destructive" : "secondary"} className="h-4 px-1.5 text-[10px]">
-                        {deadlineCountdown(deadline)}
-                      </Badge>
+                    <div className="mt-2 space-y-1.5">
+                      <div className="inline-flex flex-wrap items-center gap-2 rounded-md border bg-muted/40 px-2.5 py-1 text-[11px]">
+                        <CalendarClock className="h-3 w-3 text-primary" />
+                        <span className="font-medium">Fecha límite:</span>
+                        <span className="capitalize">{formatDeadlineBogota(deadline)}</span>
+                        <span className="text-muted-foreground">(hora Bogotá)</span>
+                        <Badge variant={overdue ? "destructive" : "secondary"} className="h-4 px-1.5 text-[10px]">
+                          {deadlineCountdown(deadline)}
+                        </Badge>
+                      </div>
+                      {overdue && !isEditMode && (
+                        <div className={`flex items-start gap-2 rounded-md border px-2.5 py-1.5 text-[11px] ${canBypassDeadline ? "border-amber-300 bg-amber-50 text-amber-900" : "border-destructive/40 bg-destructive/10 text-destructive"}`}>
+                          <ShieldCheck className="h-3 w-3 mt-0.5 shrink-0" />
+                          <span>
+                            {canBypassDeadline
+                              ? "Plazo vencido. Como Admin/Pastor puedes crear este reporte fuera de plazo (excepción autorizada; quedará registrado en auditoría)."
+                              : "Plazo vencido. Solo Admin o Pastor pueden crear reportes después del jueves 11:59 PM (hora Bogotá)."}
+                          </span>
+                        </div>
+                      )}
                     </div>
                   );
                 })()}

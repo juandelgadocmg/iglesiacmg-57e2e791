@@ -8,10 +8,12 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
 import { useCreatePlanificacion } from "@/hooks/usePlanificaciones";
 import { useGrupos } from "@/hooks/useDatabase";
+import { useUserRoles } from "@/hooks/useUserRoles";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
-import { CalendarClock } from "lucide-react";
+import { CalendarClock, ShieldCheck } from "lucide-react";
 import { tuesdayDeadlineFor, formatDeadlineBogota, deadlineCountdown } from "@/lib/planificacionDeadline";
 
 const REDES = ["ADONAI", "ELOHIM", "JIREH", "NISSI", "ROHI", "SHADAI"];
@@ -48,7 +50,9 @@ interface Props {
 export default function PlanificacionGrupoFormDialog({ open, onOpenChange }: Props) {
   const { data: grupos } = useGrupos();
   const create = useCreatePlanificacion();
-  
+  const { hasRole, isAdmin } = useUserRoles();
+  const canBypassDeadline = isAdmin || hasRole("super_admin" as any) || hasRole("pastor" as any);
+
   const [grupoId, setGrupoId] = useState("");
   const [red, setRed] = useState("");
   const [liderNombre, setLiderNombre] = useState("");
@@ -78,10 +82,21 @@ export default function PlanificacionGrupoFormDialog({ open, onOpenChange }: Pro
 
   const planDeadline = tuesdayDeadlineFor(new Date());
   const planDeadlinePassed = planDeadline.getTime() < Date.now();
+  const blockedForUser = planDeadlinePassed && !canBypassDeadline;
 
   const handleSubmit = async () => {
-    if (planDeadlinePassed) {
-      toast.error("Fecha límite vencida: las planeaciones se cierran el martes a las 11:59 PM (hora Bogotá).");
+    if (blockedForUser) {
+      toast.error("Fecha límite vencida", {
+        description: "Las planeaciones se cierran el martes a las 11:59 PM (hora Bogotá). Solo Admin o Pastor pueden crear fuera de plazo.",
+        duration: 8000,
+      });
+      try {
+        await (supabase as any).rpc("log_cdp_deadline_block", {
+          p_kind: "plan",
+          p_grupo_id: grupoId || null,
+          p_reason: "Intento de creación de planeación fuera de plazo (martes 11:59 PM Bogotá)",
+        });
+      } catch { /* logging best-effort */ }
       return;
     }
     if (!grupoId || !liderNombre) {
@@ -138,14 +153,26 @@ export default function PlanificacionGrupoFormDialog({ open, onOpenChange }: Pro
             const deadline = tuesdayDeadlineFor(new Date());
             const overdue = deadline.getTime() < Date.now();
             return (
-              <div className="mt-2 flex flex-wrap items-center gap-2 rounded-md border bg-muted/40 px-3 py-2 text-xs">
-                <CalendarClock className="h-3.5 w-3.5 text-primary" />
-                <span className="font-medium">Fecha límite semanal:</span>
-                <span className="capitalize">{formatDeadlineBogota(deadline)}</span>
-                <span className="text-muted-foreground">(hora Bogotá)</span>
-                <Badge variant={overdue ? "destructive" : "secondary"} className="ml-auto">
-                  {deadlineCountdown(deadline)}
-                </Badge>
+              <div className="mt-2 space-y-2">
+                <div className="flex flex-wrap items-center gap-2 rounded-md border bg-muted/40 px-3 py-2 text-xs">
+                  <CalendarClock className="h-3.5 w-3.5 text-primary" />
+                  <span className="font-medium">Fecha límite semanal:</span>
+                  <span className="capitalize">{formatDeadlineBogota(deadline)}</span>
+                  <span className="text-muted-foreground">(hora Bogotá)</span>
+                  <Badge variant={overdue ? "destructive" : "secondary"} className="ml-auto">
+                    {deadlineCountdown(deadline)}
+                  </Badge>
+                </div>
+                {overdue && (
+                  <div className={`flex items-start gap-2 rounded-md border px-3 py-2 text-xs ${canBypassDeadline ? "border-amber-300 bg-amber-50 text-amber-900" : "border-destructive/40 bg-destructive/10 text-destructive"}`}>
+                    <ShieldCheck className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+                    <span>
+                      {canBypassDeadline
+                        ? "Plazo vencido. Como Admin/Pastor puedes crear esta planeación fuera de plazo (excepción autorizada; quedará registrado en auditoría)."
+                        : "Plazo vencido. Solo los roles Admin o Pastor pueden crear planeaciones después del martes 11:59 PM (hora Bogotá)."}
+                    </span>
+                  </div>
+                )}
               </div>
             );
           })()}
@@ -337,8 +364,8 @@ export default function PlanificacionGrupoFormDialog({ open, onOpenChange }: Pro
               </p>
             </div>
 
-            <Button onClick={handleSubmit} disabled={create.isPending || planDeadlinePassed} className="w-full">
-              {planDeadlinePassed ? "Fecha límite vencida" : create.isPending ? "Guardando..." : "Guardar Planificación"}
+            <Button onClick={handleSubmit} disabled={create.isPending || blockedForUser} className="w-full">
+              {blockedForUser ? "Fecha límite vencida" : create.isPending ? "Guardando..." : (planDeadlinePassed ? "Guardar (excepción Admin/Pastor)" : "Guardar Planificación")}
             </Button>
           </div>
         </ScrollArea>
