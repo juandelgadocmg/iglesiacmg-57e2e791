@@ -437,7 +437,11 @@ export default function QrAuditLogSection({ servicioId }: { servicioId: string |
                   </thead>
                   <tbody>
                     {rows.map((r) => (
-                      <tr key={r.id} className="border-b last:border-0 hover:bg-muted/30">
+                      <tr
+                        key={r.id}
+                        className="border-b last:border-0 hover:bg-muted/30 cursor-pointer"
+                        onClick={() => setDetailRowId(r.id)}
+                      >
                         <td className="py-2 pr-3 whitespace-nowrap text-xs">
                           {new Date(r.created_at).toLocaleString("es-CO")}
                         </td>
