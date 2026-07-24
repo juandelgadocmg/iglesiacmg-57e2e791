@@ -188,9 +188,16 @@ export default function MensajeThreadView({ threadId }: Props) {
           size="sm"
           variant="ghost"
           toastMessage="Enlace del hilo copiado"
+          qrTitle="Abrir hilo en otro dispositivo"
+          qrDescription="Escanea con la cámara para abrir este hilo en el mismo punto de lectura."
           buildUrl={() => {
             const p = new URLSearchParams(window.location.search);
             p.set("t", threadId);
+            // Include scroll position and focused message so returning users
+            // land exactly where the sender was reading.
+            const y = scrollRef.current?.scrollTop ?? 0;
+            if (y > 0) p.set("ty", String(Math.round(y))); else p.delete("ty");
+            if (focusedMessageId) p.set("m", focusedMessageId); else p.delete("m");
             return `${window.location.origin}${window.location.pathname}?${p.toString()}`;
           }}
         />
