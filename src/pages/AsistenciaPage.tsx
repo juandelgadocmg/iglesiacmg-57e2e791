@@ -15,6 +15,7 @@ import ExportDropdown from "@/components/shared/ExportDropdown";
 import ImportAsistenciaDialog from "@/components/forms/ImportAsistenciaDialog";
 import PageSkeleton from "@/components/shared/PageSkeleton";
 import GenerateQrDialog from "@/components/servicios/GenerateQrDialog";
+import QrAuditLogSection from "@/components/attendance/QrAuditLogSection";
 import { useQrScanNotifier } from "@/hooks/useQrScanNotifier";
 import { useQueryClient } from "@tanstack/react-query";
 
