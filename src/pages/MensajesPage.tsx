@@ -65,6 +65,8 @@ export default function MensajesPage() {
   const { user } = useAuth();
   const isMobile = useIsMobile();
   const [searchParams, setSearchParams] = useSearchParams();
+  const navigationType = useNavigationType();
+  const presentation = usePresentationMode("mensajes");
 
   const initialView = (searchParams.get("view") as View) || "folder";
   const initialFolder = (searchParams.get("folder") as Folder) || "inbox";
