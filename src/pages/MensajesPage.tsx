@@ -125,12 +125,17 @@ export default function MensajesPage() {
     if (!root) return;
     const el = root.querySelector<HTMLButtonElement>(`[data-thread-id="${selected}"]`);
     if (!el) return;
-    // rAF so layout is stable and the row is present after data load
     requestAnimationFrame(() => {
       el.focus({ preventScroll: true });
       el.scrollIntoView({ block: "nearest", behavior: "auto" });
     });
-  }, [selected, accumulated.length]);
+    // Accessible announcement — only when navigating back/forward or opening a shared link
+    if (navigationType === "POP") {
+      const thread: any = accumulated.find((t: any) => t.id === selected);
+      const subject = thread?.subject || thread?.last_subject || "hilo";
+      announce(`Hilo restaurado: ${subject}`);
+    }
+  }, [selected, accumulated.length, navigationType]);
 
   // ─── Thread list scroll persistence (survives Back navigation + shareable) ───
   const listScrollRef = useRef<HTMLDivElement | null>(null);
