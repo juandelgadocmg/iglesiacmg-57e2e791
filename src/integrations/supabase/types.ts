@@ -3333,6 +3333,75 @@ export type Database = {
           },
         ]
       }
+      qr_audit_alerts: {
+        Row: {
+          code: string | null
+          created_at: string
+          enabled: boolean
+          fail_rate_pct: number
+          id: string
+          min_events: number
+          name: string
+          servicio_id: string | null
+          updated_at: string
+          user_id: string
+          window_days: number
+        }
+        Insert: {
+          code?: string | null
+          created_at?: string
+          enabled?: boolean
+          fail_rate_pct?: number
+          id?: string
+          min_events?: number
+          name: string
+          servicio_id?: string | null
+          updated_at?: string
+          user_id: string
+          window_days?: number
+        }
+        Update: {
+          code?: string | null
+          created_at?: string
+          enabled?: boolean
+          fail_rate_pct?: number
+          id?: string
+          min_events?: number
+          name?: string
+          servicio_id?: string | null
+          updated_at?: string
+          user_id?: string
+          window_days?: number
+        }
+        Relationships: []
+      }
+      qr_audit_presets: {
+        Row: {
+          created_at: string
+          filters: Json
+          id: string
+          name: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          filters?: Json
+          id?: string
+          name: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          filters?: Json
+          id?: string
+          name?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       qr_scan_log: {
         Row: {
           code: string | null
