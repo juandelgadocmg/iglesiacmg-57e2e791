@@ -209,26 +209,51 @@ export default function EventosPage() {
         {/* Mobile filters (search + bucket chips) */}
         <div className="md:hidden space-y-2">
           <div className="relative">
-            <Search className="h-3.5 w-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
-            <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Buscar evento…" className="pl-8 h-9 text-sm" />
+            <Search className="h-4 w-4 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              placeholder="Buscar evento…"
+              className="pl-9 h-11 text-sm"
+              aria-label="Buscar evento"
+            />
           </div>
-          <div className="flex gap-1.5 overflow-x-auto pb-1 -mx-1 px-1">
+          <div
+            className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1 snap-x snap-mandatory"
+            role="tablist"
+            aria-label="Filtros de eventos"
+          >
             {BUCKETS.map((b) => (
               <button
                 key={b.id}
+                role="tab"
+                aria-selected={bucket === b.id}
+                tabIndex={bucket === b.id ? 0 : -1}
                 onClick={() => setBucket(b.id)}
+                onKeyDown={(e) => {
+                  if (e.key === "ArrowRight" || e.key === "ArrowLeft") {
+                    e.preventDefault();
+                    const idx = BUCKETS.findIndex((x) => x.id === bucket);
+                    const next = e.key === "ArrowRight"
+                      ? BUCKETS[(idx + 1) % BUCKETS.length]
+                      : BUCKETS[(idx - 1 + BUCKETS.length) % BUCKETS.length];
+                    setBucket(next.id);
+                  }
+                }}
                 className={cn(
-                  "shrink-0 flex items-center gap-1 px-3 py-1.5 rounded-full text-xs border whitespace-nowrap",
+                  "shrink-0 snap-start inline-flex items-center gap-1.5 min-h-11 px-4 rounded-full text-sm border whitespace-nowrap",
+                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1",
                   bucket === b.id ? "bg-primary text-primary-foreground border-primary" : "bg-card text-muted-foreground"
                 )}
               >
-                <b.icon className="h-3 w-3" />
+                <b.icon className="h-4 w-4" />
                 {b.label}
-                <span className="opacity-70">{(buckets as any)[b.id]}</span>
+                <span className="opacity-70 text-xs">{(buckets as any)[b.id]}</span>
               </button>
             ))}
           </div>
         </div>
+
 
         {/* Header */}
         <div className="flex items-start justify-between gap-3 flex-wrap">
