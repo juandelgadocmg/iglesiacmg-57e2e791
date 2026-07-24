@@ -1,4 +1,5 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { format, isAfter, isBefore, isThisMonth, isThisWeek, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
 import EventoFormDialog from "@/components/forms/EventoFormDialog";
