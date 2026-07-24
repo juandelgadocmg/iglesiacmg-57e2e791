@@ -40,6 +40,10 @@ export default function AsistenciaPage() {
   const effectiveService = selectedService || servicios?.[0]?.id || null;
   const { data: asistenciaData, isLoading: loadingAsistencia } = useAsistencia(effectiveService);
 
+  // Realtime QR scan notifications for the organizer of this meeting.
+  useQrScanNotifier(effectiveService, !!effectiveService);
+
+
   // Realtime subscription — actualiza planilla al llegar nuevos check-ins
   useEffect(() => {
     if (!effectiveService) return;
