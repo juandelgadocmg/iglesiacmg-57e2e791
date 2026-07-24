@@ -388,6 +388,16 @@ export default function EventosPage() {
             </div>
 
             <ShareLinkButton
+              scope="eventos"
+              shareLabel={(() => {
+                const evId = searchParams.get("ev");
+                if (evId) {
+                  const ev = (eventos || []).find((e: any) => String(e.id) === evId);
+                  if (ev?.nombre) return `Evento: ${ev.nombre}`;
+                }
+                if (q) return `Búsqueda: ${q}`;
+                return `Eventos · ${bucket}`;
+              })()}
               toastMessage="Enlace de Eventos copiado"
               buildUrl={() => {
                 const p = new URLSearchParams();
@@ -404,6 +414,19 @@ export default function EventosPage() {
               }}
             />
             <ScanQrLinkButton />
+            <RecentSharesPanel scope="eventos" />
+            <Button
+              type="button"
+              size="icon"
+              variant={presentation.enabled ? "default" : "outline"}
+              className="h-8 w-8"
+              aria-pressed={presentation.enabled}
+              aria-label={presentation.enabled ? "Salir de modo presentación" : "Activar modo presentación"}
+              title="Modo presentación (Shift+P)"
+              onClick={presentation.toggle}
+            >
+              <Projector className="h-3.5 w-3.5" />
+            </Button>
             <ExportDropdown title="Eventos" filename="eventos" columns={[
               { header: "Nombre", key: "nombre" }, { header: "Tipo", key: "tipo" },
               { header: "Fecha Inicio", key: "fecha_inicio" }, { header: "Lugar", key: "lugar" },
