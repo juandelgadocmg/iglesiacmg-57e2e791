@@ -402,6 +402,8 @@ export default function MensajesPage() {
           </Select>
           <ShareLinkButton
             toastMessage="Enlace de Correo interno copiado"
+            qrTitle="Abrir Correo interno en otro dispositivo"
+            qrDescription="Escanea con la cámara para restaurar carpeta, filtros y hilo abierto."
             buildUrl={() => {
               const p = new URLSearchParams();
               if (view !== "folder") p.set("view", view);
@@ -411,6 +413,9 @@ export default function MensajesPage() {
               if (dateFrom) p.set("from", dateFrom);
               if (dateTo) p.set("to", dateTo);
               if (selected) p.set("t", selected);
+              // Include current list scroll so returning users land on the same row
+              const viewport = listScrollRef.current?.querySelector<HTMLDivElement>("[data-radix-scroll-area-viewport]");
+              if (viewport && viewport.scrollTop > 0) p.set("ly", String(Math.round(viewport.scrollTop)));
               const qs = p.toString();
               return `${window.location.origin}${window.location.pathname}${qs ? `?${qs}` : ""}`;
             }}
@@ -437,7 +442,7 @@ export default function MensajesPage() {
         )}
       </div>
       {bulkBar}
-      <ScrollArea className="flex-1">
+      <ScrollArea className="flex-1" ref={listScrollRef as any}>
         {folder === "drafts" ? (
           drafts.length === 0 ? (
             <div className="p-8 text-center text-sm text-muted-foreground">No tienes borradores</div>
