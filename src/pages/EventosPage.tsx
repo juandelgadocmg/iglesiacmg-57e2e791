@@ -335,6 +335,20 @@ export default function EventosPage() {
               ))}
             </div>
 
+            <ShareLinkButton
+              toastMessage="Enlace de Eventos copiado"
+              buildUrl={() => {
+                const p = new URLSearchParams();
+                p.set("view", view);
+                p.set("bucket", bucket);
+                if (q) p.set("q", q);
+                const t = Array.from(tipos).sort();
+                if (t.length !== 3) p.set("tipos", t.join(","));
+                const evId = searchParams.get("ev");
+                if (evId) p.set("ev", evId);
+                return `${window.location.origin}${window.location.pathname}?${p.toString()}`;
+              }}
+            />
             <ExportDropdown title="Eventos" filename="eventos" columns={[
               { header: "Nombre", key: "nombre" }, { header: "Tipo", key: "tipo" },
               { header: "Fecha Inicio", key: "fecha_inicio" }, { header: "Lugar", key: "lugar" },
