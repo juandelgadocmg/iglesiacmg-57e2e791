@@ -14,6 +14,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { toast } from "@/hooks/use-toast";
 import ExportDropdown from "@/components/shared/ExportDropdown";
 import QrAlertPreferences from "@/components/attendance/QrAlertPreferences";
+import QrAuditAlertsManager from "@/components/attendance/QrAuditAlertsManager";
+import QrScanDetailDrawer from "@/components/attendance/QrScanDetailDrawer";
 
 interface Preset {
   id: string;
@@ -74,33 +76,45 @@ export default function QrAuditLogSection({ servicioId }: { servicioId: string |
   const [tab, setTab] = useState<string>("registros");
   const [presets, setPresets] = useState<Preset[]>([]);
   const [newPresetName, setNewPresetName] = useState("");
+  const [activePresetId, setActivePresetId] = useState<string | null>(null);
+  const [detailRowId, setDetailRowId] = useState<string | null>(null);
 
-  const presetsKey = user?.id ? `qr-audit-presets-${user.id}` : null;
-
-  useEffect(() => {
-    if (!presetsKey) return;
-    try {
-      const raw = localStorage.getItem(presetsKey);
-      setPresets(raw ? JSON.parse(raw) : []);
-    } catch { setPresets([]); }
-  }, [presetsKey]);
-
-  const savePresets = (next: Preset[]) => {
-    setPresets(next);
-    if (presetsKey) localStorage.setItem(presetsKey, JSON.stringify(next));
+  const loadPresets = async () => {
+    if (!user?.id) return;
+    const { data, error } = await supabase
+      .from("qr_audit_presets")
+      .select("id,name,filters")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false });
+    if (error) return;
+    const list: Preset[] = ((data || []) as any[]).map((r) => ({
+      id: r.id,
+      name: r.name,
+      resultFilter: r.filters?.resultFilter ?? "all",
+      codeFilter: r.filters?.codeFilter ?? "all",
+      dateFrom: r.filters?.dateFrom ?? "",
+      dateTo: r.filters?.dateTo ?? "",
+      search: r.filters?.search ?? "",
+    }));
+    setPresets(list);
   };
 
-  const handleSavePreset = () => {
+  useEffect(() => { loadPresets(); /* eslint-disable-next-line */ }, [user?.id]);
+
+  const handleSavePreset = async () => {
     const name = newPresetName.trim();
     if (!name) { toast({ title: "Nombre requerido", variant: "destructive" }); return; }
-    const preset: Preset = {
-      id: crypto.randomUUID(),
-      name,
-      resultFilter, codeFilter, dateFrom, dateTo, search,
-    };
-    savePresets([...presets, preset]);
+    if (!user?.id) return;
+    const filters = { resultFilter, codeFilter, dateFrom, dateTo, search };
+    const { data, error } = await supabase
+      .from("qr_audit_presets")
+      .insert({ user_id: user.id, name, filters })
+      .select("id").single();
+    if (error) { toast({ title: "No se pudo guardar", description: error.message, variant: "destructive" }); return; }
     setNewPresetName("");
+    setActivePresetId((data as any)?.id ?? null);
     toast({ title: "Vista guardada", description: name });
+    loadPresets();
   };
 
   const handleLoadPreset = (p: Preset) => {
@@ -110,12 +124,18 @@ export default function QrAuditLogSection({ servicioId }: { servicioId: string |
     setDateTo(p.dateTo);
     setSearch(p.search);
     setPage(0);
+    setActivePresetId(p.id);
     toast({ title: "Vista cargada", description: p.name });
   };
 
-  const handleDeletePreset = (id: string) => {
-    savePresets(presets.filter((p) => p.id !== id));
+  const handleDeletePreset = async (id: string) => {
+    await supabase.from("qr_audit_presets").delete().eq("id", id);
+    if (activePresetId === id) setActivePresetId(null);
+    loadPresets();
   };
+
+  const activePreset = presets.find((p) => p.id === activePresetId) || null;
+
 
   const applyFilters = (q: any, includeCode = true) => {
     if (servicioId) q = q.eq("servicio_id", servicioId);
@@ -307,7 +327,8 @@ export default function QrAuditLogSection({ servicioId }: { servicioId: string |
               { header: "Token", key: "token" },
             ]}
             data={exportData}
-            filters={{ servicioId, resultFilter, codeFilter, dateFrom, dateTo, search }}
+            filters={{ servicioId, resultFilter, codeFilter, dateFrom, dateTo, search, preset: activePreset?.name ?? null }}
+
           />
           <Popover>
             <PopoverTrigger asChild>
@@ -352,6 +373,7 @@ export default function QrAuditLogSection({ servicioId }: { servicioId: string |
               </div>
             </PopoverContent>
           </Popover>
+          <QrAuditAlertsManager servicioId={servicioId} />
           <QrAlertPreferences />
           <Button variant="ghost" size="sm" onClick={() => { load(); if (tab !== "registros") loadAgg(); }} disabled={loading} className="h-8 gap-1.5">
             <RefreshCw className={`h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} /> Actualizar
@@ -415,7 +437,11 @@ export default function QrAuditLogSection({ servicioId }: { servicioId: string |
                   </thead>
                   <tbody>
                     {rows.map((r) => (
-                      <tr key={r.id} className="border-b last:border-0 hover:bg-muted/30">
+                      <tr
+                        key={r.id}
+                        className="border-b last:border-0 hover:bg-muted/30 cursor-pointer"
+                        onClick={() => setDetailRowId(r.id)}
+                      >
                         <td className="py-2 pr-3 whitespace-nowrap text-xs">
                           {new Date(r.created_at).toLocaleString("es-CO")}
                         </td>
@@ -428,6 +454,7 @@ export default function QrAuditLogSection({ servicioId }: { servicioId: string |
                           {r.persona_id ? (
                             <Link
                               to={`/personas/${r.persona_id}`}
+                              onClick={(e) => e.stopPropagation()}
                               className="inline-flex items-center gap-1 text-primary hover:underline font-mono"
                               title="Abrir perfil de persona"
                             >
@@ -440,6 +467,7 @@ export default function QrAuditLogSection({ servicioId }: { servicioId: string |
                           {r.servicio_id ? (
                             <Link
                               to={`/servicios?servicio=${r.servicio_id}`}
+                              onClick={(e) => e.stopPropagation()}
                               className="inline-flex items-center gap-1 text-primary hover:underline font-mono"
                               title="Abrir reunión"
                             >
@@ -633,6 +661,7 @@ export default function QrAuditLogSection({ servicioId }: { servicioId: string |
           </TabsContent>
         </Tabs>
       </CardContent>
+      <QrScanDetailDrawer rowId={detailRowId} onClose={() => setDetailRowId(null)} />
     </Card>
   );
 }
