@@ -454,6 +454,7 @@ export default function QrAuditLogSection({ servicioId }: { servicioId: string |
                           {r.persona_id ? (
                             <Link
                               to={`/personas/${r.persona_id}`}
+                              onClick={(e) => e.stopPropagation()}
                               className="inline-flex items-center gap-1 text-primary hover:underline font-mono"
                               title="Abrir perfil de persona"
                             >
@@ -466,6 +467,7 @@ export default function QrAuditLogSection({ servicioId }: { servicioId: string |
                           {r.servicio_id ? (
                             <Link
                               to={`/servicios?servicio=${r.servicio_id}`}
+                              onClick={(e) => e.stopPropagation()}
                               className="inline-flex items-center gap-1 text-primary hover:underline font-mono"
                               title="Abrir reunión"
                             >
