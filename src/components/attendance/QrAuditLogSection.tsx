@@ -139,6 +139,7 @@ export default function QrAuditLogSection({ servicioId }: { servicioId: string |
             data={exportData}
             filters={{ servicioId, resultFilter, dateFrom, dateTo, search }}
           />
+          <QrAlertPreferences />
           <Button variant="ghost" size="sm" onClick={load} disabled={loading} className="h-8 gap-1.5">
             <RefreshCw className={`h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} /> Actualizar
           </Button>
