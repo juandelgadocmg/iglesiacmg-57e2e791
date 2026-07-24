@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { ArrowLeft, Save, X, Plus, Trash2, Search, Users, UserPlus, FileText, Ban, CheckCircle2 } from "lucide-react";
+import ShareLinkButton from "@/components/shared/ShareLinkButton";
 import { useUpdateEvento, useUpdateInscripcion } from "@/hooks/useDatabase";
 import {
   useEventoCategorias, useCreateEventoCategoria, useDeleteEventoCategoria,
