@@ -76,33 +76,45 @@ export default function QrAuditLogSection({ servicioId }: { servicioId: string |
   const [tab, setTab] = useState<string>("registros");
   const [presets, setPresets] = useState<Preset[]>([]);
   const [newPresetName, setNewPresetName] = useState("");
+  const [activePresetId, setActivePresetId] = useState<string | null>(null);
+  const [detailRowId, setDetailRowId] = useState<string | null>(null);
 
-  const presetsKey = user?.id ? `qr-audit-presets-${user.id}` : null;
-
-  useEffect(() => {
-    if (!presetsKey) return;
-    try {
-      const raw = localStorage.getItem(presetsKey);
-      setPresets(raw ? JSON.parse(raw) : []);
-    } catch { setPresets([]); }
-  }, [presetsKey]);
-
-  const savePresets = (next: Preset[]) => {
-    setPresets(next);
-    if (presetsKey) localStorage.setItem(presetsKey, JSON.stringify(next));
+  const loadPresets = async () => {
+    if (!user?.id) return;
+    const { data, error } = await supabase
+      .from("qr_audit_presets")
+      .select("id,name,filters")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false });
+    if (error) return;
+    const list: Preset[] = ((data || []) as any[]).map((r) => ({
+      id: r.id,
+      name: r.name,
+      resultFilter: r.filters?.resultFilter ?? "all",
+      codeFilter: r.filters?.codeFilter ?? "all",
+      dateFrom: r.filters?.dateFrom ?? "",
+      dateTo: r.filters?.dateTo ?? "",
+      search: r.filters?.search ?? "",
+    }));
+    setPresets(list);
   };
 
-  const handleSavePreset = () => {
+  useEffect(() => { loadPresets(); /* eslint-disable-next-line */ }, [user?.id]);
+
+  const handleSavePreset = async () => {
     const name = newPresetName.trim();
     if (!name) { toast({ title: "Nombre requerido", variant: "destructive" }); return; }
-    const preset: Preset = {
-      id: crypto.randomUUID(),
-      name,
-      resultFilter, codeFilter, dateFrom, dateTo, search,
-    };
-    savePresets([...presets, preset]);
+    if (!user?.id) return;
+    const filters = { resultFilter, codeFilter, dateFrom, dateTo, search };
+    const { data, error } = await supabase
+      .from("qr_audit_presets")
+      .insert({ user_id: user.id, name, filters })
+      .select("id").single();
+    if (error) { toast({ title: "No se pudo guardar", description: error.message, variant: "destructive" }); return; }
     setNewPresetName("");
+    setActivePresetId((data as any)?.id ?? null);
     toast({ title: "Vista guardada", description: name });
+    loadPresets();
   };
 
   const handleLoadPreset = (p: Preset) => {
@@ -112,12 +124,18 @@ export default function QrAuditLogSection({ servicioId }: { servicioId: string |
     setDateTo(p.dateTo);
     setSearch(p.search);
     setPage(0);
+    setActivePresetId(p.id);
     toast({ title: "Vista cargada", description: p.name });
   };
 
-  const handleDeletePreset = (id: string) => {
-    savePresets(presets.filter((p) => p.id !== id));
+  const handleDeletePreset = async (id: string) => {
+    await supabase.from("qr_audit_presets").delete().eq("id", id);
+    if (activePresetId === id) setActivePresetId(null);
+    loadPresets();
   };
+
+  const activePreset = presets.find((p) => p.id === activePresetId) || null;
+
 
   const applyFilters = (q: any, includeCode = true) => {
     if (servicioId) q = q.eq("servicio_id", servicioId);
