@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import ExportDropdown from "@/components/shared/ExportDropdown";
 import ShareLinkButton from "@/components/shared/ShareLinkButton";
+import ScanQrLinkButton from "@/components/shared/ScanQrLinkButton";
 import {
   Calendar as CalIcon, Rows, LayoutGrid, MapPin, Users, Search, Plus,
   Sparkles, Clock, CheckCircle2, Archive, CircleDot, ArrowRight,
@@ -387,6 +388,7 @@ export default function EventosPage() {
                 return `${window.location.origin}${window.location.pathname}?${p.toString()}`;
               }}
             />
+            <ScanQrLinkButton />
             <ExportDropdown title="Eventos" filename="eventos" columns={[
               { header: "Nombre", key: "nombre" }, { header: "Tipo", key: "tipo" },
               { header: "Fecha Inicio", key: "fecha_inicio" }, { header: "Lugar", key: "lugar" },
