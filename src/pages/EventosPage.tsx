@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, useNavigationType } from "react-router-dom";
 import { format, isAfter, isBefore, isThisMonth, isThisWeek, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
 import EventoFormDialog from "@/components/forms/EventoFormDialog";
@@ -12,9 +12,12 @@ import { Button } from "@/components/ui/button";
 import ExportDropdown from "@/components/shared/ExportDropdown";
 import ShareLinkButton from "@/components/shared/ShareLinkButton";
 import ScanQrLinkButton from "@/components/shared/ScanQrLinkButton";
+import RecentSharesPanel from "@/components/shared/RecentSharesPanel";
+import { announce } from "@/components/shared/LiveAnnouncer";
+import { usePresentationMode } from "@/hooks/usePresentationMode";
 import {
   Calendar as CalIcon, Rows, LayoutGrid, MapPin, Users, Search, Plus,
-  Sparkles, Clock, CheckCircle2, Archive, CircleDot, ArrowRight,
+  Sparkles, Clock, CheckCircle2, Archive, CircleDot, ArrowRight, Projector,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
@@ -39,6 +42,18 @@ export default function EventosPage() {
   const { data: eventos, isLoading } = useEventos();
   const [selectedEvento, setSelectedEventoState] = useState<any>(null);
   const [showCreate, setShowCreate] = useState(false);
+  const navigationType = useNavigationType();
+  const presentation = usePresentationMode("eventos");
+
+  // Announce restoration when arriving via Back/Forward with deep-linked state
+  useEffect(() => {
+    if (navigationType !== "POP") return;
+    const hasState =
+      searchParams.get("view") || searchParams.get("bucket") || searchParams.get("q") ||
+      searchParams.get("tipos") || searchParams.get("ev") || searchParams.get("sy");
+    if (hasState) announce("Vista de eventos restaurada");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [navigationType]);
 
   const [searchParams, setSearchParams] = useSearchParams();
   const isMobileInit = typeof window !== "undefined" && window.innerWidth < 768;
