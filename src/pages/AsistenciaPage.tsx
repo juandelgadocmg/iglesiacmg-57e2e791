@@ -40,6 +40,7 @@ export default function AsistenciaPage() {
   const [localAttendance, setLocalAttendance] = useState<Record<string, boolean>>({});
   const [initialized, setInitialized] = useState<string | null>(null);
   const [previewOpen, setPreviewOpen] = useState(false);
+  const [reopenFrom, setReopenFrom] = useState<{ id: string; version: number } | null>(null);
   const [signPersona, setSignPersona] = useState<{ id: string; nombre: string } | null>(null);
   const qc = useQueryClient();
   const { data: config } = useConfiguracion();
