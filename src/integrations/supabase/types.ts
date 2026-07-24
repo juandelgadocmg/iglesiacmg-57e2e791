@@ -1459,6 +1459,48 @@ export type Database = {
           },
         ]
       }
+      firma_audit: {
+        Row: {
+          accion: string
+          asistencia_id: string | null
+          created_at: string
+          firma_preview: string | null
+          firmada_por: string | null
+          firmada_por_email: string | null
+          id: string
+          ip: unknown
+          persona_id: string
+          servicio_id: string
+          user_agent: string | null
+        }
+        Insert: {
+          accion: string
+          asistencia_id?: string | null
+          created_at?: string
+          firma_preview?: string | null
+          firmada_por?: string | null
+          firmada_por_email?: string | null
+          id?: string
+          ip?: unknown
+          persona_id: string
+          servicio_id: string
+          user_agent?: string | null
+        }
+        Update: {
+          accion?: string
+          asistencia_id?: string | null
+          created_at?: string
+          firma_preview?: string | null
+          firmada_por?: string | null
+          firmada_por_email?: string | null
+          id?: string
+          ip?: unknown
+          persona_id?: string
+          servicio_id?: string
+          user_agent?: string | null
+        }
+        Relationships: []
+      }
       grupo_miembros: {
         Row: {
           created_at: string
@@ -2721,11 +2763,15 @@ export type Database = {
           generada_por: string
           generada_por_email: string | null
           id: string
+          motivo: string | null
           parametros: Json
+          parent_id: string | null
           servicio_id: string
+          snapshot: Json | null
           tasa_asistencia: number
           total_asistentes: number
           total_personas: number
+          version: number
         }
         Insert: {
           content_hash?: string | null
@@ -2735,11 +2781,15 @@ export type Database = {
           generada_por: string
           generada_por_email?: string | null
           id?: string
+          motivo?: string | null
           parametros?: Json
+          parent_id?: string | null
           servicio_id: string
+          snapshot?: Json | null
           tasa_asistencia?: number
           total_asistentes?: number
           total_personas?: number
+          version?: number
         }
         Update: {
           content_hash?: string | null
@@ -2749,13 +2799,24 @@ export type Database = {
           generada_por?: string
           generada_por_email?: string | null
           id?: string
+          motivo?: string | null
           parametros?: Json
+          parent_id?: string | null
           servicio_id?: string
+          snapshot?: Json | null
           tasa_asistencia?: number
           total_asistentes?: number
           total_personas?: number
+          version?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "planilla_historial_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "planilla_historial"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "planilla_historial_servicio_id_fkey"
             columns: ["servicio_id"]
