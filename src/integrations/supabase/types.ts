@@ -245,6 +245,51 @@ export type Database = {
         }
         Relationships: []
       }
+      bug_reports: {
+        Row: {
+          created_at: string
+          descripcion: string
+          estado: string
+          extra: Json | null
+          id: string
+          platform: string | null
+          ruta: string | null
+          screen: string | null
+          updated_at: string
+          user_agent: string | null
+          user_id: string | null
+          viewport: string | null
+        }
+        Insert: {
+          created_at?: string
+          descripcion: string
+          estado?: string
+          extra?: Json | null
+          id?: string
+          platform?: string | null
+          ruta?: string | null
+          screen?: string | null
+          updated_at?: string
+          user_agent?: string | null
+          user_id?: string | null
+          viewport?: string | null
+        }
+        Update: {
+          created_at?: string
+          descripcion?: string
+          estado?: string
+          extra?: Json | null
+          id?: string
+          platform?: string | null
+          ruta?: string | null
+          screen?: string | null
+          updated_at?: string
+          user_agent?: string | null
+          user_id?: string | null
+          viewport?: string | null
+        }
+        Relationships: []
+      }
       calificaciones: {
         Row: {
           created_at: string
