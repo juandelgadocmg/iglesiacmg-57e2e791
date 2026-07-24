@@ -58,18 +58,38 @@ function formatDate(iso: string) {
 export default function MensajesPage() {
   const { user } = useAuth();
   const isMobile = useIsMobile();
-  const [view, setView] = useState<View>("folder");
-  const [folder, setFolder] = useState<Folder>("inbox");
-  const [search, setSearch] = useState("");
-  const [searchField, setSearchField] = useState<"all" | "subject" | "from" | "body">("all");
-  const [dateFrom, setDateFrom] = useState<string>("");
-  const [dateTo, setDateTo] = useState<string>("");
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  const initialView = (searchParams.get("view") as View) || "folder";
+  const initialFolder = (searchParams.get("folder") as Folder) || "inbox";
+  const [view, setView] = useState<View>(initialView);
+  const [folder, setFolder] = useState<Folder>(initialFolder);
+  const [search, setSearch] = useState(searchParams.get("q") || "");
+  const [searchField, setSearchField] = useState<"all" | "subject" | "from" | "body">(
+    (searchParams.get("field") as any) || "all"
+  );
+  const [dateFrom, setDateFrom] = useState<string>(searchParams.get("from") || "");
+  const [dateTo, setDateTo] = useState<string>(searchParams.get("to") || "");
   const [page, setPage] = useState(0);
-  const [selected, setSelected] = useState<string | null>(null);
+  const [selected, setSelected] = useState<string | null>(searchParams.get("t") || null);
   const [composerOpen, setComposerOpen] = useState(false);
   const [composerInitial, setComposerInitial] = useState<any>(undefined);
   const [checked, setChecked] = useState<Set<string>>(new Set());
   const [accumulated, setAccumulated] = useState<ThreadRow[]>([]);
+
+  // Sync state -> URL (shareable link)
+  useEffect(() => {
+    const next = new URLSearchParams();
+    if (view !== "folder") next.set("view", view);
+    if (view === "folder" && folder !== "inbox") next.set("folder", folder);
+    if (search) next.set("q", search);
+    if (searchField !== "all") next.set("field", searchField);
+    if (dateFrom) next.set("from", dateFrom);
+    if (dateTo) next.set("to", dateTo);
+    if (selected) next.set("t", selected);
+    setSearchParams(next, { replace: true });
+  }, [view, folder, search, searchField, dateFrom, dateTo, selected, setSearchParams]);
+
 
   // Reset accumulation + selection whenever filters change
   const filterKey = `${folder}|${search}|${searchField}|${dateFrom}|${dateTo}`;
