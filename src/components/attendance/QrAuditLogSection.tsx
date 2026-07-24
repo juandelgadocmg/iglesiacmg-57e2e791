@@ -3,19 +3,33 @@ import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ScrollText, RefreshCw, ChevronLeft, ChevronRight, ExternalLink, AlertTriangle, BarChart3, ListChecks } from "lucide-react";
+import { ScrollText, RefreshCw, ChevronLeft, ChevronRight, ExternalLink, AlertTriangle, BarChart3, ListChecks, Save, Trash2, Bookmark } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useUserRoles } from "@/hooks/useUserRoles";
+import { useAuth } from "@/hooks/useAuth";
+import { toast } from "@/hooks/use-toast";
 import ExportDropdown from "@/components/shared/ExportDropdown";
 import QrAlertPreferences from "@/components/attendance/QrAlertPreferences";
+
+interface Preset {
+  id: string;
+  name: string;
+  resultFilter: string;
+  codeFilter: string;
+  dateFrom: string;
+  dateTo: string;
+  search: string;
+}
 
 interface Row {
   id: string;
   user_id: string | null;
   persona_id: string | null;
+  servicio_id: string | null;
   result: string;
   code: string | null;
   message: string | null;
@@ -43,6 +57,7 @@ const AGG_LIMIT = 1000;
 
 export default function QrAuditLogSection({ servicioId }: { servicioId: string | null }) {
   const { roles } = useUserRoles();
+  const { user } = useAuth();
   const canView = roles.some((r) => ["admin", "pastor", "secretaria"].includes(r as string));
   const [rows, setRows] = useState<Row[]>([]);
   const [total, setTotal] = useState(0);
@@ -57,6 +72,50 @@ export default function QrAuditLogSection({ servicioId }: { servicioId: string |
   const [aggRows, setAggRows] = useState<AggRow[]>([]);
   const [aggLoading, setAggLoading] = useState(false);
   const [tab, setTab] = useState<string>("registros");
+  const [presets, setPresets] = useState<Preset[]>([]);
+  const [newPresetName, setNewPresetName] = useState("");
+
+  const presetsKey = user?.id ? `qr-audit-presets-${user.id}` : null;
+
+  useEffect(() => {
+    if (!presetsKey) return;
+    try {
+      const raw = localStorage.getItem(presetsKey);
+      setPresets(raw ? JSON.parse(raw) : []);
+    } catch { setPresets([]); }
+  }, [presetsKey]);
+
+  const savePresets = (next: Preset[]) => {
+    setPresets(next);
+    if (presetsKey) localStorage.setItem(presetsKey, JSON.stringify(next));
+  };
+
+  const handleSavePreset = () => {
+    const name = newPresetName.trim();
+    if (!name) { toast({ title: "Nombre requerido", variant: "destructive" }); return; }
+    const preset: Preset = {
+      id: crypto.randomUUID(),
+      name,
+      resultFilter, codeFilter, dateFrom, dateTo, search,
+    };
+    savePresets([...presets, preset]);
+    setNewPresetName("");
+    toast({ title: "Vista guardada", description: name });
+  };
+
+  const handleLoadPreset = (p: Preset) => {
+    setResultFilter(p.resultFilter);
+    setCodeFilter(p.codeFilter);
+    setDateFrom(p.dateFrom);
+    setDateTo(p.dateTo);
+    setSearch(p.search);
+    setPage(0);
+    toast({ title: "Vista cargada", description: p.name });
+  };
+
+  const handleDeletePreset = (id: string) => {
+    savePresets(presets.filter((p) => p.id !== id));
+  };
 
   const applyFilters = (q: any, includeCode = true) => {
     if (servicioId) q = q.eq("servicio_id", servicioId);
@@ -77,7 +136,7 @@ export default function QrAuditLogSection({ servicioId }: { servicioId: string |
   const buildQuery = () => {
     let q = supabase
       .from("qr_scan_log")
-      .select("id,user_id,persona_id,result,code,message,token,created_at", { count: "exact" });
+      .select("id,user_id,persona_id,servicio_id,result,code,message,token,created_at", { count: "exact" });
     q = applyFilters(q);
     return q.order("created_at", { ascending: false });
   };
@@ -250,6 +309,49 @@ export default function QrAuditLogSection({ servicioId }: { servicioId: string |
             data={exportData}
             filters={{ servicioId, resultFilter, codeFilter, dateFrom, dateTo, search }}
           />
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" size="sm" className="h-8 gap-1.5">
+                <Bookmark className="h-3.5 w-3.5" /> Vistas{presets.length ? ` (${presets.length})` : ""}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-80" align="end">
+              <div className="space-y-2">
+                <div className="text-xs font-semibold">Vistas guardadas</div>
+                <div className="flex gap-1">
+                  <Input
+                    placeholder="Nombre de la vista actual"
+                    value={newPresetName}
+                    onChange={(e) => setNewPresetName(e.target.value)}
+                    className="h-8 text-xs"
+                  />
+                  <Button size="sm" className="h-8 gap-1" onClick={handleSavePreset}>
+                    <Save className="h-3.5 w-3.5" /> Guardar
+                  </Button>
+                </div>
+                {presets.length === 0 ? (
+                  <p className="text-[11px] text-muted-foreground py-2 text-center">Aún no tienes vistas guardadas.</p>
+                ) : (
+                  <div className="max-h-64 overflow-y-auto divide-y">
+                    {presets.map((p) => (
+                      <div key={p.id} className="flex items-center justify-between gap-2 py-1.5">
+                        <button
+                          onClick={() => handleLoadPreset(p)}
+                          className="text-left text-xs hover:underline flex-1 truncate"
+                          title="Cargar vista"
+                        >
+                          {p.name}
+                        </button>
+                        <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => handleDeletePreset(p.id)} title="Eliminar">
+                          <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </PopoverContent>
+          </Popover>
           <QrAlertPreferences />
           <Button variant="ghost" size="sm" onClick={() => { load(); if (tab !== "registros") loadAgg(); }} disabled={loading} className="h-8 gap-1.5">
             <RefreshCw className={`h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} /> Actualizar
@@ -307,6 +409,7 @@ export default function QrAuditLogSection({ servicioId }: { servicioId: string |
                       <th className="py-2 pr-3">Código</th>
                       <th className="py-2 pr-3">Detalle</th>
                       <th className="py-2 pr-3">Persona</th>
+                      <th className="py-2 pr-3">Reunión</th>
                       <th className="py-2 pr-3">Token</th>
                     </tr>
                   </thead>
@@ -329,6 +432,18 @@ export default function QrAuditLogSection({ servicioId }: { servicioId: string |
                               title="Abrir perfil de persona"
                             >
                               {r.persona_id.slice(0, 8)}
+                              <ExternalLink className="h-3 w-3" />
+                            </Link>
+                          ) : "—"}
+                        </td>
+                        <td className="py-2 pr-3 text-xs">
+                          {r.servicio_id ? (
+                            <Link
+                              to={`/servicios?servicio=${r.servicio_id}`}
+                              className="inline-flex items-center gap-1 text-primary hover:underline font-mono"
+                              title="Abrir reunión"
+                            >
+                              {r.servicio_id.slice(0, 8)}
                               <ExternalLink className="h-3 w-3" />
                             </Link>
                           ) : "—"}
@@ -384,12 +499,24 @@ export default function QrAuditLogSection({ servicioId }: { servicioId: string |
                       const totalH = max ? (v.total / max) * 100 : 0;
                       const okH = v.total ? (v.ok / v.total) * totalH : 0;
                       return (
-                        <div key={day} className="flex-1 flex flex-col justify-end items-center gap-0.5" title={`${day}: ${v.ok}/${v.total} OK`}>
+                        <button
+                          type="button"
+                          key={day}
+                          onClick={() => {
+                            setDateFrom(day);
+                            setDateTo(day);
+                            setPage(0);
+                            setTab("registros");
+                            toast({ title: "Filtrado por fecha", description: day });
+                          }}
+                          className="flex-1 flex flex-col justify-end items-center gap-0.5 hover:opacity-80 cursor-pointer"
+                          title={`${day}: ${v.ok}/${v.total} OK — clic para filtrar`}
+                        >
                           <div className="w-full bg-muted rounded-t" style={{ height: `${totalH}%` }}>
                             <div className="w-full bg-success rounded-t" style={{ height: `${totalH ? (okH / totalH) * 100 : 0}%` }} />
                           </div>
                           <span className="text-[9px] text-muted-foreground rotate-45 origin-left">{day.slice(5)}</span>
-                        </div>
+                        </button>
                       );
                     })}
                   </div>
@@ -408,18 +535,33 @@ export default function QrAuditLogSection({ servicioId }: { servicioId: string |
                           <th className="py-1.5 pr-2 text-right">Err</th>
                           <th className="py-1.5 pr-2 text-right">% Éxito</th>
                           <th className="py-1.5 pr-2 text-right">% Dup</th>
+                          <th className="py-1.5 pr-2"></th>
                         </tr>
                       </thead>
                       <tbody>
                         {metrics.meetings.map((m) => (
                           <tr key={m.id} className="border-b last:border-0">
-                            <td className="py-1.5 pr-2 font-mono text-[10px]">{m.id === "—" ? "—" : m.id.slice(0, 8)}</td>
+                            <td className="py-1.5 pr-2 font-mono text-[10px]">
+                              {m.id === "—" ? "—" : (
+                                <Link to={`/servicios?servicio=${m.id}`} className="inline-flex items-center gap-1 text-primary hover:underline" title="Abrir reunión">
+                                  {m.id.slice(0, 8)}
+                                  <ExternalLink className="h-3 w-3" />
+                                </Link>
+                              )}
+                            </td>
                             <td className="py-1.5 pr-2 text-right">{m.total}</td>
                             <td className="py-1.5 pr-2 text-right text-success">{m.ok}</td>
                             <td className="py-1.5 pr-2 text-right text-primary">{m.dup}</td>
                             <td className="py-1.5 pr-2 text-right text-destructive">{m.err}</td>
                             <td className="py-1.5 pr-2 text-right">{m.okRate.toFixed(1)}%</td>
                             <td className="py-1.5 pr-2 text-right">{m.dupRate.toFixed(1)}%</td>
+                            <td className="py-1.5 pr-2 text-right">
+                              {m.id !== "—" && (
+                                <Button variant="ghost" size="sm" className="h-6 text-[10px]" onClick={() => { setTab("registros"); setPage(0); }}>
+                                  Ver
+                                </Button>
+                              )}
+                            </td>
                           </tr>
                         ))}
                       </tbody>
