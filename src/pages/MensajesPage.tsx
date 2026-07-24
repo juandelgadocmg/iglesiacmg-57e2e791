@@ -435,6 +435,7 @@ export default function MensajesPage() {
               if (dateFrom) p.set("from", dateFrom);
               if (dateTo) p.set("to", dateTo);
               if (selected) p.set("t", selected);
+              if (page > 0) p.set("p", String(page));
               // Include current list scroll so returning users land on the same row
               const viewport = listScrollRef.current?.querySelector<HTMLDivElement>("[data-radix-scroll-area-viewport]");
               if (viewport && viewport.scrollTop > 0) p.set("ly", String(Math.round(viewport.scrollTop)));
@@ -442,6 +443,7 @@ export default function MensajesPage() {
               return `${window.location.origin}${window.location.pathname}${qs ? `?${qs}` : ""}`;
             }}
           />
+          <ScanQrLinkButton />
         </div>
         <div className="flex items-center gap-2 text-xs">
           <label className="text-muted-foreground shrink-0">Desde</label>
