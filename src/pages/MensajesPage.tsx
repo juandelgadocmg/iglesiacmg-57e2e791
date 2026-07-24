@@ -462,6 +462,19 @@ export default function MensajesPage() {
             }}
           />
           <ScanQrLinkButton />
+          <RecentSharesPanel scope="mensajes" />
+          <Button
+            type="button"
+            size="icon"
+            variant={presentation.enabled ? "default" : "outline"}
+            className="h-8 w-8"
+            aria-pressed={presentation.enabled}
+            aria-label={presentation.enabled ? "Salir de modo presentación" : "Activar modo presentación"}
+            title="Modo presentación (Shift+P)"
+            onClick={presentation.toggle}
+          >
+            <Projector className="h-3.5 w-3.5" />
+          </Button>
         </div>
         <div className="flex items-center gap-2 text-xs">
           <label className="text-muted-foreground shrink-0">Desde</label>
