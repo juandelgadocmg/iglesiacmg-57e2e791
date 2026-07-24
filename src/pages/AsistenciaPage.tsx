@@ -343,6 +343,8 @@ export default function AsistenciaPage() {
           </div>
         )}
       </div>
+
+      <QrAuditLogSection servicioId={effectiveService} />
     </div>
   );
 }
