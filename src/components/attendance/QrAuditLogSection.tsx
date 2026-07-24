@@ -29,6 +29,7 @@ interface Row {
   id: string;
   user_id: string | null;
   persona_id: string | null;
+  servicio_id: string | null;
   result: string;
   code: string | null;
   message: string | null;
