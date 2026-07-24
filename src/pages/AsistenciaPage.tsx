@@ -332,17 +332,21 @@ export default function AsistenciaPage() {
 
       <QrAuditLogSection servicioId={effectiveService} />
 
-      <PlanillaHistorialSection servicioId={effectiveService} />
+      <PlanillaHistorialSection
+        servicioId={effectiveService}
+        onReopen={(v) => { setReopenFrom(v); setPreviewOpen(true); }}
+      />
 
       {effectiveService && currentService && (
         <PlanillaPreviewDialog
           open={previewOpen}
-          onOpenChange={setPreviewOpen}
+          onOpenChange={(v) => { setPreviewOpen(v); if (!v) setReopenFrom(null); }}
           servicio={currentService}
           personas={personasList}
           asistMap={asistMap}
           localAttendance={localAttendance}
           config={config}
+          reopenFrom={reopenFrom}
         />
       )}
 
