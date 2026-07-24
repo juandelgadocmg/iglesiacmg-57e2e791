@@ -35,6 +35,7 @@ interface HistoryRow {
   id: string;
   alert_id: string | null;
   rule_name: string;
+  code: string | null;
   window_days: number;
   min_events: number;
   fail_rate_pct: number;
