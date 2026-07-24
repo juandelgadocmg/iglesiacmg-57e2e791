@@ -181,6 +181,30 @@ export default function EventosPage() {
 
       {/* Main */}
       <div className="flex-1 min-w-0 p-3 md:p-6 space-y-5">
+        {/* Mobile filters (search + bucket chips) */}
+        <div className="md:hidden space-y-2">
+          <div className="relative">
+            <Search className="h-3.5 w-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+            <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Buscar evento…" className="pl-8 h-9 text-sm" />
+          </div>
+          <div className="flex gap-1.5 overflow-x-auto pb-1 -mx-1 px-1">
+            {BUCKETS.map((b) => (
+              <button
+                key={b.id}
+                onClick={() => setBucket(b.id)}
+                className={cn(
+                  "shrink-0 flex items-center gap-1 px-3 py-1.5 rounded-full text-xs border whitespace-nowrap",
+                  bucket === b.id ? "bg-primary text-primary-foreground border-primary" : "bg-card text-muted-foreground"
+                )}
+              >
+                <b.icon className="h-3 w-3" />
+                {b.label}
+                <span className="opacity-70">{(buckets as any)[b.id]}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
         {/* Header */}
         <div className="flex items-start justify-between gap-3 flex-wrap">
           <div>
