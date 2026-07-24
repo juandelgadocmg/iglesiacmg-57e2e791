@@ -309,6 +309,49 @@ export default function QrAuditLogSection({ servicioId }: { servicioId: string |
             data={exportData}
             filters={{ servicioId, resultFilter, codeFilter, dateFrom, dateTo, search }}
           />
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" size="sm" className="h-8 gap-1.5">
+                <Bookmark className="h-3.5 w-3.5" /> Vistas{presets.length ? ` (${presets.length})` : ""}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-80" align="end">
+              <div className="space-y-2">
+                <div className="text-xs font-semibold">Vistas guardadas</div>
+                <div className="flex gap-1">
+                  <Input
+                    placeholder="Nombre de la vista actual"
+                    value={newPresetName}
+                    onChange={(e) => setNewPresetName(e.target.value)}
+                    className="h-8 text-xs"
+                  />
+                  <Button size="sm" className="h-8 gap-1" onClick={handleSavePreset}>
+                    <Save className="h-3.5 w-3.5" /> Guardar
+                  </Button>
+                </div>
+                {presets.length === 0 ? (
+                  <p className="text-[11px] text-muted-foreground py-2 text-center">Aún no tienes vistas guardadas.</p>
+                ) : (
+                  <div className="max-h-64 overflow-y-auto divide-y">
+                    {presets.map((p) => (
+                      <div key={p.id} className="flex items-center justify-between gap-2 py-1.5">
+                        <button
+                          onClick={() => handleLoadPreset(p)}
+                          className="text-left text-xs hover:underline flex-1 truncate"
+                          title="Cargar vista"
+                        >
+                          {p.name}
+                        </button>
+                        <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => handleDeletePreset(p.id)} title="Eliminar">
+                          <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </PopoverContent>
+          </Popover>
           <QrAlertPreferences />
           <Button variant="ghost" size="sm" onClick={() => { load(); if (tab !== "registros") loadAgg(); }} disabled={loading} className="h-8 gap-1.5">
             <RefreshCw className={`h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} /> Actualizar
