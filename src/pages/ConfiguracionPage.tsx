@@ -202,6 +202,7 @@ export default function ConfiguracionPage() {
           <TabsTrigger value="permisos" className="gap-1.5"><ShieldCheck className="h-3.5 w-3.5" /> Permisos</TabsTrigger>
           <TabsTrigger value="certificados" className="gap-1.5"><Award className="h-3.5 w-3.5" /> Plantillas de Certificados</TabsTrigger>
           <TabsTrigger value="cert-historial" className="gap-1.5"><History className="h-3.5 w-3.5" /> Historial de Certificados</TabsTrigger>
+          <TabsTrigger value="planilla" className="gap-1.5"><ClipboardList className="h-3.5 w-3.5" /> Planilla</TabsTrigger>
         </TabsList>
 
         <TabsContent value="general">
@@ -450,6 +451,10 @@ export default function ConfiguracionPage() {
 
         <TabsContent value="cert-historial">
           <CertExportHistory />
+        </TabsContent>
+
+        <TabsContent value="planilla">
+          <PlanillaConfigCard />
         </TabsContent>
       </Tabs>
     </div>
