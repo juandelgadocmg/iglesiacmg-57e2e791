@@ -484,23 +484,34 @@ export default function MensajesPage() {
               </Sheet>
             ) : null}
             <div className="flex">
-              <div className="overflow-x-auto whitespace-nowrap px-2 py-2 flex gap-2 border-b w-full">
+              <div
+                className="overflow-x-auto whitespace-nowrap px-2 py-2 flex gap-2 border-b w-full snap-x snap-mandatory"
+                role="tablist"
+                aria-label="Carpetas de correo"
+              >
                 {FOLDERS.map((f) => (
                   <Button
                     key={f.id}
                     size="sm"
                     variant={folder === f.id ? "default" : "outline"}
                     onClick={() => setFolder(f.id)}
+                    role="tab"
+                    aria-selected={folder === f.id}
+                    className="min-h-11 px-4 snap-start focus-visible:ring-2 focus-visible:ring-ring"
                   >
-                    <f.icon className="h-3.5 w-3.5 mr-1" />
+                    <f.icon className="h-4 w-4 mr-1.5" />
                     {f.label}
                   </Button>
                 ))}
               </div>
             </div>
-            <Button className="m-3" onClick={() => { setComposerInitial(undefined); setComposerOpen(true); }}>
+            <Button
+              className="m-3 min-h-11"
+              onClick={() => { setComposerInitial(undefined); setComposerOpen(true); }}
+            >
               <Plus className="h-4 w-4 mr-1" /> Nuevo mensaje
             </Button>
+
             {listPanel}
           </div>
         )}
