@@ -18,6 +18,7 @@ import {
   ClipboardList, Calendar, BookMarked, X, ChevronDown,
 } from "lucide-react";
 import ShareLinkButton from "@/components/shared/ShareLinkButton";
+import ScanQrLinkButton from "@/components/shared/ScanQrLinkButton";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 import {
@@ -71,7 +72,7 @@ export default function MensajesPage() {
   );
   const [dateFrom, setDateFrom] = useState<string>(searchParams.get("from") || "");
   const [dateTo, setDateTo] = useState<string>(searchParams.get("to") || "");
-  const [page, setPage] = useState(0);
+  const [page, setPage] = useState(() => Math.max(0, parseInt(searchParams.get("p") || "0", 10) || 0));
   const [selected, setSelected] = useState<string | null>(searchParams.get("t") || null);
   const [composerOpen, setComposerOpen] = useState(false);
   const [composerInitial, setComposerInitial] = useState<any>(undefined);
@@ -92,6 +93,7 @@ export default function MensajesPage() {
     if (dateFrom) next.set("from", dateFrom);
     if (dateTo) next.set("to", dateTo);
     if (selected) next.set("t", selected);
+    if (page > 0) next.set("p", String(page));
     // Preserve existing list scroll (ly) — persisted separately below
     const ly = searchParams.get("ly");
     if (ly) next.set("ly", ly);
@@ -100,18 +102,35 @@ export default function MensajesPage() {
       prev.view !== view || prev.folder !== folder || prev.selected !== selected;
     prevNavRef.current = { view, folder, selected };
     setSearchParams(next, { replace: !isNavChange });
-  }, [view, folder, search, searchField, dateFrom, dateTo, selected, setSearchParams, searchParams]);
+  }, [view, folder, search, searchField, dateFrom, dateTo, selected, page, setSearchParams, searchParams]);
 
   // React to Back/Forward — pull state out of the URL without flicker
   useEffect(() => {
     const urlView = (searchParams.get("view") as View) || "folder";
     const urlFolder = (searchParams.get("folder") as Folder) || "inbox";
     const urlSelected = searchParams.get("t");
+    const urlPage = Math.max(0, parseInt(searchParams.get("p") || "0", 10) || 0);
     if (urlView !== view) setView(urlView);
     if (urlFolder !== folder) setFolder(urlFolder);
     if ((urlSelected || null) !== selected) setSelected(urlSelected || null);
+    if (urlPage !== page) setPage(urlPage);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]);
+
+  // Restore keyboard focus + visual selection on the currently selected thread
+  // after Back/Forward so the user resumes exactly where they left off.
+  useEffect(() => {
+    if (!selected) return;
+    const root = listScrollRef.current;
+    if (!root) return;
+    const el = root.querySelector<HTMLButtonElement>(`[data-thread-id="${selected}"]`);
+    if (!el) return;
+    // rAF so layout is stable and the row is present after data load
+    requestAnimationFrame(() => {
+      el.focus({ preventScroll: true });
+      el.scrollIntoView({ block: "nearest", behavior: "auto" });
+    });
+  }, [selected, accumulated.length]);
 
   // ─── Thread list scroll persistence (survives Back navigation + shareable) ───
   const listScrollRef = useRef<HTMLDivElement | null>(null);
@@ -145,9 +164,12 @@ export default function MensajesPage() {
   }, [listScrollKey, accumulated.length]);
 
 
-  // Reset accumulation + selection whenever filters change
+  // Reset accumulation + selection whenever filters change (skip first mount so
+  // an initial ?p=<n> from a shared/back link isn't wiped before it's honored).
   const filterKey = `${folder}|${search}|${searchField}|${dateFrom}|${dateTo}`;
+  const firstFilterRunRef = useRef(true);
   useEffect(() => {
+    if (firstFilterRunRef.current) { firstFilterRunRef.current = false; return; }
     setAccumulated([]);
     setChecked(new Set());
     setPage(0);
@@ -413,6 +435,7 @@ export default function MensajesPage() {
               if (dateFrom) p.set("from", dateFrom);
               if (dateTo) p.set("to", dateTo);
               if (selected) p.set("t", selected);
+              if (page > 0) p.set("p", String(page));
               // Include current list scroll so returning users land on the same row
               const viewport = listScrollRef.current?.querySelector<HTMLDivElement>("[data-radix-scroll-area-viewport]");
               if (viewport && viewport.scrollTop > 0) p.set("ly", String(Math.round(viewport.scrollTop)));
@@ -420,6 +443,7 @@ export default function MensajesPage() {
               return `${window.location.origin}${window.location.pathname}${qs ? `?${qs}` : ""}`;
             }}
           />
+          <ScanQrLinkButton />
         </div>
         <div className="flex items-center gap-2 text-xs">
           <label className="text-muted-foreground shrink-0">Desde</label>
@@ -496,7 +520,16 @@ export default function MensajesPage() {
                   <div className="pt-2" onClick={(e) => e.stopPropagation()}>
                     <Checkbox checked={isChecked} onCheckedChange={() => toggleCheck(t.id)} aria-label="Seleccionar hilo" />
                   </div>
-                  <button onClick={() => setSelected(t.id)} className="flex-1 flex gap-3 min-w-0 text-left">
+                  <button
+                    data-thread-id={t.id}
+                    onClick={() => setSelected(t.id)}
+                    aria-selected={isActive}
+                    aria-label={`Abrir hilo: ${t.subject || headline}`}
+                    className={cn(
+                      "flex-1 flex gap-3 min-w-0 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-md",
+                      isActive && "ring-1 ring-primary/40"
+                    )}
+                  >
                     <Avatar className="h-9 w-9 mt-0.5 shrink-0">
                       {isSystem ? (
                         <AvatarFallback className="bg-primary/10 text-primary"><Bot className="h-4 w-4" /></AvatarFallback>

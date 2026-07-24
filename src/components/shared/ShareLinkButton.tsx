@@ -1,5 +1,5 @@
-import { useCallback, useMemo, useState } from "react";
-import { QRCodeSVG } from "qrcode.react";
+import { useCallback, useMemo, useRef, useState } from "react";
+import { QRCodeCanvas, QRCodeSVG } from "qrcode.react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -8,7 +8,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Link2, Check, QrCode } from "lucide-react";
+import { Link2, Check, QrCode, Download } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
@@ -144,27 +144,79 @@ export default function ShareLinkButton({
               <DialogDescription>{qrDescription}</DialogDescription>
             </DialogHeader>
             {qrUrl && (
-              <div className="flex flex-col items-center gap-3 py-2">
-                <div className="rounded-md border bg-white p-4">
-                  <QRCodeSVG value={qrUrl} size={220} level="M" includeMargin={false} />
-                </div>
-                <p className="text-xs text-muted-foreground break-all text-center max-w-full">
-                  {qrUrl}
-                </p>
-                <div className="flex gap-2 w-full">
-                  <Button variant="outline" size="sm" className="flex-1" onClick={copy}>
-                    <Link2 className="h-3.5 w-3.5 mr-1.5" />
-                    Copiar enlace
-                  </Button>
-                  <Button variant="ghost" size="sm" onClick={() => setQrOpen(false)}>
-                    Cerrar
-                  </Button>
-                </div>
-              </div>
+              <QrPanel url={qrUrl} onCopy={copy} onClose={() => setQrOpen(false)} />
             )}
           </DialogContent>
         </Dialog>
       )}
     </>
+  );
+}
+
+function QrPanel({
+  url,
+  onCopy,
+  onClose,
+}: {
+  url: string;
+  onCopy: () => void;
+  onClose: () => void;
+}) {
+  const wrapRef = useRef<HTMLDivElement | null>(null);
+
+  const downloadPng = () => {
+    const canvas = wrapRef.current?.querySelector<HTMLCanvasElement>("canvas");
+    if (!canvas) {
+      toast.error("No se pudo generar la imagen del QR");
+      return;
+    }
+    try {
+      canvas.toBlob((blob) => {
+        if (!blob) {
+          toast.error("No se pudo generar la imagen del QR");
+          return;
+        }
+        const a = document.createElement("a");
+        const objectUrl = URL.createObjectURL(blob);
+        a.href = objectUrl;
+        a.download = `doxa-qr-${Date.now()}.png`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(objectUrl);
+        toast.success("QR descargado como PNG");
+      }, "image/png");
+    } catch {
+      toast.error("Tu navegador bloqueó la descarga del QR");
+    }
+  };
+
+  return (
+    <div className="flex flex-col items-center gap-3 py-2">
+      <div ref={wrapRef} className="rounded-md border bg-white p-4">
+        {/* Canvas for PNG export */}
+        <QRCodeCanvas value={url} size={220} level="M" includeMargin={false} />
+        {/* Hidden SVG kept for crisp on-screen rendering fallback */}
+        <span className="sr-only">
+          <QRCodeSVG value={url} size={220} level="M" />
+        </span>
+      </div>
+      <p className="text-xs text-muted-foreground break-all text-center max-w-full">
+        {url}
+      </p>
+      <div className="flex flex-wrap gap-2 w-full">
+        <Button variant="outline" size="sm" className="flex-1 min-w-[7rem]" onClick={onCopy}>
+          <Link2 className="h-3.5 w-3.5 mr-1.5" />
+          Copiar enlace
+        </Button>
+        <Button variant="outline" size="sm" className="flex-1 min-w-[7rem]" onClick={downloadPng}>
+          <Download className="h-3.5 w-3.5 mr-1.5" />
+          Descargar PNG
+        </Button>
+        <Button variant="ghost" size="sm" onClick={onClose}>
+          Cerrar
+        </Button>
+      </div>
+    </div>
   );
 }
