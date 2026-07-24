@@ -1,5 +1,5 @@
-import { useCallback, useMemo, useState } from "react";
-import { QRCodeSVG } from "qrcode.react";
+import { useCallback, useMemo, useRef, useState } from "react";
+import { QRCodeCanvas, QRCodeSVG } from "qrcode.react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -8,7 +8,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Link2, Check, QrCode } from "lucide-react";
+import { Link2, Check, QrCode, Download } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
@@ -144,23 +144,7 @@ export default function ShareLinkButton({
               <DialogDescription>{qrDescription}</DialogDescription>
             </DialogHeader>
             {qrUrl && (
-              <div className="flex flex-col items-center gap-3 py-2">
-                <div className="rounded-md border bg-white p-4">
-                  <QRCodeSVG value={qrUrl} size={220} level="M" includeMargin={false} />
-                </div>
-                <p className="text-xs text-muted-foreground break-all text-center max-w-full">
-                  {qrUrl}
-                </p>
-                <div className="flex gap-2 w-full">
-                  <Button variant="outline" size="sm" className="flex-1" onClick={copy}>
-                    <Link2 className="h-3.5 w-3.5 mr-1.5" />
-                    Copiar enlace
-                  </Button>
-                  <Button variant="ghost" size="sm" onClick={() => setQrOpen(false)}>
-                    Cerrar
-                  </Button>
-                </div>
-              </div>
+              <QrPanel url={qrUrl} onCopy={copy} onClose={() => setQrOpen(false)} />
             )}
           </DialogContent>
         </Dialog>
