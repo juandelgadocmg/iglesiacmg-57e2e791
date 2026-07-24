@@ -382,6 +382,8 @@ export default function EventosPage() {
                 if (t.length !== 3) p.set("tipos", t.join(","));
                 const evId = searchParams.get("ev");
                 if (evId) p.set("ev", evId);
+                const sy = Math.round(window.scrollY);
+                if (sy > 0 && view !== "calendar") p.set("sy", String(sy));
                 return `${window.location.origin}${window.location.pathname}?${p.toString()}`;
               }}
             />
