@@ -13,6 +13,7 @@ import { es } from "date-fns/locale";
 import MensajeComposer from "./MensajeComposer";
 import AssetPreview from "@/components/shared/AssetPreview";
 import { openAsset as openAssetSafe } from "@/lib/openAsset";
+import ShareLinkButton from "@/components/shared/ShareLinkButton";
 
 interface Props {
   threadId: string;
