@@ -39,7 +39,10 @@ export default function AsistenciaPage() {
   const [filterStatus, setFilterStatus] = useState<"all" | "present" | "absent">("all");
   const [localAttendance, setLocalAttendance] = useState<Record<string, boolean>>({});
   const [initialized, setInitialized] = useState<string | null>(null);
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [signPersona, setSignPersona] = useState<{ id: string; nombre: string } | null>(null);
   const qc = useQueryClient();
+  const { data: config } = useConfiguracion();
 
   const upsertAsistencia = useUpsertAsistencia();
   const effectiveService = selectedService || servicios?.[0]?.id || null;
