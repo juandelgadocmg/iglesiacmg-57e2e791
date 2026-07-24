@@ -220,7 +220,7 @@ export default function MensajeThreadView({ threadId }: Props) {
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
+      <div ref={scrollRef} className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
         {(data.messages as any[]).map((m: any) => {
           const isSys = !!m.is_system;
           const sys = isSys ? data.systemSenders.get(m.system_sender_key) : null;

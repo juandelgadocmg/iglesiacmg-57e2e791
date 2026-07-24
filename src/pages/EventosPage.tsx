@@ -35,7 +35,7 @@ function normTipo(t: string | null | undefined) {
 
 export default function EventosPage() {
   const { data: eventos, isLoading } = useEventos();
-  const [selectedEvento, setSelectedEvento] = useState<any>(null);
+  const [selectedEvento, setSelectedEventoState] = useState<any>(null);
   const [showCreate, setShowCreate] = useState(false);
 
   const [searchParams, setSearchParams] = useSearchParams();
@@ -55,6 +55,14 @@ export default function EventosPage() {
   );
   const [q, setQ] = useState(initialQ);
 
+  const setSelectedEvento = (ev: any) => {
+    setSelectedEventoState(ev);
+    const p = new URLSearchParams(searchParams);
+    if (ev?.id) p.set("ev", String(ev.id));
+    else p.delete("ev");
+    setSearchParams(p, { replace: true });
+  };
+
   // Sync filter state -> URL (shareable across devices)
   useEffect(() => {
     const p = new URLSearchParams();
@@ -63,9 +71,25 @@ export default function EventosPage() {
     if (q) p.set("q", q);
     const tiposArr = Array.from(tipos).sort();
     if (tiposArr.length !== 3) p.set("tipos", tiposArr.join(","));
+    const evId = searchParams.get("ev");
+    if (evId) p.set("ev", evId);
     setSearchParams(p, { replace: true });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [view, bucket, q, tipos]);
+
+  // Restore selected evento from URL once data is loaded / shared link opened
+  useEffect(() => {
+    const evId = searchParams.get("ev");
+    if (!evId) {
+      if (selectedEvento) setSelectedEventoState(null);
+      return;
+    }
+    if (selectedEvento?.id === evId) return;
+    const found = (eventos || []).find((e: any) => String(e.id) === evId);
+    if (found) setSelectedEventoState(found);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [eventos, searchParams]);
+
 
   const now = new Date();
 
