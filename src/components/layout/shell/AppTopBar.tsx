@@ -20,6 +20,7 @@ import NotificationDropdown from "@/components/layout/NotificationDropdown";
 import CommandBar from "./CommandBar";
 import QuickCreateMenu from "./QuickCreateMenu";
 import InstallPWAButton from "@/components/pwa/InstallPWAButton";
+import ReportProblemButton from "@/components/support/ReportProblemButton";
 import HotkeysHelpDialog from "./HotkeysHelpDialog";
 import { useHotkeys } from "@/hooks/useHotkeys";
 import { useNavigate } from "react-router-dom";
@@ -190,6 +191,7 @@ export default function AppTopBar({ onMenuClick }: { onMenuClick?: () => void })
             </TooltipProvider>
           )}
           <InstallPWAButton />
+          <ReportProblemButton compact />
 
 
           <Link to="/mensajes" className="relative p-2 rounded-md hover:bg-muted hidden lg:inline-flex" title="Mensajes" aria-label={`Mensajes${unread > 0 ? ` (${unread} sin leer)` : ""}`}>
