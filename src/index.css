@@ -136,38 +136,49 @@
 
   .dark {
     --background: 215 32% 7%;
-    --foreground: 210 30% 96%;
+    --foreground: 210 32% 97%;
     --card: 215 30% 10%;
-    --card-foreground: 210 30% 96%;
+    --card-foreground: 210 32% 97%;
     --popover: 215 30% 10%;
-    --popover-foreground: 210 30% 96%;
-    --primary: 190 55% 55%;
+    --popover-foreground: 210 32% 97%;
+    --primary: 190 65% 62%;
     --primary-foreground: 215 32% 8%;
-    --primary-glow: 190 55% 45%;
+    --primary-glow: 190 60% 50%;
     --secondary: 215 25% 15%;
-    --secondary-foreground: 210 30% 96%;
+    --secondary-foreground: 210 32% 97%;
     --muted: 215 25% 15%;
-    --muted-foreground: 215 12% 62%;
-    --accent: 190 55% 55%;
+    /* Bumped from 62% → 72% for WCAG AA on secondary text/chips */
+    --muted-foreground: 215 14% 72%;
+    --accent: 190 65% 62%;
     --accent-foreground: 215 32% 8%;
-    --border: 215 20% 18%;
-    --input: 215 20% 18%;
-    --ring: 190 55% 55%;
+    --border: 215 20% 22%;
+    --input: 215 20% 22%;
+    --ring: 190 70% 62%;
     --surface-0: 215 32% 7%;
     --surface-1: 215 30% 10%;
     --surface-2: 215 28% 12%;
     --surface-3: 215 25% 15%;
     --surface-4: 215 22% 20%;
-    --fg-default: 210 30% 96%;
-    --fg-muted: 215 12% 62%;
-    --fg-subtle: 215 10% 45%;
-    --border-subtle: 215 20% 14%;
-    --border-strong: 215 20% 28%;
+    --fg-default: 210 32% 97%;
+    --fg-muted: 215 14% 72%;
+    --fg-subtle: 215 12% 56%;
+    --border-subtle: 215 20% 18%;
+    --border-strong: 215 20% 34%;
+    /* Charts — brightened for dark backgrounds */
+    --chart-1: 205 85% 65%;
+    --chart-2: 190 70% 58%;
+    --chart-3: 262 70% 72%;
+    --chart-4: 152 60% 55%;
+    --chart-5: 42 95% 62%;
+    --chart-6: 340 78% 68%;
+    --chart-7: 22 92% 65%;
+    --chart-8: 200 30% 72%;
     --sidebar-background: 215 30% 9%;
-    --sidebar-foreground: 215 12% 65%;
+    --sidebar-foreground: 215 14% 74%;
     --sidebar-accent: 215 25% 14%;
-    --sidebar-accent-foreground: 210 30% 96%;
-    --sidebar-border: 215 20% 16%;
+    --sidebar-accent-foreground: 210 32% 97%;
+    --sidebar-border: 215 20% 18%;
+    --ring-focus: 190 70% 62%;
   }
 
 }
