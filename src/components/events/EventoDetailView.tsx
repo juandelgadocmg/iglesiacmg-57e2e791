@@ -172,6 +172,14 @@ export default function EventoDetailView({ evento, onBack }: Props) {
           <h1 className="text-xl font-bold text-foreground">Actualizar Actividad: "{evento.nombre}"</h1>
           <p className="text-sm text-muted-foreground">Formulario para la actualización de la actividad.</p>
         </div>
+        <ShareLinkButton
+          toastMessage="Enlace del evento copiado"
+          buildUrl={() => {
+            const p = new URLSearchParams(window.location.search);
+            p.set("ev", String(evento.id));
+            return `${window.location.origin}${window.location.pathname}?${p.toString()}`;
+          }}
+        />
       </div>
 
       <Tabs defaultValue="general" className="space-y-4">
