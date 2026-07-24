@@ -115,7 +115,7 @@ export default function ScanQrDialog({ open, onOpenChange }: Props) {
 
     // Offline: enqueue and inform. Auto-sync when connectivity returns.
     if (typeof navigator !== "undefined" && !navigator.onLine) {
-      enqueueScan(parsed.servicioId, parsed.token);
+      void enqueueScan(parsed.servicioId, parsed.token);
       setStatus("queued");
       setMessage("Sin conexión. Guardamos tu escaneo y lo enviaremos automáticamente cuando vuelvas a estar en línea.");
       return;
@@ -130,7 +130,7 @@ export default function ScanQrDialog({ open, onOpenChange }: Props) {
       if (error) {
         // Network-ish error -> queue for retry instead of asking user to retry manually.
         if (error.message?.toLowerCase().includes("failed to fetch") || error.message?.toLowerCase().includes("network")) {
-          enqueueScan(parsed.servicioId, parsed.token);
+          void enqueueScan(parsed.servicioId, parsed.token);
           setStatus("queued");
           setMessage("Conexión intermitente. Guardamos tu escaneo y lo reintentaremos automáticamente.");
           return;
@@ -158,7 +158,7 @@ export default function ScanQrDialog({ open, onOpenChange }: Props) {
       }
     } catch (e: any) {
       // Total fetch failure -> offline queue
-      enqueueScan(parsed.servicioId, parsed.token);
+      void enqueueScan(parsed.servicioId, parsed.token);
       setStatus("queued");
       setMessage("Sin conexión con el servidor. Guardamos tu escaneo y lo enviaremos cuando se restablezca la red.");
     }

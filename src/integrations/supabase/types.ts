@@ -5436,6 +5436,8 @@ export type Database = {
         Returns: string
       }
       prog_send_reminders: { Args: never; Returns: number }
+      qr_scan_log_cleanup: { Args: { _days?: number }; Returns: number }
+      qr_scan_log_retention_status: { Args: never; Returns: Json }
       read_email_batch: {
         Args: { batch_size: number; queue_name: string; vt: number }
         Returns: {
