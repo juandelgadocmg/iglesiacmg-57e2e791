@@ -142,7 +142,7 @@ export default function MensajesPage() {
       if (raf) cancelAnimationFrame(raf);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [listScrollKey, threads.length]);
+  }, [listScrollKey, accumulated.length]);
 
 
   // Reset accumulation + selection whenever filters change
