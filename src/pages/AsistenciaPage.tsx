@@ -330,6 +330,27 @@ export default function AsistenciaPage() {
       </div>
 
       <QrAuditLogSection servicioId={effectiveService} />
+
+      <PlanillaHistorialSection servicioId={effectiveService} />
+
+      {effectiveService && currentService && (
+        <PlanillaPreviewDialog
+          open={previewOpen}
+          onOpenChange={setPreviewOpen}
+          servicio={currentService}
+          personas={personasList}
+          asistMap={asistMap}
+          localAttendance={localAttendance}
+          config={config}
+        />
+      )}
+
+      <SignatureCaptureDialog
+        open={!!signPersona}
+        onOpenChange={(v) => { if (!v) setSignPersona(null); }}
+        personaNombre={signPersona?.nombre || ""}
+        onSave={async (dataUrl) => { if (signPersona) await saveFirma(signPersona.id, dataUrl); }}
+      />
     </div>
   );
 }
