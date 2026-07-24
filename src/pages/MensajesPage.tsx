@@ -164,9 +164,12 @@ export default function MensajesPage() {
   }, [listScrollKey, accumulated.length]);
 
 
-  // Reset accumulation + selection whenever filters change
+  // Reset accumulation + selection whenever filters change (skip first mount so
+  // an initial ?p=<n> from a shared/back link isn't wiped before it's honored).
   const filterKey = `${folder}|${search}|${searchField}|${dateFrom}|${dateTo}`;
+  const firstFilterRunRef = useRef(true);
   useEffect(() => {
+    if (firstFilterRunRef.current) { firstFilterRunRef.current = false; return; }
     setAccumulated([]);
     setChecked(new Set());
     setPage(0);
