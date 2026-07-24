@@ -286,19 +286,37 @@ export default function AsistenciaPage() {
                             <QrIcon className="h-2.5 w-2.5" /> QR
                           </Badge>
                         )}
+                        {a?.firma_data_url && (
+                          <Badge variant="outline" className="text-[10px] px-1.5 py-0 gap-0.5 border-success/40 text-success">
+                            <PenLine className="h-2.5 w-2.5" /> Firmado
+                          </Badge>
+                        )}
                       </div>
                     </div>
                   </div>
-                  <button
-                    onClick={(e) => { e.stopPropagation(); toggleAttendance(p.id); }}
-                    className={cn(
-                      "w-10 h-10 rounded-full flex items-center justify-center transition-all shrink-0",
-                      isPresent
-                        ? "bg-success text-success-foreground shadow-sm"
-                        : "bg-muted text-muted-foreground hover:bg-muted/80"
-                    )}>
-                    {isPresent ? <Check className="h-5 w-5" /> : <X className="h-5 w-5" />}
-                  </button>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <button
+                      onClick={(e) => { e.stopPropagation(); setSignPersona({ id: p.id, nombre: `${p.nombres} ${p.apellidos}` }); }}
+                      title="Capturar firma"
+                      className={cn(
+                        "w-9 h-9 rounded-full flex items-center justify-center transition-all border",
+                        a?.firma_data_url
+                          ? "bg-success/10 text-success border-success/30"
+                          : "bg-muted/30 text-muted-foreground hover:bg-muted"
+                      )}>
+                      <PenLine className="h-4 w-4" />
+                    </button>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); toggleAttendance(p.id); }}
+                      className={cn(
+                        "w-10 h-10 rounded-full flex items-center justify-center transition-all",
+                        isPresent
+                          ? "bg-success text-success-foreground shadow-sm"
+                          : "bg-muted text-muted-foreground hover:bg-muted/80"
+                      )}>
+                      {isPresent ? <Check className="h-5 w-5" /> : <X className="h-5 w-5" />}
+                    </button>
+                  </div>
                 </div>
               );
             })}
