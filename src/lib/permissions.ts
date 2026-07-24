@@ -112,6 +112,10 @@ export const ACTION_PERMISSIONS: Record<ActionPermission, AppRole[]> = {
   "programa:confirm:lider":       ["admin", "super_admin", "pastor", "lider"],
   "programa:confirm:servidor":    ["admin", "super_admin", "pastor", "lider", "secretaria"],
   "programa:confirm:colaborador": ["admin", "super_admin", "pastor", "lider", "secretaria"],
+  // Sharing / auditing capabilities for deep-link + QR flows
+  "share:link":        ["admin", "super_admin", "pastor", "lider", "lider_red", "secretaria", "maestro", "consolidador_lider", "consolidador", "tesoreria", "seminario_admin", "seminario_docente"],
+  "share:qr_download": ["admin", "super_admin", "pastor", "lider", "lider_red", "secretaria", "maestro", "consolidador_lider", "tesoreria", "seminario_admin"],
+  "share:view_audit":  ["admin", "super_admin", "pastor", "lider_red"],
 };
 
 export function canAccess(userRoles: AppRole[], path: string): boolean {
