@@ -21,6 +21,7 @@ import CommandBar from "./CommandBar";
 import QuickCreateMenu from "./QuickCreateMenu";
 import InstallPWAButton from "@/components/pwa/InstallPWAButton";
 import ReportProblemButton from "@/components/support/ReportProblemButton";
+import ThemeToggle from "@/components/theme/ThemeToggle";
 import HotkeysHelpDialog from "./HotkeysHelpDialog";
 import { useHotkeys } from "@/hooks/useHotkeys";
 import { useNavigate } from "react-router-dom";
@@ -191,6 +192,7 @@ export default function AppTopBar({ onMenuClick }: { onMenuClick?: () => void })
             </TooltipProvider>
           )}
           <InstallPWAButton />
+          <ThemeToggle />
           <ReportProblemButton compact />
 
 
