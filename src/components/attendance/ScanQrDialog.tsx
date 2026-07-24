@@ -345,8 +345,19 @@ export default function ScanQrDialog({ open, onOpenChange }: Props) {
           )}
 
           {status === "scanning" && (
-            <div className="mt-3 flex items-center justify-center gap-2 text-xs text-muted-foreground">
-              <Camera className="h-3.5 w-3.5" /> Centra el QR dentro del recuadro…
+            <div className="mt-3 space-y-1 text-center">
+              <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
+                <Camera className="h-3.5 w-3.5" /> Centra el QR dentro del recuadro…
+              </div>
+              {hint && (
+                <div className={
+                  hint.startsWith("QR detectado")
+                    ? "text-xs text-success font-medium"
+                    : "text-xs text-amber-600 font-medium"
+                }>
+                  {hint}
+                </div>
+              )}
             </div>
           )}
 
