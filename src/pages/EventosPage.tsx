@@ -1,4 +1,5 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { format, isAfter, isBefore, isThisMonth, isThisWeek, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
 import EventoFormDialog from "@/components/forms/EventoFormDialog";
@@ -37,12 +38,34 @@ export default function EventosPage() {
   const [selectedEvento, setSelectedEvento] = useState<any>(null);
   const [showCreate, setShowCreate] = useState(false);
 
-  const [view, setView] = useState<View>(() =>
-    typeof window !== "undefined" && window.innerWidth < 768 ? "timeline" : "calendar"
+  const [searchParams, setSearchParams] = useSearchParams();
+  const isMobileInit = typeof window !== "undefined" && window.innerWidth < 768;
+  const initialView = (searchParams.get("view") as View) ||
+    (isMobileInit ? "timeline" : "calendar");
+  const initialBucket = (searchParams.get("bucket") as Bucket) || "proximos";
+  const initialQ = searchParams.get("q") || "";
+  const initialTipos = searchParams.get("tipos");
+
+  const [view, setView] = useState<View>(initialView);
+  const [bucket, setBucket] = useState<Bucket>(initialBucket);
+  const [tipos, setTipos] = useState<Set<string>>(
+    initialTipos
+      ? new Set(initialTipos.split(",").filter(Boolean))
+      : new Set(["gratuito", "cerrado", "abierto"])
   );
-  const [bucket, setBucket] = useState<Bucket>("proximos");
-  const [tipos, setTipos] = useState<Set<string>>(new Set(["gratuito", "cerrado", "abierto"]));
-  const [q, setQ] = useState("");
+  const [q, setQ] = useState(initialQ);
+
+  // Sync filter state -> URL (shareable across devices)
+  useEffect(() => {
+    const p = new URLSearchParams();
+    if (view !== (isMobileInit ? "timeline" : "calendar")) p.set("view", view);
+    if (bucket !== "proximos") p.set("bucket", bucket);
+    if (q) p.set("q", q);
+    const tiposArr = Array.from(tipos).sort();
+    if (tiposArr.length !== 3) p.set("tipos", tiposArr.join(","));
+    setSearchParams(p, { replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [view, bucket, q, tipos]);
 
   const now = new Date();
 
@@ -186,26 +209,51 @@ export default function EventosPage() {
         {/* Mobile filters (search + bucket chips) */}
         <div className="md:hidden space-y-2">
           <div className="relative">
-            <Search className="h-3.5 w-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
-            <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Buscar evento…" className="pl-8 h-9 text-sm" />
+            <Search className="h-4 w-4 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              placeholder="Buscar evento…"
+              className="pl-9 h-11 text-sm"
+              aria-label="Buscar evento"
+            />
           </div>
-          <div className="flex gap-1.5 overflow-x-auto pb-1 -mx-1 px-1">
+          <div
+            className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1 snap-x snap-mandatory"
+            role="tablist"
+            aria-label="Filtros de eventos"
+          >
             {BUCKETS.map((b) => (
               <button
                 key={b.id}
+                role="tab"
+                aria-selected={bucket === b.id}
+                tabIndex={bucket === b.id ? 0 : -1}
                 onClick={() => setBucket(b.id)}
+                onKeyDown={(e) => {
+                  if (e.key === "ArrowRight" || e.key === "ArrowLeft") {
+                    e.preventDefault();
+                    const idx = BUCKETS.findIndex((x) => x.id === bucket);
+                    const next = e.key === "ArrowRight"
+                      ? BUCKETS[(idx + 1) % BUCKETS.length]
+                      : BUCKETS[(idx - 1 + BUCKETS.length) % BUCKETS.length];
+                    setBucket(next.id);
+                  }
+                }}
                 className={cn(
-                  "shrink-0 flex items-center gap-1 px-3 py-1.5 rounded-full text-xs border whitespace-nowrap",
+                  "shrink-0 snap-start inline-flex items-center gap-1.5 min-h-11 px-4 rounded-full text-sm border whitespace-nowrap",
+                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1",
                   bucket === b.id ? "bg-primary text-primary-foreground border-primary" : "bg-card text-muted-foreground"
                 )}
               >
-                <b.icon className="h-3 w-3" />
+                <b.icon className="h-4 w-4" />
                 {b.label}
-                <span className="opacity-70">{(buckets as any)[b.id]}</span>
+                <span className="opacity-70 text-xs">{(buckets as any)[b.id]}</span>
               </button>
             ))}
           </div>
         </div>
+
 
         {/* Header */}
         <div className="flex items-start justify-between gap-3 flex-wrap">
@@ -218,7 +266,11 @@ export default function EventosPage() {
             </p>
           </div>
           <div className="flex items-center gap-2 flex-wrap">
-            <div className="flex items-center gap-0.5 rounded-lg border bg-card p-0.5">
+            <div
+              className="flex items-center gap-0.5 rounded-lg border bg-card p-0.5"
+              role="tablist"
+              aria-label="Modo de vista"
+            >
               {[
                 { id: "calendar", icon: CalIcon, label: "Calendario" },
                 { id: "timeline", icon: Rows, label: "Timeline" },
@@ -226,17 +278,22 @@ export default function EventosPage() {
               ].map((v) => (
                 <button
                   key={v.id}
+                  role="tab"
+                  aria-selected={view === v.id}
                   onClick={() => setView(v.id as View)}
                   className={cn(
-                    "flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[12px] transition-colors",
+                    "inline-flex items-center gap-1.5 min-h-9 md:min-h-8 px-3 rounded-md text-[13px] transition-colors",
+                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                     view === v.id ? "bg-primary text-primary-foreground" : "hover:bg-muted text-muted-foreground"
                   )}
+                  aria-label={v.label}
                 >
-                  <v.icon className="h-3.5 w-3.5" />
+                  <v.icon className="h-4 w-4" />
                   <span className="hidden sm:inline">{v.label}</span>
                 </button>
               ))}
             </div>
+
             <ExportDropdown title="Eventos" filename="eventos" columns={[
               { header: "Nombre", key: "nombre" }, { header: "Tipo", key: "tipo" },
               { header: "Fecha Inicio", key: "fecha_inicio" }, { header: "Lugar", key: "lugar" },
