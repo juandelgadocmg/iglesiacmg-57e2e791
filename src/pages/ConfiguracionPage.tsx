@@ -10,9 +10,10 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Church, Globe, Clock, Save, BookOpen, ImageIcon, Video, Radio, DollarSign, Bell, Upload, X, AlertCircle, ShieldCheck, Award, History } from "lucide-react";
+import { Church, Globe, Clock, Save, BookOpen, ImageIcon, Video, Radio, DollarSign, Bell, Upload, X, AlertCircle, ShieldCheck, Award, History, ClipboardList } from "lucide-react";
 import CertTemplatesManager from "@/components/configuracion/CertTemplatesManager";
 import CertExportHistory from "@/components/configuracion/CertExportHistory";
+import PlanillaConfigCard from "@/components/configuracion/PlanillaConfigCard";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 
