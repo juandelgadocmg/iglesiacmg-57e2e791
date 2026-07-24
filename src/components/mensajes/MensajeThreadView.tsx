@@ -263,8 +263,14 @@ export default function MensajeThreadView({ threadId }: Props) {
           const sys = isSys ? data.systemSenders.get(m.system_sender_key) : null;
           const pr = !isSys ? data.profiles.get(m.sender_id) : null;
           const senderName = isSys ? (sys?.display_name || "Sistema") : (pr?.display_name || "Usuario");
+          const isFocused = focusedMessageId === m.id;
           return (
-            <div key={m.id} className={`rounded-lg border p-4 ${isSys ? "bg-primary/5 border-primary/20" : "bg-card"}`}>
+            <div
+              key={m.id}
+              ref={(el) => { messageRefs.current[m.id] = el; }}
+              onClick={() => setFocusedMessageId(m.id)}
+              className={`rounded-lg border p-4 transition-all cursor-pointer ${isSys ? "bg-primary/5 border-primary/20" : "bg-card"} ${isFocused ? "ring-2 ring-primary ring-offset-2 ring-offset-background" : ""}`}
+            >
               <div className="flex items-center gap-3 mb-3">
                 <Avatar className="h-9 w-9">
                   {isSys ? (
