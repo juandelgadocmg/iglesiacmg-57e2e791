@@ -266,7 +266,11 @@ export default function EventosPage() {
             </p>
           </div>
           <div className="flex items-center gap-2 flex-wrap">
-            <div className="flex items-center gap-0.5 rounded-lg border bg-card p-0.5">
+            <div
+              className="flex items-center gap-0.5 rounded-lg border bg-card p-0.5"
+              role="tablist"
+              aria-label="Modo de vista"
+            >
               {[
                 { id: "calendar", icon: CalIcon, label: "Calendario" },
                 { id: "timeline", icon: Rows, label: "Timeline" },
@@ -274,17 +278,22 @@ export default function EventosPage() {
               ].map((v) => (
                 <button
                   key={v.id}
+                  role="tab"
+                  aria-selected={view === v.id}
                   onClick={() => setView(v.id as View)}
                   className={cn(
-                    "flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[12px] transition-colors",
+                    "inline-flex items-center gap-1.5 min-h-9 md:min-h-8 px-3 rounded-md text-[13px] transition-colors",
+                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                     view === v.id ? "bg-primary text-primary-foreground" : "hover:bg-muted text-muted-foreground"
                   )}
+                  aria-label={v.label}
                 >
-                  <v.icon className="h-3.5 w-3.5" />
+                  <v.icon className="h-4 w-4" />
                   <span className="hidden sm:inline">{v.label}</span>
                 </button>
               ))}
             </div>
+
             <ExportDropdown title="Eventos" filename="eventos" columns={[
               { header: "Nombre", key: "nombre" }, { header: "Tipo", key: "tipo" },
               { header: "Fecha Inicio", key: "fecha_inicio" }, { header: "Lugar", key: "lugar" },
