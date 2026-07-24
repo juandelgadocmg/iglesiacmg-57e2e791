@@ -57,6 +57,7 @@ const AGG_LIMIT = 1000;
 
 export default function QrAuditLogSection({ servicioId }: { servicioId: string | null }) {
   const { roles } = useUserRoles();
+  const { user } = useAuth();
   const canView = roles.some((r) => ["admin", "pastor", "secretaria"].includes(r as string));
   const [rows, setRows] = useState<Row[]>([]);
   const [total, setTotal] = useState(0);
@@ -71,6 +72,50 @@ export default function QrAuditLogSection({ servicioId }: { servicioId: string |
   const [aggRows, setAggRows] = useState<AggRow[]>([]);
   const [aggLoading, setAggLoading] = useState(false);
   const [tab, setTab] = useState<string>("registros");
+  const [presets, setPresets] = useState<Preset[]>([]);
+  const [newPresetName, setNewPresetName] = useState("");
+
+  const presetsKey = user?.id ? `qr-audit-presets-${user.id}` : null;
+
+  useEffect(() => {
+    if (!presetsKey) return;
+    try {
+      const raw = localStorage.getItem(presetsKey);
+      setPresets(raw ? JSON.parse(raw) : []);
+    } catch { setPresets([]); }
+  }, [presetsKey]);
+
+  const savePresets = (next: Preset[]) => {
+    setPresets(next);
+    if (presetsKey) localStorage.setItem(presetsKey, JSON.stringify(next));
+  };
+
+  const handleSavePreset = () => {
+    const name = newPresetName.trim();
+    if (!name) { toast({ title: "Nombre requerido", variant: "destructive" }); return; }
+    const preset: Preset = {
+      id: crypto.randomUUID(),
+      name,
+      resultFilter, codeFilter, dateFrom, dateTo, search,
+    };
+    savePresets([...presets, preset]);
+    setNewPresetName("");
+    toast({ title: "Vista guardada", description: name });
+  };
+
+  const handleLoadPreset = (p: Preset) => {
+    setResultFilter(p.resultFilter);
+    setCodeFilter(p.codeFilter);
+    setDateFrom(p.dateFrom);
+    setDateTo(p.dateTo);
+    setSearch(p.search);
+    setPage(0);
+    toast({ title: "Vista cargada", description: p.name });
+  };
+
+  const handleDeletePreset = (id: string) => {
+    savePresets(presets.filter((p) => p.id !== id));
+  };
 
   const applyFilters = (q: any, includeCode = true) => {
     if (servicioId) q = q.eq("servicio_id", servicioId);
@@ -91,7 +136,7 @@ export default function QrAuditLogSection({ servicioId }: { servicioId: string |
   const buildQuery = () => {
     let q = supabase
       .from("qr_scan_log")
-      .select("id,user_id,persona_id,result,code,message,token,created_at", { count: "exact" });
+      .select("id,user_id,persona_id,servicio_id,result,code,message,token,created_at", { count: "exact" });
     q = applyFilters(q);
     return q.order("created_at", { ascending: false });
   };
