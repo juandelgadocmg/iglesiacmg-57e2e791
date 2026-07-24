@@ -3,14 +3,27 @@ import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ScrollText, RefreshCw, ChevronLeft, ChevronRight, ExternalLink, AlertTriangle, BarChart3, ListChecks } from "lucide-react";
+import { ScrollText, RefreshCw, ChevronLeft, ChevronRight, ExternalLink, AlertTriangle, BarChart3, ListChecks, Save, Trash2, Bookmark } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useUserRoles } from "@/hooks/useUserRoles";
+import { useAuth } from "@/hooks/useAuth";
+import { toast } from "@/hooks/use-toast";
 import ExportDropdown from "@/components/shared/ExportDropdown";
 import QrAlertPreferences from "@/components/attendance/QrAlertPreferences";
+
+interface Preset {
+  id: string;
+  name: string;
+  resultFilter: string;
+  codeFilter: string;
+  dateFrom: string;
+  dateTo: string;
+  search: string;
+}
 
 interface Row {
   id: string;
