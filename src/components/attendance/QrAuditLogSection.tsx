@@ -409,6 +409,7 @@ export default function QrAuditLogSection({ servicioId }: { servicioId: string |
                       <th className="py-2 pr-3">Código</th>
                       <th className="py-2 pr-3">Detalle</th>
                       <th className="py-2 pr-3">Persona</th>
+                      <th className="py-2 pr-3">Reunión</th>
                       <th className="py-2 pr-3">Token</th>
                     </tr>
                   </thead>
@@ -431,6 +432,18 @@ export default function QrAuditLogSection({ servicioId }: { servicioId: string |
                               title="Abrir perfil de persona"
                             >
                               {r.persona_id.slice(0, 8)}
+                              <ExternalLink className="h-3 w-3" />
+                            </Link>
+                          ) : "—"}
+                        </td>
+                        <td className="py-2 pr-3 text-xs">
+                          {r.servicio_id ? (
+                            <Link
+                              to={`/servicios?servicio=${r.servicio_id}`}
+                              className="inline-flex items-center gap-1 text-primary hover:underline font-mono"
+                              title="Abrir reunión"
+                            >
+                              {r.servicio_id.slice(0, 8)}
                               <ExternalLink className="h-3 w-3" />
                             </Link>
                           ) : "—"}
