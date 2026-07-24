@@ -125,65 +125,25 @@ export default function AsistenciaPage() {
   const totalAbsent = personasList.length - totalPresent;
   const attendanceRate = personasList.length > 0 ? Math.round((totalPresent / personasList.length) * 100) : 0;
 
-  const imprimir = () => {
-    if (!currentService) return;
-    const presentes = personasList
-      .filter((p: any) => localAttendance[p.id])
-      .map((p: any) => {
-        const a = asistMap.get(p.id);
-        return {
-          nombre: `${p.nombres} ${p.apellidos}`,
-          hora: a?.checkin_time ? new Date(a.checkin_time).toLocaleTimeString("es-CO", { hour: "2-digit", minute: "2-digit" }) : "—",
-          puntualidad: a?.puntualidad || "—",
-          metodo: a?.metodo_registro || "manual",
-        };
-      });
-
-    const w = window.open("", "_blank", "width=900,height=1000");
-    if (!w) return;
-    const rows = presentes.map((r, i) => `
-      <tr>
-        <td>${i + 1}</td><td>${r.nombre}</td><td>${r.hora}</td><td>${r.puntualidad}</td>
-        <td style="text-transform:uppercase">${r.metodo}</td>
-        <td class="firma"></td>
-      </tr>
-    `).join("");
-    w.document.write(`<!doctype html><html><head><title>Asistencia ${currentService.nombre}</title>
-      <style>
-        @page{size:A4;margin:16mm}
-        body{font-family:system-ui,Segoe UI,sans-serif;color:#111}
-        header{display:flex;justify-content:space-between;align-items:end;border-bottom:2px solid #111;padding-bottom:8px;margin-bottom:16px}
-        h1{margin:0;font-size:20px}
-        .meta{font-size:12px;color:#444}
-        table{width:100%;border-collapse:collapse;font-size:12px}
-        th,td{border:1px solid #d1d5db;padding:6px 8px;text-align:left}
-        th{background:#f3f4f6;font-size:11px;text-transform:uppercase;letter-spacing:.04em}
-        td.firma{width:140px}
-        footer{margin-top:20px;font-size:11px;color:#444;display:flex;justify-content:space-between}
-      </style></head><body>
-      <header>
-        <div>
-          <h1>Planilla de Asistencia</h1>
-          <div class="meta">${currentService.nombre} · ${currentService.fecha || ""} ${currentService.hora || ""}</div>
-        </div>
-        <div class="meta" style="text-align:right">
-          Total asistentes: <b>${presentes.length}</b><br/>
-          % asistencia: <b>${attendanceRate}%</b>
-        </div>
-      </header>
-      <table>
-        <thead><tr>
-          <th>#</th><th>Nombre</th><th>Hora</th><th>Puntualidad</th><th>Método</th><th>Firma</th>
-        </tr></thead>
-        <tbody>${rows || `<tr><td colspan="6" style="text-align:center;color:#888;padding:24px">Sin asistentes registrados</td></tr>`}</tbody>
-      </table>
-      <footer>
-        <span>Generado ${new Date().toLocaleString("es-CO")}</span>
-        <span>DOXA · CMG Admin</span>
-      </footer>
-      <script>window.onload=()=>window.print()</script>
-      </body></html>`);
-    w.document.close();
+  const saveFirma = async (personaId: string, dataUrl: string) => {
+    if (!effectiveService) return;
+    try {
+      const { data: userData } = await supabase.auth.getUser();
+      const { error } = await supabase.from("asistencia").upsert({
+        servicio_id: effectiveService,
+        persona_id: personaId,
+        presente: true,
+        firma_data_url: dataUrl,
+        firma_at: new Date().toISOString(),
+        firma_capturada_por: userData.user?.id || null,
+      }, { onConflict: "servicio_id,persona_id" });
+      if (error) throw error;
+      setLocalAttendance(prev => ({ ...prev, [personaId]: true }));
+      qc.invalidateQueries({ queryKey: ["asistencia", effectiveService] });
+      toast.success("Firma registrada");
+    } catch (e: any) {
+      toast.error("Error al guardar firma", { description: e.message });
+    }
   };
 
   return (
@@ -203,8 +163,8 @@ export default function AsistenciaPage() {
                 </Button>
               }
             />
-            <Button variant="outline" size="sm" onClick={imprimir} className="gap-1.5">
-              <Printer className="h-4 w-4" /> Imprimir asistencia
+            <Button variant="outline" size="sm" onClick={() => setPreviewOpen(true)} className="gap-1.5">
+              <Printer className="h-4 w-4" /> Planilla de control
             </Button>
             <ImportAsistenciaDialog servicioId={effectiveService} servicioNombre={currentService.nombre} />
             <ExportDropdown
