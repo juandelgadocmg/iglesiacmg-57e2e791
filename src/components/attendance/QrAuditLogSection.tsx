@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ScrollText, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useCan } from "@/lib/permissions";
+import { useUserRoles } from "@/hooks/useUserRoles";
 
 interface Row {
   id: string;
