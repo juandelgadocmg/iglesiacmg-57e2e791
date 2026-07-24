@@ -3333,6 +3333,68 @@ export type Database = {
           },
         ]
       }
+      qr_audit_alert_history: {
+        Row: {
+          alert_id: string | null
+          code: string | null
+          created_at: string
+          fail_rate_pct: number
+          fails: number
+          id: string
+          min_events: number
+          rate: number
+          rule_name: string
+          sample_scan_ids: string[] | null
+          servicio_id: string | null
+          total: number
+          triggered_at: string
+          user_id: string
+          window_days: number
+        }
+        Insert: {
+          alert_id?: string | null
+          code?: string | null
+          created_at?: string
+          fail_rate_pct: number
+          fails: number
+          id?: string
+          min_events: number
+          rate: number
+          rule_name: string
+          sample_scan_ids?: string[] | null
+          servicio_id?: string | null
+          total: number
+          triggered_at?: string
+          user_id: string
+          window_days: number
+        }
+        Update: {
+          alert_id?: string | null
+          code?: string | null
+          created_at?: string
+          fail_rate_pct?: number
+          fails?: number
+          id?: string
+          min_events?: number
+          rate?: number
+          rule_name?: string
+          sample_scan_ids?: string[] | null
+          servicio_id?: string | null
+          total?: number
+          triggered_at?: string
+          user_id?: string
+          window_days?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "qr_audit_alert_history_alert_id_fkey"
+            columns: ["alert_id"]
+            isOneToOne: false
+            referencedRelation: "qr_audit_alerts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       qr_audit_alerts: {
         Row: {
           code: string | null
