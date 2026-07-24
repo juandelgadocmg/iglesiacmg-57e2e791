@@ -38,12 +38,34 @@ export default function EventosPage() {
   const [selectedEvento, setSelectedEvento] = useState<any>(null);
   const [showCreate, setShowCreate] = useState(false);
 
-  const [view, setView] = useState<View>(() =>
-    typeof window !== "undefined" && window.innerWidth < 768 ? "timeline" : "calendar"
+  const [searchParams, setSearchParams] = useSearchParams();
+  const isMobileInit = typeof window !== "undefined" && window.innerWidth < 768;
+  const initialView = (searchParams.get("view") as View) ||
+    (isMobileInit ? "timeline" : "calendar");
+  const initialBucket = (searchParams.get("bucket") as Bucket) || "proximos";
+  const initialQ = searchParams.get("q") || "";
+  const initialTipos = searchParams.get("tipos");
+
+  const [view, setView] = useState<View>(initialView);
+  const [bucket, setBucket] = useState<Bucket>(initialBucket);
+  const [tipos, setTipos] = useState<Set<string>>(
+    initialTipos
+      ? new Set(initialTipos.split(",").filter(Boolean))
+      : new Set(["gratuito", "cerrado", "abierto"])
   );
-  const [bucket, setBucket] = useState<Bucket>("proximos");
-  const [tipos, setTipos] = useState<Set<string>>(new Set(["gratuito", "cerrado", "abierto"]));
-  const [q, setQ] = useState("");
+  const [q, setQ] = useState(initialQ);
+
+  // Sync filter state -> URL (shareable across devices)
+  useEffect(() => {
+    const p = new URLSearchParams();
+    if (view !== (isMobileInit ? "timeline" : "calendar")) p.set("view", view);
+    if (bucket !== "proximos") p.set("bucket", bucket);
+    if (q) p.set("q", q);
+    const tiposArr = Array.from(tipos).sort();
+    if (tiposArr.length !== 3) p.set("tipos", tiposArr.join(","));
+    setSearchParams(p, { replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [view, bucket, q, tipos]);
 
   const now = new Date();
 
