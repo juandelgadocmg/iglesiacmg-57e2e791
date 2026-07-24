@@ -199,11 +199,19 @@ export default function ScanQrDialog({ open, onOpenChange }: Props) {
       .catch(() => { /* keep facingMode fallback */ });
   }, [open, cameraId]);
 
+  // Scan-quality hint (nudges the user to reframe when we can't decode).
+  const [hint, setHint] = useState<string>("");
+  const scanStartRef = useRef<number>(0);
+  const failedFramesRef = useRef<number>(0);
+
   const startScanner = useCallback(async () => {
     await stopScanner();
     handledRef.current = false;
     setStatus("scanning");
     setMessage("");
+    setHint("");
+    scanStartRef.current = Date.now();
+    failedFramesRef.current = 0;
     // wait for reader div
     await new Promise((r) => setTimeout(r, 50));
     try {
@@ -212,8 +220,8 @@ export default function ScanQrDialog({ open, onOpenChange }: Props) {
       const config = { fps: 10, qrbox: { width: 240, height: 240 } } as const;
       const source = cameraId ? { deviceId: { exact: cameraId } } : { facingMode: facing };
       await scanner.start(source as any, config as any,
-        (decoded) => { handleDecoded(decoded); },
-        () => { /* ignore per-frame errors */ }
+        (decoded) => { setHint("QR detectado ✓"); handleDecoded(decoded); },
+        () => { failedFramesRef.current += 1; }
       );
     } catch (e: any) {
       setStatus("error");
@@ -224,6 +232,20 @@ export default function ScanQrDialog({ open, onOpenChange }: Props) {
       );
     }
   }, [cameraId, facing, handleDecoded, stopScanner]);
+
+  // Ticker that updates the quality hint while scanning.
+  useEffect(() => {
+    if (status !== "scanning") return;
+    const t = setInterval(() => {
+      const elapsed = Date.now() - scanStartRef.current;
+      if (elapsed > 8000 && failedFramesRef.current > 30) {
+        setHint("Verifica la iluminación y que el QR esté totalmente visible.");
+      } else if (elapsed > 4000 && failedFramesRef.current > 15) {
+        setHint("Acércate más o centra el QR dentro del recuadro.");
+      }
+    }, 1200);
+    return () => clearInterval(t);
+  }, [status]);
 
   // Start / stop scanner with dialog open state, camera selection
   useEffect(() => {
