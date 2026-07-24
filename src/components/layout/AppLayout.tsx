@@ -4,6 +4,7 @@ import AppSidebarNew from "./shell/AppSidebarNew";
 import AppTopBar from "./shell/AppTopBar";
 import { ContextDockProvider } from "./context-dock/ContextDock";
 import { useMessageNotifications } from "@/hooks/useMensajes";
+import LiveAnnouncer from "@/components/shared/LiveAnnouncer";
 
 export default function AppLayout() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -20,7 +21,8 @@ export default function AppLayout() {
           </main>
         </div>
       </div>
+      <LiveAnnouncer />
     </ContextDockProvider>
-
   );
 }
+

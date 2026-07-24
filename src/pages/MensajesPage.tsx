@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, useNavigationType } from "react-router-dom";
 import PageHeader from "@/components/shared/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,6 +19,10 @@ import {
 } from "lucide-react";
 import ShareLinkButton from "@/components/shared/ShareLinkButton";
 import ScanQrLinkButton from "@/components/shared/ScanQrLinkButton";
+import RecentSharesPanel from "@/components/shared/RecentSharesPanel";
+import { announce } from "@/components/shared/LiveAnnouncer";
+import { usePresentationMode } from "@/hooks/usePresentationMode";
+import { Projector } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 import {
@@ -61,6 +65,8 @@ export default function MensajesPage() {
   const { user } = useAuth();
   const isMobile = useIsMobile();
   const [searchParams, setSearchParams] = useSearchParams();
+  const navigationType = useNavigationType();
+  const presentation = usePresentationMode("mensajes");
 
   const initialView = (searchParams.get("view") as View) || "folder";
   const initialFolder = (searchParams.get("folder") as Folder) || "inbox";
@@ -125,12 +131,17 @@ export default function MensajesPage() {
     if (!root) return;
     const el = root.querySelector<HTMLButtonElement>(`[data-thread-id="${selected}"]`);
     if (!el) return;
-    // rAF so layout is stable and the row is present after data load
     requestAnimationFrame(() => {
       el.focus({ preventScroll: true });
       el.scrollIntoView({ block: "nearest", behavior: "auto" });
     });
-  }, [selected, accumulated.length]);
+    // Accessible announcement — only when navigating back/forward or opening a shared link
+    if (navigationType === "POP") {
+      const thread: any = accumulated.find((t: any) => t.id === selected);
+      const subject = thread?.subject || thread?.last_subject || "hilo";
+      announce(`Hilo restaurado: ${subject}`);
+    }
+  }, [selected, accumulated.length, navigationType]);
 
   // ─── Thread list scroll persistence (survives Back navigation + shareable) ───
   const listScrollRef = useRef<HTMLDivElement | null>(null);
@@ -423,6 +434,13 @@ export default function MensajesPage() {
             </SelectContent>
           </Select>
           <ShareLinkButton
+            scope="mensajes"
+            shareLabel={(() => {
+              if (view !== "folder") return `Mensajes · ${view}`;
+              const t: any = selected ? accumulated.find((x: any) => x.id === selected) : null;
+              const subj = t?.subject || t?.last_subject;
+              return subj ? `Hilo: ${subj}` : `Correo interno · ${folder}`;
+            })()}
             toastMessage="Enlace de Correo interno copiado"
             qrTitle="Abrir Correo interno en otro dispositivo"
             qrDescription="Escanea con la cámara para restaurar carpeta, filtros y hilo abierto."
@@ -444,6 +462,19 @@ export default function MensajesPage() {
             }}
           />
           <ScanQrLinkButton />
+          <RecentSharesPanel scope="mensajes" />
+          <Button
+            type="button"
+            size="icon"
+            variant={presentation.enabled ? "default" : "outline"}
+            className="h-8 w-8"
+            aria-pressed={presentation.enabled}
+            aria-label={presentation.enabled ? "Salir de modo presentación" : "Activar modo presentación"}
+            title="Modo presentación (Shift+P)"
+            onClick={presentation.toggle}
+          >
+            <Projector className="h-3.5 w-3.5" />
+          </Button>
         </div>
         <div className="flex items-center gap-2 text-xs">
           <label className="text-muted-foreground shrink-0">Desde</label>

@@ -62,13 +62,17 @@ export default function MensajeThreadView({ threadId }: Props) {
     const urlTy = searchParams.get("ty");
     try {
       if (focusMsg) {
-        // Defer so refs are attached, then scroll and highlight
         requestAnimationFrame(() => {
           const el = messageRefs.current[focusMsg];
           if (el && scrollRef.current) {
             el.scrollIntoView({ block: "center", behavior: "auto" });
             setFocusedMessageId(focusMsg);
-            // Fade the highlight after a moment
+            // Announce restoration for screen readers on Back/Forward + deep links
+            const msg: any = (data?.messages || []).find((m: any) => m.id === focusMsg);
+            const from = msg?.sender_name || msg?.sender_id || "remitente";
+            import("@/components/shared/LiveAnnouncer").then(({ announce }) =>
+              announce(`Mensaje restaurado de ${from}`),
+            );
             setTimeout(() => setFocusedMessageId(null), 2400);
           }
         });

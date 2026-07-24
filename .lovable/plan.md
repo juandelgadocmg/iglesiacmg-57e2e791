@@ -1,79 +1,82 @@
+# Plan: mejoras UX/seguridad en Mensajes y Eventos
 
-# Plan: Gestión de plantillas de certificados con auditoría
+## 1. Notificación accesible al restaurar foco (Back/Forward)
 
-Cubre los 4 tipos de certificado: **Líderes CDP, Bautismo, Diplomas de Seminario, Certificados de Academia**. Todo en una sola entrega.
+- Crear `src/components/shared/LiveAnnouncer.tsx`: región `role="status" aria-live="polite" aria-atomic="true"` fija fuera de pantalla (`sr-only`), con hook `useAnnounce()` que expone `announce(msg)`.
+- Montarla una sola vez en `AppLayout.tsx`.
+- En `MensajesPage.tsx`, cuando el `useEffect([selected, accumulated.length])` reenfoca la fila del hilo tras Back/Forward, disparar `announce("Hilo restaurado: <asunto>")`.
+- En `MensajeThreadView.tsx`, al enfocar mensaje vía `?m=<id>`, `announce("Mensaje restaurado de <autor>, <fecha>")`.
+- En `EventosPage.tsx`, si al montar la ruta hay parámetros de estado (filtros/scroll) y se restauran, `announce("Vista de eventos restaurada")`.
+- Solo se anuncia cuando el trigger es `POP` (Back/Forward), usando `useNavigationType()` de react-router, para no ruido en navegación normal.
 
-## 1. Base de datos (migración)
+## 2. Permisos por rol para acciones sensibles
 
-### Tabla `cert_templates`
-Catálogo de plantillas disponibles por tipo de certificado.
+- Extender `src/lib/permissions.ts` con capacidades:
+  - `share_link` (compartir enlace / QR)
+  - `download_qr` (descargar QR PNG)
+  - `view_audit` (acceder a auditoría / historial)
+- Mapeo por rol reutilizando `useCan(cap)`:
+  - `admin`, `pastor`, `lider_red`: todas
+  - `lider`, `maestro`, `consolidador`, `tesoreria`: `share_link` sí, `download_qr` sí, `view_audit` no
+  - Roles restantes / invitado: ninguna
+- `ShareLinkButton.tsx`: aceptar prop opcional `capability` (default `share_link`); si `!useCan(cap)` no renderiza el botón. Botón "Descargar PNG" dentro del `QrPanel` se oculta si `!useCan("download_qr")`.
+- Nuevo `RecentSharesPanel` (ver §3) y cualquier vista de auditoría existente: gate con `useCan("view_audit")`.
 
-Campos de dominio: `tipo` (enum: `lideres_cdp` | `bautismo` | `seminario_diploma` | `academia`), `nombre`, `descripcion`, `asset_id` (uuid del asset en CDN), `asset_url`, `asset_filename`, `version` (int, autoincrement por tipo), `activo` (bool), `es_default` (bool, solo una por tipo), `preview_url`, `created_by`, `created_by_email`.
+## 3. Historial de enlaces compartidos recientes
 
-Reglas:
-- Solo una plantilla puede tener `es_default = true` por `tipo` (índice único parcial).
-- Se puede tener varias `activo = true` simultáneas — el usuario elige cuál al descargar.
-- RLS: lectura para `authenticated`; escritura solo para `admin` / `super_admin` / `pastor`.
+- Almacenamiento cliente en `localStorage` clave `doxa:recent-shares:v1`, máx. 20 entradas, dedupe por URL, ordenado por `ts` desc.
+- Nueva utilidad `src/lib/recentShares.ts`: `addShare({ scope: "mensajes" | "eventos", label, url, ts })`, `listShares(scope?)`, `removeShare(url)`, `clearShares(scope?)` + evento `storage` para sincronía multipestaña.
+- `ShareLinkButton.tsx`: al copiar o generar QR, invocar `addShare` con `scope` (prop nuevo) y `label` (prop nuevo, ej. asunto del hilo, título del evento, o "Vista actual" por defecto).
+- Nuevo `src/components/shared/RecentSharesPanel.tsx`: `Popover` con lista (icono, label, timestamp relativo, botón abrir, botón copiar, botón quitar) y "Vaciar historial". Icono en toolbar: `History`.
+- Al hacer "Abrir": si es misma-origin → `navigate(pathname+search+hash)`; si no, `window.open`.
+- Integrado en `MensajesPage.tsx` (barra superior, junto a `ShareLinkButton` y `ScanQrLinkButton`) filtrando por `scope="mensajes"`, y en `EventosPage.tsx` con `scope="eventos"`.
+- Gate con `useCan("share_link")`.
 
-### Tabla `cert_export_log` (auditoría)
-Cada descarga de certificado deja una fila.
+## 4. Escáner QR con reintentos automáticos y pausa
 
-Campos de dominio: `tipo`, `template_id` (fk → cert_templates), `template_version` (snapshot), `template_asset_id` (snapshot), `persona_id` (nullable, si aplica), `contexto` (jsonb: código, programa, etc.), `user_agent`, `browser_cache_hit` (bool), `actor_user_id`, `actor_email`.
+Refactor de `src/components/shared/ScanQrLinkButton.tsx`:
 
-RLS: insert para `authenticated`; lectura solo para admin/pastor.
+- Estados: `idle | starting | scanning | paused | error | success`.
+- Reintentos automáticos: si `Html5Qrcode.start()` rechaza (permiso denegado excluido) o el callback de error dispara N veces consecutivas sin lectura en ~8 s, reintentar hasta 3 veces con backoff (1s, 2s, 4s). Se cancelan si el usuario pausa o cierra.
+- Botón "Pausar" / "Reanudar" (usa `pause(true)` / `resume()` de html5-qrcode). Icono cambia `Pause` ↔ `Play`.
+- Botón "Reintentar" visible en estado `error`.
+- Indicador visual: badge de estado ("Buscando…", "En pausa", "Reintentando 2/3", "Baja luz — sostén firme").
+- Tip de iluminación cuando pasan >5s sin lectura exitosa.
+- Cleanup robusto en cierre del diálogo: `stop().catch(()=>{})` y `clear()` protegidos.
 
-Semilla inicial: registrar las 2 plantillas actuales (`cert-lideres-cdp.png`, `cert-bautismo.png`) como `version = 1`, `es_default = true`, `activo = true`.
+## 5. Modo presentación
 
-## 2. Configuración (UI nueva)
-
-Nueva pestaña en `ConfiguracionPage.tsx` → **Plantillas de Certificados**.
-
-Componente `src/components/configuracion/CertTemplatesManager.tsx`:
-- Lista por tipo de certificado (4 secciones plegables).
-- Por cada plantilla: miniatura, nombre, versión, badges (Activa, Por defecto), fecha, autor.
-- Acciones: **Subir nueva versión** (usa `lovable-assets` a través de un botón que sube al bucket `cert-templates` y crea la fila), **Marcar como default**, **Activar/Desactivar**, **Vista previa** (modal con imagen a tamaño real), **Eliminar** (solo si no ha sido usada — verifica `cert_export_log`).
-- Botón global **Forzar recarga de plantillas**: invalida `queryClient` + añade `?v=<timestamp>` a URLs de preview + limpia entradas de `localStorage` con clave `cert-template-cache-*`.
-
-## 3. Flujo de descarga con selector + vista previa
-
-Nuevo componente reutilizable `src/components/certificados/CertDownloadDialog.tsx`:
-- Se abre desde cualquier botón de descarga de certificado.
-- Muestra dropdown "Plantilla" (por defecto, la marcada `es_default` del tipo), con las plantillas `activo = true`.
-- Panel de vista previa (iframe/img) del PDF resultante con la plantilla elegida, cache-bust con `?v=<version>-<timestamp>`.
-- Footer muestra chip: `template_id · v{version} · asset {asset_id.slice(0,8)}`.
-- Botón "Forzar recarga" local (refetch de la plantilla ignorando caché del navegador con `cache: "no-store"`).
-- Botón "Descargar": genera el PDF, inserta fila en `cert_export_log`, muestra toast con la versión utilizada.
-
-Integraciones:
-- `CertificadosSection` (seminario) — reemplaza el `handleDescargar` directo con el dialog.
-- Bautismo y Líderes CDP (buscar callers de `cert-bautismo` / `cert-lideres-cdp`) — misma sustitución.
-- Academia — mismo dialog.
-
-## 4. Validación de versión / detección de caché viejo
-
-Utilidad `src/lib/certTemplateCache.ts`:
-- `fetchTemplateFresh(assetUrl)`: `fetch(url, { cache: "no-store" })`, mide `content-length` y compara con el registrado en `cert_templates.size`. Si difiere → `browser_cache_hit = true` y muestra warning en el dialog: *"Detectamos una versión antigua en caché. Se descargó la última."*
-- Al abrir el dialog, hace un pre-check y muestra badge verde "Plantilla actualizada" o amarillo "Caché desactualizado — forzando recarga".
-
-## 5. Historial de exportaciones
-
-Nueva sub-pestaña en Configuración → **Historial de Certificados** (`CertExportHistory.tsx`):
-- Tabla filtrable por tipo, plantilla, usuario y rango de fechas.
-- Columnas: Fecha, Tipo, Persona, Plantilla (`nombre v{version}`), Asset ID, Usuario, ¿Cache hit?
-- Exportar a CSV.
-- Vista adicional en el perfil de persona (opcional, dentro del timeline): eventos `certificate_issued` con la versión de plantilla.
+- Nuevo hook `src/hooks/usePresentationMode.ts`: booleano persistido en `localStorage` clave `doxa:presentation:<scope>`; toggle expuesto.
+- Cuando activo: agrega clase `data-presentation` al contenedor raíz de la página; en CSS (`index.css`) definir bajo `[data-presentation="true"]`:
+  - `--text-base: 1.25rem`, headings +20%
+  - Spacing +20% en `.presentation-density` wrappers
+  - Contraste reforzado (usar tokens existentes `text-foreground`)
+  - Ocultar chrome no esencial (mini-filtros, contadores densos) vía `.presentation-hide`
+- Botón toggle "Modo presentación" (icono `Projector`) en toolbar de `EventosPage.tsx` y `MensajesPage.tsx`, con `aria-pressed` y tooltip. Atajo teclado `Shift+P`.
+- Solo afecta la página actual (scope), no global.
 
 ## Notas técnicas
 
-- Bucket de storage nuevo `cert-templates` (público de lectura) para poder subir nuevas plantillas desde la UI sin pasar por el CLI de assets.
-- Los 2 assets actuales quedan como versión 1 apuntando a su `asset.json` existente (no se rompen).
-- Hook `useCertTemplates(tipo)` centraliza la selección de la plantilla default + resolución del asset URL con cache-bust.
-- Los PDF generators actuales (`seminarioPdf.ts`, exportadores de bautismo/líderes) reciben la URL de plantilla como parámetro en lugar de importar la constante fija.
+- No cambios de schema ni backend.
+- Reutiliza tokens del design system; no colores arbitrarios.
+- Todos los popovers/dialogos usan primitivas shadcn existentes.
+- `LiveAnnouncer` es la única fuente global; hooks locales usan su contexto.
+- Verificación: `tsgo --noEmit` y screenshot Playwright de `/mensajes` y `/eventos` con y sin modo presentación.
 
-## Archivos que se crean/modifican (resumen)
+## Archivos nuevos
 
-**Nuevos:** migración SQL, `CertTemplatesManager.tsx`, `CertDownloadDialog.tsx`, `CertExportHistory.tsx`, `useCertTemplates.ts`, `certTemplateCache.ts`, `logCertExport.ts`.
+- `src/components/shared/LiveAnnouncer.tsx`
+- `src/components/shared/RecentSharesPanel.tsx`
+- `src/lib/recentShares.ts`
+- `src/hooks/usePresentationMode.ts`
 
-**Modificados:** `ConfiguracionPage.tsx` (2 pestañas nuevas), `CertificadosSection.tsx`, exportadores de bautismo/líderes/academia, `seminarioPdf.ts` para aceptar plantilla parametrizada.
+## Archivos modificados
 
-¿Apruebas este plan para implementarlo?
+- `src/lib/permissions.ts`
+- `src/components/shared/ShareLinkButton.tsx`
+- `src/components/shared/ScanQrLinkButton.tsx`
+- `src/layouts/AppLayout.tsx` (o equivalente que renderiza `<Outlet />`)
+- `src/pages/MensajesPage.tsx`
+- `src/pages/EventosPage.tsx`
+- `src/components/mensajes/MensajeThreadView.tsx`
+- `src/index.css` (reglas `[data-presentation="true"]`)
