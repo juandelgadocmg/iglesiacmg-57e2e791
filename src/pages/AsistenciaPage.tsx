@@ -6,8 +6,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { TrendingUp, Check, X, Search, Save, Church, Printer, QrCode as QrIcon } from "lucide-react";
+import { TrendingUp, Check, X, Search, Save, Church, Printer, QrCode as QrIcon, PenLine } from "lucide-react";
 import { useServicios, usePersonas, useAsistencia, useUpsertAsistencia } from "@/hooks/useDatabase";
+import { useConfiguracion } from "@/hooks/useConfiguracion";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -16,6 +17,9 @@ import ImportAsistenciaDialog from "@/components/forms/ImportAsistenciaDialog";
 import PageSkeleton from "@/components/shared/PageSkeleton";
 import GenerateQrDialog from "@/components/servicios/GenerateQrDialog";
 import QrAuditLogSection from "@/components/attendance/QrAuditLogSection";
+import PlanillaPreviewDialog from "@/components/attendance/PlanillaPreviewDialog";
+import PlanillaHistorialSection from "@/components/attendance/PlanillaHistorialSection";
+import SignatureCaptureDialog from "@/components/attendance/SignatureCaptureDialog";
 import { useQrScanNotifier } from "@/hooks/useQrScanNotifier";
 import { useQueryClient } from "@tanstack/react-query";
 
@@ -35,7 +39,10 @@ export default function AsistenciaPage() {
   const [filterStatus, setFilterStatus] = useState<"all" | "present" | "absent">("all");
   const [localAttendance, setLocalAttendance] = useState<Record<string, boolean>>({});
   const [initialized, setInitialized] = useState<string | null>(null);
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [signPersona, setSignPersona] = useState<{ id: string; nombre: string } | null>(null);
   const qc = useQueryClient();
+  const { data: config } = useConfiguracion();
 
   const upsertAsistencia = useUpsertAsistencia();
   const effectiveService = selectedService || servicios?.[0]?.id || null;
@@ -118,65 +125,25 @@ export default function AsistenciaPage() {
   const totalAbsent = personasList.length - totalPresent;
   const attendanceRate = personasList.length > 0 ? Math.round((totalPresent / personasList.length) * 100) : 0;
 
-  const imprimir = () => {
-    if (!currentService) return;
-    const presentes = personasList
-      .filter((p: any) => localAttendance[p.id])
-      .map((p: any) => {
-        const a = asistMap.get(p.id);
-        return {
-          nombre: `${p.nombres} ${p.apellidos}`,
-          hora: a?.checkin_time ? new Date(a.checkin_time).toLocaleTimeString("es-CO", { hour: "2-digit", minute: "2-digit" }) : "—",
-          puntualidad: a?.puntualidad || "—",
-          metodo: a?.metodo_registro || "manual",
-        };
-      });
-
-    const w = window.open("", "_blank", "width=900,height=1000");
-    if (!w) return;
-    const rows = presentes.map((r, i) => `
-      <tr>
-        <td>${i + 1}</td><td>${r.nombre}</td><td>${r.hora}</td><td>${r.puntualidad}</td>
-        <td style="text-transform:uppercase">${r.metodo}</td>
-        <td class="firma"></td>
-      </tr>
-    `).join("");
-    w.document.write(`<!doctype html><html><head><title>Asistencia ${currentService.nombre}</title>
-      <style>
-        @page{size:A4;margin:16mm}
-        body{font-family:system-ui,Segoe UI,sans-serif;color:#111}
-        header{display:flex;justify-content:space-between;align-items:end;border-bottom:2px solid #111;padding-bottom:8px;margin-bottom:16px}
-        h1{margin:0;font-size:20px}
-        .meta{font-size:12px;color:#444}
-        table{width:100%;border-collapse:collapse;font-size:12px}
-        th,td{border:1px solid #d1d5db;padding:6px 8px;text-align:left}
-        th{background:#f3f4f6;font-size:11px;text-transform:uppercase;letter-spacing:.04em}
-        td.firma{width:140px}
-        footer{margin-top:20px;font-size:11px;color:#444;display:flex;justify-content:space-between}
-      </style></head><body>
-      <header>
-        <div>
-          <h1>Planilla de Asistencia</h1>
-          <div class="meta">${currentService.nombre} · ${currentService.fecha || ""} ${currentService.hora || ""}</div>
-        </div>
-        <div class="meta" style="text-align:right">
-          Total asistentes: <b>${presentes.length}</b><br/>
-          % asistencia: <b>${attendanceRate}%</b>
-        </div>
-      </header>
-      <table>
-        <thead><tr>
-          <th>#</th><th>Nombre</th><th>Hora</th><th>Puntualidad</th><th>Método</th><th>Firma</th>
-        </tr></thead>
-        <tbody>${rows || `<tr><td colspan="6" style="text-align:center;color:#888;padding:24px">Sin asistentes registrados</td></tr>`}</tbody>
-      </table>
-      <footer>
-        <span>Generado ${new Date().toLocaleString("es-CO")}</span>
-        <span>DOXA · CMG Admin</span>
-      </footer>
-      <script>window.onload=()=>window.print()</script>
-      </body></html>`);
-    w.document.close();
+  const saveFirma = async (personaId: string, dataUrl: string) => {
+    if (!effectiveService) return;
+    try {
+      const { data: userData } = await supabase.auth.getUser();
+      const { error } = await supabase.from("asistencia").upsert({
+        servicio_id: effectiveService,
+        persona_id: personaId,
+        presente: true,
+        firma_data_url: dataUrl,
+        firma_at: new Date().toISOString(),
+        firma_capturada_por: userData.user?.id || null,
+      }, { onConflict: "servicio_id,persona_id" });
+      if (error) throw error;
+      setLocalAttendance(prev => ({ ...prev, [personaId]: true }));
+      qc.invalidateQueries({ queryKey: ["asistencia", effectiveService] });
+      toast.success("Firma registrada");
+    } catch (e: any) {
+      toast.error("Error al guardar firma", { description: e.message });
+    }
   };
 
   return (
@@ -196,8 +163,8 @@ export default function AsistenciaPage() {
                 </Button>
               }
             />
-            <Button variant="outline" size="sm" onClick={imprimir} className="gap-1.5">
-              <Printer className="h-4 w-4" /> Imprimir asistencia
+            <Button variant="outline" size="sm" onClick={() => setPreviewOpen(true)} className="gap-1.5">
+              <Printer className="h-4 w-4" /> Planilla de control
             </Button>
             <ImportAsistenciaDialog servicioId={effectiveService} servicioNombre={currentService.nombre} />
             <ExportDropdown
@@ -319,19 +286,37 @@ export default function AsistenciaPage() {
                             <QrIcon className="h-2.5 w-2.5" /> QR
                           </Badge>
                         )}
+                        {a?.firma_data_url && (
+                          <Badge variant="outline" className="text-[10px] px-1.5 py-0 gap-0.5 border-success/40 text-success">
+                            <PenLine className="h-2.5 w-2.5" /> Firmado
+                          </Badge>
+                        )}
                       </div>
                     </div>
                   </div>
-                  <button
-                    onClick={(e) => { e.stopPropagation(); toggleAttendance(p.id); }}
-                    className={cn(
-                      "w-10 h-10 rounded-full flex items-center justify-center transition-all shrink-0",
-                      isPresent
-                        ? "bg-success text-success-foreground shadow-sm"
-                        : "bg-muted text-muted-foreground hover:bg-muted/80"
-                    )}>
-                    {isPresent ? <Check className="h-5 w-5" /> : <X className="h-5 w-5" />}
-                  </button>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <button
+                      onClick={(e) => { e.stopPropagation(); setSignPersona({ id: p.id, nombre: `${p.nombres} ${p.apellidos}` }); }}
+                      title="Capturar firma"
+                      className={cn(
+                        "w-9 h-9 rounded-full flex items-center justify-center transition-all border",
+                        a?.firma_data_url
+                          ? "bg-success/10 text-success border-success/30"
+                          : "bg-muted/30 text-muted-foreground hover:bg-muted"
+                      )}>
+                      <PenLine className="h-4 w-4" />
+                    </button>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); toggleAttendance(p.id); }}
+                      className={cn(
+                        "w-10 h-10 rounded-full flex items-center justify-center transition-all",
+                        isPresent
+                          ? "bg-success text-success-foreground shadow-sm"
+                          : "bg-muted text-muted-foreground hover:bg-muted/80"
+                      )}>
+                      {isPresent ? <Check className="h-5 w-5" /> : <X className="h-5 w-5" />}
+                    </button>
+                  </div>
                 </div>
               );
             })}
@@ -345,6 +330,27 @@ export default function AsistenciaPage() {
       </div>
 
       <QrAuditLogSection servicioId={effectiveService} />
+
+      <PlanillaHistorialSection servicioId={effectiveService} />
+
+      {effectiveService && currentService && (
+        <PlanillaPreviewDialog
+          open={previewOpen}
+          onOpenChange={setPreviewOpen}
+          servicio={currentService}
+          personas={personasList}
+          asistMap={asistMap}
+          localAttendance={localAttendance}
+          config={config}
+        />
+      )}
+
+      <SignatureCaptureDialog
+        open={!!signPersona}
+        onOpenChange={(v) => { if (!v) setSignPersona(null); }}
+        personaNombre={signPersona?.nombre || ""}
+        onSave={async (dataUrl) => { if (signPersona) await saveFirma(signPersona.id, dataUrl); }}
+      />
     </div>
   );
 }
