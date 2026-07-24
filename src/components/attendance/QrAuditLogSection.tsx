@@ -659,6 +659,7 @@ export default function QrAuditLogSection({ servicioId }: { servicioId: string |
           </TabsContent>
         </Tabs>
       </CardContent>
+      <QrScanDetailDrawer rowId={detailRowId} onClose={() => setDetailRowId(null)} />
     </Card>
   );
 }
