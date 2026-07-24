@@ -18,6 +18,7 @@ import {
   ClipboardList, Calendar, BookMarked, X, ChevronDown,
 } from "lucide-react";
 import ShareLinkButton from "@/components/shared/ShareLinkButton";
+import ScanQrLinkButton from "@/components/shared/ScanQrLinkButton";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 import {
@@ -71,7 +72,7 @@ export default function MensajesPage() {
   );
   const [dateFrom, setDateFrom] = useState<string>(searchParams.get("from") || "");
   const [dateTo, setDateTo] = useState<string>(searchParams.get("to") || "");
-  const [page, setPage] = useState(0);
+  const [page, setPage] = useState(() => Math.max(0, parseInt(searchParams.get("p") || "0", 10) || 0));
   const [selected, setSelected] = useState<string | null>(searchParams.get("t") || null);
   const [composerOpen, setComposerOpen] = useState(false);
   const [composerInitial, setComposerInitial] = useState<any>(undefined);
@@ -92,6 +93,7 @@ export default function MensajesPage() {
     if (dateFrom) next.set("from", dateFrom);
     if (dateTo) next.set("to", dateTo);
     if (selected) next.set("t", selected);
+    if (page > 0) next.set("p", String(page));
     // Preserve existing list scroll (ly) — persisted separately below
     const ly = searchParams.get("ly");
     if (ly) next.set("ly", ly);
@@ -100,18 +102,35 @@ export default function MensajesPage() {
       prev.view !== view || prev.folder !== folder || prev.selected !== selected;
     prevNavRef.current = { view, folder, selected };
     setSearchParams(next, { replace: !isNavChange });
-  }, [view, folder, search, searchField, dateFrom, dateTo, selected, setSearchParams, searchParams]);
+  }, [view, folder, search, searchField, dateFrom, dateTo, selected, page, setSearchParams, searchParams]);
 
   // React to Back/Forward — pull state out of the URL without flicker
   useEffect(() => {
     const urlView = (searchParams.get("view") as View) || "folder";
     const urlFolder = (searchParams.get("folder") as Folder) || "inbox";
     const urlSelected = searchParams.get("t");
+    const urlPage = Math.max(0, parseInt(searchParams.get("p") || "0", 10) || 0);
     if (urlView !== view) setView(urlView);
     if (urlFolder !== folder) setFolder(urlFolder);
     if ((urlSelected || null) !== selected) setSelected(urlSelected || null);
+    if (urlPage !== page) setPage(urlPage);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]);
+
+  // Restore keyboard focus + visual selection on the currently selected thread
+  // after Back/Forward so the user resumes exactly where they left off.
+  useEffect(() => {
+    if (!selected) return;
+    const root = listScrollRef.current;
+    if (!root) return;
+    const el = root.querySelector<HTMLButtonElement>(`[data-thread-id="${selected}"]`);
+    if (!el) return;
+    // rAF so layout is stable and the row is present after data load
+    requestAnimationFrame(() => {
+      el.focus({ preventScroll: true });
+      el.scrollIntoView({ block: "nearest", behavior: "auto" });
+    });
+  }, [selected, accumulated.length]);
 
   // ─── Thread list scroll persistence (survives Back navigation + shareable) ───
   const listScrollRef = useRef<HTMLDivElement | null>(null);
