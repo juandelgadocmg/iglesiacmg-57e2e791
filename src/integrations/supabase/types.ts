@@ -89,6 +89,9 @@ export type Database = {
           clasificacion: string | null
           created_at: string
           es_nuevo: boolean | null
+          firma_at: string | null
+          firma_capturada_por: string | null
+          firma_data_url: string | null
           id: string
           metodo_registro: string
           observaciones: string | null
@@ -102,6 +105,9 @@ export type Database = {
           clasificacion?: string | null
           created_at?: string
           es_nuevo?: boolean | null
+          firma_at?: string | null
+          firma_capturada_por?: string | null
+          firma_data_url?: string | null
           id?: string
           metodo_registro?: string
           observaciones?: string | null
@@ -115,6 +121,9 @@ export type Database = {
           clasificacion?: string | null
           created_at?: string
           es_nuevo?: boolean | null
+          firma_at?: string | null
+          firma_capturada_por?: string | null
+          firma_data_url?: string | null
           id?: string
           metodo_registro?: string
           observaciones?: string | null
@@ -624,6 +633,12 @@ export type Database = {
           nombre_iglesia: string
           pais: string | null
           pastor_principal: string | null
+          planilla_color_encabezado: string | null
+          planilla_columnas: Json
+          planilla_mostrar_logo: boolean
+          planilla_pie: string | null
+          planilla_subtitulo: string | null
+          planilla_titulo: string | null
           senal_en_vivo_activa: boolean | null
           senal_en_vivo_url: string | null
           sitio_web: string | null
@@ -654,6 +669,12 @@ export type Database = {
           nombre_iglesia?: string
           pais?: string | null
           pastor_principal?: string | null
+          planilla_color_encabezado?: string | null
+          planilla_columnas?: Json
+          planilla_mostrar_logo?: boolean
+          planilla_pie?: string | null
+          planilla_subtitulo?: string | null
+          planilla_titulo?: string | null
           senal_en_vivo_activa?: boolean | null
           senal_en_vivo_url?: string | null
           sitio_web?: string | null
@@ -684,6 +705,12 @@ export type Database = {
           nombre_iglesia?: string
           pais?: string | null
           pastor_principal?: string | null
+          planilla_color_encabezado?: string | null
+          planilla_columnas?: Json
+          planilla_mostrar_logo?: boolean
+          planilla_pie?: string | null
+          planilla_subtitulo?: string | null
+          planilla_titulo?: string | null
           senal_en_vivo_activa?: boolean | null
           senal_en_vivo_url?: string | null
           sitio_web?: string | null
@@ -2681,6 +2708,50 @@ export type Database = {
             columns: ["grupo_id"]
             isOneToOne: false
             referencedRelation: "grupos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      planilla_historial: {
+        Row: {
+          created_at: string
+          generada_por: string
+          generada_por_email: string | null
+          id: string
+          parametros: Json
+          servicio_id: string
+          tasa_asistencia: number
+          total_asistentes: number
+          total_personas: number
+        }
+        Insert: {
+          created_at?: string
+          generada_por: string
+          generada_por_email?: string | null
+          id?: string
+          parametros?: Json
+          servicio_id: string
+          tasa_asistencia?: number
+          total_asistentes?: number
+          total_personas?: number
+        }
+        Update: {
+          created_at?: string
+          generada_por?: string
+          generada_por_email?: string | null
+          id?: string
+          parametros?: Json
+          servicio_id?: string
+          tasa_asistencia?: number
+          total_asistentes?: number
+          total_personas?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "planilla_historial_servicio_id_fkey"
+            columns: ["servicio_id"]
+            isOneToOne: false
+            referencedRelation: "servicios"
             referencedColumns: ["id"]
           },
         ]
