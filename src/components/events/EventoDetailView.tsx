@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { ArrowLeft, Save, X, Plus, Trash2, Search, Users, UserPlus, FileText, Ban, CheckCircle2 } from "lucide-react";
+import ShareLinkButton from "@/components/shared/ShareLinkButton";
 import { useUpdateEvento, useUpdateInscripcion } from "@/hooks/useDatabase";
 import {
   useEventoCategorias, useCreateEventoCategoria, useDeleteEventoCategoria,
@@ -172,6 +173,14 @@ export default function EventoDetailView({ evento, onBack }: Props) {
           <h1 className="text-xl font-bold text-foreground">Actualizar Actividad: "{evento.nombre}"</h1>
           <p className="text-sm text-muted-foreground">Formulario para la actualización de la actividad.</p>
         </div>
+        <ShareLinkButton
+          toastMessage="Enlace del evento copiado"
+          buildUrl={() => {
+            const p = new URLSearchParams(window.location.search);
+            p.set("ev", String(evento.id));
+            return `${window.location.origin}${window.location.pathname}?${p.toString()}`;
+          }}
+        />
       </div>
 
       <Tabs defaultValue="general" className="space-y-4">

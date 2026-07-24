@@ -13,6 +13,7 @@ import { es } from "date-fns/locale";
 import MensajeComposer from "./MensajeComposer";
 import AssetPreview from "@/components/shared/AssetPreview";
 import { openAsset as openAssetSafe } from "@/lib/openAsset";
+import ShareLinkButton from "@/components/shared/ShareLinkButton";
 
 interface Props {
   threadId: string;
@@ -164,6 +165,16 @@ export default function MensajeThreadView({ threadId }: Props) {
           <Forward className="h-4 w-4 mr-1" /> Reenviar
         </Button>
         <div className="flex-1" />
+        <ShareLinkButton
+          size="sm"
+          variant="ghost"
+          toastMessage="Enlace del hilo copiado"
+          buildUrl={() => {
+            const p = new URLSearchParams(window.location.search);
+            p.set("t", threadId);
+            return `${window.location.origin}${window.location.pathname}?${p.toString()}`;
+          }}
+        />
         <Button size="sm" variant="ghost" onClick={() => updateFlag.mutate({ threadId, patch: { is_favorite: !self?.is_favorite } })}>
           <Star className={`h-4 w-4 ${self?.is_favorite ? "fill-amber-400 text-amber-400" : ""}`} />
         </Button>
