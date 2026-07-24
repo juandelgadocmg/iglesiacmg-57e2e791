@@ -399,6 +399,17 @@ export default function ScanQrDialog({ open, onOpenChange }: Props) {
             </div>
           )}
 
+          {status === "queued" && (
+            <div className="text-center py-6 space-y-3">
+              <div className="mx-auto w-16 h-16 rounded-full bg-amber-500/10 flex items-center justify-center">
+                <WifiOff className="h-10 w-10 text-amber-600" />
+              </div>
+              <p className="text-foreground font-semibold">Guardado sin conexión</p>
+              <p className="text-sm text-muted-foreground">{message}</p>
+              <p className="text-[11px] text-muted-foreground pt-2">Cerrando automáticamente…</p>
+            </div>
+          )}
+
           {status === "error" && (
             <div className="text-center py-6 space-y-3">
               <AlertTriangle className="h-12 w-12 text-destructive mx-auto" />
