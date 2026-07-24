@@ -434,6 +434,13 @@ export default function MensajesPage() {
             </SelectContent>
           </Select>
           <ShareLinkButton
+            scope="mensajes"
+            shareLabel={(() => {
+              if (view !== "folder") return `Mensajes · ${view}`;
+              const t: any = selected ? accumulated.find((x: any) => x.id === selected) : null;
+              const subj = t?.subject || t?.last_subject;
+              return subj ? `Hilo: ${subj}` : `Correo interno · ${folder}`;
+            })()}
             toastMessage="Enlace de Correo interno copiado"
             qrTitle="Abrir Correo interno en otro dispositivo"
             qrDescription="Escanea con la cámara para restaurar carpeta, filtros y hilo abierto."
