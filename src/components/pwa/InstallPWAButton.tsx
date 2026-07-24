@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
-import { Download, Share, Plus, CheckCircle2 } from "lucide-react";
+import { Download, Share, Plus, CheckCircle2, RefreshCw, HelpCircle, Smartphone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 
 type BIPEvent = Event & {
   prompt: () => Promise<void>;
@@ -23,6 +24,7 @@ function detectPlatform() {
 }
 
 const LS_IOS_PROMPTED_AT = "pwa:ios:prompted_at";
+const STALE_MS = 24 * 60 * 60 * 1000;
 
 export default function InstallPWAButton() {
   const [deferred, setDeferred] = useState<BIPEvent | null>(null);
@@ -30,12 +32,19 @@ export default function InstallPWAButton() {
   const [platform, setPlatform] = useState(() => detectPlatform());
   const [showIOSHelp, setShowIOSHelp] = useState(false);
   const [showIOSAlt, setShowIOSAlt] = useState(false);
+  const [staleIOS, setStaleIOS] = useState(false); // >24h since first prompt without install
+
+  const recheckIOSStale = () => {
+    const promptedAt = Number(localStorage.getItem(LS_IOS_PROMPTED_AT) || 0);
+    setStaleIOS(!!promptedAt && Date.now() - promptedAt > STALE_MS);
+  };
 
   // Live-detect standalone (iOS confirms install when app is reopened from home)
   useEffect(() => {
     const p = detectPlatform();
     setPlatform(p);
     setInstalled(p.isStandalone);
+    recheckIOSStale();
 
     const onPrompt = (e: Event) => {
       e.preventDefault();
@@ -45,6 +54,7 @@ export default function InstallPWAButton() {
       setInstalled(true);
       setDeferred(null);
       localStorage.removeItem(LS_IOS_PROMPTED_AT);
+      setStaleIOS(false);
       toast.success("App instalada correctamente ✅");
     };
     const mql = window.matchMedia("(display-mode: standalone)");
@@ -54,52 +64,101 @@ export default function InstallPWAButton() {
     const onVisibility = () => {
       const cur = detectPlatform();
       if (cur.isStandalone && !installed) onInstalled();
+      recheckIOSStale();
     };
     window.addEventListener("beforeinstallprompt", onPrompt);
     window.addEventListener("appinstalled", onInstalled);
     mql.addEventListener?.("change", onModeChange);
     document.addEventListener("visibilitychange", onVisibility);
 
-    // iOS follow-up: if user opened the help dialog and never returned as standalone
-    // within 24h, offer the alternate steps on next visit.
-    if (p.isIOS && !p.isStandalone) {
-      const promptedAt = Number(localStorage.getItem(LS_IOS_PROMPTED_AT) || 0);
-      if (promptedAt && Date.now() - promptedAt > 24 * 60 * 60 * 1000) {
-        // clear so we don't nag again
-        localStorage.removeItem(LS_IOS_PROMPTED_AT);
-        setTimeout(() => setShowIOSAlt(true), 1500);
-      }
-    }
+    // Poll every 5 min while the tab is open so the "no detectada en 24h" state
+    // flips without needing a page reload.
+    const interval = window.setInterval(recheckIOSStale, 5 * 60 * 1000);
 
     return () => {
       window.removeEventListener("beforeinstallprompt", onPrompt);
       window.removeEventListener("appinstalled", onInstalled);
       mql.removeEventListener?.("change", onModeChange);
       document.removeEventListener("visibilitychange", onVisibility);
+      window.clearInterval(interval);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  if (installed) return null;
+  const retryIOSDetect = () => {
+    const p = detectPlatform();
+    setPlatform(p);
+    setInstalled(p.isStandalone);
+    recheckIOSStale();
+    if (p.isStandalone) {
+      toast.success("App detectada como instalada ✅");
+    } else {
+      toast.info("Aún no detectamos la instalación. Ábrela desde el ícono en tu pantalla de inicio.");
+    }
+  };
 
-  // iOS: no beforeinstallprompt — show manual instructions
+  // ---------- iOS: persistent status indicator ----------
   if (platform.isIOS) {
+    if (installed) {
+      return (
+        <div
+          className="hidden sm:inline-flex items-center gap-1.5 h-9 px-2.5 rounded-md border bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 text-xs font-medium"
+          title="App instalada en pantalla de inicio"
+          aria-label="PWA instalada"
+        >
+          <CheckCircle2 className="h-4 w-4" />
+          <span>App instalada</span>
+        </div>
+      );
+    }
+
     return (
       <>
-        <Button
-          size="sm"
-          variant="outline"
-          className="h-9 min-w-9 gap-1.5 px-2.5"
-          onClick={() => {
-            localStorage.setItem(LS_IOS_PROMPTED_AT, String(Date.now()));
-            setShowIOSHelp(true);
-          }}
-          title="Instalar en iPhone"
-          aria-label="Instalar en iPhone"
-        >
-          <Download className="h-4 w-4" />
-          <span className="hidden sm:inline">Instalar app</span>
-        </Button>
+        <div className="inline-flex items-center gap-1">
+          <Button
+            size="sm"
+            variant="outline"
+            className={cn(
+              "h-9 min-w-9 gap-1.5 px-2.5",
+              staleIOS && "border-amber-400 bg-amber-50 text-amber-800 hover:bg-amber-100 dark:bg-amber-950/40 dark:text-amber-200",
+            )}
+            onClick={() => {
+              if (!localStorage.getItem(LS_IOS_PROMPTED_AT)) {
+                localStorage.setItem(LS_IOS_PROMPTED_AT, String(Date.now()));
+              }
+              setShowIOSHelp(true);
+            }}
+            title={staleIOS ? "No detectamos la instalación en 24h" : "Instalar en iPhone"}
+            aria-label="Instalar en iPhone"
+          >
+            <Smartphone className="h-4 w-4" />
+            <span className="hidden sm:inline">
+              {staleIOS ? "No instalada" : "Instalar app"}
+            </span>
+          </Button>
+          <Button
+            size="icon"
+            variant="ghost"
+            className="h-9 w-9"
+            onClick={retryIOSDetect}
+            title="Volver a comprobar si la app está instalada"
+            aria-label="Reintentar detección"
+          >
+            <RefreshCw className="h-4 w-4" />
+          </Button>
+          {staleIOS && (
+            <Button
+              size="icon"
+              variant="ghost"
+              className="h-9 w-9 text-amber-700 dark:text-amber-300"
+              onClick={() => setShowIOSAlt(true)}
+              title="Ver paso alternativo"
+              aria-label="Ver paso alternativo"
+            >
+              <HelpCircle className="h-4 w-4" />
+            </Button>
+          )}
+        </div>
 
         <Dialog open={showIOSHelp} onOpenChange={setShowIOSHelp}>
           <DialogContent className="max-w-sm">
@@ -128,15 +187,20 @@ export default function InstallPWAButton() {
               </li>
             </ol>
             <div className="mt-3 rounded-md bg-muted/50 p-2.5 text-[11.5px] text-muted-foreground">
-              Al abrir la app desde el ícono, detectaremos automáticamente que ya está instalada
-              y este botón desaparecerá. Si no aparece el botón <b>Compartir</b>, usa el paso alternativo.
+              Al abrir la app desde el ícono, detectaremos automáticamente que ya está instalada.
+              Si ya la instalaste, usa el botón <b>Reintentar</b> aquí para verificarlo.
             </div>
             <p className="text-xs text-muted-foreground mt-2">
               Debes abrir esta página en <b>Safari</b> (no funciona desde Chrome ni desde apps embebidas).
             </p>
-            <Button variant="outline" size="sm" onClick={() => { setShowIOSHelp(false); setShowIOSAlt(true); }}>
-              No veo el botón Compartir
-            </Button>
+            <div className="flex gap-2 mt-2">
+              <Button variant="outline" size="sm" onClick={retryIOSDetect}>
+                <RefreshCw className="h-3.5 w-3.5 mr-1.5" /> Reintentar detección
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => { setShowIOSHelp(false); setShowIOSAlt(true); }}>
+                No veo el botón Compartir
+              </Button>
+            </div>
           </DialogContent>
         </Dialog>
 
@@ -165,12 +229,17 @@ export default function InstallPWAButton() {
                 </span>
               </li>
             </ol>
+            <Button variant="outline" size="sm" className="mt-2" onClick={retryIOSDetect}>
+              <RefreshCw className="h-3.5 w-3.5 mr-1.5" /> Reintentar detección
+            </Button>
           </DialogContent>
         </Dialog>
       </>
     );
   }
 
+  // ---------- Non-iOS ----------
+  if (installed) return null;
   if (!deferred) return null;
 
   return (
@@ -191,3 +260,4 @@ export default function InstallPWAButton() {
     </Button>
   );
 }
+
