@@ -17,6 +17,7 @@ import {
   Inbox, Send, FileText, Star, AlertCircle, Archive, Trash2, Plus, Search, Mail, MailOpen, Bot,
   ClipboardList, Calendar, BookMarked, X, ChevronDown,
 } from "lucide-react";
+import ShareLinkButton from "@/components/shared/ShareLinkButton";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 import {
