@@ -107,6 +107,42 @@ export default function EventosPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [eventos, searchParams]);
 
+  // Scroll persistence — restore window scroll for timeline/grid after data loads
+  const scrollKey = `eventos.scroll:${view}|${bucket}|${q}`;
+  useEffect(() => {
+    if (selectedEvento) return;
+    if (view === "calendar") return;
+    if (isLoading) return;
+    // Prefer explicit ?sy= from a shared link, otherwise fall back to session
+    const fromUrl = searchParams.get("sy");
+    const stored = fromUrl ?? sessionStorage.getItem(scrollKey);
+    const y = stored ? parseInt(stored, 10) : NaN;
+    if (!Number.isNaN(y)) {
+      requestAnimationFrame(() => window.scrollTo({ top: y, behavior: "auto" }));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [view, bucket, q, isLoading, selectedEvento]);
+
+  useEffect(() => {
+    if (selectedEvento) return;
+    if (view === "calendar") return;
+    let raf = 0;
+    const onScroll = () => {
+      if (raf) return;
+      raf = window.requestAnimationFrame(() => {
+        raf = 0;
+        try { sessionStorage.setItem(scrollKey, String(Math.round(window.scrollY))); } catch {}
+      });
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      if (raf) cancelAnimationFrame(raf);
+    };
+  }, [scrollKey, view, selectedEvento]);
+
+
+
 
   const now = new Date();
 
