@@ -118,9 +118,10 @@ export default function EventosPage() {
   ];
 
   return (
-    <div className="animate-fade-in -m-3 md:-m-6 flex min-h-[calc(100vh-3.5rem)]">
-      {/* Rail izquierdo */}
-      <aside className="w-60 shrink-0 border-r bg-card/40 flex flex-col h-[calc(100vh-3.5rem)] sticky top-14">
+    <div className="animate-fade-in -m-3 md:-m-6 flex flex-col md:flex-row min-h-[calc(100vh-3.5rem)]">
+      {/* Rail izquierdo (desktop) */}
+      <aside className="hidden md:flex w-60 shrink-0 border-r bg-card/40 flex-col h-[calc(100vh-3.5rem)] sticky top-14">
+
         <div className="p-4 border-b">
           <p className="text-[11px] uppercase tracking-wide text-muted-foreground font-semibold">Agenda</p>
           <h2 className="text-sm font-semibold mt-0.5">Actividades</h2>
