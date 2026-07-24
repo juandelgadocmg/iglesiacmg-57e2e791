@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ExternalLink, Copy } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
+import ExportDropdown from "@/components/shared/ExportDropdown";
 
 interface Props {
   rowId: string | null;
