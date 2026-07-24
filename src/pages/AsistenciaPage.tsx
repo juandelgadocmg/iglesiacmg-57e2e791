@@ -40,6 +40,7 @@ export default function AsistenciaPage() {
   const [localAttendance, setLocalAttendance] = useState<Record<string, boolean>>({});
   const [initialized, setInitialized] = useState<string | null>(null);
   const [previewOpen, setPreviewOpen] = useState(false);
+  const [reopenFrom, setReopenFrom] = useState<{ id: string; version: number } | null>(null);
   const [signPersona, setSignPersona] = useState<{ id: string; nombre: string } | null>(null);
   const qc = useQueryClient();
   const { data: config } = useConfiguracion();
@@ -331,17 +332,21 @@ export default function AsistenciaPage() {
 
       <QrAuditLogSection servicioId={effectiveService} />
 
-      <PlanillaHistorialSection servicioId={effectiveService} />
+      <PlanillaHistorialSection
+        servicioId={effectiveService}
+        onReopen={(v) => { setReopenFrom(v); setPreviewOpen(true); }}
+      />
 
       {effectiveService && currentService && (
         <PlanillaPreviewDialog
           open={previewOpen}
-          onOpenChange={setPreviewOpen}
+          onOpenChange={(v) => { setPreviewOpen(v); if (!v) setReopenFrom(null); }}
           servicio={currentService}
           personas={personasList}
           asistMap={asistMap}
           localAttendance={localAttendance}
           config={config}
+          reopenFrom={reopenFrom}
         />
       )}
 
