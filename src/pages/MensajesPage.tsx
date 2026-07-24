@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import PageHeader from "@/components/shared/PageHeader";
 import { Button } from "@/components/ui/button";
@@ -78,6 +78,10 @@ export default function MensajesPage() {
   const [checked, setChecked] = useState<Set<string>>(new Set());
   const [accumulated, setAccumulated] = useState<ThreadRow[]>([]);
 
+  // Track previous "navigational" state to decide push vs replace so that
+  // browser Back/Forward cleanly reverses view/folder/thread changes without
+  // flooding history on every keystroke of the search box.
+  const prevNavRef = useRef({ view, folder, selected });
   // Sync state -> URL (shareable link)
   useEffect(() => {
     const next = new URLSearchParams();
@@ -88,8 +92,57 @@ export default function MensajesPage() {
     if (dateFrom) next.set("from", dateFrom);
     if (dateTo) next.set("to", dateTo);
     if (selected) next.set("t", selected);
-    setSearchParams(next, { replace: true });
-  }, [view, folder, search, searchField, dateFrom, dateTo, selected, setSearchParams]);
+    // Preserve existing list scroll (ly) — persisted separately below
+    const ly = searchParams.get("ly");
+    if (ly) next.set("ly", ly);
+    const prev = prevNavRef.current;
+    const isNavChange =
+      prev.view !== view || prev.folder !== folder || prev.selected !== selected;
+    prevNavRef.current = { view, folder, selected };
+    setSearchParams(next, { replace: !isNavChange });
+  }, [view, folder, search, searchField, dateFrom, dateTo, selected, setSearchParams, searchParams]);
+
+  // React to Back/Forward — pull state out of the URL without flicker
+  useEffect(() => {
+    const urlView = (searchParams.get("view") as View) || "folder";
+    const urlFolder = (searchParams.get("folder") as Folder) || "inbox";
+    const urlSelected = searchParams.get("t");
+    if (urlView !== view) setView(urlView);
+    if (urlFolder !== folder) setFolder(urlFolder);
+    if ((urlSelected || null) !== selected) setSelected(urlSelected || null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
+
+  // ─── Thread list scroll persistence (survives Back navigation + shareable) ───
+  const listScrollRef = useRef<HTMLDivElement | null>(null);
+  const listScrollKey = `doxa:mensajes-list-scroll:${folder}|${search}|${searchField}|${dateFrom}|${dateTo}`;
+  useEffect(() => {
+    const root = listScrollRef.current;
+    if (!root) return;
+    const viewport = root.querySelector<HTMLDivElement>("[data-radix-scroll-area-viewport]");
+    if (!viewport) return;
+    // Restore: prefer explicit ?ly= from a shared/back link, else session
+    const fromUrl = searchParams.get("ly");
+    const stored = fromUrl ?? sessionStorage.getItem(listScrollKey);
+    const y = stored ? parseInt(stored, 10) : NaN;
+    if (!Number.isNaN(y)) {
+      requestAnimationFrame(() => viewport.scrollTo({ top: y, behavior: "auto" }));
+    }
+    let raf = 0;
+    const onScroll = () => {
+      if (raf) return;
+      raf = window.requestAnimationFrame(() => {
+        raf = 0;
+        try { sessionStorage.setItem(listScrollKey, String(Math.round(viewport.scrollTop))); } catch {}
+      });
+    };
+    viewport.addEventListener("scroll", onScroll, { passive: true });
+    return () => {
+      viewport.removeEventListener("scroll", onScroll);
+      if (raf) cancelAnimationFrame(raf);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [listScrollKey, accumulated.length]);
 
 
   // Reset accumulation + selection whenever filters change
@@ -349,6 +402,8 @@ export default function MensajesPage() {
           </Select>
           <ShareLinkButton
             toastMessage="Enlace de Correo interno copiado"
+            qrTitle="Abrir Correo interno en otro dispositivo"
+            qrDescription="Escanea con la cámara para restaurar carpeta, filtros y hilo abierto."
             buildUrl={() => {
               const p = new URLSearchParams();
               if (view !== "folder") p.set("view", view);
@@ -358,6 +413,9 @@ export default function MensajesPage() {
               if (dateFrom) p.set("from", dateFrom);
               if (dateTo) p.set("to", dateTo);
               if (selected) p.set("t", selected);
+              // Include current list scroll so returning users land on the same row
+              const viewport = listScrollRef.current?.querySelector<HTMLDivElement>("[data-radix-scroll-area-viewport]");
+              if (viewport && viewport.scrollTop > 0) p.set("ly", String(Math.round(viewport.scrollTop)));
               const qs = p.toString();
               return `${window.location.origin}${window.location.pathname}${qs ? `?${qs}` : ""}`;
             }}
@@ -384,7 +442,7 @@ export default function MensajesPage() {
         )}
       </div>
       {bulkBar}
-      <ScrollArea className="flex-1">
+      <ScrollArea className="flex-1" ref={listScrollRef as any}>
         {folder === "drafts" ? (
           drafts.length === 0 ? (
             <div className="p-8 text-center text-sm text-muted-foreground">No tienes borradores</div>

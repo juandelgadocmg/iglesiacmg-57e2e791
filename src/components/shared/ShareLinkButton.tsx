@@ -1,6 +1,14 @@
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
+import { QRCodeSVG } from "qrcode.react";
 import { Button } from "@/components/ui/button";
-import { Link2, Check } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Link2, Check, QrCode } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
@@ -13,6 +21,12 @@ type Props = {
   className?: string;
   /** Short human message for the toast, e.g. "Enlace de Eventos copiado". */
   toastMessage?: string;
+  /** When true (default) shows a secondary button that opens a QR of the URL. */
+  withQr?: boolean;
+  /** Title shown in the QR dialog. */
+  qrTitle?: string;
+  /** Description shown in the QR dialog. */
+  qrDescription?: string;
 };
 
 /**
@@ -20,8 +34,11 @@ type Props = {
  * on another device (iPhone ↔ desktop). Falls back to prompt() when the
  * Clipboard API is unavailable (older iOS Safari in non-secure context).
  *
- * Accessibility: when this button is focused, Ctrl/Cmd + C also copies the link
- * (instead of the empty selection), with visible focus and toast feedback.
+ * Renders as: [ Copiar enlace ] [ QR ]. The QR button opens a dialog that
+ * shows a scannable QR of the same URL so it can be opened from another phone.
+ *
+ * Accessibility: Ctrl/Cmd + C on either button copies the link (instead of
+ * the empty selection). Focus is visible in both light and dark mode.
  */
 export default function ShareLinkButton({
   buildUrl,
@@ -30,13 +47,23 @@ export default function ShareLinkButton({
   variant = "outline",
   className,
   toastMessage = "Enlace copiado al portapapeles",
+  withQr = true,
+  qrTitle = "Escanear enlace",
+  qrDescription = "Apunta la cámara de otro dispositivo para abrir esta vista con los mismos filtros.",
 }: Props) {
   const [copied, setCopied] = useState(false);
+  const [qrOpen, setQrOpen] = useState(false);
+
+  const resolveUrl = useCallback(
+    () =>
+      buildUrl
+        ? buildUrl()
+        : `${window.location.origin}${window.location.pathname}${window.location.search}`,
+    [buildUrl],
+  );
 
   const copy = useCallback(async () => {
-    const url = buildUrl
-      ? buildUrl()
-      : `${window.location.origin}${window.location.pathname}${window.location.search}`;
+    const url = resolveUrl();
     try {
       if (navigator.clipboard?.writeText) {
         await navigator.clipboard.writeText(url);
@@ -62,10 +89,10 @@ export default function ShareLinkButton({
       });
       window.prompt("Copia el enlace:", url);
     }
-  }, [buildUrl, toastMessage]);
+  }, [resolveUrl, toastMessage]);
 
   const onKeyDown = (e: React.KeyboardEvent<HTMLButtonElement>) => {
-    // Cmd/Ctrl + C while the button is focused → copy the link,
+    // Cmd/Ctrl + C while a button is focused → copy the link,
     // not the (usually empty) selection.
     if ((e.metaKey || e.ctrlKey) && (e.key === "c" || e.key === "C")) {
       e.preventDefault();
@@ -73,20 +100,71 @@ export default function ShareLinkButton({
     }
   };
 
+  // Build URL lazily when opening the dialog so it always reflects latest state
+  const qrUrl = useMemo(() => (qrOpen ? resolveUrl() : ""), [qrOpen, resolveUrl]);
+
   return (
-    <Button
-      type="button"
-      size={size}
-      variant={variant}
-      onClick={copy}
-      onKeyDown={onKeyDown}
-      className={cn("gap-1.5", className)}
-      aria-label={label}
-      aria-keyshortcuts="Control+C Meta+C"
-      title={`${label} (Ctrl/Cmd + C)`}
-    >
-      {copied ? <Check className="h-3.5 w-3.5" /> : <Link2 className="h-3.5 w-3.5" />}
-      {size !== "icon" && <span className="hidden sm:inline">{copied ? "Copiado" : label}</span>}
-    </Button>
+    <>
+      <div className={cn("inline-flex items-center gap-1", className)}>
+        <Button
+          type="button"
+          size={size}
+          variant={variant}
+          onClick={copy}
+          onKeyDown={onKeyDown}
+          className="gap-1.5"
+          aria-label={label}
+          aria-keyshortcuts="Control+C Meta+C"
+          title={`${label} (Ctrl/Cmd + C)`}
+        >
+          {copied ? <Check className="h-3.5 w-3.5" /> : <Link2 className="h-3.5 w-3.5" />}
+          {size !== "icon" && <span className="hidden sm:inline">{copied ? "Copiado" : label}</span>}
+        </Button>
+        {withQr && (
+          <Button
+            type="button"
+            size={size === "default" ? "default" : "icon"}
+            variant={variant}
+            onClick={() => setQrOpen(true)}
+            onKeyDown={onKeyDown}
+            aria-label="Mostrar código QR del enlace"
+            title="Mostrar código QR"
+            className="h-8 w-8"
+          >
+            <QrCode className="h-3.5 w-3.5" />
+          </Button>
+        )}
+      </div>
+
+      {withQr && (
+        <Dialog open={qrOpen} onOpenChange={setQrOpen}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>{qrTitle}</DialogTitle>
+              <DialogDescription>{qrDescription}</DialogDescription>
+            </DialogHeader>
+            {qrUrl && (
+              <div className="flex flex-col items-center gap-3 py-2">
+                <div className="rounded-md border bg-white p-4">
+                  <QRCodeSVG value={qrUrl} size={220} level="M" includeMargin={false} />
+                </div>
+                <p className="text-xs text-muted-foreground break-all text-center max-w-full">
+                  {qrUrl}
+                </p>
+                <div className="flex gap-2 w-full">
+                  <Button variant="outline" size="sm" className="flex-1" onClick={copy}>
+                    <Link2 className="h-3.5 w-3.5 mr-1.5" />
+                    Copiar enlace
+                  </Button>
+                  <Button variant="ghost" size="sm" onClick={() => setQrOpen(false)}>
+                    Cerrar
+                  </Button>
+                </div>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
+      )}
+    </>
   );
 }

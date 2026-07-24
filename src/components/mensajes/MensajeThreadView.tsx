@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useThread, useUpdateFlag, getAttachmentUrl, useReadReceipts } from "@/hooks/useMensajes";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -41,6 +42,9 @@ export default function MensajeThreadView({ threadId }: Props) {
   const [urls, setUrls] = useState<Record<string, string>>({});
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const restoredRef = useRef(false);
+  const messageRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const [focusedMessageId, setFocusedMessageId] = useState<string | null>(null);
+  const [searchParams] = useSearchParams();
 
   useEffect(() => {
     if (threadId) updateFlag.mutate({ threadId, patch: { is_read: true } });
@@ -48,14 +52,29 @@ export default function MensajeThreadView({ threadId }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [threadId]);
 
-  // Restore last scroll position for this thread once messages are rendered
+  // Restore last scroll position for this thread once messages are rendered.
+  // Priority: URL (?ty= or ?m=<msgId>) → sessionStorage. This ensures shared
+  // links and Back navigation land on exactly the same point without flicker.
   useEffect(() => {
     if (restoredRef.current) return;
     if (!data?.messages || !scrollRef.current) return;
+    const focusMsg = searchParams.get("m");
+    const urlTy = searchParams.get("ty");
     try {
-      const saved = sessionStorage.getItem(`doxa:msg-scroll:${threadId}`);
-      if (saved) {
-        const y = Number(saved);
+      if (focusMsg) {
+        // Defer so refs are attached, then scroll and highlight
+        requestAnimationFrame(() => {
+          const el = messageRefs.current[focusMsg];
+          if (el && scrollRef.current) {
+            el.scrollIntoView({ block: "center", behavior: "auto" });
+            setFocusedMessageId(focusMsg);
+            // Fade the highlight after a moment
+            setTimeout(() => setFocusedMessageId(null), 2400);
+          }
+        });
+      } else {
+        const saved = urlTy ?? sessionStorage.getItem(`doxa:msg-scroll:${threadId}`);
+        const y = saved ? Number(saved) : NaN;
         if (Number.isFinite(y)) {
           requestAnimationFrame(() => {
             if (scrollRef.current) scrollRef.current.scrollTop = y;
@@ -64,7 +83,7 @@ export default function MensajeThreadView({ threadId }: Props) {
       }
     } catch {}
     restoredRef.current = true;
-  }, [data?.messages, threadId]);
+  }, [data?.messages, threadId, searchParams]);
 
   // Persist scroll position (debounced via rAF)
   useEffect(() => {
@@ -169,9 +188,16 @@ export default function MensajeThreadView({ threadId }: Props) {
           size="sm"
           variant="ghost"
           toastMessage="Enlace del hilo copiado"
+          qrTitle="Abrir hilo en otro dispositivo"
+          qrDescription="Escanea con la cámara para abrir este hilo en el mismo punto de lectura."
           buildUrl={() => {
             const p = new URLSearchParams(window.location.search);
             p.set("t", threadId);
+            // Include scroll position and focused message so returning users
+            // land exactly where the sender was reading.
+            const y = scrollRef.current?.scrollTop ?? 0;
+            if (y > 0) p.set("ty", String(Math.round(y))); else p.delete("ty");
+            if (focusedMessageId) p.set("m", focusedMessageId); else p.delete("m");
             return `${window.location.origin}${window.location.pathname}?${p.toString()}`;
           }}
         />
@@ -237,8 +263,14 @@ export default function MensajeThreadView({ threadId }: Props) {
           const sys = isSys ? data.systemSenders.get(m.system_sender_key) : null;
           const pr = !isSys ? data.profiles.get(m.sender_id) : null;
           const senderName = isSys ? (sys?.display_name || "Sistema") : (pr?.display_name || "Usuario");
+          const isFocused = focusedMessageId === m.id;
           return (
-            <div key={m.id} className={`rounded-lg border p-4 ${isSys ? "bg-primary/5 border-primary/20" : "bg-card"}`}>
+            <div
+              key={m.id}
+              ref={(el) => { messageRefs.current[m.id] = el; }}
+              onClick={() => setFocusedMessageId(m.id)}
+              className={`rounded-lg border p-4 transition-all cursor-pointer ${isSys ? "bg-primary/5 border-primary/20" : "bg-card"} ${isFocused ? "ring-2 ring-primary ring-offset-2 ring-offset-background" : ""}`}
+            >
               <div className="flex items-center gap-3 mb-3">
                 <Avatar className="h-9 w-9">
                   {isSys ? (
