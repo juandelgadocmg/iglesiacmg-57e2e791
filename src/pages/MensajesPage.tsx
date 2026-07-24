@@ -518,7 +518,16 @@ export default function MensajesPage() {
                   <div className="pt-2" onClick={(e) => e.stopPropagation()}>
                     <Checkbox checked={isChecked} onCheckedChange={() => toggleCheck(t.id)} aria-label="Seleccionar hilo" />
                   </div>
-                  <button onClick={() => setSelected(t.id)} className="flex-1 flex gap-3 min-w-0 text-left">
+                  <button
+                    data-thread-id={t.id}
+                    onClick={() => setSelected(t.id)}
+                    aria-selected={isActive}
+                    aria-label={`Abrir hilo: ${t.subject || headline}`}
+                    className={cn(
+                      "flex-1 flex gap-3 min-w-0 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-md",
+                      isActive && "ring-1 ring-primary/40"
+                    )}
+                  >
                     <Avatar className="h-9 w-9 mt-0.5 shrink-0">
                       {isSystem ? (
                         <AvatarFallback className="bg-primary/10 text-primary"><Bot className="h-4 w-4" /></AvatarFallback>
