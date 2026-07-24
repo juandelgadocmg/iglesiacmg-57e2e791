@@ -80,6 +80,47 @@ export default function QrScanDetailDrawer({ rowId, onClose }: Props) {
     };
   }, [row]);
 
+  const exportRows = useMemo(() => {
+    if (!row) return [];
+    return [{
+      id: row.id,
+      created_at: new Date(row.created_at).toLocaleString("es-CO"),
+      result: row.result,
+      code: row.code || "",
+      message: row.message || "",
+      persona: persona ? `${persona.nombres} ${persona.apellidos}` : "",
+      persona_id: row.persona_id || "",
+      persona_email: persona?.email || "",
+      persona_telefono: persona?.telefono || "",
+      servicio: servicio?.nombre || "",
+      servicio_id: row.servicio_id || "",
+      servicio_fecha: servicio?.fecha || "",
+      servicio_hora: servicio?.hora || "",
+      user_id: row.user_id || "",
+      user: userEmail || "",
+      token: row.token || "",
+    }];
+  }, [row, persona, servicio, userEmail]);
+
+  const exportColumns = [
+    { header: "ID", key: "id" },
+    { header: "Fecha", key: "created_at" },
+    { header: "Resultado", key: "result" },
+    { header: "Código", key: "code" },
+    { header: "Mensaje", key: "message" },
+    { header: "Persona", key: "persona" },
+    { header: "Persona ID", key: "persona_id" },
+    { header: "Email", key: "persona_email" },
+    { header: "Teléfono", key: "persona_telefono" },
+    { header: "Reunión", key: "servicio" },
+    { header: "Reunión ID", key: "servicio_id" },
+    { header: "Fecha reunión", key: "servicio_fecha" },
+    { header: "Hora reunión", key: "servicio_hora" },
+    { header: "Usuario", key: "user" },
+    { header: "Usuario ID", key: "user_id" },
+    { header: "Token", key: "token" },
+  ];
+
   return (
     <Drawer
       open={open}
@@ -91,6 +132,15 @@ export default function QrScanDetailDrawer({ rowId, onClose }: Props) {
       {loading && <p className="text-sm text-muted-foreground">Cargando…</p>}
       {!loading && row && (
         <div className="space-y-5 text-sm">
+          <div className="flex justify-end">
+            <ExportDropdown
+              title={`Escaneo QR ${row.id.slice(0, 8)}`}
+              filename={`qr-scan-${row.id.slice(0, 8)}`}
+              columns={exportColumns}
+              data={exportRows}
+              filters={{ scan_id: row.id }}
+            />
+          </div>
           <section>
             <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Resultado</div>
             <div className="flex items-center gap-2 flex-wrap">
