@@ -37,7 +37,9 @@ export default function EventosPage() {
   const [selectedEvento, setSelectedEvento] = useState<any>(null);
   const [showCreate, setShowCreate] = useState(false);
 
-  const [view, setView] = useState<View>("calendar");
+  const [view, setView] = useState<View>(() =>
+    typeof window !== "undefined" && window.innerWidth < 768 ? "timeline" : "calendar"
+  );
   const [bucket, setBucket] = useState<Bucket>("proximos");
   const [tipos, setTipos] = useState<Set<string>>(new Set(["gratuito", "cerrado", "abierto"]));
   const [q, setQ] = useState("");
