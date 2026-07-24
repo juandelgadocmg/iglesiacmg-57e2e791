@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useUserRoles } from "@/hooks/useUserRoles";
 import ExportDropdown from "@/components/shared/ExportDropdown";
+import QrAlertPreferences from "@/components/attendance/QrAlertPreferences";
 
 interface Row {
   id: string;
