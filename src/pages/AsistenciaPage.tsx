@@ -15,6 +15,8 @@ import ExportDropdown from "@/components/shared/ExportDropdown";
 import ImportAsistenciaDialog from "@/components/forms/ImportAsistenciaDialog";
 import PageSkeleton from "@/components/shared/PageSkeleton";
 import GenerateQrDialog from "@/components/servicios/GenerateQrDialog";
+import QrAuditLogSection from "@/components/attendance/QrAuditLogSection";
+import { useQrScanNotifier } from "@/hooks/useQrScanNotifier";
 import { useQueryClient } from "@tanstack/react-query";
 
 const PUNT_COLOR: Record<string, string> = {
@@ -38,6 +40,10 @@ export default function AsistenciaPage() {
   const upsertAsistencia = useUpsertAsistencia();
   const effectiveService = selectedService || servicios?.[0]?.id || null;
   const { data: asistenciaData, isLoading: loadingAsistencia } = useAsistencia(effectiveService);
+
+  // Realtime QR scan notifications for the organizer of this meeting.
+  useQrScanNotifier(effectiveService, !!effectiveService);
+
 
   // Realtime subscription — actualiza planilla al llegar nuevos check-ins
   useEffect(() => {
@@ -337,6 +343,8 @@ export default function AsistenciaPage() {
           </div>
         )}
       </div>
+
+      <QrAuditLogSection servicioId={effectiveService} />
     </div>
   );
 }

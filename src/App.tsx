@@ -38,9 +38,13 @@ import CumpleanosPage from "@/pages/CumpleanosPage";
 import AlertasPage from "@/pages/AlertasPage";
 import ActividadPage from "@/pages/ActividadPage";
 import PWAUpdatePrompt from "@/components/pwa/PWAUpdatePrompt";
+import { installOfflineQueueAutoFlush } from "@/lib/qrOfflineQueue";
 
 const queryClient = new QueryClient();
-if (typeof window !== "undefined") (window as any).__lovableQueryClient = queryClient;
+if (typeof window !== "undefined") {
+  (window as any).__lovableQueryClient = queryClient;
+  installOfflineQueueAutoFlush();
+}
 
 const App = () => (
   <QueryClientProvider client={queryClient}>

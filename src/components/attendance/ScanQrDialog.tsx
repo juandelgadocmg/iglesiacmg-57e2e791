@@ -5,12 +5,14 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
-  QrCode, CheckCircle2, AlertTriangle, Loader2, Clock, Camera, Pause, Play, RotateCcw, SwitchCamera,
+  QrCode, CheckCircle2, AlertTriangle, Loader2, Clock, Camera, Pause, Play, RotateCcw, SwitchCamera, WifiOff,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
+import { enqueueScan, flushQueue } from "@/lib/qrOfflineQueue";
+import { toast } from "sonner";
 
 const PUNT_COLOR: Record<string, string> = {
   "Excelente": "bg-success/15 text-success",
@@ -20,7 +22,7 @@ const PUNT_COLOR: Record<string, string> = {
   "Muy tarde": "bg-destructive/15 text-destructive",
 };
 
-type Status = "scanning" | "paused" | "checking" | "success" | "already" | "error";
+type Status = "scanning" | "paused" | "checking" | "success" | "already" | "error" | "queued";
 
 interface Props {
   open: boolean;
@@ -111,6 +113,14 @@ export default function ScanQrDialog({ open, onOpenChange }: Props) {
       return;
     }
 
+    // Offline: enqueue and inform. Auto-sync when connectivity returns.
+    if (typeof navigator !== "undefined" && !navigator.onLine) {
+      enqueueScan(parsed.servicioId, parsed.token);
+      setStatus("queued");
+      setMessage("Sin conexión. Guardamos tu escaneo y lo enviaremos automáticamente cuando vuelvas a estar en línea.");
+      return;
+    }
+
     try {
       const { data, error } = await supabase.rpc("checkin_qr", {
         _servicio_id: parsed.servicioId,
@@ -118,10 +128,15 @@ export default function ScanQrDialog({ open, onOpenChange }: Props) {
       });
 
       if (error) {
+        // Network-ish error -> queue for retry instead of asking user to retry manually.
+        if (error.message?.toLowerCase().includes("failed to fetch") || error.message?.toLowerCase().includes("network")) {
+          enqueueScan(parsed.servicioId, parsed.token);
+          setStatus("queued");
+          setMessage("Conexión intermitente. Guardamos tu escaneo y lo reintentaremos automáticamente.");
+          return;
+        }
         setStatus("error");
-        setMessage(error.message?.includes("Failed to fetch")
-          ? "Sin conexión. Verifica tu internet e intenta de nuevo."
-          : (error.message || "No se pudo registrar la asistencia."));
+        setMessage(error.message || "No se pudo registrar la asistencia.");
         return;
       }
       const payload = data as any;
@@ -134,25 +149,40 @@ export default function ScanQrDialog({ open, onOpenChange }: Props) {
       if (payload.code === "already") {
         setStatus("already");
         setMessage("Ya registraste tu asistencia.");
+      } else if (payload.code === "throttled") {
+        setStatus("already");
+        setMessage(payload.message);
       } else {
         setStatus("success");
         setMessage(payload.message || "¡Asistencia registrada!");
       }
     } catch (e: any) {
-      setStatus("error");
-      setMessage("No se pudo conectar con el servidor. Revisa tu conexión.");
+      // Total fetch failure -> offline queue
+      enqueueScan(parsed.servicioId, parsed.token);
+      setStatus("queued");
+      setMessage("Sin conexión con el servidor. Guardamos tu escaneo y lo enviaremos cuando se restablezca la red.");
     }
   }, [stopScanner]);
 
-  // Auto-close after 3s on success/already
+  // Auto-close after 3s on success/already/queued
   useEffect(() => {
-    if (status !== "success" && status !== "already") return;
+    if (status !== "success" && status !== "already" && status !== "queued") return;
     const t = setTimeout(() => {
       onOpenChange(false);
       navigate("/");
-    }, 3000);
+    }, status === "queued" ? 3500 : 3000);
     return () => clearTimeout(t);
   }, [status, onOpenChange, navigate]);
+
+  // When we come back online while dialog is open, try to flush.
+  useEffect(() => {
+    const onOnline = async () => {
+      const { ok } = await flushQueue();
+      if (ok > 0) toast.success(`Se sincronizaron ${ok} check-in${ok === 1 ? "" : "s"} pendientes.`);
+    };
+    window.addEventListener("online", onOnline);
+    return () => window.removeEventListener("online", onOnline);
+  }, []);
 
   // Enumerate cameras once dialog opens
   useEffect(() => {
@@ -169,11 +199,19 @@ export default function ScanQrDialog({ open, onOpenChange }: Props) {
       .catch(() => { /* keep facingMode fallback */ });
   }, [open, cameraId]);
 
+  // Scan-quality hint (nudges the user to reframe when we can't decode).
+  const [hint, setHint] = useState<string>("");
+  const scanStartRef = useRef<number>(0);
+  const failedFramesRef = useRef<number>(0);
+
   const startScanner = useCallback(async () => {
     await stopScanner();
     handledRef.current = false;
     setStatus("scanning");
     setMessage("");
+    setHint("");
+    scanStartRef.current = Date.now();
+    failedFramesRef.current = 0;
     // wait for reader div
     await new Promise((r) => setTimeout(r, 50));
     try {
@@ -182,8 +220,8 @@ export default function ScanQrDialog({ open, onOpenChange }: Props) {
       const config = { fps: 10, qrbox: { width: 240, height: 240 } } as const;
       const source = cameraId ? { deviceId: { exact: cameraId } } : { facingMode: facing };
       await scanner.start(source as any, config as any,
-        (decoded) => { handleDecoded(decoded); },
-        () => { /* ignore per-frame errors */ }
+        (decoded) => { setHint("QR detectado ✓"); handleDecoded(decoded); },
+        () => { failedFramesRef.current += 1; }
       );
     } catch (e: any) {
       setStatus("error");
@@ -194,6 +232,20 @@ export default function ScanQrDialog({ open, onOpenChange }: Props) {
       );
     }
   }, [cameraId, facing, handleDecoded, stopScanner]);
+
+  // Ticker that updates the quality hint while scanning.
+  useEffect(() => {
+    if (status !== "scanning") return;
+    const t = setInterval(() => {
+      const elapsed = Date.now() - scanStartRef.current;
+      if (elapsed > 8000 && failedFramesRef.current > 30) {
+        setHint("Verifica la iluminación y que el QR esté totalmente visible.");
+      } else if (elapsed > 4000 && failedFramesRef.current > 15) {
+        setHint("Acércate más o centra el QR dentro del recuadro.");
+      }
+    }, 1200);
+    return () => clearInterval(t);
+  }, [status]);
 
   // Start / stop scanner with dialog open state, camera selection
   useEffect(() => {
@@ -293,8 +345,19 @@ export default function ScanQrDialog({ open, onOpenChange }: Props) {
           )}
 
           {status === "scanning" && (
-            <div className="mt-3 flex items-center justify-center gap-2 text-xs text-muted-foreground">
-              <Camera className="h-3.5 w-3.5" /> Centra el QR dentro del recuadro…
+            <div className="mt-3 space-y-1 text-center">
+              <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
+                <Camera className="h-3.5 w-3.5" /> Centra el QR dentro del recuadro…
+              </div>
+              {hint && (
+                <div className={
+                  hint.startsWith("QR detectado")
+                    ? "text-xs text-success font-medium"
+                    : "text-xs text-amber-600 font-medium"
+                }>
+                  {hint}
+                </div>
+              )}
             </div>
           )}
 
@@ -332,6 +395,17 @@ export default function ScanQrDialog({ open, onOpenChange }: Props) {
                   <Clock className="h-3 w-3 mr-1" /> {result.puntualidad}
                 </Badge>
               )}
+              <p className="text-[11px] text-muted-foreground pt-2">Cerrando automáticamente…</p>
+            </div>
+          )}
+
+          {status === "queued" && (
+            <div className="text-center py-6 space-y-3">
+              <div className="mx-auto w-16 h-16 rounded-full bg-amber-500/10 flex items-center justify-center">
+                <WifiOff className="h-10 w-10 text-amber-600" />
+              </div>
+              <p className="text-foreground font-semibold">Guardado sin conexión</p>
+              <p className="text-sm text-muted-foreground">{message}</p>
               <p className="text-[11px] text-muted-foreground pt-2">Cerrando automáticamente…</p>
             </div>
           )}
