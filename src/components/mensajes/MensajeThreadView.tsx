@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useThread, useUpdateFlag, getAttachmentUrl, useReadReceipts } from "@/hooks/useMensajes";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -41,6 +42,9 @@ export default function MensajeThreadView({ threadId }: Props) {
   const [urls, setUrls] = useState<Record<string, string>>({});
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const restoredRef = useRef(false);
+  const messageRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const [focusedMessageId, setFocusedMessageId] = useState<string | null>(null);
+  const [searchParams] = useSearchParams();
 
   useEffect(() => {
     if (threadId) updateFlag.mutate({ threadId, patch: { is_read: true } });
@@ -48,14 +52,29 @@ export default function MensajeThreadView({ threadId }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [threadId]);
 
-  // Restore last scroll position for this thread once messages are rendered
+  // Restore last scroll position for this thread once messages are rendered.
+  // Priority: URL (?ty= or ?m=<msgId>) → sessionStorage. This ensures shared
+  // links and Back navigation land on exactly the same point without flicker.
   useEffect(() => {
     if (restoredRef.current) return;
     if (!data?.messages || !scrollRef.current) return;
+    const focusMsg = searchParams.get("m");
+    const urlTy = searchParams.get("ty");
     try {
-      const saved = sessionStorage.getItem(`doxa:msg-scroll:${threadId}`);
-      if (saved) {
-        const y = Number(saved);
+      if (focusMsg) {
+        // Defer so refs are attached, then scroll and highlight
+        requestAnimationFrame(() => {
+          const el = messageRefs.current[focusMsg];
+          if (el && scrollRef.current) {
+            el.scrollIntoView({ block: "center", behavior: "auto" });
+            setFocusedMessageId(focusMsg);
+            // Fade the highlight after a moment
+            setTimeout(() => setFocusedMessageId(null), 2400);
+          }
+        });
+      } else {
+        const saved = urlTy ?? sessionStorage.getItem(`doxa:msg-scroll:${threadId}`);
+        const y = saved ? Number(saved) : NaN;
         if (Number.isFinite(y)) {
           requestAnimationFrame(() => {
             if (scrollRef.current) scrollRef.current.scrollTop = y;
@@ -64,7 +83,7 @@ export default function MensajeThreadView({ threadId }: Props) {
       }
     } catch {}
     restoredRef.current = true;
-  }, [data?.messages, threadId]);
+  }, [data?.messages, threadId, searchParams]);
 
   // Persist scroll position (debounced via rAF)
   useEffect(() => {
