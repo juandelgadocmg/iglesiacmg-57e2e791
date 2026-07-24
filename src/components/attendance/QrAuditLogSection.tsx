@@ -24,8 +24,8 @@ const RESULT_STYLE: Record<string, string> = {
 };
 
 export default function QrAuditLogSection({ servicioId }: { servicioId: string | null }) {
-  const can = useCan();
-  const canView = can("admin") || can("pastor") || can("secretaria");
+  const { roles } = useUserRoles();
+  const canView = roles.some((r) => ["admin", "pastor", "secretaria"].includes(r as string));
   const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(false);
 
