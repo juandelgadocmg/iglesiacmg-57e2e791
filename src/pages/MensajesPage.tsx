@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, useNavigationType } from "react-router-dom";
 import PageHeader from "@/components/shared/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,6 +19,10 @@ import {
 } from "lucide-react";
 import ShareLinkButton from "@/components/shared/ShareLinkButton";
 import ScanQrLinkButton from "@/components/shared/ScanQrLinkButton";
+import RecentSharesPanel from "@/components/shared/RecentSharesPanel";
+import { announce } from "@/components/shared/LiveAnnouncer";
+import { usePresentationMode } from "@/hooks/usePresentationMode";
+import { Projector } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 import {
