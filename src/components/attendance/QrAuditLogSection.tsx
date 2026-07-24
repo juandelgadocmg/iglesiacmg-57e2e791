@@ -327,7 +327,8 @@ export default function QrAuditLogSection({ servicioId }: { servicioId: string |
               { header: "Token", key: "token" },
             ]}
             data={exportData}
-            filters={{ servicioId, resultFilter, codeFilter, dateFrom, dateTo, search }}
+            filters={{ servicioId, resultFilter, codeFilter, dateFrom, dateTo, search, preset: activePreset?.name ?? null }}
+
           />
           <Popover>
             <PopoverTrigger asChild>
