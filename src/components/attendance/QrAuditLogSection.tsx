@@ -373,7 +373,7 @@ export default function QrAuditLogSection({ servicioId }: { servicioId: string |
               </div>
             </PopoverContent>
           </Popover>
-          <QrAuditAlertsManager servicioId={servicioId} />
+          <QrAuditAlertsManager servicioId={servicioId} onOpenScan={(id) => setDetailRowId(id)} />
           <QrAlertPreferences />
           <Button variant="ghost" size="sm" onClick={() => { load(); if (tab !== "registros") loadAgg(); }} disabled={loading} className="h-8 gap-1.5">
             <RefreshCw className={`h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} /> Actualizar
