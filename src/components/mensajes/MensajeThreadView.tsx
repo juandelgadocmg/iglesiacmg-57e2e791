@@ -68,8 +68,8 @@ export default function MensajeThreadView({ threadId }: Props) {
             el.scrollIntoView({ block: "center", behavior: "auto" });
             setFocusedMessageId(focusMsg);
             // Announce restoration for screen readers on Back/Forward + deep links
-            const msg = (data?.messages || []).find((m: any) => m.id === focusMsg);
-            const from = msg?.sender_name || msg?.sender_email || "remitente";
+            const msg: any = (data?.messages || []).find((m: any) => m.id === focusMsg);
+            const from = msg?.sender_name || msg?.sender_id || "remitente";
             import("@/components/shared/LiveAnnouncer").then(({ announce }) =>
               announce(`Mensaje restaurado de ${from}`),
             );
