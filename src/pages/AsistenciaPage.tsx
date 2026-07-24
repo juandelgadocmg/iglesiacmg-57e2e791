@@ -6,8 +6,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { TrendingUp, Check, X, Search, Save, Church, Printer, QrCode as QrIcon } from "lucide-react";
+import { TrendingUp, Check, X, Search, Save, Church, Printer, QrCode as QrIcon, PenLine } from "lucide-react";
 import { useServicios, usePersonas, useAsistencia, useUpsertAsistencia } from "@/hooks/useDatabase";
+import { useConfiguracion } from "@/hooks/useConfiguracion";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -16,6 +17,9 @@ import ImportAsistenciaDialog from "@/components/forms/ImportAsistenciaDialog";
 import PageSkeleton from "@/components/shared/PageSkeleton";
 import GenerateQrDialog from "@/components/servicios/GenerateQrDialog";
 import QrAuditLogSection from "@/components/attendance/QrAuditLogSection";
+import PlanillaPreviewDialog from "@/components/attendance/PlanillaPreviewDialog";
+import PlanillaHistorialSection from "@/components/attendance/PlanillaHistorialSection";
+import SignatureCaptureDialog from "@/components/attendance/SignatureCaptureDialog";
 import { useQrScanNotifier } from "@/hooks/useQrScanNotifier";
 import { useQueryClient } from "@tanstack/react-query";
 
