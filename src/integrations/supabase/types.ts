@@ -2714,7 +2714,10 @@ export type Database = {
       }
       planilla_historial: {
         Row: {
+          content_hash: string | null
+          content_ref: string | null
           created_at: string
+          formato: string
           generada_por: string
           generada_por_email: string | null
           id: string
@@ -2725,7 +2728,10 @@ export type Database = {
           total_personas: number
         }
         Insert: {
+          content_hash?: string | null
+          content_ref?: string | null
           created_at?: string
+          formato?: string
           generada_por: string
           generada_por_email?: string | null
           id?: string
@@ -2736,7 +2742,10 @@ export type Database = {
           total_personas?: number
         }
         Update: {
+          content_hash?: string | null
+          content_ref?: string | null
           created_at?: string
+          formato?: string
           generada_por?: string
           generada_por_email?: string | null
           id?: string
