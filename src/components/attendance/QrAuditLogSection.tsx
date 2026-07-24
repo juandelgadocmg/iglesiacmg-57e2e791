@@ -14,6 +14,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { toast } from "@/hooks/use-toast";
 import ExportDropdown from "@/components/shared/ExportDropdown";
 import QrAlertPreferences from "@/components/attendance/QrAlertPreferences";
+import QrAuditAlertsManager from "@/components/attendance/QrAuditAlertsManager";
+import QrScanDetailDrawer from "@/components/attendance/QrScanDetailDrawer";
 
 interface Preset {
   id: string;
