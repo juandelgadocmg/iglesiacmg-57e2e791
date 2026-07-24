@@ -77,7 +77,10 @@ export type ActionPermission =
   | "programa:confirm:pastor"
   | "programa:confirm:lider"
   | "programa:confirm:servidor"
-  | "programa:confirm:colaborador";
+  | "programa:confirm:colaborador"
+  | "share:link"
+  | "share:qr_download"
+  | "share:view_audit";
 
 export const ACTION_PERMISSIONS: Record<ActionPermission, AppRole[]> = {
   "personas:create": ["admin", "super_admin", "pastor", "lider", "secretaria", "consolidador_lider", "consolidador"],
