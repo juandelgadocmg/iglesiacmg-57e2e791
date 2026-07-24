@@ -17,6 +17,7 @@ import {
   Inbox, Send, FileText, Star, AlertCircle, Archive, Trash2, Plus, Search, Mail, MailOpen, Bot,
   ClipboardList, Calendar, BookMarked, X, ChevronDown,
 } from "lucide-react";
+import ShareLinkButton from "@/components/shared/ShareLinkButton";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 import {
@@ -346,6 +347,21 @@ export default function MensajesPage() {
               <SelectItem value="body">Contenido</SelectItem>
             </SelectContent>
           </Select>
+          <ShareLinkButton
+            toastMessage="Enlace de Correo interno copiado"
+            buildUrl={() => {
+              const p = new URLSearchParams();
+              if (view !== "folder") p.set("view", view);
+              if (view === "folder" && folder !== "inbox") p.set("folder", folder);
+              if (search) p.set("q", search);
+              if (searchField !== "all") p.set("field", searchField);
+              if (dateFrom) p.set("from", dateFrom);
+              if (dateTo) p.set("to", dateTo);
+              if (selected) p.set("t", selected);
+              const qs = p.toString();
+              return `${window.location.origin}${window.location.pathname}${qs ? `?${qs}` : ""}`;
+            }}
+          />
         </div>
         <div className="flex items-center gap-2 text-xs">
           <label className="text-muted-foreground shrink-0">Desde</label>
