@@ -189,7 +189,7 @@ export default function AppTopBar({ onMenuClick }: { onMenuClick?: () => void })
               </Tooltip>
             </TooltipProvider>
           )}
-          <div className="hidden xl:inline-flex"><InstallPWAButton /></div>
+          <InstallPWAButton />
 
 
           <Link to="/mensajes" className="relative p-2 rounded-md hover:bg-muted hidden lg:inline-flex" title="Mensajes" aria-label={`Mensajes${unread > 0 ? ` (${unread} sin leer)` : ""}`}>
