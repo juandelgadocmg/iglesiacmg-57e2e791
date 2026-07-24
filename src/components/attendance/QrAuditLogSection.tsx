@@ -499,12 +499,24 @@ export default function QrAuditLogSection({ servicioId }: { servicioId: string |
                       const totalH = max ? (v.total / max) * 100 : 0;
                       const okH = v.total ? (v.ok / v.total) * totalH : 0;
                       return (
-                        <div key={day} className="flex-1 flex flex-col justify-end items-center gap-0.5" title={`${day}: ${v.ok}/${v.total} OK`}>
+                        <button
+                          type="button"
+                          key={day}
+                          onClick={() => {
+                            setDateFrom(day);
+                            setDateTo(day);
+                            setPage(0);
+                            setTab("registros");
+                            toast({ title: "Filtrado por fecha", description: day });
+                          }}
+                          className="flex-1 flex flex-col justify-end items-center gap-0.5 hover:opacity-80 cursor-pointer"
+                          title={`${day}: ${v.ok}/${v.total} OK — clic para filtrar`}
+                        >
                           <div className="w-full bg-muted rounded-t" style={{ height: `${totalH}%` }}>
                             <div className="w-full bg-success rounded-t" style={{ height: `${totalH ? (okH / totalH) * 100 : 0}%` }} />
                           </div>
                           <span className="text-[9px] text-muted-foreground rotate-45 origin-left">{day.slice(5)}</span>
-                        </div>
+                        </button>
                       );
                     })}
                   </div>
@@ -523,18 +535,33 @@ export default function QrAuditLogSection({ servicioId }: { servicioId: string |
                           <th className="py-1.5 pr-2 text-right">Err</th>
                           <th className="py-1.5 pr-2 text-right">% Éxito</th>
                           <th className="py-1.5 pr-2 text-right">% Dup</th>
+                          <th className="py-1.5 pr-2"></th>
                         </tr>
                       </thead>
                       <tbody>
                         {metrics.meetings.map((m) => (
                           <tr key={m.id} className="border-b last:border-0">
-                            <td className="py-1.5 pr-2 font-mono text-[10px]">{m.id === "—" ? "—" : m.id.slice(0, 8)}</td>
+                            <td className="py-1.5 pr-2 font-mono text-[10px]">
+                              {m.id === "—" ? "—" : (
+                                <Link to={`/servicios?servicio=${m.id}`} className="inline-flex items-center gap-1 text-primary hover:underline" title="Abrir reunión">
+                                  {m.id.slice(0, 8)}
+                                  <ExternalLink className="h-3 w-3" />
+                                </Link>
+                              )}
+                            </td>
                             <td className="py-1.5 pr-2 text-right">{m.total}</td>
                             <td className="py-1.5 pr-2 text-right text-success">{m.ok}</td>
                             <td className="py-1.5 pr-2 text-right text-primary">{m.dup}</td>
                             <td className="py-1.5 pr-2 text-right text-destructive">{m.err}</td>
                             <td className="py-1.5 pr-2 text-right">{m.okRate.toFixed(1)}%</td>
                             <td className="py-1.5 pr-2 text-right">{m.dupRate.toFixed(1)}%</td>
+                            <td className="py-1.5 pr-2 text-right">
+                              {m.id !== "—" && (
+                                <Button variant="ghost" size="sm" className="h-6 text-[10px]" onClick={() => { setTab("registros"); setPage(0); }}>
+                                  Ver
+                                </Button>
+                              )}
+                            </td>
                           </tr>
                         ))}
                       </tbody>
