@@ -41,11 +41,20 @@ export default function EventosPage() {
 
   const [searchParams, setSearchParams] = useSearchParams();
   const isMobileInit = typeof window !== "undefined" && window.innerWidth < 768;
+
+  const LS_VIEW = "eventos.view";
+  const LS_BUCKET = "eventos.bucket";
+  const LS_TIPOS = "eventos.tipos";
+  const storedView = typeof window !== "undefined" ? (localStorage.getItem(LS_VIEW) as View | null) : null;
+  const storedBucket = typeof window !== "undefined" ? (localStorage.getItem(LS_BUCKET) as Bucket | null) : null;
+  const storedTipos = typeof window !== "undefined" ? localStorage.getItem(LS_TIPOS) : null;
+
   const initialView = (searchParams.get("view") as View) ||
+    storedView ||
     (isMobileInit ? "timeline" : "calendar");
-  const initialBucket = (searchParams.get("bucket") as Bucket) || "proximos";
+  const initialBucket = (searchParams.get("bucket") as Bucket) || storedBucket || "proximos";
   const initialQ = searchParams.get("q") || "";
-  const initialTipos = searchParams.get("tipos");
+  const initialTipos = searchParams.get("tipos") ?? storedTipos;
 
   const [view, setView] = useState<View>(initialView);
   const [bucket, setBucket] = useState<Bucket>(initialBucket);
@@ -55,6 +64,13 @@ export default function EventosPage() {
       : new Set(["gratuito", "cerrado", "abierto"])
   );
   const [q, setQ] = useState(initialQ);
+
+  // Persist view/filters so returning from another device restores the same UI
+  useEffect(() => { try { localStorage.setItem(LS_VIEW, view); } catch {} }, [view]);
+  useEffect(() => { try { localStorage.setItem(LS_BUCKET, bucket); } catch {} }, [bucket]);
+  useEffect(() => {
+    try { localStorage.setItem(LS_TIPOS, Array.from(tipos).sort().join(",")); } catch {}
+  }, [tipos]);
 
   const setSelectedEvento = (ev: any) => {
     setSelectedEventoState(ev);
