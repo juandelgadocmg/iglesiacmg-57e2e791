@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useThread, useUpdateFlag, getAttachmentUrl, useReadReceipts } from "@/hooks/useMensajes";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -38,11 +38,54 @@ export default function MensajeThreadView({ threadId }: Props) {
   const [replyMode, setReplyMode] = useState<"reply" | "replyAll" | "forward">("reply");
   const [preview, setPreview] = useState<{ url: string; kind: string; name: string } | null>(null);
   const [urls, setUrls] = useState<Record<string, string>>({});
+  const scrollRef = useRef<HTMLDivElement | null>(null);
+  const restoredRef = useRef(false);
 
   useEffect(() => {
     if (threadId) updateFlag.mutate({ threadId, patch: { is_read: true } });
+    restoredRef.current = false;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [threadId]);
+
+  // Restore last scroll position for this thread once messages are rendered
+  useEffect(() => {
+    if (restoredRef.current) return;
+    if (!data?.messages || !scrollRef.current) return;
+    try {
+      const saved = sessionStorage.getItem(`doxa:msg-scroll:${threadId}`);
+      if (saved) {
+        const y = Number(saved);
+        if (Number.isFinite(y)) {
+          requestAnimationFrame(() => {
+            if (scrollRef.current) scrollRef.current.scrollTop = y;
+          });
+        }
+      }
+    } catch {}
+    restoredRef.current = true;
+  }, [data?.messages, threadId]);
+
+  // Persist scroll position (debounced via rAF)
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    let raf = 0;
+    const onScroll = () => {
+      if (raf) return;
+      raf = requestAnimationFrame(() => {
+        raf = 0;
+        try {
+          sessionStorage.setItem(`doxa:msg-scroll:${threadId}`, String(el.scrollTop));
+        } catch {}
+      });
+    };
+    el.addEventListener("scroll", onScroll, { passive: true });
+    return () => {
+      el.removeEventListener("scroll", onScroll);
+      if (raf) cancelAnimationFrame(raf);
+    };
+  }, [threadId, data?.messages]);
+
 
   // Pre-fetch signed URLs for image attachments for inline preview
   useEffect(() => {
