@@ -1,15 +1,16 @@
 import { useEffect, useMemo, useState } from "react";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import PageHeader from "@/components/shared/PageHeader";
 import ModuleHero from "@/components/shell/ModuleHero";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Download, RefreshCw, Filter } from "lucide-react";
+import { Download, RefreshCw, Filter, FileText, ShieldAlert } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import { useCan } from "@/hooks/useCan";
+import { exportToPDF } from "@/lib/exportUtils";
 
 interface AuditRow {
   id: string;
@@ -42,6 +43,7 @@ const DEFAULT_FILTERS: Filters = {
 
 const STORAGE_KEY = "cmg.seguridad.filtros";
 const PAGE_SIZE = 100;
+const MAX_EXPORT_ROWS = 100_000;
 
 function loadFilters(): Filters {
   try {
@@ -62,7 +64,10 @@ function applyFilters(
   else if (f.eventType === "db") query = query.not("table_name", "like", "storage:%");
   if (f.table !== "all") query = query.eq("table_name", f.table);
   if (f.operation !== "all") query = query.eq("operation", f.operation);
-  if (f.actor.trim()) query = query.ilike("actor_email", `%${f.actor.trim()}%`);
+  if (f.actor.trim()) {
+    const term = `%${f.actor.trim()}%`;
+    query = query.or(`actor_email.ilike.${term},actor_user_id.ilike.${term}`);
+  }
   if (f.from) query = query.gte("created_at", new Date(f.from).toISOString());
   if (f.to) query = query.lte("created_at", new Date(f.to + "T23:59:59").toISOString());
   return query;
@@ -78,9 +83,35 @@ function opBadgeVariant(op: string) {
   }
 }
 
+async function collectAllAuditRows(filters: Filters) {
+  const collected: AuditRow[] = [];
+  let page = 0;
+
+  while (true) {
+    const from = page * PAGE_SIZE;
+    const to = from + PAGE_SIZE - 1;
+    let q = supabase
+      .from("security_audit_log")
+      .select("id, created_at, table_name, operation, row_id, actor_user_id, actor_email, changed")
+      .order("created_at", { ascending: false })
+      .range(from, to);
+    q = applyFilters(q, filters);
+    const { data, error } = await q;
+    if (error) throw error;
+    const chunk = (data || []) as AuditRow[];
+    collected.push(...chunk);
+    if (chunk.length < PAGE_SIZE || collected.length >= MAX_EXPORT_ROWS) break;
+    page += 1;
+  }
+
+  return collected.slice(0, MAX_EXPORT_ROWS);
+}
+
 export default function SeguridadPage() {
   const [filters, setFilters] = useState<Filters>(() => loadFilters());
   const [exporting, setExporting] = useState(false);
+  const can = useCan();
+  const canViewAudit = can("share:view_audit");
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(filters));
@@ -96,6 +127,7 @@ export default function SeguridadPage() {
     error,
   } = useInfiniteQuery({
     queryKey: ["security_audit_log", filters],
+    enabled: canViewAudit,
     initialPageParam: 0,
     queryFn: async ({ pageParam }) => {
       const from = (pageParam as number) * PAGE_SIZE;
@@ -118,6 +150,25 @@ export default function SeguridadPage() {
     if (error) toast.error("No tienes permiso para ver la auditoría o hubo un error.");
   }, [error]);
 
+  if (!canViewAudit) {
+    return (
+      <div className="animate-fade-in min-h-[60vh] flex items-center justify-center">
+        <div className="text-center max-w-md">
+          <div className="w-16 h-16 rounded-2xl bg-destructive/10 flex items-center justify-center mx-auto mb-4">
+            <ShieldAlert className="h-8 w-8 text-destructive" />
+          </div>
+          <h2 className="text-xl font-semibold mb-2">Acceso restringido</h2>
+          <p className="text-muted-foreground text-sm mb-4">
+            No tienes permiso para ver esta auditoría. Contacta al administrador si crees que debería estar disponible.
+          </p>
+          <a href="/dashboard" className="text-primary text-sm hover:underline">
+            Volver al Dashboard
+          </a>
+        </div>
+      </div>
+    );
+  }
+
   const rows: AuditRow[] = useMemo(
     () => (data?.pages || []).flat(),
     [data],
@@ -134,26 +185,7 @@ export default function SeguridadPage() {
     setExporting(true);
     const loadingId = toast.loading("Exportando auditoría… descargando todas las páginas");
     try {
-      const collected: AuditRow[] = [];
-      const MAX_ROWS = 100_000; // límite defensivo
-      let page = 0;
-      // eslint-disable-next-line no-constant-condition
-      while (true) {
-        const from = page * PAGE_SIZE;
-        const to = from + PAGE_SIZE - 1;
-        let q = supabase
-          .from("security_audit_log")
-          .select("id, created_at, table_name, operation, row_id, actor_user_id, actor_email, changed")
-          .order("created_at", { ascending: false })
-          .range(from, to);
-        q = applyFilters(q, filters);
-        const { data, error } = await q;
-        if (error) throw error;
-        const chunk = (data || []) as AuditRow[];
-        collected.push(...chunk);
-        if (chunk.length < PAGE_SIZE || collected.length >= MAX_ROWS) break;
-        page += 1;
-      }
+      const collected = await collectAllAuditRows(filters);
 
       if (collected.length === 0) {
         toast.warning("No hay filas para exportar con los filtros actuales.", { id: loadingId });
@@ -182,6 +214,45 @@ export default function SeguridadPage() {
     } catch (err: any) {
       console.error(err);
       toast.error("Error exportando la auditoría", { id: loadingId, description: err?.message });
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  const exportPdf = async () => {
+    setExporting(true);
+    const loadingId = toast.loading("Exportando auditoría… generando PDF");
+    try {
+      const collected = await collectAllAuditRows(filters);
+      if (collected.length === 0) {
+        toast.warning("No hay filas para exportar con los filtros actuales.", { id: loadingId });
+        return;
+      }
+
+      const pdfRows = collected.map((r) => ({
+        ...r,
+        changed: r.changed ? JSON.stringify(r.changed) : "",
+      }));
+
+      exportToPDF({
+        title: "Auditoría de seguridad",
+        filename: `security-audit-${format(new Date(), "yyyyMMdd-HHmm")}`,
+        columns: [
+          { header: "Fecha", key: "created_at" },
+          { header: "Origen", key: "table_name" },
+          { header: "Operación", key: "operation" },
+          { header: "Registro / path", key: "row_id" },
+          { header: "Actor", key: "actor_email" },
+          { header: "Actor ID", key: "actor_user_id" },
+          { header: "Detalles", key: "changed" },
+        ],
+        data: pdfRows,
+      });
+
+      toast.success(`Exportados ${collected.length} filas en PDF`, { id: loadingId });
+    } catch (err: any) {
+      console.error(err);
+      toast.error("Error exportando la auditoría en PDF", { id: loadingId, description: err?.message });
     } finally {
       setExporting(false);
     }
@@ -264,6 +335,9 @@ export default function SeguridadPage() {
             <Button variant="ghost" size="sm" onClick={clearFilters}>Limpiar</Button>
             <Button variant="outline" size="sm" onClick={() => refetch()} className="gap-1.5">
               <RefreshCw className="h-4 w-4" /> Actualizar
+            </Button>
+            <Button variant="outline" size="sm" onClick={exportPdf} disabled={exporting} className="gap-1.5">
+              <FileText className="h-4 w-4" /> {exporting ? "Exportando…" : "Exportar PDF"}
             </Button>
             <Button size="sm" onClick={exportCsv} disabled={exporting} className="gap-1.5">
               <Download className="h-4 w-4" /> {exporting ? "Exportando…" : "Exportar CSV"}
