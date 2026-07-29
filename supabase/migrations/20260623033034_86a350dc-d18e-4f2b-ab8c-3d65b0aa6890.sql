@@ -18,8 +18,8 @@ GRANT ALL ON public.prog_ministerios TO service_role;
 ALTER TABLE public.prog_ministerios ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "prog_ministerios read" ON public.prog_ministerios FOR SELECT TO authenticated USING (true);
 CREATE POLICY "prog_ministerios write staff" ON public.prog_ministerios FOR ALL TO authenticated
-  USING (has_role(auth.uid(),'admin') OR has_role(auth.uid(),'super_admin') OR has_role(auth.uid(),'pastor') OR has_role(auth.uid(),'lider_red'))
-  WITH CHECK (has_role(auth.uid(),'admin') OR has_role(auth.uid(),'super_admin') OR has_role(auth.uid(),'pastor') OR has_role(auth.uid(),'lider_red'));
+  USING (has_role(auth.uid(),'admin') OR has_role(auth.uid(),'super_admin') OR has_role(auth.uid(),'pastor') OR has_role(auth.uid(),'lider') OR has_role(auth.uid(),'lider_red'))
+  WITH CHECK (has_role(auth.uid(),'admin') OR has_role(auth.uid(),'super_admin') OR has_role(auth.uid(),'pastor') OR has_role(auth.uid(),'lider') OR has_role(auth.uid(),'lider_red'));
 
 -- 2) Cargos por ministerio
 CREATE TABLE public.prog_cargos (
@@ -37,8 +37,8 @@ GRANT ALL ON public.prog_cargos TO service_role;
 ALTER TABLE public.prog_cargos ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "prog_cargos read" ON public.prog_cargos FOR SELECT TO authenticated USING (true);
 CREATE POLICY "prog_cargos write staff" ON public.prog_cargos FOR ALL TO authenticated
-  USING (has_role(auth.uid(),'admin') OR has_role(auth.uid(),'super_admin') OR has_role(auth.uid(),'pastor') OR has_role(auth.uid(),'lider_red'))
-  WITH CHECK (has_role(auth.uid(),'admin') OR has_role(auth.uid(),'super_admin') OR has_role(auth.uid(),'pastor') OR has_role(auth.uid(),'lider_red'));
+  USING (has_role(auth.uid(),'admin') OR has_role(auth.uid(),'super_admin') OR has_role(auth.uid(),'pastor') OR has_role(auth.uid(),'lider') OR has_role(auth.uid(),'lider_red'))
+  WITH CHECK (has_role(auth.uid(),'admin') OR has_role(auth.uid(),'super_admin') OR has_role(auth.uid(),'pastor') OR has_role(auth.uid(),'lider') OR has_role(auth.uid(),'lider_red'));
 
 -- 3) Servidores
 CREATE TABLE public.prog_servidores (
@@ -83,8 +83,8 @@ GRANT ALL ON public.prog_eventos TO service_role;
 ALTER TABLE public.prog_eventos ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "prog_eventos read" ON public.prog_eventos FOR SELECT TO authenticated USING (true);
 CREATE POLICY "prog_eventos write staff" ON public.prog_eventos FOR ALL TO authenticated
-  USING (has_role(auth.uid(),'admin') OR has_role(auth.uid(),'super_admin') OR has_role(auth.uid(),'pastor') OR has_role(auth.uid(),'lider_red'))
-  WITH CHECK (has_role(auth.uid(),'admin') OR has_role(auth.uid(),'super_admin') OR has_role(auth.uid(),'pastor') OR has_role(auth.uid(),'lider_red'));
+  USING (has_role(auth.uid(),'admin') OR has_role(auth.uid(),'super_admin') OR has_role(auth.uid(),'pastor') OR has_role(auth.uid(),'lider') OR has_role(auth.uid(),'lider_red'))
+  WITH CHECK (has_role(auth.uid(),'admin') OR has_role(auth.uid(),'super_admin') OR has_role(auth.uid(),'pastor') OR has_role(auth.uid(),'lider') OR has_role(auth.uid(),'lider_red'));
 
 -- 5) Asignaciones
 CREATE TABLE public.prog_asignaciones (
@@ -109,8 +109,8 @@ GRANT ALL ON public.prog_asignaciones TO service_role;
 ALTER TABLE public.prog_asignaciones ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "prog_asign read" ON public.prog_asignaciones FOR SELECT TO authenticated USING (true);
 CREATE POLICY "prog_asign write staff" ON public.prog_asignaciones FOR ALL TO authenticated
-  USING (has_role(auth.uid(),'admin') OR has_role(auth.uid(),'super_admin') OR has_role(auth.uid(),'pastor') OR has_role(auth.uid(),'lider_red'))
-  WITH CHECK (has_role(auth.uid(),'admin') OR has_role(auth.uid(),'super_admin') OR has_role(auth.uid(),'pastor') OR has_role(auth.uid(),'lider_red'));
+  USING (has_role(auth.uid(),'admin') OR has_role(auth.uid(),'super_admin') OR has_role(auth.uid(),'pastor') OR has_role(auth.uid(),'lider') OR has_role(auth.uid(),'lider_red'))
+  WITH CHECK (has_role(auth.uid(),'admin') OR has_role(auth.uid(),'super_admin') OR has_role(auth.uid(),'pastor') OR has_role(auth.uid(),'lider') OR has_role(auth.uid(),'lider_red'));
 
 -- 6) Disponibilidad / Ausencias
 CREATE TABLE public.prog_disponibilidad (

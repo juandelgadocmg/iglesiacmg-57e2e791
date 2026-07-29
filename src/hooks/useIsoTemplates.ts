@@ -11,6 +11,7 @@ export interface IsoTemplateOverride {
   fecha_vigencia: string | null;
   titulo: string | null;
   estaciones: string[] | null;
+  estaciones_texto: string[] | null;
   importante: string | null;
   responsabilidades: string | null;
   firmas: IsoMinisterioTemplate["firmas"] | null;
@@ -93,6 +94,7 @@ export function mergeIsoTemplate(
     fechaVigencia: override.fecha_vigencia ?? b.fechaVigencia,
     titulo: override.titulo ?? b.titulo,
     estaciones: override.estaciones && override.estaciones.length > 0 ? override.estaciones : b.estaciones,
+    estacionesTexto: override.estaciones_texto !== undefined ? override.estaciones_texto : b.estacionesTexto,
     importante: override.importante ?? b.importante,
     responsabilidades: override.responsabilidades ?? b.responsabilidades,
     firmas: override.firmas ?? b.firmas,

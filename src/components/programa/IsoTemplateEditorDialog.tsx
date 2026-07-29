@@ -40,13 +40,27 @@ export default function IsoTemplateEditorDialog({ open, onOpenChange, ministerio
     setForm((p) => ({ ...p, [k]: v }));
 
   const setEstacion = (i: number, v: string) => {
-    const arr = [...form.estaciones]; arr[i] = v; setF("estaciones", arr);
+    const prev = form.estaciones[i];
+    const arr = [...form.estaciones];
+    arr[i] = v;
+    setF("estaciones", arr);
+    if (form.estacionesTexto?.includes(prev)) {
+      const updated = (form.estacionesTexto || []).filter((e) => e !== prev);
+      setF("estacionesTexto", [...updated, v]);
+    }
   };
   const addEstacion = () => setF("estaciones", [...form.estaciones, "Nueva estación"]);
-  const delEstacion = (i: number) => setF("estaciones", form.estaciones.filter((_, j) => j !== i));
+  const delEstacion = (i: number) => {
+    const removed = form.estaciones[i];
+    setF("estaciones", form.estaciones.filter((_, j) => j !== i));
+    if (form.estacionesTexto?.includes(removed)) {
+      setF("estacionesTexto", (form.estacionesTexto || []).filter((e) => e !== removed));
+    }
+  };
   const moveEstacion = (i: number, dir: -1 | 1) => {
     const j = i + dir; if (j < 0 || j >= form.estaciones.length) return;
-    const arr = [...form.estaciones]; [arr[i], arr[j]] = [arr[j], arr[i]]; setF("estaciones", arr);
+    const arr = [...form.estaciones]; [arr[i], arr[j]] = [arr[j], arr[i]];
+    setF("estaciones", arr);
   };
 
   const setFirma = (k: keyof IsoMinisterioTemplate["firmas"], field: "nombre" | "cargo", v: string) =>
@@ -61,6 +75,7 @@ export default function IsoTemplateEditorDialog({ open, onOpenChange, ministerio
         fecha_vigencia: form.fechaVigencia,
         titulo: form.titulo,
         estaciones: form.estaciones,
+        estaciones_texto: form.estacionesTexto && form.estacionesTexto.length > 0 ? form.estacionesTexto : null,
         importante: form.importante ?? "",
         responsabilidades: form.responsabilidades,
         firmas: form.firmas,
@@ -202,6 +217,41 @@ export default function IsoTemplateEditorDialog({ open, onOpenChange, ministerio
                 </div>
               ))}
               {form.estaciones.length === 0 && <p className="text-xs text-muted-foreground">Sin columnas — agrega al menos una.</p>}
+            </div>
+          </section>
+
+          <section className="space-y-2">
+            <div className="flex items-center justify-between">
+              <div>
+                <h4 className="text-sm font-semibold">Estaciones de texto libre</h4>
+                <p className="text-xs text-muted-foreground">
+                  Marca las columnas que deben llenarse como texto libre en lugar de asignar una persona.
+                </p>
+              </div>
+            </div>
+            <div className="grid gap-2">
+              {form.estaciones.map((est) => {
+                const selected = (form.estacionesTexto || []).includes(est);
+                return (
+                  <button
+                    key={est}
+                    type="button"
+                    className={`w-full rounded-md border px-3 py-2 text-left text-sm transition ${selected ? "border-primary bg-primary/10" : "border-border bg-background hover:border-primary/80"}`}
+                    onClick={() => {
+                      const next = selected
+                        ? (form.estacionesTexto || []).filter((e) => e !== est)
+                        : [...(form.estacionesTexto || []), est];
+                      setF("estacionesTexto", next);
+                    }}
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <span>{est}</span>
+                      <span className="text-xs text-muted-foreground">{selected ? "Texto libre" : "Persona"}</span>
+                    </div>
+                  </button>
+                );
+              })}
+              {form.estaciones.length === 0 && <p className="text-xs text-muted-foreground italic">Agrega columnas para habilitar las opciones de texto libre.</p>}
             </div>
           </section>
 

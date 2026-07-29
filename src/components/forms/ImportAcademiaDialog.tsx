@@ -552,9 +552,9 @@ export default function ImportAcademiaDialog() {
           for (let i = 0; i < rows.length; i++) {
             const row = rows[i];
             const rowNum = i + 2;
-            const doc = String(row.documento_estudiante || "").trim();
-            const nombres = String(row.nombres_estudiante || "").trim();
-            const apellidos = String(row.apellidos_estudiante || "").trim();
+            const doc = String(row.documento_estudiante || row.documento || row.Documento || "").trim();
+            const nombres = String(row.nombres_estudiante || row.nombres || row.Nombres || "").trim();
+            const apellidos = String(row.apellidos_estudiante || row.apellidos || row.Apellidos || "").trim();
             const escuelaNombre = String(row.escuela || "").trim();
             const periodoNombre = String(row.periodo || "").trim();
             const materiaNombre = String(row.materia || "").trim();
