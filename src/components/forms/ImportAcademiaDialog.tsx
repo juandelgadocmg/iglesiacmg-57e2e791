@@ -4,7 +4,17 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Upload, FileSpreadsheet, AlertTriangle, CheckCircle2, Download, Users, BarChart3, ClipboardCheck, DatabaseBackup } from "lucide-react";
+import {
+  Upload,
+  FileSpreadsheet,
+  AlertTriangle,
+  CheckCircle2,
+  Download,
+  Users,
+  BarChart3,
+  ClipboardCheck,
+  DatabaseBackup,
+} from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -75,7 +85,8 @@ function getRankedPersonaMatches(personas: any[], fullName: string) {
       const matches = fileWords.filter((word) => dbWords.includes(word)).length;
       const fileCoverage = fileWords.length ? matches / fileWords.length : 0;
       const dbCoverage = dbWords.length ? matches / dbWords.length : 0;
-      const sameExtremes = fileWords.length >= 2 && dbWords.includes(fileWords[0]) && dbWords.includes(fileWords[fileWords.length - 1]);
+      const sameExtremes =
+        fileWords.length >= 2 && dbWords.includes(fileWords[0]) && dbWords.includes(fileWords[fileWords.length - 1]);
       const exact = directName === normalizedName || reverseName === normalizedName;
       const sameSignature = fileSignature && dbSignature === fileSignature;
       const score =
@@ -103,7 +114,7 @@ function getRankedPersonaMatches(personas: any[], fullName: string) {
         candidate.sameSignature ||
         candidate.fileCoverage >= 0.75 ||
         (candidate.matches >= 2 && candidate.dbCoverage >= 0.6) ||
-        candidate.sameExtremes
+        candidate.sameExtremes,
     )
     .sort((a, b) => b.score - a.score);
 }
@@ -125,10 +136,13 @@ function parseMigracionFile(wb: XLSX.WorkBook): MigracionData | null {
       materia = firstCell.replace(/^materia:\s*/i, "").trim();
     }
 
-    if (!sede && row.some((cell) => {
-      const normalizedCell = normalizeText(cell);
-      return normalizedCell.includes("principal") || normalizedCell.startsWith("sede");
-    })) {
+    if (
+      !sede &&
+      row.some((cell) => {
+        const normalizedCell = normalizeText(cell);
+        return normalizedCell.includes("principal") || normalizedCell.startsWith("sede");
+      })
+    ) {
       sede = row.filter(Boolean).join(" ").replace(/\s+/g, " ").trim();
     }
 
@@ -162,16 +176,16 @@ function parseMigracionFile(wb: XLSX.WorkBook): MigracionData | null {
 
     const asistencia = parseNullableNumber(asistenciaCol >= 0 ? r[asistenciaCol] : null) ?? 0;
     const nota = parseNullableNumber(notaCol >= 0 ? r[notaCol] : null);
-    const aprobadoAsistencia = aprobadoAsistenciaCol >= 0
-      ? parseAffirmative(r[aprobadoAsistenciaCol])
-      : asistencia > 0;
-    const aprobadaMateria = aprobadaMateriaCol >= 0
-      ? parseAffirmative(r[aprobadaMateriaCol])
-      : (nota ?? 0) >= 3;
+    const aprobadoAsistencia = aprobadoAsistenciaCol >= 0 ? parseAffirmative(r[aprobadoAsistenciaCol]) : asistencia > 0;
+    const aprobadaMateria = aprobadaMateriaCol >= 0 ? parseAffirmative(r[aprobadaMateriaCol]) : (nota ?? 0) >= 3;
     const aula = aulaCol >= 0 ? String(r[aulaCol] || "").trim() : "";
-    const maestros = maestrosCol >= 0
-      ? String(r[maestrosCol] || "").replace(/\n/g, " ").replace(/\/\s*$/, "").trim()
-      : "";
+    const maestros =
+      maestrosCol >= 0
+        ? String(r[maestrosCol] || "")
+            .replace(/\n/g, " ")
+            .replace(/\/\s*$/, "")
+            .trim()
+        : "";
 
     rows.push({ estudiante: name, asistencia, nota, aprobadoAsistencia, aprobadaMateria, aula, maestros });
   }
@@ -208,13 +222,22 @@ export default function ImportAcademiaDialog() {
 
   useEffect(() => {
     if (open) {
-      supabase.from("cursos").select("id, nombre").order("nombre").then(({ data }) => setEscuelas(data || []));
+      supabase
+        .from("cursos")
+        .select("id, nombre")
+        .order("nombre")
+        .then(({ data }) => setEscuelas(data || []));
     }
   }, [open]);
 
   useEffect(() => {
     if (selectedEscuelaId) {
-      supabase.from("periodos_academicos").select("id, nombre").eq("escuela_id", selectedEscuelaId).order("nombre").then(({ data }) => setPeriodos(data || []));
+      supabase
+        .from("periodos_academicos")
+        .select("id, nombre")
+        .eq("escuela_id", selectedEscuelaId)
+        .order("nombre")
+        .then(({ data }) => setPeriodos(data || []));
     } else {
       setPeriodos([]);
     }
@@ -242,12 +265,14 @@ export default function ImportAcademiaDialog() {
         const data = parseMigracionFile(wb);
         setMigracionData(data);
         if (data) {
-          setPreview(data.rows.slice(0, 5).map((r) => ({
-            Estudiante: r.estudiante,
-            Asistencia: r.asistencia,
-            Nota: r.nota ?? "",
-            "Aprobó": r.aprobadaMateria ? "Sí" : "No",
-          })));
+          setPreview(
+            data.rows.slice(0, 5).map((r) => ({
+              Estudiante: r.estudiante,
+              Asistencia: r.asistencia,
+              Nota: r.nota ?? "",
+              Aprobó: r.aprobadaMateria ? "Sí" : "No",
+            })),
+          );
         }
       } else {
         const sheet = wb.Sheets[wb.SheetNames[0]];
@@ -286,12 +311,19 @@ export default function ImportAcademiaDialog() {
   const findPersona = (personas: any[], doc: string, nombres: string, apellidos: string): string | undefined => {
     if (doc) {
       const normalizedDoc = doc.replace(/\s+/g, "").toLowerCase();
-      const found = personas.find((p) => String(p.documento || "").replace(/\s+/g, "").toLowerCase() === normalizedDoc);
+      const found = personas.find(
+        (p) =>
+          String(p.documento || "")
+            .replace(/\s+/g, "")
+            .toLowerCase() === normalizedDoc,
+      );
       if (found) return found.id;
     }
     if (nombres && apellidos) {
-      return findPersonaByFullName(personas, `${nombres} ${apellidos}`)
-        || findPersonaByFullName(personas, `${apellidos} ${nombres}`);
+      return (
+        findPersonaByFullName(personas, `${nombres} ${apellidos}`) ||
+        findPersonaByFullName(personas, `${apellidos} ${nombres}`)
+      );
     }
     return undefined;
   };
@@ -361,7 +393,7 @@ export default function ImportAcademiaDialog() {
 
       // Find or identify materia — uses normalized comparison to tolerate accent/space differences
       const materia = (materias || []).find(
-        (m) => normalizeText(m.nombre) === normalizeText(migracionData.materia) && m.periodo_id === selectedPeriodoId
+        (m) => normalizeText(m.nombre) === normalizeText(migracionData.materia) && m.periodo_id === selectedPeriodoId,
       );
 
       if (!materia) {
@@ -371,7 +403,9 @@ export default function ImportAcademiaDialog() {
           .join(", ");
         errors.push(
           `Materia "${migracionData.materia}" no encontrada en el período seleccionado.` +
-          (available ? ` Materias disponibles en este período: ${available}` : " No hay materias creadas en este período.")
+            (available
+              ? ` Materias disponibles en este período: ${available}`
+              : " No hay materias creadas en este período."),
         );
         setResult({ ok, updated, errors });
         setImporting(false);
@@ -405,7 +439,11 @@ export default function ImportAcademiaDialog() {
 
         // Check duplicate
         const exists = (existingMatriculas || []).find(
-          (m) => m.persona_id === personaId && m.curso_id === selectedEscuelaId && m.periodo_id === selectedPeriodoId && m.materia_id === materia.id
+          (m) =>
+            m.persona_id === personaId &&
+            m.curso_id === selectedEscuelaId &&
+            m.periodo_id === selectedPeriodoId &&
+            m.materia_id === materia.id,
         );
         const estado = row.aprobadaMateria ? "Completado" : row.aprobadoAsistencia ? "Activo" : "Retirado";
 
@@ -432,15 +470,19 @@ export default function ImportAcademiaDialog() {
 
       const totalOperations = inserts.length + updates.length;
       let processed = 0;
-      const syncProgress = () => setProgress(totalOperations > 0 ? Math.round((processed / totalOperations) * 100) : 100);
+      const syncProgress = () =>
+        setProgress(totalOperations > 0 ? Math.round((processed / totalOperations) * 100) : 100);
 
       const CHUNK = 50;
       for (let i = 0; i < inserts.length; i += CHUNK) {
         const chunk = inserts.slice(i, i + CHUNK);
         const results = await Promise.all(
           chunk.map(({ estudiante, ...record }) =>
-            supabase.from("matriculas").insert(record).then((response) => ({ ...response, estudiante }))
-          )
+            supabase
+              .from("matriculas")
+              .insert(record)
+              .then((response) => ({ ...response, estudiante })),
+          ),
         );
 
         for (const result of results) {
@@ -459,8 +501,8 @@ export default function ImportAcademiaDialog() {
               .from("matriculas")
               .update({ estado, nota_final })
               .eq("id", id)
-              .then((response) => ({ ...response, estudiante }))
-          )
+              .then((response) => ({ ...response, estudiante })),
+          ),
         );
 
         for (const result of results) {
@@ -476,7 +518,7 @@ export default function ImportAcademiaDialog() {
         qc.invalidateQueries({ queryKey: ["matriculas"] });
         qc.invalidateQueries({ queryKey: ["matriculas-all"] });
         toast.success(
-          `${ok} matrículas importadas${updated > 0 ? ` y ${updated} actualizadas` : ""} desde el sistema anterior`
+          `${ok} matrículas importadas${updated > 0 ? ` y ${updated} actualizadas` : ""} desde el sistema anterior`,
         );
       }
     } catch (err: any) {
@@ -519,7 +561,10 @@ export default function ImportAcademiaDialog() {
           let from = 0;
           const PAGE = 1000;
           while (true) {
-            const { data } = await supabase.from("personas").select("id, nombres, apellidos, documento").range(from, from + PAGE - 1);
+            const { data } = await supabase
+              .from("personas")
+              .select("id, nombres, apellidos, documento")
+              .range(from, from + PAGE - 1);
             if (!data || data.length === 0) break;
             all.push(...data);
             if (data.length < PAGE) break;
@@ -528,7 +573,14 @@ export default function ImportAcademiaDialog() {
           return all;
         };
 
-        const [personas, { data: cursos }, { data: periodos }, { data: materias }, { data: matriculas }, { data: items }] = await Promise.all([
+        const [
+          personas,
+          { data: cursos },
+          { data: periodos },
+          { data: materias },
+          { data: matriculas },
+          { data: items },
+        ] = await Promise.all([
           loadAllPersonas(),
           supabase.from("cursos").select("id, nombre"),
           supabase.from("periodos_academicos").select("id, nombre, escuela_id"),
@@ -546,7 +598,12 @@ export default function ImportAcademiaDialog() {
           };
           // Normalize for fuzzy matching
           const norm = (s: string) =>
-            s.toLowerCase().trim().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, " ");
+            s
+              .toLowerCase()
+              .trim()
+              .normalize("NFD")
+              .replace(/[\u0300-\u036f]/g, "")
+              .replace(/\s+/g, " ");
 
           const records: any[] = [];
           for (let i = 0; i < rows.length; i++) {
@@ -555,6 +612,16 @@ export default function ImportAcademiaDialog() {
             const doc = String(row.documento_estudiante || row.documento || row.Documento || "").trim();
             const nombres = String(row.nombres_estudiante || row.nombres || row.Nombres || "").trim();
             const apellidos = String(row.apellidos_estudiante || row.apellidos || row.Apellidos || "").trim();
+            // Fallback: archivos que traen el nombre completo en una sola columna
+            // (ej. "Estudiante") en lugar de nombres/apellidos separados.
+            const nombreCompleto = String(
+              row.estudiante ||
+                row.Estudiante ||
+                row.nombre_completo ||
+                row["Nombre completo"] ||
+                row["Nombre Completo"] ||
+                "",
+            ).trim();
             const escuelaNombre = String(row.escuela || "").trim();
             const periodoNombre = String(row.periodo || "").trim();
             const materiaNombre = String(row.materia || "").trim();
@@ -569,26 +636,53 @@ export default function ImportAcademiaDialog() {
             if (!personaId && (nombres || apellidos)) {
               personaId = findPersonaByFullName(personas || [], `${apellidos} ${nombres}`);
             }
-            if (!personaId) { errors.push(`Fila ${rowNum}: Persona no encontrada "${nombres} ${apellidos}"`); continue; }
+            // Fallback: columna única de nombre completo (ej. "Estudiante")
+            if (!personaId && nombreCompleto) {
+              personaId = findPersonaByFullName(personas || [], nombreCompleto);
+            }
+            if (!personaId) {
+              const nombreMostrado = nombreCompleto || `${nombres} ${apellidos}`.trim();
+              errors.push(`Fila ${rowNum}: Persona no encontrada "${nombreMostrado}"`);
+              continue;
+            }
 
             const escuela = (cursos || []).find((c) => norm(c.nombre) === norm(escuelaNombre));
-            if (!escuela) { errors.push(`Fila ${rowNum}: Escuela no encontrada "${row.escuela}"`); continue; }
+            if (!escuela) {
+              errors.push(`Fila ${rowNum}: Escuela no encontrada "${row.escuela}"`);
+              continue;
+            }
 
-            const periodo = (periodos || []).find((p) => norm(p.nombre) === norm(periodoNombre) && p.escuela_id === escuela.id);
-            if (!periodo) { errors.push(`Fila ${rowNum}: Período no encontrado "${row.periodo}"`); continue; }
+            const periodo = (periodos || []).find(
+              (p) => norm(p.nombre) === norm(periodoNombre) && p.escuela_id === escuela.id,
+            );
+            if (!periodo) {
+              errors.push(`Fila ${rowNum}: Período no encontrado "${row.periodo}"`);
+              continue;
+            }
 
             let materiaId: string | null = null;
             if (materiaNombre) {
-              const mat = (materias || []).find((m) => norm(m.nombre) === norm(materiaNombre) && m.periodo_id === periodo.id);
-              if (!mat) { errors.push(`Fila ${rowNum}: Materia no encontrada "${row.materia}"`); continue; }
+              const mat = (materias || []).find(
+                (m) => norm(m.nombre) === norm(materiaNombre) && m.periodo_id === periodo.id,
+              );
+              if (!mat) {
+                errors.push(`Fila ${rowNum}: Materia no encontrada "${row.materia}"`);
+                continue;
+              }
               materiaId = mat.id;
             }
 
-            const exists = (matriculas || []).find((m) =>
-              m.persona_id === personaId && m.curso_id === escuela.id && m.periodo_id === periodo.id &&
-              (materiaId ? m.materia_id === materiaId : true)
+            const exists = (matriculas || []).find(
+              (m) =>
+                m.persona_id === personaId &&
+                m.curso_id === escuela.id &&
+                m.periodo_id === periodo.id &&
+                (materiaId ? m.materia_id === materiaId : true),
             );
-            if (exists) { errors.push(`Fila ${rowNum}: Matrícula duplicada para "${nombres} ${apellidos}"`); continue; }
+            if (exists) {
+              errors.push(`Fila ${rowNum}: Matrícula duplicada para "${nombres} ${apellidos}"`);
+              continue;
+            }
 
             records.push({
               persona_id: personaId,
@@ -620,24 +714,44 @@ export default function ImportAcademiaDialog() {
             const doc = String(row.documento_estudiante || row.documento || row.Documento || "").trim();
             const nombres = String(row.nombres_estudiante || row.nombres || row.Nombres || "").trim();
             const apellidos = String(row.apellidos_estudiante || row.apellidos || row.Apellidos || "").trim();
-            const materiaNombre = String(row.materia || row.Materia || "").trim().toLowerCase();
-            const itemNombre = String(row.item_calificable || row.Item_Calificable || row["Item Calificable"] || "").trim().toLowerCase();
+            const materiaNombre = String(row.materia || row.Materia || "")
+              .trim()
+              .toLowerCase();
+            const itemNombre = String(row.item_calificable || row.Item_Calificable || row["Item Calificable"] || "")
+              .trim()
+              .toLowerCase();
             const nota = row.nota !== "" && row.nota != null ? Number(row.nota) : null;
             const observacion = String(row.observacion || row.Observacion || "").trim() || null;
 
             let personaId = findPersona(personas || [], doc, nombres, apellidos);
-            if (!personaId && (nombres || apellidos)) personaId = findPersonaByFullName(personas || [], `${nombres} ${apellidos}`);
-            if (!personaId && (nombres || apellidos)) personaId = findPersonaByFullName(personas || [], `${apellidos} ${nombres}`);
-            if (!personaId) { errors.push(`Fila ${rowNum}: Persona no encontrada "${nombres} ${apellidos}"`); continue; }
+            if (!personaId && (nombres || apellidos))
+              personaId = findPersonaByFullName(personas || [], `${nombres} ${apellidos}`);
+            if (!personaId && (nombres || apellidos))
+              personaId = findPersonaByFullName(personas || [], `${apellidos} ${nombres}`);
+            if (!personaId) {
+              errors.push(`Fila ${rowNum}: Persona no encontrada "${nombres} ${apellidos}"`);
+              continue;
+            }
 
             const materia = (materias || []).find((m) => m.nombre.toLowerCase() === materiaNombre);
-            if (!materia) { errors.push(`Fila ${rowNum}: Materia no encontrada "${row.materia}"`); continue; }
+            if (!materia) {
+              errors.push(`Fila ${rowNum}: Materia no encontrada "${row.materia}"`);
+              continue;
+            }
 
-            const item = (items || []).find((it) => it.nombre.toLowerCase() === itemNombre && it.materia_id === materia.id);
-            if (!item) { errors.push(`Fila ${rowNum}: Ítem calificable no encontrado "${row.item_calificable}"`); continue; }
+            const item = (items || []).find(
+              (it) => it.nombre.toLowerCase() === itemNombre && it.materia_id === materia.id,
+            );
+            if (!item) {
+              errors.push(`Fila ${rowNum}: Ítem calificable no encontrado "${row.item_calificable}"`);
+              continue;
+            }
 
             const matricula = (allMats || []).find((m) => m.persona_id === personaId && m.materia_id === materia.id);
-            if (!matricula) { errors.push(`Fila ${rowNum}: Matrícula no encontrada para "${nombres} ${apellidos}" en "${row.materia}"`); continue; }
+            if (!matricula) {
+              errors.push(`Fila ${rowNum}: Matrícula no encontrada para "${nombres} ${apellidos}" en "${row.materia}"`);
+              continue;
+            }
 
             records.push({ item_id: item.id, matricula_id: matricula.id, nota, observacion });
           }
@@ -662,21 +776,36 @@ export default function ImportAcademiaDialog() {
             const doc = String(row.documento_estudiante || row.documento || row.Documento || "").trim();
             const nombres = String(row.nombres_estudiante || row.nombres || row.Nombres || "").trim();
             const apellidos = String(row.apellidos_estudiante || row.apellidos || row.Apellidos || "").trim();
-            const materiaNombre = String(row.materia || row.Materia || "").trim().toLowerCase();
+            const materiaNombre = String(row.materia || row.Materia || "")
+              .trim()
+              .toLowerCase();
             const fecha = String(row.fecha || row.Fecha || "").trim();
-            const presenteRaw = String(row.presente || row.Presente || "").trim().toLowerCase();
+            const presenteRaw = String(row.presente || row.Presente || "")
+              .trim()
+              .toLowerCase();
             const presente = ["sí", "si", "yes", "1", "true", "x"].includes(presenteRaw);
 
             let personaId = findPersona(personas || [], doc, nombres, apellidos);
-            if (!personaId && (nombres || apellidos)) personaId = findPersonaByFullName(personas || [], `${nombres} ${apellidos}`);
-            if (!personaId && (nombres || apellidos)) personaId = findPersonaByFullName(personas || [], `${apellidos} ${nombres}`);
-            if (!personaId) { errors.push(`Fila ${rowNum}: Persona no encontrada "${nombres} ${apellidos}"`); continue; }
+            if (!personaId && (nombres || apellidos))
+              personaId = findPersonaByFullName(personas || [], `${nombres} ${apellidos}`);
+            if (!personaId && (nombres || apellidos))
+              personaId = findPersonaByFullName(personas || [], `${apellidos} ${nombres}`);
+            if (!personaId) {
+              errors.push(`Fila ${rowNum}: Persona no encontrada "${nombres} ${apellidos}"`);
+              continue;
+            }
 
             const materia = (materias || []).find((m) => m.nombre.toLowerCase() === materiaNombre);
-            if (!materia) { errors.push(`Fila ${rowNum}: Materia no encontrada "${row.materia}"`); continue; }
+            if (!materia) {
+              errors.push(`Fila ${rowNum}: Materia no encontrada "${row.materia}"`);
+              continue;
+            }
 
             const matricula = (allMats || []).find((m) => m.persona_id === personaId && m.materia_id === materia.id);
-            if (!matricula) { errors.push(`Fila ${rowNum}: Matrícula no encontrada para "${nombres} ${apellidos}" en "${row.materia}"`); continue; }
+            if (!matricula) {
+              errors.push(`Fila ${rowNum}: Matrícula no encontrada para "${nombres} ${apellidos}" en "${row.materia}"`);
+              continue;
+            }
 
             if (!fecha || !/^\d{4}-\d{2}-\d{2}$/.test(fecha)) {
               errors.push(`Fila ${rowNum}: Fecha inválida "${row.fecha}" (usar YYYY-MM-DD)`);
@@ -721,12 +850,19 @@ export default function ImportAcademiaDialog() {
     asistencia: { label: "Asistencia", icon: ClipboardCheck },
   };
 
-  const canImport = tab === "migracion"
-    ? !!file && !!migracionData && !!selectedEscuelaId && !!selectedPeriodoId && !importing
-    : !!file && !importing;
+  const canImport =
+    tab === "migracion"
+      ? !!file && !!migracionData && !!selectedEscuelaId && !!selectedPeriodoId && !importing
+      : !!file && !importing;
 
   return (
-    <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) reset(); }}>
+    <Dialog
+      open={open}
+      onOpenChange={(v) => {
+        setOpen(v);
+        if (!v) reset();
+      }}
+    >
       <DialogTrigger asChild>
         <Button variant="outline" size="sm" className="gap-1.5 text-xs">
           <Upload className="h-3.5 w-3.5" /> Importar Excel
@@ -740,7 +876,13 @@ export default function ImportAcademiaDialog() {
           </DialogTitle>
         </DialogHeader>
 
-        <Tabs value={tab} onValueChange={(v) => { setTab(v as ImportType); reset(); }}>
+        <Tabs
+          value={tab}
+          onValueChange={(v) => {
+            setTab(v as ImportType);
+            reset();
+          }}
+        >
           <TabsList className="grid grid-cols-4 w-full">
             {(Object.keys(tabLabels) as ImportType[]).map((key) => {
               const { label, icon: Icon } = tabLabels[key];
@@ -757,7 +899,8 @@ export default function ImportAcademiaDialog() {
           {tab === "migracion" ? (
             <div className="space-y-3">
               <p className="text-xs text-muted-foreground">
-                Sube el archivo Excel exportado del sistema anterior. Se detectará automáticamente la materia, los estudiantes, las notas y el estado de aprobación.
+                Sube el archivo Excel exportado del sistema anterior. Se detectará automáticamente la materia, los
+                estudiantes, las notas y el estado de aprobación.
               </p>
               <div className="grid grid-cols-2 gap-3">
                 <div>
@@ -768,7 +911,9 @@ export default function ImportAcademiaDialog() {
                     </SelectTrigger>
                     <SelectContent>
                       {escuelas.map((e) => (
-                        <SelectItem key={e.id} value={e.id} className="text-xs">{e.nombre}</SelectItem>
+                        <SelectItem key={e.id} value={e.id} className="text-xs">
+                          {e.nombre}
+                        </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -781,7 +926,9 @@ export default function ImportAcademiaDialog() {
                     </SelectTrigger>
                     <SelectContent>
                       {periodos.map((p) => (
-                        <SelectItem key={p.id} value={p.id} className="text-xs">{p.nombre}</SelectItem>
+                        <SelectItem key={p.id} value={p.id} className="text-xs">
+                          {p.nombre}
+                        </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -789,12 +936,24 @@ export default function ImportAcademiaDialog() {
               </div>
               {migracionData && (
                 <div className="bg-muted/50 rounded-md p-3 text-xs space-y-1">
-                  <p><strong>Materia detectada:</strong> {migracionData.materia || <span className="text-destructive">No detectada — verifica que el archivo tenga la línea "Materia: ..."</span>}</p>
-                  <p><strong>Sede:</strong> {migracionData.sede || "No detectada"}</p>
-                  <p><strong>Estudiantes encontrados:</strong> {migracionData.rows.length}</p>
+                  <p>
+                    <strong>Materia detectada:</strong>{" "}
+                    {migracionData.materia || (
+                      <span className="text-destructive">
+                        No detectada — verifica que el archivo tenga la línea "Materia: ..."
+                      </span>
+                    )}
+                  </p>
+                  <p>
+                    <strong>Sede:</strong> {migracionData.sede || "No detectada"}
+                  </p>
+                  <p>
+                    <strong>Estudiantes encontrados:</strong> {migracionData.rows.length}
+                  </p>
                   {migracionData.materia && (
                     <p className="rounded border border-border bg-accent/40 px-2 py-1 mt-1 text-accent-foreground">
-                      ⚠️ Asegúrate de que exista una materia con este nombre exacto en el período seleccionado (se ignoran acentos y mayúsculas).
+                      ⚠️ Asegúrate de que exista una materia con este nombre exacto en el período seleccionado (se
+                      ignoran acentos y mayúsculas).
                     </p>
                   )}
                 </div>
@@ -806,9 +965,12 @@ export default function ImportAcademiaDialog() {
                 <Download className="h-3.5 w-3.5" /> Descargar plantilla
               </Button>
               <p className="text-xs text-muted-foreground">
-                {tab === "matriculas" && "Columnas: documento, nombres, apellidos, escuela, periodo, materia, estado, nota_final"}
-                {tab === "calificaciones" && "Columnas: documento, nombres, apellidos, materia, item_calificable, nota, observación"}
-                {tab === "asistencia" && "Columnas: documento, nombres, apellidos, materia, fecha (YYYY-MM-DD), presente (Sí/No)"}
+                {tab === "matriculas" &&
+                  'Columnas: documento, nombres, apellidos, escuela, periodo, materia, estado, nota_final (también se acepta una sola columna "estudiante" con el nombre completo)'}
+                {tab === "calificaciones" &&
+                  "Columnas: documento, nombres, apellidos, materia, item_calificable, nota, observación"}
+                {tab === "asistencia" &&
+                  "Columnas: documento, nombres, apellidos, materia, fecha (YYYY-MM-DD), presente (Sí/No)"}
               </p>
             </div>
           )}
@@ -832,7 +994,9 @@ export default function ImportAcademiaDialog() {
                   <thead>
                     <tr className="bg-muted/50">
                       {Object.keys(preview[0]).map((k) => (
-                        <th key={k} className="px-2 py-1 text-left whitespace-nowrap">{k}</th>
+                        <th key={k} className="px-2 py-1 text-left whitespace-nowrap">
+                          {k}
+                        </th>
                       ))}
                     </tr>
                   </thead>
@@ -840,7 +1004,9 @@ export default function ImportAcademiaDialog() {
                     {preview.map((row, i) => (
                       <tr key={i} className="border-t">
                         {Object.values(row).map((v, j) => (
-                          <td key={j} className="px-2 py-1 whitespace-nowrap">{String(v)}</td>
+                          <td key={j} className="px-2 py-1 whitespace-nowrap">
+                            {String(v)}
+                          </td>
                         ))}
                       </tr>
                     ))}
@@ -876,7 +1042,9 @@ export default function ImportAcademiaDialog() {
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={() => setOpen(false)}>Cerrar</Button>
+          <Button variant="outline" onClick={() => setOpen(false)}>
+            Cerrar
+          </Button>
           <Button onClick={doImport} disabled={!canImport}>
             {importing ? "Importando..." : "Importar"}
           </Button>
