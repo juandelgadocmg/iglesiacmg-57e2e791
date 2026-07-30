@@ -5748,6 +5748,7 @@ export type Database = {
         }
         Returns: string
       }
+      prog_can_manage: { Args: { _uid: string }; Returns: boolean }
       prog_evento_ts: {
         Args: { _fecha: string; _hora: string }
         Returns: string
