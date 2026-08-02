@@ -1,6 +1,5 @@
 import { useEffect, useState, FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import doxaIcon from "@/assets/doxa-icon.png";
 import {
   Users,
   UsersRound,
@@ -13,17 +12,127 @@ import {
 } from "lucide-react";
 
 /**
- * Página pública de aterrizaje de DOXA.
- * Se renderiza en la ruta "/" (ver App.tsx) y es lo primero que ve
- * cualquier visitante antes de iniciar sesión.
- *
- * Paleta, tipografía (Geist / Inter) e isotipo tomados del Brand Book 1.0 de DOXA.
- * Estilos encapsulados bajo .doxa-landing para no interferir con el resto de la app.
+ * Componente oficial de isotipo (anillo de 6 pétalos) DOXA
  */
-
-const DoxaMark = ({ size = 28 }: { size?: number }) => (
-  <img src={doxaIcon} alt="" width={size} height={size} style={{ objectFit: "contain" }} aria-hidden="true" />
+export const DoxaMark = ({ size = 32 }: { size?: number }) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 80 80"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+    style={{ display: "inline-block", verticalAlign: "middle" }}
+    aria-hidden="true"
+  >
+    <defs>
+      <linearGradient id="dxP0" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0%" stopColor="#00D2FF" />
+        <stop offset="100%" stopColor="#1E50FF" />
+      </linearGradient>
+      <linearGradient id="dxP1" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0%" stopColor="#1E50FF" />
+        <stop offset="100%" stopColor="#2563EB" />
+      </linearGradient>
+      <linearGradient id="dxP2" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0%" stopColor="#3B82F6" />
+        <stop offset="100%" stopColor="#6366F1" />
+      </linearGradient>
+      <linearGradient id="dxP3" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0%" stopColor="#6366F1" />
+        <stop offset="100%" stopColor="#7C3AED" />
+      </linearGradient>
+      <linearGradient id="dxP4" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0%" stopColor="#8B5CF6" />
+        <stop offset="100%" stopColor="#A855F7" />
+      </linearGradient>
+      <linearGradient id="dxP5" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0%" stopColor="#38BDF8" />
+        <stop offset="100%" stopColor="#00D2FF" />
+      </linearGradient>
+    </defs>
+    <g transform="translate(0, 0)">
+      <rect x="31" y="6" width="18" height="22" rx="9" fill="url(#dxP0)" transform="rotate(30 40 40)" />
+      <rect x="31" y="6" width="18" height="22" rx="9" fill="url(#dxP1)" transform="rotate(90 40 40)" />
+      <rect x="31" y="6" width="18" height="22" rx="9" fill="url(#dxP2)" transform="rotate(150 40 40)" />
+      <rect x="31" y="6" width="18" height="22" rx="9" fill="url(#dxP3)" transform="rotate(210 40 40)" />
+      <rect x="31" y="6" width="18" height="22" rx="9" fill="url(#dxP4)" transform="rotate(270 40 40)" />
+      <rect x="31" y="6" width="18" height="22" rx="9" fill="url(#dxP5)" transform="rotate(330 40 40)" />
+    </g>
+  </svg>
 );
+
+/**
+ * Componente oficial de logotipo completo (anillo + tipografía DOXA)
+ */
+export const DoxaFullLogo = ({
+  height = 36,
+  color = "#0A1633",
+}: {
+  height?: number;
+  color?: string;
+}) => {
+  const width = height * 3.6;
+  return (
+    <svg
+      height={height}
+      width={width}
+      viewBox="0 0 220 50"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      style={{ display: "inline-block", verticalAlign: "middle" }}
+      aria-label="DOXA"
+    >
+      <defs>
+        <linearGradient id="dxL0" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stopColor="#00D2FF" />
+          <stop offset="100%" stopColor="#1E50FF" />
+        </linearGradient>
+        <linearGradient id="dxL1" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stopColor="#1E50FF" />
+          <stop offset="100%" stopColor="#2563EB" />
+        </linearGradient>
+        <linearGradient id="dxL2" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stopColor="#3B82F6" />
+          <stop offset="100%" stopColor="#6366F1" />
+        </linearGradient>
+        <linearGradient id="dxL3" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stopColor="#6366F1" />
+          <stop offset="100%" stopColor="#7C3AED" />
+        </linearGradient>
+        <linearGradient id="dxL4" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stopColor="#8B5CF6" />
+          <stop offset="100%" stopColor="#A855F7" />
+        </linearGradient>
+        <linearGradient id="dxL5" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stopColor="#38BDF8" />
+          <stop offset="100%" stopColor="#00D2FF" />
+        </linearGradient>
+      </defs>
+
+      {/* Ring Icon */}
+      <g transform="translate(-15, -15)">
+        <rect x="31" y="6" width="18" height="22" rx="9" fill="url(#dxL0)" transform="rotate(30 40 40)" />
+        <rect x="31" y="6" width="18" height="22" rx="9" fill="url(#dxL1)" transform="rotate(90 40 40)" />
+        <rect x="31" y="6" width="18" height="22" rx="9" fill="url(#dxL2)" transform="rotate(150 40 40)" />
+        <rect x="31" y="6" width="18" height="22" rx="9" fill="url(#dxL3)" transform="rotate(210 40 40)" />
+        <rect x="31" y="6" width="18" height="22" rx="9" fill="url(#dxL4)" transform="rotate(270 40 40)" />
+        <rect x="31" y="6" width="18" height="22" rx="9" fill="url(#dxL5)" transform="rotate(330 40 40)" />
+      </g>
+
+      {/* DOXA Typography */}
+      <g fill={color} transform="translate(68, 8)">
+        {/* D */}
+        <path d="M 0 0 H 18 C 26 0 31 5 31 17.5 V 17.5 C 31 30 26 35 18 35 H 0 V 0 Z M 7.5 7.5 V 27.5 H 17 C 21 27.5 23.5 24 23.5 17.5 V 17.5 C 23.5 11 21 7.5 17 7.5 H 7.5 Z" />
+        {/* O */}
+        <path d="M 44 0 H 58 C 66 0 71 5 71 17.5 V 17.5 C 71 30 66 35 58 35 H 44 C 36 35 31 30 31 17.5 V 17.5 C 31 5 36 0 44 0 Z M 45 7.5 C 40 7.5 38.5 11 38.5 17.5 V 17.5 C 38.5 24 40 27.5 45 27.5 H 57 C 62 27.5 63.5 24 63.5 17.5 V 17.5 C 63.5 11 62 7.5 57 7.5 H 45 Z" />
+        {/* X */}
+        <path d="M 78 0 L 90 17.5 L 78 35 H 86.5 L 94 23.5 L 101.5 35 H 110 L 98 17.5 L 110 0 H 101.5 L 94 11.5 L 86.5 0 H 78 Z" />
+        {/* A */}
+        <path d="M 115 35 L 128 0 H 137 L 150 35 H 142 L 132.5 8.5 L 123 35 H 115 Z" />
+      </g>
+    </svg>
+  );
+};
 
 export default function LandingPage() {
   const navigate = useNavigate();
@@ -75,8 +184,7 @@ export default function LandingPage() {
         <div className="wrap">
           <nav>
             <a href="#top" className="logo">
-              <DoxaMark size={30} />
-              DOXA
+              <DoxaFullLogo height={38} color="#0A1633" />
             </a>
             <div className="navlinks">
               <a href="#modulos">Módulos</a>
@@ -131,8 +239,7 @@ export default function LandingPage() {
               <div className="hero-shot-inner">
                 <div className="hs-side">
                   <div className="hs-brand">
-                    <DoxaMark size={18} />
-                    <span>DOXA</span>
+                    <DoxaFullLogo height={24} color="#FFFFFF" />
                   </div>
                   <div className="it on">Dashboard</div>
                   <div className="it">Personas</div>
@@ -483,8 +590,7 @@ export default function LandingPage() {
           <div className="foot-grid">
             <div>
               <a href="#top" className="logo">
-                <DoxaMark size={26} />
-                DOXA
+                <DoxaFullLogo height={34} color="#FFFFFF" />
               </a>
               <p className="tag">Plataforma todo en uno para iglesias que avanzan.</p>
             </div>
@@ -536,7 +642,7 @@ export default function LandingPage() {
 
         .doxa-landing header{ position:sticky; top:0; z-index:60; background:rgba(255,255,255,0.9); backdrop-filter:blur(10px); border-bottom:1px solid var(--line); }
         .doxa-landing nav{ display:flex; align-items:center; justify-content:space-between; padding:16px 0; gap:24px; }
-        .doxa-landing .logo{ display:flex; align-items:center; gap:9px; font-family:'Geist'; font-weight:700; font-size:20px; letter-spacing:0.02em; }
+        .doxa-landing .logo{ display:flex; align-items:center; gap:9px; }
         .doxa-landing .navlinks{ display:flex; gap:28px; font-size:14.5px; font-weight:600; font-family:'Geist'; color:var(--navy); }
         .doxa-landing .navlinks a{ color:var(--slate); }
         .doxa-landing .navlinks a:hover{ color:var(--blue); }
@@ -556,7 +662,7 @@ export default function LandingPage() {
         .doxa-landing .hero-shot{ max-width:1040px; margin:52px auto 0; border-radius:var(--r-lg); background:linear-gradient(160deg,var(--navy) 0%,var(--navy-deep) 100%); padding:3px; box-shadow:0 40px 90px -40px rgba(10,22,51,0.5); }
         .doxa-landing .hero-shot-inner{ border-radius:calc(var(--r-lg) - 3px); background:var(--navy-deep); display:grid; grid-template-columns:180px 1fr; overflow:hidden; min-height:400px; }
         .doxa-landing .hs-side{ background:#0D1B40; padding:20px 14px; border-right:1px solid rgba(255,255,255,0.06); }
-        .doxa-landing .hs-brand{ display:flex; align-items:center; gap:8px; color:#fff; font-family:'Geist'; font-weight:700; font-size:14px; padding:6px 6px 18px; }
+        .doxa-landing .hs-brand{ display:flex; align-items:center; gap:8px; padding:6px 6px 18px; }
         .doxa-landing .hs-side .it{ font-size:12.5px; color:#B9C6E4; padding:8px 9px; border-radius:9px; margin-bottom:2px; }
         .doxa-landing .hs-side .it.on{ background:linear-gradient(90deg, rgba(30,64,255,0.35), rgba(124,58,237,0.25)); color:#fff; position:relative; }
         .doxa-landing .hs-side .it.on::before{ content:""; position:absolute; left:-6px; top:50%; transform:translateY(-50%); width:3px; height:14px; background:var(--gold); border-radius:2px; }
@@ -672,7 +778,6 @@ export default function LandingPage() {
         .doxa-landing .foot-grid{ display:grid; grid-template-columns:1.4fr 1fr 1fr 1fr 1fr; gap:36px; margin-bottom:48px; }
         @media (max-width:900px){ .doxa-landing .foot-grid{ grid-template-columns:1fr 1fr 1fr; } }
         @media (max-width:600px){ .doxa-landing .foot-grid{ grid-template-columns:1fr 1fr; } }
-        .doxa-landing footer .logo{ color:#fff; }
         .doxa-landing footer p.tag{ font-size:13px; color:#8EA1CB; margin-top:12px; max-width:220px; }
         .doxa-landing footer h4{ font-family:'Geist'; color:#fff; font-size:14px; margin-bottom:14px; }
         .doxa-landing footer ul{ display:flex; flex-direction:column; gap:9px; font-size:13px; }
