@@ -18,7 +18,7 @@ export const DoxaMark = ({ size = 32 }: { size?: number }) => (
   <svg
     width={size}
     height={size}
-    viewBox="0 0 80 80"
+    viewBox="0 0 50 50"
     fill="none"
     xmlns="http://www.w3.org/2000/svg"
     style={{ display: "inline-block", verticalAlign: "middle" }}
@@ -50,19 +50,19 @@ export const DoxaMark = ({ size = 32 }: { size?: number }) => (
         <stop offset="100%" stopColor="#00D2FF" />
       </linearGradient>
     </defs>
-    <g transform="translate(0, 0)">
-      <rect x="31" y="6" width="18" height="22" rx="9" fill="url(#dxP0)" transform="rotate(30 40 40)" />
-      <rect x="31" y="6" width="18" height="22" rx="9" fill="url(#dxP1)" transform="rotate(90 40 40)" />
-      <rect x="31" y="6" width="18" height="22" rx="9" fill="url(#dxP2)" transform="rotate(150 40 40)" />
-      <rect x="31" y="6" width="18" height="22" rx="9" fill="url(#dxP3)" transform="rotate(210 40 40)" />
-      <rect x="31" y="6" width="18" height="22" rx="9" fill="url(#dxP4)" transform="rotate(270 40 40)" />
-      <rect x="31" y="6" width="18" height="22" rx="9" fill="url(#dxP5)" transform="rotate(330 40 40)" />
+    <g>
+      <rect x="17" y="3" width="16" height="18" rx="8" fill="url(#dxP0)" transform="rotate(30 25 25)" />
+      <rect x="17" y="3" width="16" height="18" rx="8" fill="url(#dxP1)" transform="rotate(90 25 25)" />
+      <rect x="17" y="3" width="16" height="18" rx="8" fill="url(#dxP2)" transform="rotate(150 25 25)" />
+      <rect x="17" y="3" width="16" height="18" rx="8" fill="url(#dxP3)" transform="rotate(210 25 25)" />
+      <rect x="17" y="3" width="16" height="18" rx="8" fill="url(#dxP4)" transform="rotate(270 25 25)" />
+      <rect x="17" y="3" width="16" height="18" rx="8" fill="url(#dxP5)" transform="rotate(330 25 25)" />
     </g>
   </svg>
 );
 
 /**
- * Componente oficial de logotipo completo (anillo + tipografía DOXA)
+ * Componente oficial de logotipo completo (anillo sin recortes + tipografía DOXA)
  */
 export const DoxaFullLogo = ({
   height = 36,
@@ -71,12 +71,12 @@ export const DoxaFullLogo = ({
   height?: number;
   color?: string;
 }) => {
-  const width = height * 3.6;
+  const width = height * 4.3;
   return (
     <svg
       height={height}
       width={width}
-      viewBox="0 0 220 50"
+      viewBox="0 0 215 50"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
       style={{ display: "inline-block", verticalAlign: "middle" }}
@@ -109,18 +109,18 @@ export const DoxaFullLogo = ({
         </linearGradient>
       </defs>
 
-      {/* Ring Icon */}
-      <g transform="translate(-15, -15)">
-        <rect x="31" y="6" width="18" height="22" rx="9" fill="url(#dxL0)" transform="rotate(30 40 40)" />
-        <rect x="31" y="6" width="18" height="22" rx="9" fill="url(#dxL1)" transform="rotate(90 40 40)" />
-        <rect x="31" y="6" width="18" height="22" rx="9" fill="url(#dxL2)" transform="rotate(150 40 40)" />
-        <rect x="31" y="6" width="18" height="22" rx="9" fill="url(#dxL3)" transform="rotate(210 40 40)" />
-        <rect x="31" y="6" width="18" height="22" rx="9" fill="url(#dxL4)" transform="rotate(270 40 40)" />
-        <rect x="31" y="6" width="18" height="22" rx="9" fill="url(#dxL5)" transform="rotate(330 40 40)" />
+      {/* Ring Icon centered cleanly without clipping */}
+      <g>
+        <rect x="17" y="3" width="16" height="18" rx="8" fill="url(#dxL0)" transform="rotate(30 25 25)" />
+        <rect x="17" y="3" width="16" height="18" rx="8" fill="url(#dxL1)" transform="rotate(90 25 25)" />
+        <rect x="17" y="3" width="16" height="18" rx="8" fill="url(#dxL2)" transform="rotate(150 25 25)" />
+        <rect x="17" y="3" width="16" height="18" rx="8" fill="url(#dxL3)" transform="rotate(210 25 25)" />
+        <rect x="17" y="3" width="16" height="18" rx="8" fill="url(#dxL4)" transform="rotate(270 25 25)" />
+        <rect x="17" y="3" width="16" height="18" rx="8" fill="url(#dxL5)" transform="rotate(330 25 25)" />
       </g>
 
       {/* DOXA Typography */}
-      <g fill={color} transform="translate(68, 8)">
+      <g fill={color} transform="translate(60, 7.5)">
         {/* D */}
         <path d="M 0 0 H 18 C 26 0 31 5 31 17.5 V 17.5 C 31 30 26 35 18 35 H 0 V 0 Z M 7.5 7.5 V 27.5 H 17 C 21 27.5 23.5 24 23.5 17.5 V 17.5 C 23.5 11 21 7.5 17 7.5 H 7.5 Z" />
         {/* O */}
