@@ -1,13 +1,13 @@
-@import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&family=Manrope:wght@300;400;500;600;700&display=swap');
+@import url("https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&family=Manrope:wght@300;400;500;600;700&display=swap");
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 /*
- * DOXA Design System — Ocean Deep + Sora/Manrope
+ * DOXA Design System — Navy + Coral (línea gráfica oficial DOXA_APP_VISUAL)
  * Inspired by Linear, Stripe, Notion, Vercel.
- * Institutional identity: deep navy blue with teal accents on warm whites.
+ * Institutional identity: deep navy (#003A6C) with coral accent (#FD8972) on warm whites.
  */
 
 @layer base {
@@ -22,10 +22,10 @@
     --popover: 0 0% 100%;
     --popover-foreground: 215 32% 12%;
 
-    /* Ocean Deep — institutional palette */
-    --primary: 215 68% 15%;           /* #0c2340 deep navy */
+    /* DOXA Brand — navy + coral (línea gráfica oficial DOXA_APP_VISUAL) */
+    --primary: 208 100% 21%; /* #003A6C navy */
     --primary-foreground: 210 40% 98%;
-    --primary-glow: 205 62% 27%;      /* #1a4a6e mid navy */
+    --primary-glow: 208 80% 30%; /* lighter navy for hovers/glow */
 
     --secondary: 210 25% 96%;
     --secondary-foreground: 215 32% 15%;
@@ -33,9 +33,9 @@
     --muted: 210 25% 96%;
     --muted-foreground: 215 15% 45%;
 
-    --accent: 190 55% 40%;            /* #2d8a9e teal */
-    --accent-foreground: 0 0% 100%;
-    --accent-soft: 177 40% 55%;       /* #5cbdb9 light teal */
+    --accent: 10 97% 72%; /* #FD8972 coral */
+    --accent-foreground: 208 100% 21%; /* navy text on coral for AA contrast */
+    --accent-soft: 12 100% 94%; /* #FFE8E2 soft coral */
 
     --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 100%;
@@ -50,38 +50,38 @@
     /* Borders 1px very sutil */
     --border: 215 20% 91%;
     --input: 215 20% 91%;
-    --ring: 190 55% 40%;
+    --ring: 10 97% 72%;
 
     --radius: 0.875rem; /* 14px — cards se sienten a 16px con padding */
 
     /* Sidebar — Linear-style white sidebar with subtle bg */
     --sidebar-background: 210 30% 99%;
     --sidebar-foreground: 215 20% 40%;
-    --sidebar-primary: 215 68% 15%;
+    --sidebar-primary: 208 100% 21%;
     --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-accent: 210 30% 95%;
-    --sidebar-accent-foreground: 215 68% 15%;
+    --sidebar-accent-foreground: 208 100% 21%;
     --sidebar-border: 215 20% 92%;
-    --sidebar-ring: 190 55% 40%;
+    --sidebar-ring: 10 97% 72%;
 
     /* Legacy compat tokens used elsewhere */
     --sidebar-bg: 210 30% 99%;
     --sidebar-fg: 215 20% 40%;
     --sidebar-hover: 210 30% 95%;
-    --sidebar-active: 215 68% 15%;
+    --sidebar-active: 208 100% 21%;
     --sidebar-active-fg: 0 0% 100%;
 
     /* Gradients & shadows */
-    --gradient-primary: linear-gradient(135deg, hsl(215 68% 15%), hsl(205 62% 27%));
-    --gradient-accent: linear-gradient(135deg, hsl(190 55% 40%), hsl(177 40% 55%));
+    --gradient-primary: linear-gradient(135deg, hsl(208 100% 21%), hsl(10 97% 72%));
+    --gradient-accent: linear-gradient(135deg, hsl(10 77% 60%), hsl(10 97% 72%));
     --gradient-subtle: linear-gradient(180deg, hsl(210 30% 99%), hsl(210 30% 97%));
 
     --shadow-xs: 0 1px 2px hsl(215 32% 12% / 0.04);
     --shadow-sm: 0 1px 3px hsl(215 32% 12% / 0.05), 0 1px 2px hsl(215 32% 12% / 0.03);
     --shadow-md: 0 4px 12px -2px hsl(215 32% 12% / 0.06), 0 2px 4px -2px hsl(215 32% 12% / 0.04);
-    --shadow-lg: 0 12px 32px -8px hsl(215 32% 12% / 0.10), 0 4px 12px -4px hsl(215 32% 12% / 0.06);
+    --shadow-lg: 0 12px 32px -8px hsl(215 32% 12% / 0.1), 0 4px 12px -4px hsl(215 32% 12% / 0.06);
     --shadow-xl: 0 24px 48px -12px hsl(215 32% 12% / 0.15);
-    --shadow-glow: 0 0 0 4px hsl(190 55% 40% / 0.10);
+    --shadow-glow: 0 0 0 4px hsl(10 97% 72% / 0.18);
 
     /* ── Design System v1 — extra semantic tokens ─────────── */
     /* Surface scale (elevated backgrounds) */
@@ -108,8 +108,8 @@
     --info-soft: 205 80% 93%;
 
     /* Data viz — 8-color perceptual palette */
-    --chart-1: 215 68% 35%;
-    --chart-2: 190 55% 45%;
+    --chart-1: 208 100% 30%;
+    --chart-2: 10 90% 65%;
     --chart-3: 262 52% 55%;
     --chart-4: 152 55% 42%;
     --chart-5: 38 92% 50%;
@@ -122,16 +122,16 @@
     --glass: 0 0% 100% / 0.72;
 
     /* Focus ring */
-    --ring-focus: 190 55% 40%;
+    --ring-focus: 10 97% 72%;
 
     /* Motion */
     --motion-fast: 120ms;
     --motion-base: 180ms;
     --motion-slow: 240ms;
     --motion-page: 320ms;
-    --ease-standard: cubic-bezier(.2,.8,.2,1);
-    --ease-emphasized: cubic-bezier(.16,1,.3,1);
-    --ease-exit: cubic-bezier(.4,0,1,1);
+    --ease-standard: cubic-bezier(0.2, 0.8, 0.2, 1);
+    --ease-emphasized: cubic-bezier(0.16, 1, 0.3, 1);
+    --ease-exit: cubic-bezier(0.4, 0, 1, 1);
   }
 
   .dark {
@@ -141,19 +141,19 @@
     --card-foreground: 210 32% 97%;
     --popover: 215 30% 10%;
     --popover-foreground: 210 32% 97%;
-    --primary: 190 65% 62%;
-    --primary-foreground: 215 32% 8%;
-    --primary-glow: 190 60% 50%;
+    --primary: 10 97% 72%;
+    --primary-foreground: 208 100% 12%;
+    --primary-glow: 10 90% 62%;
     --secondary: 215 25% 15%;
     --secondary-foreground: 210 32% 97%;
     --muted: 215 25% 15%;
     /* Bumped from 62% → 72% for WCAG AA on secondary text/chips */
     --muted-foreground: 215 14% 72%;
-    --accent: 190 65% 62%;
-    --accent-foreground: 215 32% 8%;
+    --accent: 10 97% 72%;
+    --accent-foreground: 208 100% 12%;
     --border: 215 20% 22%;
     --input: 215 20% 22%;
-    --ring: 190 70% 62%;
+    --ring: 10 90% 65%;
     --surface-0: 215 32% 7%;
     --surface-1: 215 30% 10%;
     --surface-2: 215 28% 12%;
@@ -165,8 +165,8 @@
     --border-subtle: 215 20% 18%;
     --border-strong: 215 20% 34%;
     /* Charts — brightened for dark backgrounds */
-    --chart-1: 205 85% 65%;
-    --chart-2: 190 70% 58%;
+    --chart-1: 208 90% 60%;
+    --chart-2: 10 90% 68%;
     --chart-3: 262 70% 72%;
     --chart-4: 152 60% 55%;
     --chart-5: 42 95% 62%;
@@ -178,9 +178,8 @@
     --sidebar-accent: 215 25% 14%;
     --sidebar-accent-foreground: 210 32% 97%;
     --sidebar-border: 215 20% 18%;
-    --ring-focus: 190 70% 62%;
+    --ring-focus: 10 90% 65%;
   }
-
 }
 
 @layer base {
@@ -189,7 +188,11 @@
   }
 
   html {
-    font-family: 'Manrope', system-ui, -apple-system, sans-serif;
+    font-family:
+      "Manrope",
+      system-ui,
+      -apple-system,
+      sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
@@ -201,8 +204,8 @@
 
   body {
     @apply bg-background text-foreground;
-    font-family: 'Manrope', system-ui, sans-serif;
-    font-feature-settings: 'ss01', 'cv11';
+    font-family: "Manrope", system-ui, sans-serif;
+    font-feature-settings: "ss01", "cv11";
     letter-spacing: -0.005em;
     font-size: 1rem;
     line-height: 1.55;
@@ -210,32 +213,68 @@
     max-width: 100vw;
   }
 
-  html, body, #root {
+  html,
+  body,
+  #root {
     max-width: 100vw;
     overflow-x: hidden;
   }
 
   /* Mobile guardrails: avoid horizontal scroll from oversized tables/cards */
   @media (max-width: 767px) {
-    table { max-width: 100%; }
-    img, video, canvas, svg { max-width: 100%; height: auto; }
-    pre, code { white-space: pre-wrap; word-break: break-word; }
+    table {
+      max-width: 100%;
+    }
+    img,
+    video,
+    canvas,
+    svg {
+      max-width: 100%;
+      height: auto;
+    }
+    pre,
+    code {
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
   }
 
-
-  h1, h2, h3, h4, h5, h6 {
-    font-family: 'Sora', system-ui, sans-serif;
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: "Sora", system-ui, sans-serif;
     @apply font-semibold tracking-tight text-foreground;
     letter-spacing: -0.02em;
   }
 
   /* DOXA Global Type Scale — +25% */
-  h1 { font-size: 40px; line-height: 1.15; }
-  h2 { font-size: 34px; line-height: 1.2; }
-  h3 { font-size: 30px; line-height: 1.25; }
-  h4 { font-size: 25px; line-height: 1.3; }
-  h5 { font-size: 22px; line-height: 1.35; }
-  h6 { font-size: 20px; line-height: 1.4; }
+  h1 {
+    font-size: 40px;
+    line-height: 1.15;
+  }
+  h2 {
+    font-size: 34px;
+    line-height: 1.2;
+  }
+  h3 {
+    font-size: 30px;
+    line-height: 1.25;
+  }
+  h4 {
+    font-size: 25px;
+    line-height: 1.3;
+  }
+  h5 {
+    font-size: 22px;
+    line-height: 1.35;
+  }
+  h6 {
+    font-size: 20px;
+    line-height: 1.4;
+  }
 
   /* Focus ring premium */
   :focus-visible {
@@ -246,34 +285,110 @@
 }
 
 @layer utilities {
-  .doxa-display-xl { font-family: 'Sora', system-ui, sans-serif; font-size: 60px; line-height: 1.1; letter-spacing: -0.025em; font-weight: 700; }
-  .doxa-display-lg { font-family: 'Sora', system-ui, sans-serif; font-size: 50px; line-height: 1.15; letter-spacing: -0.02em; font-weight: 700; }
-  .doxa-h1 { font-family: 'Sora', system-ui, sans-serif; font-size: 40px; line-height: 1.15; font-weight: 700; }
-  .doxa-h2 { font-family: 'Sora', system-ui, sans-serif; font-size: 34px; line-height: 1.2; font-weight: 600; }
-  .doxa-h3 { font-family: 'Sora', system-ui, sans-serif; font-size: 30px; line-height: 1.25; font-weight: 600; }
-  .doxa-h4 { font-family: 'Sora', system-ui, sans-serif; font-size: 25px; line-height: 1.3; font-weight: 600; }
-  .doxa-body { font-size: 20px; line-height: 1.55; }
-  .doxa-body-sm { font-size: 18px; line-height: 1.5; }
-  .doxa-caption { font-size: 17px; line-height: 1.45; }
+  .doxa-display-xl {
+    font-family: "Sora", system-ui, sans-serif;
+    font-size: 60px;
+    line-height: 1.1;
+    letter-spacing: -0.025em;
+    font-weight: 700;
+  }
+  .doxa-display-lg {
+    font-family: "Sora", system-ui, sans-serif;
+    font-size: 50px;
+    line-height: 1.15;
+    letter-spacing: -0.02em;
+    font-weight: 700;
+  }
+  .doxa-h1 {
+    font-family: "Sora", system-ui, sans-serif;
+    font-size: 40px;
+    line-height: 1.15;
+    font-weight: 700;
+  }
+  .doxa-h2 {
+    font-family: "Sora", system-ui, sans-serif;
+    font-size: 34px;
+    line-height: 1.2;
+    font-weight: 600;
+  }
+  .doxa-h3 {
+    font-family: "Sora", system-ui, sans-serif;
+    font-size: 30px;
+    line-height: 1.25;
+    font-weight: 600;
+  }
+  .doxa-h4 {
+    font-family: "Sora", system-ui, sans-serif;
+    font-size: 25px;
+    line-height: 1.3;
+    font-weight: 600;
+  }
+  .doxa-body {
+    font-size: 20px;
+    line-height: 1.55;
+  }
+  .doxa-body-sm {
+    font-size: 18px;
+    line-height: 1.5;
+  }
+  .doxa-caption {
+    font-size: 17px;
+    line-height: 1.45;
+  }
 
   /* ── DOXA Global Uplift — override ALL hardcoded arbitrary
      Tailwind text sizes across the app so legacy components
      inherit the +25/30% scale without file-by-file refactor.
      Sizes ≤ 15px get bumped; larger ones already scale well. */
-  .text-\[6px\]  { font-size: 11px !important; line-height: 1.4 !important; }
-  .text-\[8px\]  { font-size: 13px !important; line-height: 1.4 !important; }
-  .text-\[9px\]  { font-size: 14px !important; line-height: 1.4 !important; }
-  .text-\[10px\] { font-size: 15px !important; line-height: 1.45 !important; }
-  .text-\[11px\] { font-size: 16px !important; line-height: 1.45 !important; }
-  .text-\[12px\] { font-size: 17px !important; line-height: 1.5 !important; }
-  .text-\[13px\] { font-size: 18px !important; line-height: 1.5 !important; }
-  .text-\[14px\] { font-size: 19px !important; line-height: 1.55 !important; }
-  .text-\[15px\] { font-size: 20px !important; line-height: 1.55 !important; }
-  .text-\[16px\] { font-size: 21px !important; line-height: 1.55 !important; }
-  .text-\[17px\] { font-size: 22px !important; line-height: 1.55 !important; }
-  .text-\[18px\] { font-size: 23px !important; line-height: 1.55 !important; }
+  .text-\[6px\] {
+    font-size: 11px !important;
+    line-height: 1.4 !important;
+  }
+  .text-\[8px\] {
+    font-size: 13px !important;
+    line-height: 1.4 !important;
+  }
+  .text-\[9px\] {
+    font-size: 14px !important;
+    line-height: 1.4 !important;
+  }
+  .text-\[10px\] {
+    font-size: 15px !important;
+    line-height: 1.45 !important;
+  }
+  .text-\[11px\] {
+    font-size: 16px !important;
+    line-height: 1.45 !important;
+  }
+  .text-\[12px\] {
+    font-size: 17px !important;
+    line-height: 1.5 !important;
+  }
+  .text-\[13px\] {
+    font-size: 18px !important;
+    line-height: 1.5 !important;
+  }
+  .text-\[14px\] {
+    font-size: 19px !important;
+    line-height: 1.55 !important;
+  }
+  .text-\[15px\] {
+    font-size: 20px !important;
+    line-height: 1.55 !important;
+  }
+  .text-\[16px\] {
+    font-size: 21px !important;
+    line-height: 1.55 !important;
+  }
+  .text-\[17px\] {
+    font-size: 22px !important;
+    line-height: 1.55 !important;
+  }
+  .text-\[18px\] {
+    font-size: 23px !important;
+    line-height: 1.55 !important;
+  }
 }
-
 
 @layer utilities {
   /* ── SaaS premium surfaces ─────────────────────────────── */
@@ -319,8 +434,8 @@
   /* ── KPI premium ───────────────────────────────────────── */
   .kpi-value {
     @apply text-[32px] md:text-[36px] font-bold tracking-tight text-foreground;
-    font-family: 'Sora', system-ui, sans-serif;
-    font-feature-settings: 'tnum';
+    font-family: "Sora", system-ui, sans-serif;
+    font-feature-settings: "tnum";
     line-height: 1.1;
   }
 
@@ -417,8 +532,13 @@
   background: hsl(215 15% 40%);
   background-clip: padding-box;
 }
-* { scrollbar-color: hsl(215 15% 82%) transparent; scrollbar-width: thin; }
-.dark * { scrollbar-color: hsl(215 15% 28%) transparent; }
+* {
+  scrollbar-color: hsl(215 15% 82%) transparent;
+  scrollbar-width: thin;
+}
+.dark * {
+  scrollbar-color: hsl(215 15% 28%) transparent;
+}
 
 /* ── Text selection ─────────────────────────────────────── */
 ::selection {
@@ -427,19 +547,33 @@
 }
 
 /* ── Remove mobile tap highlight ────────────────────────── */
-html { -webkit-tap-highlight-color: transparent; }
+html {
+  -webkit-tap-highlight-color: transparent;
+}
 
 /* ── Fade-in animation for page enter ───────────────────── */
 @keyframes fade-in {
-  from { opacity: 0; transform: translateY(6px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
-main > * { animation: fade-in 0.3s var(--ease-standard); }
+main > * {
+  animation: fade-in 0.3s var(--ease-standard);
+}
 
 /* ── Skeleton shimmer (premium loading) ─────────────────── */
 @keyframes doxa-shimmer {
-  0% { background-position: -400px 0; }
-  100% { background-position: 400px 0; }
+  0% {
+    background-position: -400px 0;
+  }
+  100% {
+    background-position: 400px 0;
+  }
 }
 .skeleton-shimmer {
   background: linear-gradient(
@@ -455,11 +589,15 @@ main > * { animation: fade-in 0.3s var(--ease-standard); }
 /* ── Focus ring — enterprise-grade (WCAG 2.4.7 / 1.4.11) ── */
 :focus-visible {
   outline: none;
-  box-shadow: 0 0 0 2px hsl(var(--background)), 0 0 0 4px hsl(var(--ring) / 0.65);
+  box-shadow:
+    0 0 0 2px hsl(var(--background)),
+    0 0 0 4px hsl(var(--ring) / 0.65);
   border-radius: 8px;
 }
 .dark :focus-visible {
-  box-shadow: 0 0 0 2px hsl(var(--background)), 0 0 0 4px hsl(var(--ring) / 0.85);
+  box-shadow:
+    0 0 0 2px hsl(var(--background)),
+    0 0 0 4px hsl(var(--ring) / 0.85);
 }
 button:focus-visible,
 a:focus-visible,
@@ -500,35 +638,52 @@ textarea:focus-visible,
 
 /* ── Subtle hover utility — Linear/Vercel ───────────────── */
 .subtle-hover {
-  transition: background-color 120ms var(--ease-standard),
-              border-color 120ms var(--ease-standard),
-              color 120ms var(--ease-standard);
+  transition:
+    background-color 120ms var(--ease-standard),
+    border-color 120ms var(--ease-standard),
+    color 120ms var(--ease-standard);
 }
 
 /* ── Prefers reduced motion ─────────────────────────────── */
 @media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after {
+  *,
+  *::before,
+  *::after {
     animation-duration: 0.001ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.001ms !important;
     scroll-behavior: auto !important;
   }
-  main > * { animation: none !important; }
+  main > * {
+    animation: none !important;
+  }
 }
 
 /* ── Print — clean auditable exports ────────────────────── */
 @media print {
-  header, aside, nav, [data-print="hide"] { display: none !important; }
-  main { padding: 0 !important; }
-  * { box-shadow: none !important; }
+  header,
+  aside,
+  nav,
+  [data-print="hide"] {
+    display: none !important;
+  }
+  main {
+    padding: 0 !important;
+  }
+  * {
+    box-shadow: none !important;
+  }
 }
 
 /* ── Smooth scroll for in-page anchors ──────────────────── */
-html { scroll-behavior: smooth; }
+html {
+  scroll-behavior: smooth;
+}
 
 /* ── Better underline offset for links ──────────────────── */
-a { text-underline-offset: 2px; }
-
+a {
+  text-underline-offset: 2px;
+}
 
 /* ============================================================
  * Presentation mode — large fonts + roomy layout for reunions.
@@ -543,13 +698,27 @@ body[data-presentation="true"] {
 body[data-presentation="true"] main {
   padding: 1.5rem !important;
 }
-body[data-presentation="true"] h1 { font-size: 2rem; }
-body[data-presentation="true"] h2 { font-size: 1.625rem; }
-body[data-presentation="true"] h3 { font-size: 1.375rem; }
-body[data-presentation="true"] .text-xs { font-size: 0.9rem; }
-body[data-presentation="true"] .text-sm { font-size: 1.05rem; }
-body[data-presentation="true"] .text-base { font-size: 1.2rem; }
+body[data-presentation="true"] h1 {
+  font-size: 2rem;
+}
+body[data-presentation="true"] h2 {
+  font-size: 1.625rem;
+}
+body[data-presentation="true"] h3 {
+  font-size: 1.375rem;
+}
+body[data-presentation="true"] .text-xs {
+  font-size: 0.9rem;
+}
+body[data-presentation="true"] .text-sm {
+  font-size: 1.05rem;
+}
+body[data-presentation="true"] .text-base {
+  font-size: 1.2rem;
+}
 body[data-presentation="true"] [data-radix-scroll-area-viewport] > div {
   padding-block: 0.25rem;
 }
-body[data-presentation="true"] .presentation-hide { display: none !important; }
+body[data-presentation="true"] .presentation-hide {
+  display: none !important;
+}
