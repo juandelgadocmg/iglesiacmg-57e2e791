@@ -10,6 +10,7 @@ import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import RoleGuard from "@/components/auth/RoleGuard";
 import AppLayout from "@/components/layout/AppLayout";
 import LandingPage from "@/pages/LandingPage";
+import AcademyPage from "@/pages/AcademyPage";
 import LoginPage from "@/pages/LoginPage";
 import Dashboard from "@/pages/Dashboard";
 import PersonasPage from "@/pages/PersonasPage";
@@ -56,46 +57,48 @@ const App = () => (
         <Sonner />
         <PWAUpdatePrompt />
 
-        <BrowserRouter>
-          <AuthProvider>
-            <ActiveRoleProvider>
-              <Routes>
-                <Route path="/" element={<LandingPage />} />
-                <Route path="/login" element={<LoginPage />} />
-                <Route path="/reset-password" element={<ResetPasswordPage />} />
-                <Route path="/check-in/:servicioId" element={<CheckInPage />} />
-                <Route path="/.lovable/oauth/consent" element={<OAuthConsentPage />} />
-                <Route path="/design-system" element={<DesignSystemPage />} />
-                <Route path="/chat/compartida/:token" element={<ChatSharePage />} />
-                <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
-                  <Route path="/hoy" element={<HoyPage />} />
-                  <Route path="/dashboard" element={<Dashboard />} />
-                  <Route path="/personas" element={<RoleGuard><PersonasPage /></RoleGuard>} />
-                  <Route path="/personas/:id" element={<RoleGuard><PersonaPerfilPage /></RoleGuard>} />
-                  <Route path="/grupos" element={<RoleGuard><GruposPage /></RoleGuard>} />
-                  <Route path="/servicios" element={<RoleGuard><ServiciosPage /></RoleGuard>} />
-                  <Route path="/finanzas" element={<RoleGuard><FinanzasPage /></RoleGuard>} />
-                  <Route path="/eventos" element={<RoleGuard><EventosPage /></RoleGuard>} />
-                  <Route path="/academia" element={<RoleGuard><AcademiaPage /></RoleGuard>} />
-                  <Route path="/seminario" element={<RoleGuard><SeminarioPage /></RoleGuard>} />
-                  <Route path="/certificados" element={<RoleGuard><CertificadosPage /></RoleGuard>} />
-                  <Route path="/reportes" element={<RoleGuard><ReportesPage /></RoleGuard>} />
-                  <Route path="/peticiones" element={<RoleGuard><PeticionesPage /></RoleGuard>} />
-                  <Route path="/usuarios" element={<RoleGuard><UsuariosPage /></RoleGuard>} />
-                  <Route path="/mensajes" element={<MensajesPage />} />
-                  <Route path="/configuracion" element={<RoleGuard><ConfiguracionPage /></RoleGuard>} />
-                  <Route path="/seguridad" element={<RoleGuard><SeguridadPage /></RoleGuard>} />
-                  <Route path="/chat" element={<ChatPage />} />
-                  <Route path="/cumpleanos" element={<CumpleanosPage />} />
-                  <Route path="/alertas" element={<AlertasPage />} />
-                  <Route path="/actividad" element={<ActividadPage />} />
-                  <Route path="/verificar-academico/:id" element={<VerificarAcademicoPage />} />
-                </Route>
-                <Route path="*" element={<NotFound />} />
-              </Routes>
-            </ActiveRoleProvider>
-          </AuthProvider>
-        </BrowserRouter>
+
+      <BrowserRouter>
+        <AuthProvider>
+          <ActiveRoleProvider>
+          <Routes>
+            <Route path="/" element={<LandingPage />} />
+            <Route path="/academy" element={<AcademyPage />} />
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/reset-password" element={<ResetPasswordPage />} />
+            <Route path="/check-in/:servicioId" element={<CheckInPage />} />
+            <Route path="/.lovable/oauth/consent" element={<OAuthConsentPage />} />
+            <Route path="/design-system" element={<DesignSystemPage />} />
+            <Route path="/chat/compartida/:token" element={<ChatSharePage />} />
+            <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
+              <Route path="/hoy" element={<HoyPage />} />
+              <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/personas" element={<RoleGuard><PersonasPage /></RoleGuard>} />
+              <Route path="/personas/:id" element={<RoleGuard><PersonaPerfilPage /></RoleGuard>} />
+              <Route path="/grupos" element={<RoleGuard><GruposPage /></RoleGuard>} />
+              <Route path="/servicios" element={<RoleGuard><ServiciosPage /></RoleGuard>} />
+              <Route path="/finanzas" element={<RoleGuard><FinanzasPage /></RoleGuard>} />
+              <Route path="/eventos" element={<RoleGuard><EventosPage /></RoleGuard>} />
+              <Route path="/academia" element={<RoleGuard><AcademiaPage /></RoleGuard>} />
+              <Route path="/seminario" element={<RoleGuard><SeminarioPage /></RoleGuard>} />
+              <Route path="/certificados" element={<RoleGuard><CertificadosPage /></RoleGuard>} />
+              <Route path="/reportes" element={<RoleGuard><ReportesPage /></RoleGuard>} />
+              <Route path="/peticiones" element={<RoleGuard><PeticionesPage /></RoleGuard>} />
+              <Route path="/usuarios" element={<RoleGuard><UsuariosPage /></RoleGuard>} />
+              <Route path="/mensajes" element={<MensajesPage />} />
+              <Route path="/configuracion" element={<RoleGuard><ConfiguracionPage /></RoleGuard>} />
+              <Route path="/seguridad" element={<RoleGuard><SeguridadPage /></RoleGuard>} />
+              <Route path="/chat" element={<ChatPage />} />
+              <Route path="/cumpleanos" element={<CumpleanosPage />} />
+              <Route path="/alertas" element={<AlertasPage />} />
+              <Route path="/actividad" element={<ActividadPage />} />
+              <Route path="/verificar-academico/:id" element={<VerificarAcademicoPage />} />
+            </Route>
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </ActiveRoleProvider>
+        </AuthProvider>
+      </BrowserRouter>
       </TooltipProvider>
     </ThemeProvider>
   </QueryClientProvider>
