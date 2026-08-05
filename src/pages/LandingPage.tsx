@@ -1,5 +1,7 @@
 import { useEffect, useState, FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import doxaWordmarkNavy from "@/assets/doxa-wordmark-navy.png";
+import doxaWordmarkWhite from "@/assets/doxa-wordmark-white.png";
 import {
   Users,
   UsersRound,
@@ -12,128 +14,11 @@ import {
 } from "lucide-react";
 
 /**
- * Componente oficial de isotipo (anillo de 6 pétalos) DOXA
+ * Página pública de aterrizaje de DOXA.
+ * Línea gráfica oficial (a partir de DOXA_APP_VISUAL): navy #003A6C + coral #FD8972,
+ * wordmark "doxa" real (imagen), tagline "Gestión inteligente, liderazgo eficiente."
+ * Estilos encapsulados bajo .doxa-landing para no interferir con el resto de la app.
  */
-export const DoxaMark = ({ size = 32 }: { size?: number }) => (
-  <svg
-    width={size}
-    height={size}
-    viewBox="0 0 50 50"
-    fill="none"
-    xmlns="http://www.w3.org/2000/svg"
-    style={{ display: "inline-block", verticalAlign: "middle" }}
-    aria-hidden="true"
-  >
-    <defs>
-      <linearGradient id="dxP0" x1="0" y1="0" x2="1" y2="1">
-        <stop offset="0%" stopColor="#00D2FF" />
-        <stop offset="100%" stopColor="#1E50FF" />
-      </linearGradient>
-      <linearGradient id="dxP1" x1="0" y1="0" x2="1" y2="1">
-        <stop offset="0%" stopColor="#1E50FF" />
-        <stop offset="100%" stopColor="#2563EB" />
-      </linearGradient>
-      <linearGradient id="dxP2" x1="0" y1="0" x2="1" y2="1">
-        <stop offset="0%" stopColor="#3B82F6" />
-        <stop offset="100%" stopColor="#6366F1" />
-      </linearGradient>
-      <linearGradient id="dxP3" x1="0" y1="0" x2="1" y2="1">
-        <stop offset="0%" stopColor="#6366F1" />
-        <stop offset="100%" stopColor="#7C3AED" />
-      </linearGradient>
-      <linearGradient id="dxP4" x1="0" y1="0" x2="1" y2="1">
-        <stop offset="0%" stopColor="#8B5CF6" />
-        <stop offset="100%" stopColor="#A855F7" />
-      </linearGradient>
-      <linearGradient id="dxP5" x1="0" y1="0" x2="1" y2="1">
-        <stop offset="0%" stopColor="#38BDF8" />
-        <stop offset="100%" stopColor="#00D2FF" />
-      </linearGradient>
-    </defs>
-    <g>
-      <rect x="17" y="3" width="16" height="18" rx="8" fill="url(#dxP0)" transform="rotate(30 25 25)" />
-      <rect x="17" y="3" width="16" height="18" rx="8" fill="url(#dxP1)" transform="rotate(90 25 25)" />
-      <rect x="17" y="3" width="16" height="18" rx="8" fill="url(#dxP2)" transform="rotate(150 25 25)" />
-      <rect x="17" y="3" width="16" height="18" rx="8" fill="url(#dxP3)" transform="rotate(210 25 25)" />
-      <rect x="17" y="3" width="16" height="18" rx="8" fill="url(#dxP4)" transform="rotate(270 25 25)" />
-      <rect x="17" y="3" width="16" height="18" rx="8" fill="url(#dxP5)" transform="rotate(330 25 25)" />
-    </g>
-  </svg>
-);
-
-/**
- * Componente oficial de logotipo completo (anillo sin recortes + tipografía DOXA)
- */
-export const DoxaFullLogo = ({
-  height = 36,
-  color = "#0A1633",
-}: {
-  height?: number;
-  color?: string;
-}) => {
-  const width = height * 4.3;
-  return (
-    <svg
-      height={height}
-      width={width}
-      viewBox="0 0 215 50"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-      style={{ display: "inline-block", verticalAlign: "middle" }}
-      aria-label="DOXA"
-    >
-      <defs>
-        <linearGradient id="dxL0" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stopColor="#00D2FF" />
-          <stop offset="100%" stopColor="#1E50FF" />
-        </linearGradient>
-        <linearGradient id="dxL1" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stopColor="#1E50FF" />
-          <stop offset="100%" stopColor="#2563EB" />
-        </linearGradient>
-        <linearGradient id="dxL2" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stopColor="#3B82F6" />
-          <stop offset="100%" stopColor="#6366F1" />
-        </linearGradient>
-        <linearGradient id="dxL3" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stopColor="#6366F1" />
-          <stop offset="100%" stopColor="#7C3AED" />
-        </linearGradient>
-        <linearGradient id="dxL4" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stopColor="#8B5CF6" />
-          <stop offset="100%" stopColor="#A855F7" />
-        </linearGradient>
-        <linearGradient id="dxL5" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stopColor="#38BDF8" />
-          <stop offset="100%" stopColor="#00D2FF" />
-        </linearGradient>
-      </defs>
-
-      {/* Ring Icon centered cleanly without clipping */}
-      <g>
-        <rect x="17" y="3" width="16" height="18" rx="8" fill="url(#dxL0)" transform="rotate(30 25 25)" />
-        <rect x="17" y="3" width="16" height="18" rx="8" fill="url(#dxL1)" transform="rotate(90 25 25)" />
-        <rect x="17" y="3" width="16" height="18" rx="8" fill="url(#dxL2)" transform="rotate(150 25 25)" />
-        <rect x="17" y="3" width="16" height="18" rx="8" fill="url(#dxL3)" transform="rotate(210 25 25)" />
-        <rect x="17" y="3" width="16" height="18" rx="8" fill="url(#dxL4)" transform="rotate(270 25 25)" />
-        <rect x="17" y="3" width="16" height="18" rx="8" fill="url(#dxL5)" transform="rotate(330 25 25)" />
-      </g>
-
-      {/* DOXA Typography */}
-      <g fill={color} transform="translate(60, 7.5)">
-        {/* D */}
-        <path d="M 0 0 H 18 C 26 0 31 5 31 17.5 V 17.5 C 31 30 26 35 18 35 H 0 V 0 Z M 7.5 7.5 V 27.5 H 17 C 21 27.5 23.5 24 23.5 17.5 V 17.5 C 23.5 11 21 7.5 17 7.5 H 7.5 Z" />
-        {/* O */}
-        <path d="M 44 0 H 58 C 66 0 71 5 71 17.5 V 17.5 C 71 30 66 35 58 35 H 44 C 36 35 31 30 31 17.5 V 17.5 C 31 5 36 0 44 0 Z M 45 7.5 C 40 7.5 38.5 11 38.5 17.5 V 17.5 C 38.5 24 40 27.5 45 27.5 H 57 C 62 27.5 63.5 24 63.5 17.5 V 17.5 C 63.5 11 62 7.5 57 7.5 H 45 Z" />
-        {/* X */}
-        <path d="M 78 0 L 90 17.5 L 78 35 H 86.5 L 94 23.5 L 101.5 35 H 110 L 98 17.5 L 110 0 H 101.5 L 94 11.5 L 86.5 0 H 78 Z" />
-        {/* A */}
-        <path d="M 115 35 L 128 0 H 137 L 150 35 H 142 L 132.5 8.5 L 123 35 H 115 Z" />
-      </g>
-    </svg>
-  );
-};
-
 export default function LandingPage() {
   const navigate = useNavigate();
   const [submitted, setSubmitted] = useState(false);
@@ -152,13 +37,16 @@ export default function LandingPage() {
       const link = document.createElement("link");
       link.id = id;
       link.rel = "stylesheet";
-      link.href = "https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap";
+      link.href = "https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap";
       document.head.appendChild(link);
     }
   }, []);
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
+    // NOTA: maqueta de front-end. Conectar a un backend real (Supabase edge
+    // function, tabla de leads, o webhook a correo/CRM) para recibir estas
+    // solicitudes de demo.
     setSubmitted(true);
   };
 
@@ -184,17 +72,17 @@ export default function LandingPage() {
         <div className="wrap">
           <nav>
             <a href="#top" className="logo">
-              <DoxaFullLogo height={38} color="#0A1633" />
+              <img src={doxaWordmarkNavy} alt="DOXA" className="logo-img" />
             </a>
             <div className="navlinks">
-              <a href="#modulos">Módulos</a>
+              <a href="#top">Inicio</a>
+              <a href="#nosotros">Nosotros</a>
+              <a href="#servicios">Servicios</a>
               <a href="#planes">Planes</a>
-              <a href="#faq">Preguntas frecuentes</a>
-              <a href="#demo">Contacto</a>
             </div>
             <div className="navcta">
               <Link to="/login" className="btn btn-outline btn-sm">
-                Ingresar
+                Login
               </Link>
               <a href="#demo" className="btn btn-primary btn-sm">
                 Agendar demo
@@ -207,98 +95,57 @@ export default function LandingPage() {
       <main id="top">
         {/* HERO */}
         <section className="hero">
-          <div className="wrap hero-inner">
-            <span className="pill-tag">
-              <span className="dot" />
-              Plataforma todo en uno para iglesias que avanzan
-            </span>
-            <h1>
-              Conectamos tu iglesia. <span className="accent">Potenciamos su propósito.</span>
-            </h1>
-            <p className="lead">
-              DOXA reúne personas, grupos, formación, programación de ministerios y finanzas en un
-              solo lugar. Un isotipo, una plataforma, todos los ministerios trabajando en unidad.
-            </p>
-            <div className="hero-actions">
-              <a href="#demo" className="btn btn-primary">
-                Agendar una demo
-              </a>
-              <a href="#modulos" className="btn btn-outline">
-                Ver módulos
-              </a>
+          <div className="hero-x hero-x1" aria-hidden="true" />
+          <div className="hero-x hero-x2" aria-hidden="true" />
+          <div className="wrap hero-grid">
+            <div className="hero-copy">
+              <h1>
+                Gestión <em>inteligente</em>,<br />
+                liderazgo <em>eficiente</em>.
+              </h1>
+              <p className="lead">
+                DOXA es la plataforma todo en uno para iglesias que avanzan: personas, grupos,
+                formación, programación de ministerios y finanzas, en un solo lugar.
+              </p>
+              <div className="hero-actions">
+                <a href="#demo" className="btn btn-cta">Agendar una demo</a>
+                <a href="#servicios" className="btn btn-outline-light">Ver más</a>
+              </div>
+              <div className="hero-url">www.doxa.app.co</div>
             </div>
-            <div className="hero-badges">
-              <span><span className="ck">✓</span> En la nube, sin instalaciones</span>
-              <span><span className="ck">✓</span> Roles y permisos por ministerio</span>
-              <span><span className="ck">✓</span> Acompañamiento en la migración</span>
-            </div>
-          </div>
 
-          <div className="wrap">
-            <div className="hero-shot" aria-hidden="true">
-              <div className="hero-shot-inner">
-                <div className="hs-side">
-                  <div className="hs-brand">
-                    <DoxaFullLogo height={24} color="#FFFFFF" />
+            <div className="hero-visual" aria-hidden="true">
+              <div className="laptop">
+                <div className="laptop-notch" />
+                <div className="laptop-screen">
+                  <div className="browser-bar">
+                    <img src={doxaWordmarkNavy} alt="" className="browser-logo" />
+                    <div className="browser-links">
+                      <span>Inicio</span><span>Nosotros</span><span>Servicios</span><span>Planes</span>
+                    </div>
+                    <div className="browser-login">Login</div>
                   </div>
-                  <div className="it on">Dashboard</div>
-                  <div className="it">Personas</div>
-                  <div className="it">Grupos</div>
-                  <div className="it">Eventos</div>
-                  <div className="it">Ministerios</div>
-                  <div className="it">Academia</div>
-                  <div className="it">Finanzas</div>
-                  <div className="it">Reportes</div>
-                  <div className="it">Configuración</div>
-                </div>
-                <div className="hs-main">
-                  <div className="hs-grid">
-                    <div className="hs-card">
-                      <div className="l">Personas activas</div>
-                      <div className="n">1,250</div>
-                      <div className="delta">+12%</div>
-                    </div>
-                    <div className="hs-card">
-                      <div className="l">Grupos activos</div>
-                      <div className="n">156</div>
-                      <div className="delta">+8%</div>
-                    </div>
-                    <div className="hs-card">
-                      <div className="l">Eventos este mes</div>
-                      <div className="n">28</div>
-                      <div className="delta">+15%</div>
-                    </div>
-                    <div className="hs-card">
-                      <div className="l">Diezmos del mes</div>
-                      <div className="n">$24,560</div>
-                      <div className="delta">+10%</div>
-                    </div>
-                  </div>
-                  <div className="hs-chart">
-                    <div className="hs-chart-label">Asistencia</div>
-                    <svg viewBox="0 0 300 70" width="100%" height="70" preserveAspectRatio="none">
-                      <polyline
-                        points="0,50 40,35 80,45 120,20 160,30 200,12 240,25 300,8"
-                        fill="none"
-                        stroke="url(#hsline)"
-                        strokeWidth="3"
-                        strokeLinecap="round"
-                      />
-                      <defs>
-                        <linearGradient id="hsline" x1="0" y1="0" x2="1" y2="0">
-                          <stop offset="0%" stopColor="#4E7CFF" />
-                          <stop offset="100%" stopColor="#22D3EE" />
-                        </linearGradient>
-                      </defs>
+                  <div className="browser-hero">
+                    <svg className="target-mini" viewBox="0 0 120 120" width="72" height="72">
+                      <circle cx="60" cy="60" r="52" fill="#FD8972" />
+                      <circle cx="60" cy="60" r="38" fill="#fff" />
+                      <circle cx="60" cy="60" r="26" fill="#B9C4CE" />
+                      <circle cx="60" cy="60" r="13" fill="#fff" />
+                      <path d="M20 20 L58 55 L48 65 Z" fill="#fff" stroke="#003A6C" strokeWidth="1.5" />
                     </svg>
+                    <div>
+                      <div className="browser-h1">Gestión inteligente,<br/>liderazgo eficiente.</div>
+                      <div className="browser-btn">Ver más</div>
+                    </div>
                   </div>
                 </div>
               </div>
+              <div className="laptop-base" />
             </div>
           </div>
         </section>
 
-        {/* MARQUEE / ICONOGRAFÍA */}
+        {/* MARQUEE */}
         <section className="marquee-wrap">
           <p className="marquee-label">Todo lo que tu equipo ministerial necesita, conectado</p>
           <div className="marquee">
@@ -321,11 +168,41 @@ export default function LandingPage() {
           </div>
         </section>
 
+        {/* NOSOTROS / CONCEPTO */}
+        <section className="concept" id="nosotros">
+          <div className="concept-split">
+            <div className="concept-panel navy">
+              <span className="word">Eficiencia</span>
+              <span className="word">Organización</span>
+              <span className="word">Liderazgo</span>
+            </div>
+            <div className="concept-panel coral">
+              <span className="word">Innovación</span>
+              <span className="word">Claridad</span>
+              <span className="word">Resultados</span>
+            </div>
+            <div className="concept-target" aria-hidden="true">
+              <svg viewBox="0 0 220 220" width="180" height="180">
+                <circle cx="110" cy="110" r="100" fill="#FD8972" />
+                <circle cx="110" cy="110" r="76" fill="#fff" />
+                <circle cx="110" cy="110" r="52" fill="#B9C4CE" />
+                <circle cx="110" cy="110" r="26" fill="#fff" />
+                <path d="M28 28 L108 100 L84 124 Z" fill="#fff" stroke="#003A6C" strokeWidth="2" />
+              </svg>
+            </div>
+          </div>
+          <div className="wrap concept-copy">
+            <span className="pill-tag"><span className="dot" />Por qué DOXA</span>
+            <h2>Gestión con propósito, para equipos que quieren avanzar</h2>
+            <p>Construimos DOXA sobre seis pilares: eficiencia, organización y liderazgo en la operación diaria; innovación, claridad y resultados en cómo se ve tu congregación de aquí en adelante.</p>
+          </div>
+        </section>
+
         {/* PRODUCT BLOCKS */}
-        <section className="products" id="modulos">
+        <section className="products" id="servicios">
           <div className="wrap">
             <div className="sec-head">
-              <span className="pill-tag"><span className="dot" />Qué incluye</span>
+              <span className="pill-tag"><span className="dot" />Servicios</span>
               <h2>Un módulo para cada parte de la vida de tu iglesia</h2>
               <p>Cada área se administra por separado, con permisos propios — pero toda la información vive conectada.</p>
             </div>
@@ -340,8 +217,8 @@ export default function LandingPage() {
                 <a href="#demo" className="btn btn-outline btn-sm">Conocer más →</a>
               </div>
               <div className="prod-visual">
-                <div className="row"><span className="k">Personas activas</span><span className="v">1,250</span></div>
-                <div className="row"><span className="k">Grupos en operación</span><span className="badge">156 activos</span></div>
+                <div className="row"><span className="k">Personas activas</span><span className="v">—</span></div>
+                <div className="row"><span className="k">Grupos en operación</span><span className="badge">Al día</span></div>
                 <div className="row"><span className="k">Próximo evento</span><span className="v">Este domingo</span></div>
               </div>
             </div>
@@ -388,27 +265,10 @@ export default function LandingPage() {
                 <a href="#demo" className="btn btn-outline btn-sm">Conocer más →</a>
               </div>
               <div className="prod-visual">
-                <div className="row"><span className="k">Diezmos del mes</span><span className="v">$24,560</span></div>
+                <div className="row"><span className="k">Periodo</span><span className="v">Mensual</span></div>
                 <div className="row"><span className="k">Reportes</span><span className="badge">Automáticos</span></div>
                 <div className="row"><span className="k">Acceso</span><span className="v">Por rol</span></div>
               </div>
-            </div>
-          </div>
-        </section>
-
-        {/* WHY */}
-        <section className="why" id="por-que">
-          <div className="wrap">
-            <div className="sec-head">
-              <span className="pill-tag"><span className="dot" />Por qué DOXA</span>
-              <h2>Gloria, conexión y unidad — llevadas a tu operación diaria</h2>
-              <p>Cada segmento del isotipo representa un ministerio trabajando en unidad. Así construimos la plataforma.</p>
-            </div>
-            <div className="why-grid">
-              <div className="why-card"><div className="ic"><HeartHandshake size={20} /></div><h4>Permisos por ministerio</h4><p>Cada líder ve y edita solo lo que le corresponde, sin fricción ni exceso de acceso.</p></div>
-              <div className="why-card"><div className="ic"><Sparkles size={20} /></div><h4>Asistente DOXA IA</h4><p>Pregunta en lenguaje natural sobre personas, finanzas o programación y obtén datos reales.</p></div>
-              <div className="why-card"><div className="ic"><CalendarDays size={20} /></div><h4>Formatos que ya usas</h4><p>Programación ISO exportable en PDF, tal como la maneja tu equipo hoy.</p></div>
-              <div className="why-card"><div className="ic"><UsersRound size={20} /></div><h4>Migración acompañada</h4><p>Te ayudamos a pasar tu información actual y configurar los ministerios de tu iglesia.</p></div>
             </div>
           </div>
         </section>
@@ -516,7 +376,7 @@ export default function LandingPage() {
                 <h3>¿Listo para ver DOXA funcionando con datos reales?</h3>
                 <p>Agenda una demo de 30 minutos, sin costo ni compromiso.</p>
               </div>
-              <a href="#demo" className="btn btn-dark">Agendar demo →</a>
+              <a href="#demo" className="btn btn-cta">Agendar demo →</a>
             </div>
           </div>
         </section>
@@ -569,7 +429,7 @@ export default function LandingPage() {
                       <label htmlFor="mensaje">Cuéntanos qué necesitas (opcional)</label>
                       <textarea id="mensaje" rows={3} placeholder="Ej: manejamos varias sedes y necesitamos programación por ministerio" value={form.mensaje} onChange={update("mensaje")} />
                     </div>
-                    <button type="submit" className="btn btn-primary">Solicitar demo →</button>
+                    <button type="submit" className="btn btn-cta" style={{ width: "100%" }}>Solicitar demo →</button>
                     <p className="form-note">Te contactaremos en menos de 1 día hábil.</p>
                   </form>
                 ) : (
@@ -590,106 +450,121 @@ export default function LandingPage() {
           <div className="foot-grid">
             <div>
               <a href="#top" className="logo">
-                <DoxaFullLogo height={34} color="#FFFFFF" />
+                <img src={doxaWordmarkWhite} alt="DOXA" className="logo-img" />
               </a>
-              <p className="tag">Plataforma todo en uno para iglesias que avanzan.</p>
+              <p className="tag">Gestión inteligente, liderazgo eficiente.<br />www.doxa.app.co</p>
             </div>
-            <div><h4>Comunidad</h4><ul><li><a href="#modulos">Personas</a></li><li><a href="#modulos">Grupos</a></li><li><a href="#modulos">Eventos</a></li></ul></div>
-            <div><h4>Formación</h4><ul><li><a href="#modulos">Academia</a></li><li><a href="#modulos">Seminario</a></li><li><a href="#modulos">Certificados</a></li></ul></div>
-            <div><h4>Operación</h4><ul><li><a href="#modulos">Programación</a></li><li><a href="#modulos">Finanzas</a></li><li><a href="#modulos">Reportes</a></li></ul></div>
-            <div><h4>Contacto</h4><ul><li><a href="#demo">Agendar demo</a></li><li><a href="mailto:hola@doxa.app">hola@doxa.app</a></li><li><Link to="/login">Ingresar</Link></li></ul></div>
+            <div><h4>Comunidad</h4><ul><li><a href="#servicios">Personas</a></li><li><a href="#servicios">Grupos</a></li><li><a href="#servicios">Eventos</a></li></ul></div>
+            <div><h4>Formación</h4><ul><li><a href="#servicios">Academia</a></li><li><a href="#servicios">Seminario</a></li><li><a href="#servicios">Certificados</a></li></ul></div>
+            <div><h4>Operación</h4><ul><li><a href="#servicios">Programación</a></li><li><a href="#servicios">Finanzas</a></li><li><a href="#servicios">Reportes</a></li></ul></div>
+            <div><h4>Contacto</h4><ul><li><a href="#demo">Agendar demo</a></li><li><a href="mailto:hola@doxa.app.co">hola@doxa.app.co</a></li><li><Link to="/login">Login</Link></li></ul></div>
           </div>
           <div className="foot-bottom">
             <span>© {year} DOXA. Todos los derechos reservados.</span>
-            <span>DOXA.APP · Brand Book 1.0</span>
+            <span>www.doxa.app.co</span>
           </div>
         </div>
       </footer>
 
       <style>{`
         .doxa-landing{
-          --navy:#0A1633; --navy-deep:#070E24;
-          --blue:#1E40FF; --blue-light:#4E7CFF; --blue-soft:#EAF0FF;
-          --violet:#7C3AED; --cyan:#22D3EE;
-          --gold:#FFC857; --gold-soft:#FFF4DE;
-          --bg:#FFFFFF; --bg-tint:#F5F7FC;
-          --ink:#0A1633; --slate:#5B6B8C;
-          --line:#E4E9F5;
+          --navy:#003A6C; --navy-deep:#00294E;
+          --coral:#FD8972; --coral-deep:#E8654A;
+          --coral-soft:#FFE8E2; --navy-soft:#E5EEF5;
+          --bg:#FFFFFF; --bg-tint:#F6F9FB;
+          --ink:#0B2A44; --slate:#5B7185;
+          --line:#E1E9EF;
           --r-lg:28px; --r-md:18px; --r-sm:12px;
           font-family:'Inter',sans-serif; color:var(--ink); background:var(--bg);
           line-height:1.55; -webkit-font-smoothing:antialiased;
         }
         .doxa-landing *{ box-sizing:border-box; }
-        .doxa-landing h1,.doxa-landing h2,.doxa-landing h3{ font-family:'Geist',sans-serif; font-weight:600; letter-spacing:-0.015em; color:var(--navy); margin:0; }
+        .doxa-landing h1,.doxa-landing h2,.doxa-landing h3{ font-family:'Poppins',sans-serif; font-weight:600; letter-spacing:-0.01em; color:var(--navy); margin:0; }
         .doxa-landing a{ color:inherit; text-decoration:none; }
         .doxa-landing ul{ list-style:none; margin:0; padding:0; }
         .doxa-landing section{ position:relative; }
         .doxa-landing .wrap{ max-width:1200px; margin:0 auto; padding:0 28px; }
 
-        .doxa-landing .pill-tag{ display:inline-flex; align-items:center; gap:8px; background:var(--blue-soft); color:var(--blue); padding:7px 16px; border-radius:999px; font-size:13px; font-weight:600; font-family:'Geist'; }
-        .doxa-landing .pill-tag.pill-dark{ background:rgba(255,255,255,0.1); color:var(--gold-soft); }
-        .doxa-landing .dot{ width:6px; height:6px; border-radius:50%; background:var(--gold); display:inline-block; }
+        .doxa-landing .pill-tag{ display:inline-flex; align-items:center; gap:8px; background:var(--navy-soft); color:var(--navy); padding:7px 16px; border-radius:999px; font-size:13px; font-weight:600; font-family:'Poppins'; }
+        .doxa-landing .pill-tag.pill-dark{ background:rgba(255,255,255,0.12); color:#FFD9CD; }
+        .doxa-landing .dot{ width:6px; height:6px; border-radius:50%; background:var(--coral); display:inline-block; }
 
-        .doxa-landing .btn{ display:inline-flex; align-items:center; justify-content:center; gap:8px; padding:15px 28px; border-radius:999px; font-weight:600; font-family:'Geist'; font-size:15px; cursor:pointer; border:1.5px solid transparent; transition:transform .15s ease, box-shadow .15s ease, background .15s ease; white-space:nowrap; }
-        .doxa-landing .btn:focus-visible{ outline:3px solid var(--gold); outline-offset:2px; }
-        .doxa-landing .btn-primary{ background:linear-gradient(135deg, var(--blue), var(--violet)); color:#fff; box-shadow:0 10px 24px -10px rgba(30,64,255,0.55); }
-        .doxa-landing .btn-primary:hover{ transform:translateY(-2px); box-shadow:0 16px 30px -10px rgba(30,64,255,0.6); }
-        .doxa-landing .btn-dark{ background:var(--navy); color:#fff; }
-        .doxa-landing .btn-dark:hover{ transform:translateY(-2px); }
+        .doxa-landing .logo-img{ height:26px; width:auto; display:block; }
+
+        .doxa-landing .btn{ display:inline-flex; align-items:center; justify-content:center; gap:8px; padding:15px 28px; border-radius:999px; font-weight:600; font-family:'Poppins'; font-size:15px; cursor:pointer; border:1.5px solid transparent; transition:transform .15s ease, box-shadow .15s ease, background .15s ease; white-space:nowrap; }
+        .doxa-landing .btn:focus-visible{ outline:3px solid var(--coral); outline-offset:2px; }
+        .doxa-landing .btn-primary{ background:var(--navy); color:#fff; box-shadow:0 10px 24px -10px rgba(0,58,108,0.5); }
+        .doxa-landing .btn-primary:hover{ transform:translateY(-2px); }
+        .doxa-landing .btn-cta{ background:var(--coral); color:#fff; box-shadow:0 10px 24px -10px rgba(253,137,114,0.65); }
+        .doxa-landing .btn-cta:hover{ transform:translateY(-2px); background:var(--coral-deep); }
         .doxa-landing .btn-outline{ background:#fff; color:var(--navy); border-color:var(--line); }
-        .doxa-landing .btn-outline:hover{ border-color:var(--blue); color:var(--blue); }
+        .doxa-landing .btn-outline:hover{ border-color:var(--navy); }
+        .doxa-landing .btn-outline-light{ background:rgba(255,255,255,0.12); color:#fff; border-color:rgba(255,255,255,0.5); }
+        .doxa-landing .btn-outline-light:hover{ background:rgba(255,255,255,0.2); }
         .doxa-landing .btn-sm{ padding:10px 18px; font-size:13.5px; }
 
-        .doxa-landing header{ position:sticky; top:0; z-index:60; background:rgba(255,255,255,0.9); backdrop-filter:blur(10px); border-bottom:1px solid var(--line); }
+        .doxa-landing header{ position:sticky; top:0; z-index:60; background:rgba(255,255,255,0.92); backdrop-filter:blur(10px); border-bottom:1px solid var(--line); }
         .doxa-landing nav{ display:flex; align-items:center; justify-content:space-between; padding:16px 0; gap:24px; }
-        .doxa-landing .logo{ display:flex; align-items:center; gap:9px; }
-        .doxa-landing .navlinks{ display:flex; gap:28px; font-size:14.5px; font-weight:600; font-family:'Geist'; color:var(--navy); }
+        .doxa-landing .logo{ display:flex; align-items:center; }
+        .doxa-landing .navlinks{ display:flex; gap:28px; font-size:14.5px; font-weight:600; font-family:'Poppins'; color:var(--navy); }
         .doxa-landing .navlinks a{ color:var(--slate); }
-        .doxa-landing .navlinks a:hover{ color:var(--blue); }
+        .doxa-landing .navlinks a:hover{ color:var(--coral); }
         .doxa-landing .navcta{ display:flex; align-items:center; gap:12px; }
         @media (max-width:860px){ .doxa-landing .navlinks{ display:none; } }
 
-        .doxa-landing .hero{ padding:76px 0 40px; background:radial-gradient(1100px 480px at 82% -10%, var(--blue-soft), transparent 60%); }
-        .doxa-landing .hero-inner{ text-align:center; max-width:780px; margin:0 auto; }
-        .doxa-landing .hero h1{ font-size:clamp(32px,5vw,52px); line-height:1.08; margin:20px 0 18px; font-weight:600; }
-        .doxa-landing .hero h1 .accent{ background:linear-gradient(90deg, var(--blue), var(--violet)); -webkit-background-clip:text; background-clip:text; color:transparent; }
-        .doxa-landing .hero p.lead{ font-size:18px; color:var(--slate); max-width:560px; margin:0 auto 30px; }
-        .doxa-landing .hero-actions{ display:flex; gap:14px; justify-content:center; flex-wrap:wrap; margin-bottom:14px; }
-        .doxa-landing .hero-badges{ display:flex; gap:22px; justify-content:center; flex-wrap:wrap; margin-top:22px; font-size:13px; color:var(--slate); font-weight:600; }
-        .doxa-landing .hero-badges span{ display:inline-flex; align-items:center; gap:6px; }
-        .doxa-landing .hero-badges .ck{ color:var(--blue); }
+        .doxa-landing .hero{ padding:80px 0 90px; background:linear-gradient(120deg, var(--navy) 0%, var(--navy) 40%, var(--coral) 115%); overflow:hidden; position:relative; }
+        .doxa-landing .hero-x{ position:absolute; background:rgba(255,255,255,0.08); border-radius:18px; }
+        .doxa-landing .hero-x1{ width:120px; height:420px; right:8%; top:-80px; transform:rotate(35deg); background:rgba(253,137,114,0.35); }
+        .doxa-landing .hero-x2{ width:90px; height:340px; right:16%; top:-40px; transform:rotate(-35deg); background:rgba(255,255,255,0.1); }
+        .doxa-landing .hero-grid{ position:relative; z-index:1; display:grid; grid-template-columns:1fr 1fr; gap:48px; align-items:center; }
+        @media (max-width:920px){ .doxa-landing .hero-grid{ grid-template-columns:1fr; } }
+        .doxa-landing .hero-copy h1{ color:#fff; font-size:clamp(32px,4.4vw,50px); line-height:1.15; font-weight:700; }
+        .doxa-landing .hero-copy h1 em{ font-style:normal; color:#FFD9CD; }
+        .doxa-landing .hero-copy .lead{ color:rgba(255,255,255,0.85); font-size:17px; max-width:460px; margin:20px 0 30px; }
+        .doxa-landing .hero-actions{ display:flex; gap:14px; flex-wrap:wrap; margin-bottom:22px; }
+        .doxa-landing .hero-url{ color:rgba(255,255,255,0.7); font-family:'Poppins'; font-size:14px; font-weight:500; }
 
-        .doxa-landing .hero-shot{ max-width:1040px; margin:52px auto 0; border-radius:var(--r-lg); background:linear-gradient(160deg,var(--navy) 0%,var(--navy-deep) 100%); padding:3px; box-shadow:0 40px 90px -40px rgba(10,22,51,0.5); }
-        .doxa-landing .hero-shot-inner{ border-radius:calc(var(--r-lg) - 3px); background:var(--navy-deep); display:grid; grid-template-columns:180px 1fr; overflow:hidden; min-height:400px; }
-        .doxa-landing .hs-side{ background:#0D1B40; padding:20px 14px; border-right:1px solid rgba(255,255,255,0.06); }
-        .doxa-landing .hs-brand{ display:flex; align-items:center; gap:8px; padding:6px 6px 18px; }
-        .doxa-landing .hs-side .it{ font-size:12.5px; color:#B9C6E4; padding:8px 9px; border-radius:9px; margin-bottom:2px; }
-        .doxa-landing .hs-side .it.on{ background:linear-gradient(90deg, rgba(30,64,255,0.35), rgba(124,58,237,0.25)); color:#fff; position:relative; }
-        .doxa-landing .hs-side .it.on::before{ content:""; position:absolute; left:-6px; top:50%; transform:translateY(-50%); width:3px; height:14px; background:var(--gold); border-radius:2px; }
-        .doxa-landing .hs-main{ padding:26px 28px; }
-        .doxa-landing .hs-grid{ display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:22px; }
-        .doxa-landing .hs-card{ background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.09); border-radius:14px; padding:14px; }
-        .doxa-landing .hs-card .l{ font-size:10.5px; color:#8EA1CB; margin-bottom:6px; }
-        .doxa-landing .hs-card .n{ font-family:'Geist'; font-size:20px; font-weight:700; color:#fff; }
-        .doxa-landing .hs-card .delta{ font-size:10.5px; color:var(--cyan); margin-top:4px; font-weight:600; }
-        .doxa-landing .hs-chart{ background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08); border-radius:14px; padding:16px; }
-        .doxa-landing .hs-chart-label{ font-size:11px; color:#8EA1CB; margin-bottom:8px; font-family:'Geist'; }
+        .doxa-landing .hero-visual{ display:flex; flex-direction:column; align-items:center; }
+        .doxa-landing .laptop{ width:100%; max-width:480px; background:#111; border-radius:16px 16px 0 0; padding:10px 10px 0; box-shadow:0 30px 60px -25px rgba(0,0,0,0.5); }
+        .doxa-landing .laptop-notch{ width:60px; height:6px; background:#000; border-radius:0 0 6px 6px; margin:0 auto; }
+        .doxa-landing .laptop-screen{ background:#fff; border-radius:8px; overflow:hidden; margin-top:4px; }
+        .doxa-landing .laptop-base{ width:110%; max-width:530px; height:14px; background:linear-gradient(#2a2a2a,#111); border-radius:0 0 10px 10px; margin-left:auto; margin-right:auto; }
+        .doxa-landing .browser-bar{ display:flex; align-items:center; justify-content:space-between; padding:10px 16px; border-bottom:1px solid var(--line); }
+        .doxa-landing .browser-logo{ height:14px; width:auto; }
+        .doxa-landing .browser-links{ display:flex; gap:12px; font-size:9px; font-family:'Poppins'; font-weight:600; color:var(--slate); }
+        .doxa-landing .browser-login{ font-size:9px; font-family:'Poppins'; font-weight:600; background:var(--bg-tint); border:1px solid var(--line); border-radius:999px; padding:4px 10px; color:var(--navy); }
+        .doxa-landing .browser-hero{ background:linear-gradient(120deg, var(--navy), var(--coral) 140%); padding:28px 18px; display:flex; align-items:center; gap:16px; }
+        .doxa-landing .browser-h1{ color:#fff; font-family:'Poppins'; font-weight:700; font-size:14px; line-height:1.35; margin-bottom:10px; }
+        .doxa-landing .browser-btn{ display:inline-block; background:var(--coral); color:#fff; font-size:10px; font-family:'Poppins'; font-weight:600; padding:6px 14px; border-radius:999px; }
 
         .doxa-landing .marquee-wrap{ padding:44px 0 20px; overflow:hidden; }
         .doxa-landing .marquee-label{ text-align:center; font-size:13px; color:var(--slate); font-weight:600; margin-bottom:22px; }
         .doxa-landing .marquee{ display:flex; gap:40px; width:max-content; animation:doxa-scroll 24s linear infinite; }
         @media (prefers-reduced-motion:reduce){ .doxa-landing .marquee{ animation:none; } }
         @keyframes doxa-scroll{ from{ transform:translateX(0); } to{ transform:translateX(-50%); } }
-        .doxa-landing .marquee .chip{ display:flex; align-items:center; gap:9px; font-family:'Geist'; font-weight:600; font-size:15px; color:var(--slate); white-space:nowrap; }
-        .doxa-landing .marquee .chip svg{ color:var(--blue); }
+        .doxa-landing .marquee .chip{ display:flex; align-items:center; gap:9px; font-family:'Poppins'; font-weight:600; font-size:15px; color:var(--slate); white-space:nowrap; }
+        .doxa-landing .marquee .chip svg{ color:var(--coral); }
 
         .doxa-landing .stats{ padding:60px 0; background:var(--bg-tint); border-top:1px solid var(--line); border-bottom:1px solid var(--line); }
         .doxa-landing .stats-grid{ display:grid; grid-template-columns:repeat(4,1fr); gap:24px; text-align:center; }
         @media (max-width:800px){ .doxa-landing .stats-grid{ grid-template-columns:1fr 1fr; } }
-        .doxa-landing .stats .n{ font-family:'Geist'; font-size:clamp(30px,3.6vw,42px); font-weight:700; color:var(--navy); }
+        .doxa-landing .stats .n{ font-family:'Poppins'; font-size:clamp(30px,3.6vw,42px); font-weight:700; color:var(--navy); }
         .doxa-landing .stats .l{ font-size:13.5px; color:var(--slate); margin-top:6px; }
 
-        .doxa-landing .products{ padding:100px 0 60px; }
+        .doxa-landing .concept{ padding:0 0 20px; }
+        .doxa-landing .concept-split{ position:relative; display:grid; grid-template-columns:1fr 1fr; min-height:280px; }
+        @media (max-width:700px){ .doxa-landing .concept-split{ min-height:340px; } }
+        .doxa-landing .concept-panel{ display:flex; flex-direction:column; justify-content:center; gap:36px; padding:40px 8%; }
+        .doxa-landing .concept-panel.navy{ background:var(--navy); align-items:flex-start; }
+        .doxa-landing .concept-panel.coral{ background:var(--coral); align-items:flex-end; }
+        .doxa-landing .concept-panel .word{ color:#fff; font-family:'Poppins'; font-weight:600; font-size:20px; }
+        .doxa-landing .concept-target{ position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); filter:drop-shadow(0 20px 30px rgba(0,0,0,0.25)); }
+        @media (max-width:700px){ .doxa-landing .concept-target svg{ width:110px; height:110px; } }
+        .doxa-landing .concept-copy{ text-align:center; max-width:640px; margin:52px auto 0; }
+        .doxa-landing .concept-copy h2{ font-size:clamp(26px,3.2vw,34px); margin:16px 0 14px; }
+        .doxa-landing .concept-copy p{ color:var(--slate); font-size:16px; }
+
+        .doxa-landing .products{ padding:90px 0 60px; }
         .doxa-landing .sec-head{ max-width:640px; margin:0 auto 60px; text-align:center; }
         .doxa-landing .sec-head h2{ font-size:clamp(28px,3.4vw,38px); margin:16px 0 14px; }
         .doxa-landing .sec-head p{ color:var(--slate); font-size:16.5px; }
@@ -698,91 +573,80 @@ export default function LandingPage() {
         .doxa-landing .prod-block:last-child{ border-bottom:none; }
         .doxa-landing .prod-block.rev .prod-copy{ order:2; }
         @media (max-width:900px){ .doxa-landing .prod-block{ grid-template-columns:1fr; } .doxa-landing .prod-block.rev .prod-copy{ order:0; } }
-        .doxa-landing .prod-copy .tag{ font-family:'Geist'; font-size:11px; letter-spacing:.1em; text-transform:uppercase; color:var(--blue); font-weight:600; }
+        .doxa-landing .prod-copy .tag{ font-family:'Poppins'; font-size:11px; letter-spacing:.1em; text-transform:uppercase; color:var(--coral-deep); font-weight:600; }
         .doxa-landing .prod-copy h3{ font-size:26px; margin:12px 0 14px; }
         .doxa-landing .prod-copy p{ color:var(--slate); font-size:15.5px; margin-bottom:20px; }
         .doxa-landing .prod-copy .chk{ display:flex; gap:10px; align-items:flex-start; font-size:14.5px; color:var(--ink); margin-bottom:10px; }
-        .doxa-landing .prod-copy .chk .ic{ width:18px; height:18px; border-radius:50%; background:var(--gold-soft); color:#946213; display:flex; align-items:center; justify-content:center; font-size:11px; flex-shrink:0; margin-top:1px; font-weight:700; }
+        .doxa-landing .prod-copy .chk .ic{ width:18px; height:18px; border-radius:50%; background:var(--coral-soft); color:var(--coral-deep); display:flex; align-items:center; justify-content:center; font-size:11px; flex-shrink:0; margin-top:1px; font-weight:700; }
         .doxa-landing .prod-visual{ background:var(--bg-tint); border:1px solid var(--line); border-radius:var(--r-lg); padding:26px; min-height:280px; display:flex; flex-direction:column; justify-content:center; gap:12px; }
         .doxa-landing .prod-visual .row{ background:#fff; border:1px solid var(--line); border-radius:var(--r-sm); padding:14px 16px; display:flex; justify-content:space-between; align-items:center; font-size:13.5px; }
         .doxa-landing .prod-visual .row .k{ color:var(--slate); }
-        .doxa-landing .prod-visual .row .v{ font-weight:700; color:var(--navy); font-family:'Geist'; }
-        .doxa-landing .prod-visual .row .badge{ background:var(--gold-soft); color:#946213; padding:3px 10px; border-radius:999px; font-size:11.5px; font-weight:700; }
-
-        .doxa-landing .why{ padding:90px 0; background:var(--bg-tint); }
-        .doxa-landing .why-grid{ display:grid; grid-template-columns:repeat(4,1fr); gap:20px; }
-        @media (max-width:920px){ .doxa-landing .why-grid{ grid-template-columns:1fr 1fr; } }
-        @media (max-width:560px){ .doxa-landing .why-grid{ grid-template-columns:1fr; } }
-        .doxa-landing .why-card{ background:#fff; border:1px solid var(--line); border-radius:var(--r-md); padding:26px; }
-        .doxa-landing .why-card .ic{ width:40px; height:40px; border-radius:11px; background:linear-gradient(135deg,var(--blue),var(--violet)); margin-bottom:16px; display:flex; align-items:center; justify-content:center; color:#fff; }
-        .doxa-landing .why-card h4{ font-size:16px; margin-bottom:8px; font-family:'Geist'; }
-        .doxa-landing .why-card p{ font-size:14px; color:var(--slate); margin:0; }
+        .doxa-landing .prod-visual .row .v{ font-weight:700; color:var(--navy); font-family:'Poppins'; }
+        .doxa-landing .prod-visual .row .badge{ background:var(--coral-soft); color:var(--coral-deep); padding:3px 10px; border-radius:999px; font-size:11.5px; font-weight:700; }
 
         .doxa-landing .quote-sec{ padding:100px 0; }
-        .doxa-landing .quote-card{ max-width:820px; margin:0 auto; text-align:center; background:linear-gradient(160deg,var(--navy) 0%,var(--navy-deep) 100%); border-radius:var(--r-lg); padding:64px 48px; color:#fff; position:relative; overflow:hidden; }
-        .doxa-landing .quote-card::after{ content:""; position:absolute; right:-100px; top:-100px; width:340px; height:340px; border-radius:50%; background:radial-gradient(circle, rgba(124,58,237,0.28), transparent 70%); }
-        .doxa-landing .quote-mark{ font-family:'Geist'; font-size:64px; color:var(--gold); line-height:1; margin-bottom:8px; }
+        .doxa-landing .quote-card{ max-width:820px; margin:0 auto; text-align:center; background:linear-gradient(120deg, var(--navy) 0%, var(--coral) 160%); border-radius:var(--r-lg); padding:64px 48px; color:#fff; position:relative; overflow:hidden; }
+        .doxa-landing .quote-mark{ font-family:'Poppins'; font-size:64px; color:#FFD9CD; line-height:1; margin-bottom:8px; }
         .doxa-landing .quote-card p.q{ font-size:22px; font-weight:500; line-height:1.5; max-width:620px; margin:0 auto 24px; position:relative; z-index:1; }
-        .doxa-landing .quote-card .who{ font-size:13.5px; color:#9FB1D8; position:relative; z-index:1; }
+        .doxa-landing .quote-card .who{ font-size:13.5px; color:rgba(255,255,255,0.75); position:relative; z-index:1; }
 
         .doxa-landing .plans{ padding:20px 0 100px; }
         .doxa-landing .plans-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:22px; }
         @media (max-width:900px){ .doxa-landing .plans-grid{ grid-template-columns:1fr; max-width:420px; margin:0 auto; } }
         .doxa-landing .plan{ border:1.5px solid var(--line); border-radius:var(--r-md); padding:32px 26px; background:#fff; display:flex; flex-direction:column; }
-        .doxa-landing .plan.feat{ border-color:var(--blue); box-shadow:0 20px 40px -20px rgba(30,64,255,0.35); position:relative; }
-        .doxa-landing .plan.feat .flag{ position:absolute; top:-13px; left:26px; background:var(--gold); color:var(--navy); font-size:11px; font-weight:700; padding:5px 12px; border-radius:999px; font-family:'Geist'; }
-        .doxa-landing .plan h4{ font-family:'Geist'; font-size:20px; margin-bottom:6px; }
+        .doxa-landing .plan.feat{ border-color:var(--coral); box-shadow:0 20px 40px -20px rgba(253,137,114,0.4); position:relative; }
+        .doxa-landing .plan.feat .flag{ position:absolute; top:-13px; left:26px; background:var(--coral); color:#fff; font-size:11px; font-weight:700; padding:5px 12px; border-radius:999px; font-family:'Poppins'; }
+        .doxa-landing .plan h4{ font-family:'Poppins'; font-size:20px; margin-bottom:6px; }
         .doxa-landing .plan .desc{ font-size:13.5px; color:var(--slate); margin-bottom:20px; }
-        .doxa-landing .plan .price{ font-family:'Geist'; font-size:15px; color:var(--navy); font-weight:600; margin-bottom:22px; }
+        .doxa-landing .plan .price{ font-family:'Poppins'; font-size:15px; color:var(--navy); font-weight:600; margin-bottom:22px; }
         .doxa-landing .plan ul{ display:flex; flex-direction:column; gap:11px; margin-bottom:26px; flex:1; }
         .doxa-landing .plan li{ display:flex; gap:9px; align-items:flex-start; font-size:14px; color:var(--ink); }
-        .doxa-landing .plan li .ic{ width:16px; height:16px; border-radius:50%; background:var(--blue-soft); color:var(--blue); display:flex; align-items:center; justify-content:center; font-size:10px; flex-shrink:0; margin-top:2px; font-weight:700; }
+        .doxa-landing .plan li .ic{ width:16px; height:16px; border-radius:50%; background:var(--navy-soft); color:var(--navy); display:flex; align-items:center; justify-content:center; font-size:10px; flex-shrink:0; margin-top:2px; font-weight:700; }
         .doxa-landing .plan .btn{ width:100%; }
 
         .doxa-landing .faq{ padding:20px 0 110px; }
         .doxa-landing .faq-list{ max-width:780px; margin:0 auto; }
         .doxa-landing details{ border-bottom:1px solid var(--line); padding:20px 0; }
-        .doxa-landing summary{ cursor:pointer; list-style:none; display:flex; justify-content:space-between; align-items:center; font-weight:600; font-family:'Geist'; font-size:15.5px; color:var(--navy); }
+        .doxa-landing summary{ cursor:pointer; list-style:none; display:flex; justify-content:space-between; align-items:center; font-weight:600; font-family:'Poppins'; font-size:15.5px; color:var(--navy); }
         .doxa-landing summary::-webkit-details-marker{ display:none; }
-        .doxa-landing summary .plus{ font-family:'Geist'; font-size:20px; color:var(--blue); transition:transform .2s ease; flex-shrink:0; margin-left:16px; }
+        .doxa-landing summary .plus{ font-family:'Poppins'; font-size:20px; color:var(--coral); transition:transform .2s ease; flex-shrink:0; margin-left:16px; }
         .doxa-landing details[open] summary .plus{ transform:rotate(45deg); }
         .doxa-landing details p{ font-size:14.5px; color:var(--slate); margin-top:12px; max-width:640px; }
 
         .doxa-landing .cta-strip{ padding:0 0 110px; }
-        .doxa-landing .cta-box{ max-width:1000px; margin:0 auto; background:var(--blue-soft); border-radius:var(--r-lg); padding:56px; display:flex; justify-content:space-between; align-items:center; gap:30px; flex-wrap:wrap; }
+        .doxa-landing .cta-box{ max-width:1000px; margin:0 auto; background:var(--navy-soft); border-radius:var(--r-lg); padding:56px; display:flex; justify-content:space-between; align-items:center; gap:30px; flex-wrap:wrap; }
         .doxa-landing .cta-box h3{ font-size:24px; margin-bottom:8px; }
         .doxa-landing .cta-box p{ color:var(--slate); font-size:14.5px; margin:0; }
 
         .doxa-landing .demo{ padding:0 0 110px; }
-        .doxa-landing .demo-panel{ background:#fff; border:1px solid var(--line); border-radius:var(--r-lg); display:grid; grid-template-columns:1fr 1fr; overflow:hidden; box-shadow:0 30px 70px -45px rgba(10,22,51,0.4); }
+        .doxa-landing .demo-panel{ background:#fff; border:1px solid var(--line); border-radius:var(--r-lg); display:grid; grid-template-columns:1fr 1fr; overflow:hidden; box-shadow:0 30px 70px -45px rgba(0,58,108,0.35); }
         @media (max-width:880px){ .doxa-landing .demo-panel{ grid-template-columns:1fr; } }
-        .doxa-landing .demo-copy{ padding:50px; background:linear-gradient(160deg,var(--navy) 0%,var(--navy-deep) 100%); color:#fff; }
+        .doxa-landing .demo-copy{ padding:50px; background:linear-gradient(140deg, var(--navy) 0%, var(--coral) 170%); color:#fff; }
         .doxa-landing .demo-copy h2{ color:#fff; font-size:28px; margin:14px 0 14px; }
-        .doxa-landing .demo-copy p{ color:#B9C6E4; font-size:15px; margin-bottom:26px; }
-        .doxa-landing .demo-copy .row{ display:flex; gap:10px; align-items:flex-start; font-size:13.5px; color:#DCE5F7; margin-bottom:12px; }
+        .doxa-landing .demo-copy p{ color:rgba(255,255,255,0.85); font-size:15px; margin-bottom:26px; }
+        .doxa-landing .demo-copy .row{ display:flex; gap:10px; align-items:flex-start; font-size:13.5px; color:rgba(255,255,255,0.9); margin-bottom:12px; }
         .doxa-landing .demo-form{ padding:50px; }
         .doxa-landing .field{ margin-bottom:16px; }
-        .doxa-landing .field label{ display:block; font-size:12.5px; font-weight:700; font-family:'Geist'; color:var(--navy); margin-bottom:6px; }
+        .doxa-landing .field label{ display:block; font-size:12.5px; font-weight:700; font-family:'Poppins'; color:var(--navy); margin-bottom:6px; }
         .doxa-landing .field input, .doxa-landing .field select, .doxa-landing .field textarea{ width:100%; padding:12px 14px; border:1.5px solid var(--line); border-radius:12px; font-family:'Inter'; font-size:14.5px; color:var(--ink); background:var(--bg-tint); }
-        .doxa-landing .field input:focus, .doxa-landing .field select:focus, .doxa-landing .field textarea:focus{ outline:2px solid var(--blue); outline-offset:1px; border-color:var(--blue); }
+        .doxa-landing .field input:focus, .doxa-landing .field select:focus, .doxa-landing .field textarea:focus{ outline:2px solid var(--coral); outline-offset:1px; border-color:var(--coral); }
         .doxa-landing .field-row{ display:grid; grid-template-columns:1fr 1fr; gap:14px; }
         @media (max-width:520px){ .doxa-landing .field-row{ grid-template-columns:1fr; } }
-        .doxa-landing .demo-form .btn{ width:100%; margin-top:6px; }
         .doxa-landing .form-note{ font-size:12px; color:var(--slate); margin-top:12px; text-align:center; }
         .doxa-landing .success{ text-align:center; padding:40px 10px; }
-        .doxa-landing .success .check{ width:54px; height:54px; border-radius:50%; background:var(--gold); margin:0 auto 16px; display:flex; align-items:center; justify-content:center; font-size:24px; color:var(--navy); }
+        .doxa-landing .success .check{ width:54px; height:54px; border-radius:50%; background:var(--coral); margin:0 auto 16px; display:flex; align-items:center; justify-content:center; font-size:24px; color:#fff; }
         .doxa-landing .success h3{ font-size:19px; margin-bottom:8px; }
         .doxa-landing .success p{ color:var(--slate); font-size:14px; margin:0; }
 
-        .doxa-landing footer{ background:var(--navy-deep); color:#B9C6E4; padding:64px 0 30px; }
+        .doxa-landing footer{ background:var(--navy-deep); color:#B9CBDA; padding:64px 0 30px; }
         .doxa-landing .foot-grid{ display:grid; grid-template-columns:1.4fr 1fr 1fr 1fr 1fr; gap:36px; margin-bottom:48px; }
         @media (max-width:900px){ .doxa-landing .foot-grid{ grid-template-columns:1fr 1fr 1fr; } }
         @media (max-width:600px){ .doxa-landing .foot-grid{ grid-template-columns:1fr 1fr; } }
-        .doxa-landing footer p.tag{ font-size:13px; color:#8EA1CB; margin-top:12px; max-width:220px; }
-        .doxa-landing footer h4{ font-family:'Geist'; color:#fff; font-size:14px; margin-bottom:14px; }
-        .doxa-landing footer ul{ display:flex; flex-direction:column; gap:9px; font-size:13px; }
-        .doxa-landing footer a:hover{ color:#fff; }
-        .doxa-landing .foot-bottom{ border-top:1px solid rgba(255,255,255,0.08); padding-top:24px; display:flex; justify-content:space-between; flex-wrap:wrap; gap:12px; font-size:12.5px; color:#8EA1CB; }
+        .doxa-landing footer p.tag{ font-size:13.5px; margin-top:14px; max-width:250px; color:#8FA6BC; }
+        .doxa-landing footer h4{ font-family:'Poppins'; font-size:10.5px; letter-spacing:.1em; text-transform:uppercase; color:#6E8AA3; margin-bottom:14px; font-weight:600; }
+        .doxa-landing footer ul{ display:flex; flex-direction:column; gap:9px; font-size:13.5px; }
+        .doxa-landing footer ul a:hover{ color:#fff; }
+        .doxa-landing .foot-bottom{ border-top:1px solid rgba(255,255,255,0.08); padding-top:24px; display:flex; justify-content:space-between; flex-wrap:wrap; gap:10px; font-size:12.5px; color:#6E8AA3; font-family:'Poppins'; }
       `}</style>
     </div>
   );
