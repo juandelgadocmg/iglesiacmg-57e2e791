@@ -1,0 +1,7 @@
+project_id = "okbcdqszvcbxdefyvzur"
+
+[functions.update_by_leader_token]
+verify_jwt = false
+
+[functions.setup_data]
+verify_jwt = false
