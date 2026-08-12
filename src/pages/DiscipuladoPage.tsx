@@ -14,27 +14,51 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { calcularSemaforo, ETAPAS_ORDER, SemaforoColor } from "@/modules/discipulado/utils/semaforo";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import { Progress } from "@/components/ui/progress";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+
+import {
+  calcularSemaforo,
+  calcularEstadoEtapas,
+  ETAPAS_ORDER,
+  ETAPAS_LABELS,
+  formatDuracion,
+  SemaforoColor,
+} from "@/modules/discipulado/utils/semaforo";
 import { SemaforoDot } from "@/modules/discipulado/components/SemaforoDot";
+import { generateRedPdf } from "@/modules/discipulado/utils/generateRedPdf";
+
 import {
   Search,
   Users,
   Home,
   Network,
   UserCheck,
-  Filter,
   CheckCircle2,
   AlertTriangle,
-  Clock,
   ExternalLink,
   ChevronRight,
   BookOpen,
+  Calendar,
+  Sparkles,
+  Download,
+  Layers,
+  Check,
 } from "lucide-react";
 import { useDiscipulando } from "@/hooks/useDiscipulando";
+import { toast } from "sonner";
 
 export default function DiscipuladoPage() {
-  const { url: discipulandoExtUrl, open: openExtDiscipulando } = useDiscipulando();
+  const { open: openExtDiscipulando } = useDiscipulando();
 
+  // State initialization
   const [redes, setRedes] = useState<any[]>(INITIAL_REDES);
   const [casas, setCasas] = useState<any[]>(INITIAL_CASAS);
   const [leaders, setLeaders] = useState<any[]>(INITIAL_LEADERS);
@@ -42,6 +66,7 @@ export default function DiscipuladoPage() {
   const [progreso, setProgreso] = useState<any[]>(INITIAL_PROGRESO);
   const [etapas] = useState<any[]>(INITIAL_ETAPAS);
 
+  // Filters
   const [search, setSearch] = useState("");
   const [filterRed, setFilterRed] = useState("all");
   const [filterCasa, setFilterCasa] = useState("all");
@@ -49,7 +74,10 @@ export default function DiscipuladoPage() {
   const [filterStatus, setFilterStatus] = useState("all");
   const [filterSemaforo, setFilterSemaforo] = useState("all");
 
-  // Attempt live Supabase fetch if available, fallback to initial dataset
+  // Selected disciple modal
+  const [selectedDiscipulo, setSelectedDiscipulo] = useState<any | null>(null);
+
+  // Live Supabase sync fallback
   useEffect(() => {
     let isMounted = true;
     async function loadLiveData() {
@@ -64,32 +92,20 @@ export default function DiscipuladoPage() {
 
         if (!isMounted) return;
 
-        if (rRes.status === "fulfilled" && rRes.value.data && rRes.value.data.length > 0) {
-          setRedes(rRes.value.data);
-        }
-        if (cRes.status === "fulfilled" && cRes.value.data && cRes.value.data.length > 0) {
-          setCasas(cRes.value.data);
-        }
-        if (lRes.status === "fulfilled" && lRes.value.data && lRes.value.data.length > 0) {
-          setLeaders(lRes.value.data);
-        }
-        if (dRes.status === "fulfilled" && dRes.value.data && dRes.value.data.length > 0) {
-          setDiscipulos(dRes.value.data);
-        }
-        if (pRes.status === "fulfilled" && pRes.value.data && pRes.value.data.length > 0) {
-          setProgreso(pRes.value.data);
-        }
+        if (rRes.status === "fulfilled" && rRes.value.data && rRes.value.data.length > 0) setRedes(rRes.value.data);
+        if (cRes.status === "fulfilled" && cRes.value.data && cRes.value.data.length > 0) setCasas(cRes.value.data);
+        if (lRes.status === "fulfilled" && lRes.value.data && lRes.value.data.length > 0) setLeaders(lRes.value.data);
+        if (dRes.status === "fulfilled" && dRes.value.data && dRes.value.data.length > 0) setDiscipulos(dRes.value.data);
+        if (pRes.status === "fulfilled" && pRes.value.data && pRes.value.data.length > 0) setProgreso(pRes.value.data);
       } catch (err) {
-        console.warn("Using offline/pre-loaded Discipulando dataset", err);
+        console.warn("Utilizando dataset pre-cargado de Discipulando Naciones", err);
       }
     }
     loadLiveData();
-    return () => {
-      isMounted = false;
-    };
+    return () => { isMounted = false; };
   }, []);
 
-  // Quick lookup maps
+  // Quick Map Lookups
   const redesMap = useMemo(() => new Map(redes.map((r) => [r.id, r])), [redes]);
   const casasMap = useMemo(() => new Map(casas.map((c) => [c.id, c])), [casas]);
   const leadersMap = useMemo(() => new Map(leaders.map((l) => [l.id, l])), [leaders]);
@@ -100,7 +116,7 @@ export default function DiscipuladoPage() {
     return casas.filter((c) => c.red_id === filterRed);
   }, [casas, filterRed]);
 
-  // Filtered discipulos
+  // Discípulos filtered
   const filteredDiscipulos = useMemo(() => {
     return discipulos.filter((d) => {
       const casa = casasMap.get(d.casa_de_paz_id);
@@ -131,7 +147,7 @@ export default function DiscipuladoPage() {
     });
   }, [discipulos, casasMap, leadersMap, progreso, search, filterRed, filterCasa, filterLider, filterStatus, filterSemaforo]);
 
-  // Stats calculation
+  // Semáforo Stats
   const stats = useMemo(() => {
     const counts: Record<SemaforoColor, number> = { verde: 0, amarillo: 0, rojo: 0, gris: 0, azul: 0 };
     discipulos.forEach((d) => {
@@ -142,7 +158,7 @@ export default function DiscipuladoPage() {
     return counts;
   }, [discipulos, progreso]);
 
-  // Grouping by Red -> Casa -> Leader -> Discipulos for Hierarchy tab
+  // Hierarchy structure (Red -> Casa -> Leader -> Discipulos)
   const hierarchy = useMemo(() => {
     const leaderDiscMap = new Map<string, any[]>();
     filteredDiscipulos.forEach((d) => {
@@ -182,7 +198,6 @@ export default function DiscipuladoPage() {
       }
     });
 
-    // Unassigned leaders
     const unassignedLeaders = leaders.filter((l) => !usedLeaders.has(l.id));
     const unassignedWithDiscs = unassignedLeaders
       .map((l) => ({ ...l, discipulos: leaderDiscMap.get(l.id) || [] }))
@@ -191,165 +206,239 @@ export default function DiscipuladoPage() {
     return { redes: result, unassigned: unassignedWithDiscs };
   }, [redes, casas, leaders, filteredDiscipulos, filterRed]);
 
-  return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl lg:text-3xl font-display font-bold text-foreground flex items-center gap-2">
-            <UserCheck className="h-7 w-7 text-primary" /> Discipulando Naciones
-          </h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Sistema de seguimiento integral y desarrollo de discípulos
-          </p>
-        </div>
+  // Toggle stage completion for local interactive experience
+  const handleToggleEtapa = (discipuloId: string, etapaCode: string) => {
+    setProgreso((prev) => {
+      const index = prev.findIndex((p) => p.discipulo_id === discipuloId && p.etapa_code === etapaCode);
+      if (index >= 0) {
+        const updated = [...prev];
+        updated[index] = { ...updated[index], completed: !updated[index].completed };
+        return updated;
+      } else {
+        return [
+          ...prev,
+          {
+            id: `temp-${Date.now()}`,
+            discipulo_id: discipuloId,
+            etapa_code: etapaCode,
+            completed: true,
+            completed_at: new Date().toISOString(),
+          },
+        ];
+      }
+    });
+    toast.success(`Etapa ${etapaCode} actualizada`);
+  };
 
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={() => openExtDiscipulando()} className="gap-2">
-            <ExternalLink size={15} /> Abrir App Externa
-          </Button>
+  // Generate PDF report for selected network
+  const handleExportPdf = () => {
+    try {
+      const redObj = filterRed !== "all" ? redesMap.get(filterRed) : redes[0];
+      const redCasas = filterRed !== "all" ? casas.filter((c) => c.red_id === filterRed) : casas;
+
+      generateRedPdf({
+        redName: redObj?.name || "Redes Globales",
+        liderRed: redObj?.lider_red || "Coordinación General",
+        casas: redCasas,
+        leaders: leaders,
+        discipulos: filteredDiscipulos,
+        progreso: progreso,
+      });
+      toast.success("Reporte PDF generado exitosamente");
+    } catch (e) {
+      toast.error("No se pudo generar el PDF");
+    }
+  };
+
+  return (
+    <div className="space-y-8 pb-10">
+      {/* ── DOXA HERO BANNER ────────────────────────────────────────── */}
+      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-primary via-primary/95 to-primary/80 text-primary-foreground p-6 sm:p-8 shadow-xl border border-primary-glow/20">
+        <div className="absolute top-0 right-0 -mt-10 -mr-10 w-96 h-96 bg-accent/20 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute bottom-0 right-1/4 w-64 h-64 bg-primary-glow/30 rounded-full blur-2xl pointer-events-none" />
+
+        <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+          <div className="space-y-3 max-w-2xl">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 backdrop-blur border border-white/15 text-xs font-semibold text-accent-soft">
+              <Sparkles className="h-3.5 w-3.5 text-accent" /> Sistema Oficial de Discipulado DOXA
+            </div>
+            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-display font-extrabold tracking-tight leading-tight">
+              Discipulando Naciones
+            </h1>
+            <p className="text-sm sm:text-base text-primary-foreground/80 leading-relaxed font-sans">
+              Seguimiento estratégico del proceso de consolidación, escuelas bíblicas y multiplicación de discípulos en la iglesia local.
+            </p>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-3">
+            <Button
+              onClick={handleExportPdf}
+              className="bg-accent text-accent-foreground hover:bg-accent/90 font-semibold shadow-lg shadow-accent/20 rounded-xl px-4 gap-2"
+            >
+              <Download className="h-4 w-4" /> Exportar Reporte PDF
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => openExtDiscipulando()}
+              className="bg-white/10 text-white border-white/20 hover:bg-white/20 backdrop-blur rounded-xl px-4 gap-2"
+            >
+              <ExternalLink className="h-4 w-4" /> App Externa
+            </Button>
+          </div>
         </div>
       </div>
 
-      {/* KPI Cards Header */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-3">
-        <Card className="border-0 shadow-sm bg-card/60 backdrop-blur">
+      {/* ── KPI METRICS CARDS (DOXA Elevate Style) ────────────────────── */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-4">
+        <Card className="border-border/60 bg-card/80 backdrop-blur-md shadow-sm hover:shadow-md transition-all duration-200 hover:-translate-y-0.5 rounded-2xl">
           <CardContent className="p-4 flex items-center gap-3">
-            <div className="p-2.5 rounded-xl bg-primary/10 text-primary">
+            <div className="p-3 rounded-2xl bg-primary/10 text-primary shrink-0">
               <Users className="h-5 w-5" />
             </div>
             <div>
-              <div className="text-xl font-bold text-foreground">{discipulos.length}</div>
-              <div className="text-xs text-muted-foreground">Discípulos</div>
+              <div className="text-2xl font-display font-extrabold text-foreground">{discipulos.length}</div>
+              <div className="text-xs text-muted-foreground font-medium">Discípulos</div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="border-0 shadow-sm bg-card/60 backdrop-blur">
+        <Card className="border-border/60 bg-card/80 backdrop-blur-md shadow-sm hover:shadow-md transition-all duration-200 hover:-translate-y-0.5 rounded-2xl">
           <CardContent className="p-4 flex items-center gap-3">
-            <div className="p-2.5 rounded-xl bg-emerald-500/10 text-emerald-600">
+            <div className="p-3 rounded-2xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 shrink-0">
               <Home className="h-5 w-5" />
             </div>
             <div>
-              <div className="text-xl font-bold text-foreground">{casas.length}</div>
-              <div className="text-xs text-muted-foreground">Casas de Paz</div>
+              <div className="text-2xl font-display font-extrabold text-foreground">{casas.length}</div>
+              <div className="text-xs text-muted-foreground font-medium">Casas de Paz</div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="border-0 shadow-sm bg-card/60 backdrop-blur">
+        <Card className="border-border/60 bg-card/80 backdrop-blur-md shadow-sm hover:shadow-md transition-all duration-200 hover:-translate-y-0.5 rounded-2xl">
           <CardContent className="p-4 flex items-center gap-3">
-            <div className="p-2.5 rounded-xl bg-blue-500/10 text-blue-600">
+            <div className="p-3 rounded-2xl bg-accent/15 text-accent-foreground shrink-0">
               <Network className="h-5 w-5" />
             </div>
             <div>
-              <div className="text-xl font-bold text-foreground">{redes.length}</div>
-              <div className="text-xs text-muted-foreground">Redes</div>
+              <div className="text-2xl font-display font-extrabold text-foreground">{redes.length}</div>
+              <div className="text-xs text-muted-foreground font-medium">Redes</div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="border-0 shadow-sm bg-card/60 backdrop-blur">
+        <Card className="border-border/60 bg-card/80 backdrop-blur-md shadow-sm hover:shadow-md transition-all duration-200 hover:-translate-y-0.5 rounded-2xl">
           <CardContent className="p-4 flex items-center gap-3">
-            <div className="p-2.5 rounded-xl bg-indigo-500/10 text-indigo-600">
+            <div className="p-3 rounded-2xl bg-blue-500/10 text-blue-600 dark:text-blue-400 shrink-0">
               <UserCheck className="h-5 w-5" />
             </div>
             <div>
-              <div className="text-xl font-bold text-foreground">{leaders.length}</div>
-              <div className="text-xs text-muted-foreground">Líderes</div>
+              <div className="text-2xl font-display font-extrabold text-foreground">{leaders.length}</div>
+              <div className="text-xs text-muted-foreground font-medium">Líderes</div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="border-0 shadow-sm bg-card/60 backdrop-blur">
+        <Card className="border-border/60 bg-card/80 backdrop-blur-md shadow-sm hover:shadow-md transition-all duration-200 hover:-translate-y-0.5 rounded-2xl">
           <CardContent className="p-4 flex items-center gap-3">
-            <div className="p-2.5 rounded-xl bg-amber-500/10 text-amber-600">
-              <Clock className="h-5 w-5" />
+            <div className="p-3 rounded-2xl bg-amber-500/10 text-amber-600 dark:text-amber-400 shrink-0">
+              <AlertTriangle className="h-5 w-5" />
             </div>
             <div>
-              <div className="text-xl font-bold text-foreground">{stats.amarillo + stats.rojo}</div>
-              <div className="text-xs text-muted-foreground">Requieren Atención</div>
+              <div className="text-2xl font-display font-extrabold text-foreground">{stats.amarillo + stats.rojo}</div>
+              <div className="text-xs text-muted-foreground font-medium">Atención Pendiente</div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="border-0 shadow-sm bg-card/60 backdrop-blur">
+        <Card className="border-border/60 bg-card/80 backdrop-blur-md shadow-sm hover:shadow-md transition-all duration-200 hover:-translate-y-0.5 rounded-2xl">
           <CardContent className="p-4 flex items-center gap-3">
-            <div className="p-2.5 rounded-xl bg-purple-500/10 text-purple-600">
+            <div className="p-3 rounded-2xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 shrink-0">
               <CheckCircle2 className="h-5 w-5" />
             </div>
             <div>
-              <div className="text-xl font-bold text-foreground">{stats.verde}</div>
-              <div className="text-xs text-muted-foreground">Al Día</div>
+              <div className="text-2xl font-display font-extrabold text-foreground">{stats.verde}</div>
+              <div className="text-xs text-muted-foreground font-medium">Al Día</div>
             </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Semáforo quick filter bar */}
-      <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
-        {(["verde", "amarillo", "rojo", "gris", "azul"] as SemaforoColor[]).map((c) => (
-          <Button
-            key={c}
-            variant={filterSemaforo === c ? "default" : "outline"}
-            size="sm"
-            onClick={() => setFilterSemaforo(filterSemaforo === c ? "all" : c)}
-            className="flex items-center justify-between px-3 py-2 h-auto text-xs"
-          >
-            <div className="flex items-center gap-2">
-              <SemaforoDot color={c} size="md" />
-              <span className="capitalize font-medium">
+      {/* ── SEMÁFORO FILTER PILLS ────────────────────────────────────── */}
+      <div className="flex flex-wrap items-center gap-2 bg-card/60 p-3 rounded-2xl border border-border/60 shadow-sm">
+        <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider px-2">
+          Estado Semáforo:
+        </span>
+        {(["verde", "amarillo", "rojo", "gris", "azul"] as SemaforoColor[]).map((c) => {
+          const isActive = filterSemaforo === c;
+          return (
+            <button
+              key={c}
+              onClick={() => setFilterSemaforo(isActive ? "all" : c)}
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all duration-150 border ${
+                isActive
+                  ? "bg-primary text-primary-foreground border-primary shadow-sm"
+                  : "bg-background/80 text-foreground border-border hover:bg-muted/80"
+              }`}
+            >
+              <SemaforoDot color={c} size="sm" />
+              <span className="capitalize">
                 {c === "verde" ? "Al día" : c === "amarillo" ? "Atención" : c === "rojo" ? "Crítico" : c === "gris" ? "Pausa" : "Completo"}
               </span>
-            </div>
-            <Badge variant="secondary" className="ml-2 font-bold">
-              {stats[c]}
-            </Badge>
+              <span className="px-1.5 py-0.2 rounded-full bg-muted/60 text-[11px]">
+                {stats[c]}
+              </span>
+            </button>
+          );
+        })}
+        {filterSemaforo !== "all" && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setFilterSemaforo("all")}
+            className="text-xs text-muted-foreground hover:text-foreground h-8 px-2"
+          >
+            Limpiar filtro ✕
           </Button>
-        ))}
+        )}
       </div>
 
-      {/* Main Tabs */}
-      <Tabs defaultValue="discipulos" className="w-full">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b pb-2">
-          <TabsList className="bg-muted/50">
-            <TabsTrigger value="discipulos" className="gap-2">
-              <Users size={16} /> Listado de Discípulos ({filteredDiscipulos.length})
+      {/* ── MAIN TABS SYSTEM ────────────────────────────────────────── */}
+      <Tabs defaultValue="discipulos" className="w-full space-y-6">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-border/60 pb-3">
+          <TabsList className="bg-muted/70 p-1 rounded-2xl">
+            <TabsTrigger value="discipulos" className="rounded-xl px-4 py-2 text-xs font-bold gap-2 data-[state=active]:bg-card data-[state=active]:shadow-sm">
+              <Users size={15} /> Discípulos ({filteredDiscipulos.length})
             </TabsTrigger>
-            <TabsTrigger value="jerarquia" className="gap-2">
-              <Network size={16} /> Estructura por Redes
+            <TabsTrigger value="jerarquia" className="rounded-xl px-4 py-2 text-xs font-bold gap-2 data-[state=active]:bg-card data-[state=active]:shadow-sm">
+              <Network size={15} /> Estructura por Redes
             </TabsTrigger>
-            <TabsTrigger value="casas" className="gap-2">
-              <Home size={16} /> Casas de Paz ({casas.length})
+            <TabsTrigger value="casas" className="rounded-xl px-4 py-2 text-xs font-bold gap-2 data-[state=active]:bg-card data-[state=active]:shadow-sm">
+              <Home size={15} /> Casas de Paz ({casas.length})
             </TabsTrigger>
-            <TabsTrigger value="redes" className="gap-2">
-              <Network size={16} /> Redes ({redes.length})
+            <TabsTrigger value="redes" className="rounded-xl px-4 py-2 text-xs font-bold gap-2 data-[state=active]:bg-card data-[state=active]:shadow-sm">
+              <Layers size={15} /> Redes ({redes.length})
             </TabsTrigger>
           </TabsList>
-
-          {filterSemaforo !== "all" && (
-            <Badge variant="outline" className="cursor-pointer gap-1" onClick={() => setFilterSemaforo("all")}>
-              Filtro semáforo: <span className="capitalize font-bold">{filterSemaforo}</span> ✕
-            </Badge>
-          )}
         </div>
 
-        {/* TAB 1: DISCIPULOS LIST */}
-        <TabsContent value="discipulos" className="space-y-4 pt-4">
-          {/* Filters Bar */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-3">
-            <div className="relative md:col-span-2">
-              <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+        {/* ── TAB 1: LISTADO DE DISCÍPULOS ────────────────────────────── */}
+        <TabsContent value="discipulos" className="space-y-6 m-0">
+          {/* Controls Bar */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 bg-card p-4 rounded-2xl border border-border/70 shadow-sm">
+            <div className="relative lg:col-span-2">
+              <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
               <Input
-                placeholder="Buscar por nombre de discípulo, casa o líder..."
+                placeholder="Buscar por discípulo, casa o líder..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="pl-9"
+                className="pl-10 rounded-xl bg-background border-border/70 text-sm"
               />
             </div>
 
             <Select value={filterRed} onValueChange={(val) => { setFilterRed(val); setFilterCasa("all"); }}>
-              <SelectTrigger><SelectValue placeholder="Todas las redes" /></SelectTrigger>
+              <SelectTrigger className="rounded-xl bg-background border-border/70 text-xs font-medium">
+                <SelectValue placeholder="Todas las redes" />
+              </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todas las redes</SelectItem>
                 {redes.map((r) => (
@@ -359,7 +448,9 @@ export default function DiscipuladoPage() {
             </Select>
 
             <Select value={filterCasa} onValueChange={setFilterCasa}>
-              <SelectTrigger><SelectValue placeholder="Todas las casas" /></SelectTrigger>
+              <SelectTrigger className="rounded-xl bg-background border-border/70 text-xs font-medium">
+                <SelectValue placeholder="Todas las casas" />
+              </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todas las casas</SelectItem>
                 {casasFiltradas.map((c) => (
@@ -369,7 +460,9 @@ export default function DiscipuladoPage() {
             </Select>
 
             <Select value={filterStatus} onValueChange={setFilterStatus}>
-              <SelectTrigger><SelectValue placeholder="Todos los estados" /></SelectTrigger>
+              <SelectTrigger className="rounded-xl bg-background border-border/70 text-xs font-medium">
+                <SelectValue placeholder="Todos los estados" />
+              </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todos los estados</SelectItem>
                 <SelectItem value="Activo">Activo</SelectItem>
@@ -379,8 +472,8 @@ export default function DiscipuladoPage() {
             </Select>
           </div>
 
-          {/* Discípulos Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {/* Cards Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
             {filteredDiscipulos.map((d) => {
               const casa = casasMap.get(d.casa_de_paz_id);
               const red = casa ? redesMap.get(casa.red_id) : null;
@@ -388,13 +481,25 @@ export default function DiscipuladoPage() {
               const discProgreso = progreso.filter((p) => p.discipulo_id === d.id);
               const colorSem = calcularSemaforo({ status: d.status, startDate: d.start_date, progreso: discProgreso });
 
-              // Completed stages count
-              const completedCount = discProgreso.filter((p) => p.completed).length;
+              const completadas = discProgreso.filter((p) => p.completed).length;
+              const porcentaje = Math.round((completadas / ETAPAS_ORDER.length) * 100);
+
+              // Initials for avatar
+              const initials = (d.full_name || "")
+                .split(" ")
+                .map((n: string) => n[0])
+                .slice(0, 2)
+                .join("")
+                .toUpperCase();
 
               return (
-                <Card key={d.id} className="border-0 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden">
+                <Card
+                  key={d.id}
+                  onClick={() => setSelectedDiscipulo(d)}
+                  className="border-border/70 bg-card hover:bg-card/90 shadow-sm hover:shadow-md transition-all duration-200 hover:-translate-y-1 rounded-2xl overflow-hidden cursor-pointer group relative"
+                >
                   <div
-                    className={`absolute top-0 left-0 right-0 h-1.5 ${
+                    className={`absolute top-0 left-0 right-0 h-1.5 transition-all ${
                       colorSem === "verde"
                         ? "bg-emerald-500"
                         : colorSem === "amarillo"
@@ -403,47 +508,64 @@ export default function DiscipuladoPage() {
                         ? "bg-rose-500"
                         : colorSem === "azul"
                         ? "bg-blue-500"
-                        : "bg-gray-400"
+                        : "bg-slate-400"
                     }`}
                   />
-                  <CardHeader className="pb-2 pt-4">
-                    <div className="flex items-start justify-between gap-2">
-                      <div>
-                        <CardTitle className="text-base font-bold text-foreground">
-                          {d.full_name}
-                        </CardTitle>
-                        <p className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1">
-                          <UserCheck size={12} className="text-primary" /> Líder: <span className="font-medium text-foreground">{lider?.full_name || "Sin asignar"}</span>
-                        </p>
+
+                  <CardHeader className="pb-3 pt-5 px-5">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <Avatar className="h-10 w-10 border border-primary/20 bg-primary/5 text-primary font-bold">
+                          <AvatarFallback className="bg-primary/10 text-primary text-xs font-bold">
+                            {initials}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="min-w-0">
+                          <CardTitle className="text-base font-bold text-foreground group-hover:text-primary transition-colors truncate">
+                            {d.full_name}
+                          </CardTitle>
+                          <p className="text-xs text-muted-foreground truncate mt-0.5">
+                            Líder: <span className="font-semibold text-foreground">{lider?.full_name || "Sin asignar"}</span>
+                          </p>
+                        </div>
                       </div>
-                      <SemaforoDot color={colorSem} size="md" />
+
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <SemaforoDot color={colorSem} size="md" />
+                      </div>
                     </div>
                   </CardHeader>
 
-                  <CardContent className="space-y-3 text-xs">
-                    <div className="grid grid-cols-2 gap-2 bg-muted/40 p-2.5 rounded-lg">
+                  <CardContent className="px-5 pb-5 space-y-4 text-xs">
+                    <div className="grid grid-cols-2 gap-2 bg-muted/40 p-3 rounded-xl border border-border/40">
                       <div>
-                        <span className="text-muted-foreground block text-[10px]">CASA DE PAZ</span>
-                        <span className="font-semibold text-foreground truncate block">{casa?.name || "Sin casa"}</span>
+                        <span className="text-[10px] font-semibold text-muted-foreground block uppercase tracking-wider">Casa de Paz</span>
+                        <span className="font-bold text-foreground truncate block">{casa?.name || "Sin casa"}</span>
                       </div>
                       <div>
-                        <span className="text-muted-foreground block text-[10px]">RED</span>
-                        <span className="font-semibold text-foreground truncate block">{red?.name || "Sin red"}</span>
+                        <span className="text-[10px] font-semibold text-muted-foreground block uppercase tracking-wider">Red</span>
+                        <span className="font-bold text-foreground truncate block">{red?.name || "Sin red"}</span>
                       </div>
                     </div>
 
-                    <div className="flex items-center justify-between pt-1">
-                      <div className="flex items-center gap-1.5">
-                        <BookOpen size={13} className="text-primary" />
-                        <span className="text-muted-foreground">Progreso Etapas:</span>
-                        <span className="font-bold text-foreground">{completedCount} / {etapas.length}</span>
+                    {/* Progress Bar & Etapas Badge Preview */}
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-muted-foreground font-medium flex items-center gap-1.5">
+                          <BookOpen size={13} className="text-primary" /> Progreso ({completadas}/{ETAPAS_ORDER.length})
+                        </span>
+                        <span className="font-bold text-foreground">{porcentaje}%</span>
                       </div>
-                      <Badge
-                        variant={d.status === "Activo" ? "default" : d.status === "Completado" ? "secondary" : "outline"}
-                        className="text-[10px]"
-                      >
-                        {d.status}
-                      </Badge>
+                      <Progress value={porcentaje} className="h-2 rounded-full bg-muted" />
+                    </div>
+
+                    <div className="flex items-center justify-between pt-1 text-[11px] text-muted-foreground">
+                      <span className="flex items-center gap-1">
+                        <Calendar size={12} /> {d.start_date || "Fecha no especificada"}
+                      </span>
+                      <span className="font-semibold text-primary group-hover:translate-x-0.5 transition-transform inline-flex items-center">
+                        Ver Ficha <ChevronRight size={14} />
+                      </span>
                     </div>
                   </CardContent>
                 </Card>
@@ -452,55 +574,77 @@ export default function DiscipuladoPage() {
           </div>
 
           {filteredDiscipulos.length === 0 && (
-            <div className="text-center py-12 text-muted-foreground bg-card rounded-xl border border-dashed p-6">
-              No se encontraron discípulos que coincidan con la búsqueda o filtros aplicados.
+            <div className="text-center py-16 bg-card rounded-2xl border border-dashed border-border p-8 space-y-3">
+              <Users className="h-10 w-10 text-muted-foreground mx-auto opacity-50" />
+              <h3 className="text-lg font-bold text-foreground">No se encontraron discípulos</h3>
+              <p className="text-xs text-muted-foreground max-w-md mx-auto">
+                No hay registros que coincidan con la búsqueda o los filtros seleccionados. Intenta ajustar el texto o restablecer los filtros de red.
+              </p>
             </div>
           )}
         </TabsContent>
 
-        {/* TAB 2: HIERARCHY (RED -> CASA -> LIDER -> DISCIPULOS) */}
-        <TabsContent value="jerarquia" className="space-y-6 pt-4">
+        {/* ── TAB 2: ESTRUCTURA POR REDES (HERARCHY) ────────────────────── */}
+        <TabsContent value="jerarquia" className="space-y-6 m-0">
           {hierarchy.redes.map((red: any) => (
-            <Card key={red.id} className="border-0 shadow-sm overflow-hidden">
-              <CardHeader className="bg-primary/5 pb-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Network className="h-5 w-5 text-primary" />
-                    <CardTitle className="text-lg font-bold">Red: {red.name}</CardTitle>
-                    {red.lider_red && <span className="text-xs text-muted-foreground">({red.lider_red})</span>}
+            <Card key={red.id} className="border-border/70 bg-card rounded-2xl shadow-sm overflow-hidden">
+              <CardHeader className="bg-primary/5 border-b border-border/50 p-5">
+                <div className="flex items-center justify-between flex-wrap gap-3">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2.5 rounded-xl bg-primary/10 text-primary">
+                      <Network className="h-6 w-6" />
+                    </div>
+                    <div>
+                      <CardTitle className="text-xl font-bold font-display text-foreground">
+                        Red: {red.name}
+                      </CardTitle>
+                      {red.lider_red && (
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          Líder Principal: <span className="font-semibold text-foreground">{red.lider_red}</span>
+                        </p>
+                      )}
+                    </div>
                   </div>
-                  <Badge variant="secondary">{red.casas.length} Casas de Paz</Badge>
+                  <Badge variant="secondary" className="px-3 py-1 text-xs font-bold bg-primary/10 text-primary">
+                    {red.casas.length} Casas de Paz
+                  </Badge>
                 </div>
               </CardHeader>
-              <CardContent className="p-4 space-y-4">
+
+              <CardContent className="p-5 space-y-5">
                 {red.casas.map((casa: any) => (
-                  <div key={casa.id} className="border rounded-lg p-3 bg-card space-y-3">
-                    <div className="flex items-center justify-between border-b pb-2">
+                  <div key={casa.id} className="border border-border/60 rounded-xl p-4 bg-background/50 space-y-4">
+                    <div className="flex items-center justify-between border-b border-border/40 pb-3">
                       <div className="flex items-center gap-2">
-                        <Home size={16} className="text-emerald-600" />
-                        <span className="font-semibold text-sm">{casa.name}</span>
+                        <Home size={18} className="text-emerald-600" />
+                        <h4 className="text-base font-bold text-foreground">{casa.name}</h4>
                         {casa.city && <span className="text-xs text-muted-foreground">({casa.city})</span>}
                       </div>
-                      <span className="text-xs text-muted-foreground font-medium">
-                        {casa.leaders.reduce((sum: number, l: any) => sum + l.discipulos.length, 0)} discípulos
+                      <span className="text-xs text-muted-foreground font-semibold">
+                        {casa.leaders.reduce((sum: number, l: any) => sum + l.discipulos.length, 0)} discípulos asignados
                       </span>
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 pl-2">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                       {casa.leaders.map((leader: any) => (
-                        <div key={leader.id} className="bg-muted/30 p-2.5 rounded-md space-y-1">
-                          <div className="flex items-center justify-between">
-                            <span className="font-medium text-xs flex items-center gap-1.5">
-                              <Users size={13} className="text-primary" /> {leader.full_name}
+                        <div key={leader.id} className="bg-card p-3.5 rounded-xl border border-border/60 space-y-2">
+                          <div className="flex items-center justify-between border-b border-border/30 pb-2">
+                            <span className="font-bold text-xs text-foreground flex items-center gap-1.5">
+                              <UserCheck size={14} className="text-primary" /> {leader.full_name}
                             </span>
-                            <Badge variant="outline" className="text-[10px] px-1.5 py-0">
-                              {leader.discipulos.length}
+                            <Badge variant="outline" className="text-[11px] font-bold">
+                              {leader.discipulos.length} disc.
                             </Badge>
                           </div>
-                          <div className="pl-4 space-y-0.5 text-[11px] text-muted-foreground">
+                          <div className="space-y-1 pt-1">
                             {leader.discipulos.map((d: any) => (
-                              <div key={d.id} className="truncate hover:text-foreground">
-                                • {d.full_name}
+                              <div
+                                key={d.id}
+                                onClick={() => setSelectedDiscipulo(d)}
+                                className="flex items-center justify-between text-xs p-1.5 rounded-lg hover:bg-muted/60 cursor-pointer transition-colors"
+                              >
+                                <span className="truncate font-medium text-foreground">{d.full_name}</span>
+                                <ChevronRight size={12} className="text-muted-foreground shrink-0" />
                               </div>
                             ))}
                           </div>
@@ -514,37 +658,39 @@ export default function DiscipuladoPage() {
           ))}
         </TabsContent>
 
-        {/* TAB 3: CASAS DE PAZ */}
-        <TabsContent value="casas" className="space-y-4 pt-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+        {/* ── TAB 3: DIRECTORIO CASAS DE PAZ ─────────────────────────── */}
+        <TabsContent value="casas" className="space-y-4 m-0">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
             {casas.map((c) => {
               const red = redesMap.get(c.red_id);
               const discCount = discipulos.filter((d) => d.casa_de_paz_id === c.id).length;
               return (
-                <Card key={c.id} className="border-0 shadow-sm">
-                  <CardContent className="p-4 space-y-2">
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="font-bold text-foreground text-sm flex items-center gap-1.5">
-                        <Home size={15} className="text-emerald-600 shrink-0" /> {c.name}
-                      </div>
-                      <Badge variant="secondary" className="text-[10px]">
-                        {discCount} disc.
-                      </Badge>
+                <Card key={c.id} className="border-border/70 bg-card rounded-2xl shadow-sm hover:shadow-md transition-all p-5 space-y-3">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="p-2.5 rounded-xl bg-emerald-500/10 text-emerald-600 shrink-0">
+                      <Home size={18} />
                     </div>
-                    <div className="text-xs text-muted-foreground space-y-1">
-                      <div>Red: <span className="font-medium text-foreground">{red?.name || "Sin red"}</span></div>
-                      <div>Ciudad: <span className="font-medium text-foreground">{c.city || "N/A"}</span></div>
-                    </div>
-                  </CardContent>
+                    <Badge variant="secondary" className="font-bold text-xs">
+                      {discCount} discípulos
+                    </Badge>
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-base text-foreground">{c.name}</h4>
+                    <p className="text-xs text-muted-foreground mt-0.5">Ubicación: {c.city || "No especificada"}</p>
+                  </div>
+                  <div className="pt-2 border-t border-border/40 text-xs flex justify-between items-center text-muted-foreground">
+                    <span>Red perteneciente:</span>
+                    <span className="font-semibold text-foreground">{red?.name || "Sin red"}</span>
+                  </div>
                 </Card>
               );
             })}
           </div>
         </TabsContent>
 
-        {/* TAB 4: REDES */}
-        <TabsContent value="redes" className="space-y-4 pt-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+        {/* ── TAB 4: DIRECTORIO DE REDES ──────────────────────────────── */}
+        <TabsContent value="redes" className="space-y-4 m-0">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-5">
             {redes.map((r) => {
               const redCasas = casas.filter((c) => c.red_id === r.id);
               const redDiscs = discipulos.filter((d) => {
@@ -553,31 +699,168 @@ export default function DiscipuladoPage() {
               });
 
               return (
-                <Card key={r.id} className="border-0 shadow-sm">
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-base font-bold flex items-center gap-2">
-                      <Network className="h-5 w-5 text-primary" /> {r.name}
-                    </CardTitle>
-                    {r.lider_red && (
-                      <p className="text-xs text-muted-foreground">Líder: {r.lider_red}</p>
-                    )}
-                  </CardHeader>
-                  <CardContent className="space-y-2 text-xs">
-                    <div className="flex justify-between items-center bg-muted/40 p-2 rounded">
-                      <span className="text-muted-foreground">Casas de Paz:</span>
-                      <span className="font-bold text-foreground">{redCasas.length}</span>
+                <Card key={r.id} className="border-border/70 bg-card rounded-2xl shadow-sm hover:shadow-md transition-all p-6 space-y-4">
+                  <div className="flex items-center gap-3">
+                    <div className="p-3 rounded-2xl bg-primary/10 text-primary">
+                      <Network className="h-6 w-6" />
                     </div>
-                    <div className="flex justify-between items-center bg-muted/40 p-2 rounded">
-                      <span className="text-muted-foreground">Discípulos en Red:</span>
-                      <span className="font-bold text-primary">{redDiscs.length}</span>
+                    <div>
+                      <h3 className="font-bold text-lg font-display text-foreground">{r.name}</h3>
+                      {r.lider_red && <p className="text-xs text-muted-foreground">Líder: {r.lider_red}</p>}
                     </div>
-                  </CardContent>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3 text-xs pt-2">
+                    <div className="bg-muted/40 p-3 rounded-xl border border-border/40 text-center">
+                      <span className="text-muted-foreground block text-[10px] uppercase font-bold">Casas de Paz</span>
+                      <span className="text-xl font-bold text-foreground mt-0.5 block">{redCasas.length}</span>
+                    </div>
+                    <div className="bg-muted/40 p-3 rounded-xl border border-border/40 text-center">
+                      <span className="text-muted-foreground block text-[10px] uppercase font-bold">Discípulos en Red</span>
+                      <span className="text-xl font-bold text-primary mt-0.5 block">{redDiscs.length}</span>
+                    </div>
+                  </div>
                 </Card>
               );
             })}
           </div>
         </TabsContent>
       </Tabs>
+
+      {/* ── MODAL: FICHA DEL DISCÍPULO (DETALLE E INTERACCIÓN ETAPAS) ──── */}
+      {selectedDiscipulo && (
+        <Dialog open={!!selectedDiscipulo} onOpenChange={() => setSelectedDiscipulo(null)}>
+          <DialogContent className="max-w-2xl rounded-3xl p-6 sm:p-8 space-y-6">
+            {(() => {
+              const d = selectedDiscipulo;
+              const casa = casasMap.get(d.casa_de_paz_id);
+              const red = casa ? redesMap.get(casa.red_id) : null;
+              const lider = leadersMap.get(d.lider_id);
+
+              const discProgreso = progreso.filter((p) => p.discipulo_id === d.id);
+              const estadoEtapas = calcularEstadoEtapas(d.start_date, discProgreso);
+              const semaforo = calcularSemaforo({ status: d.status, startDate: d.start_date, progreso: discProgreso });
+
+              const completadasCount = discProgreso.filter((p) => p.completed).length;
+              const porcentajeGlobal = Math.round((completadasCount / ETAPAS_ORDER.length) * 100);
+
+              const initials = (d.full_name || "")
+                .split(" ")
+                .map((n: string) => n[0])
+                .slice(0, 2)
+                .join("")
+                .toUpperCase();
+
+              return (
+                <>
+                  <DialogHeader className="space-y-3 pb-2 border-b border-border/60">
+                    <div className="flex items-center justify-between gap-4">
+                      <div className="flex items-center gap-3">
+                        <Avatar className="h-12 w-12 border-2 border-primary/30 text-primary font-bold">
+                          <AvatarFallback className="bg-primary/10 text-primary font-bold text-sm">
+                            {initials}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div>
+                          <DialogTitle className="text-xl font-bold font-display text-foreground">
+                            {d.full_name}
+                          </DialogTitle>
+                          <DialogDescription className="text-xs text-muted-foreground mt-0.5">
+                            Ficha de seguimiento de discipulado
+                          </DialogDescription>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <SemaforoDot color={semaforo} size="lg" />
+                        <Badge variant="outline" className="capitalize text-xs font-bold px-3 py-1">
+                          {d.status}
+                        </Badge>
+                      </div>
+                    </div>
+                  </DialogHeader>
+
+                  {/* Summary Grid */}
+                  <div className="grid grid-cols-3 gap-3 bg-muted/40 p-4 rounded-2xl border border-border/50 text-xs">
+                    <div>
+                      <span className="text-muted-foreground block text-[10px] uppercase font-semibold">Casa de Paz</span>
+                      <span className="font-bold text-foreground text-sm block mt-0.5">{casa?.name || "Sin casa"}</span>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground block text-[10px] uppercase font-semibold">Red</span>
+                      <span className="font-bold text-foreground text-sm block mt-0.5">{red?.name || "Sin red"}</span>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground block text-[10px] uppercase font-semibold">Líder Responsable</span>
+                      <span className="font-bold text-foreground text-sm block mt-0.5">{lider?.full_name || "Sin asignar"}</span>
+                    </div>
+                  </div>
+
+                  {/* Progress Header */}
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-center text-xs font-bold">
+                      <span className="text-foreground">Avance General del Sistema</span>
+                      <span className="text-primary font-extrabold">{porcentajeGlobal}% ({completadasCount}/{ETAPAS_ORDER.length} etapas)</span>
+                    </div>
+                    <Progress value={porcentajeGlobal} className="h-2.5 rounded-full" />
+                  </div>
+
+                  {/* 8 Etapas Interactive Grid */}
+                  <div className="space-y-3">
+                    <h4 className="text-sm font-bold text-foreground flex items-center gap-2">
+                      <BookOpen size={16} className="text-primary" /> Etapas del Discipulado
+                    </h4>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-72 overflow-y-auto pr-1">
+                      {estadoEtapas.map((etapa) => {
+                        const label = ETAPAS_LABELS[etapa.code] || etapa.code;
+                        const isDone = etapa.completada;
+
+                        return (
+                          <div
+                            key={etapa.code}
+                            onClick={() => handleToggleEtapa(d.id, etapa.code)}
+                            className={`p-3 rounded-xl border transition-all cursor-pointer flex items-center justify-between gap-3 ${
+                              isDone
+                                ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-950 dark:text-emerald-200"
+                                : etapa.vencida
+                                ? "bg-rose-500/10 border-rose-500/30 text-rose-950 dark:text-rose-200"
+                                : "bg-card border-border/70 hover:border-primary/40"
+                            }`}
+                          >
+                            <div className="space-y-0.5 min-w-0">
+                              <div className="flex items-center gap-2">
+                                <Badge variant="outline" className="text-[10px] font-bold px-1.5 py-0">
+                                  {etapa.code}
+                                </Badge>
+                                <span className="font-bold text-xs truncate block">{label}</span>
+                              </div>
+                              <span className="text-[10px] opacity-75 block">
+                                Duración: {formatDuracion(etapa.code)}
+                              </span>
+                            </div>
+
+                            <button
+                              type="button"
+                              className={`h-6 w-6 rounded-full flex items-center justify-center shrink-0 border transition-all ${
+                                isDone
+                                  ? "bg-emerald-600 border-emerald-600 text-white"
+                                  : "border-border/80 bg-background hover:bg-primary/10"
+                              }`}
+                            >
+                              {isDone && <Check size={12} strokeWidth={3} />}
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </>
+              );
+            })()}
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 }
