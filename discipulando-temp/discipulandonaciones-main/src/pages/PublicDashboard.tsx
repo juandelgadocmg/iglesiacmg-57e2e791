@@ -23,18 +23,45 @@ export default function PublicDashboard() {
   const [filterSemaforo, setFilterSemaforo] = useState('all');
 
   const fetchData = async () => {
-    const [rRes, cRes, lRes, dRes, pRes] = await Promise.all([
-      supabase.from('redes').select('*').order('name'),
-      supabase.from('casas_de_paz').select('*, redes(name)').order('name'),
-      supabase.from('leaders').select('id, full_name, casa_de_paz_id, casas_de_paz(id, name, red_id)').order('full_name'),
-      supabase.from('discipulos').select('*').order('full_name'),
-      supabase.from('progreso_discipulo').select('*'),
-    ]);
-    if (rRes.data) setRedes(rRes.data);
-    if (cRes.data) setCasas(cRes.data);
-    if (lRes.data) setLeaders(lRes.data);
-    if (dRes.data) setDiscipulos(dRes.data);
-    if (pRes.data) setProgreso(pRes.data);
+    try {
+      const [rRes, cRes, lRes, dRes, pRes] = await Promise.allSettled([
+        supabase.from('redes').select('*').order('name'),
+        supabase.from('casas_de_paz').select('*, redes(name)').order('name'),
+        supabase.from('leaders').select('id, full_name, casa_de_paz_id, casas_de_paz(id, name, red_id)').order('full_name'),
+        supabase.from('discipulos').select('*, casas_de_paz(id, name, red_id), leaders:lider_id(id, full_name, casa_de_paz_id)').order('full_name'),
+        supabase.from('progreso_discipulo').select('*'),
+      ]);
+
+      if (rRes.status === 'fulfilled' && rRes.value.data) setRedes(rRes.value.data);
+      if (cRes.status === 'fulfilled' && cRes.value.data) setCasas(cRes.value.data);
+      
+      let fetchedLeaders: any[] = [];
+      if (lRes.status === 'fulfilled' && lRes.value.data && lRes.value.data.length > 0) {
+        fetchedLeaders = lRes.value.data;
+      }
+
+      if (dRes.status === 'fulfilled' && dRes.value.data) {
+        setDiscipulos(dRes.value.data);
+        if (fetchedLeaders.length === 0) {
+          const lMap = new Map();
+          dRes.value.data.forEach((d: any) => {
+            if (d.leaders && d.leaders.id) {
+              lMap.set(d.leaders.id, {
+                id: d.leaders.id,
+                full_name: d.leaders.full_name,
+                casa_de_paz_id: d.leaders.casa_de_paz_id || d.casa_de_paz_id,
+                casas_de_paz: d.casas_de_paz
+              });
+            }
+          });
+          fetchedLeaders = Array.from(lMap.values());
+        }
+      }
+      setLeaders(fetchedLeaders);
+      if (pRes.status === 'fulfilled' && pRes.value.data) setProgreso(pRes.value.data);
+    } catch (e) {
+      console.error('Error loading PublicDashboard data:', e);
+    }
   };
 
   useEffect(() => { fetchData(); }, []);
