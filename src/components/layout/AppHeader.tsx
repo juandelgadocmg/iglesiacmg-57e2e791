@@ -105,11 +105,9 @@ export default function AppHeader({ onMenuClick }: AppHeaderProps) {
         <TooltipProvider delayDuration={200}>
           <Tooltip>
             <TooltipTrigger asChild>
-              <a
-                href={discipulandoUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                aria-label="Abrir Discipulando Naciones en una nueva pestaña"
+              <Link
+                to="/discipulado"
+                aria-label="Abrir Discipulando Naciones"
                 className="hidden md:inline-flex shrink-0 items-center justify-center h-10 md:h-12 px-2 rounded-lg hover:bg-muted transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
               >
                 {logoFailed ? (
@@ -131,7 +129,7 @@ export default function AppHeader({ onMenuClick }: AppHeaderProps) {
                     className="block h-8 md:h-9 lg:h-10 w-auto max-w-[110px] md:max-w-[130px] lg:max-w-[160px] object-contain select-none"
                   />
                 )}
-              </a>
+              </Link>
 
 
             </TooltipTrigger>

@@ -10,12 +10,20 @@ import { calcularSemaforo, ETAPAS_ORDER, SemaforoColor } from '@/lib/semaforo';
 import { SemaforoDot } from '@/components/SemaforoDot';
 import { Search, Users, ChevronRight, Network, Home } from 'lucide-react';
 
+import {
+  INITIAL_REDES,
+  INITIAL_CASAS,
+  INITIAL_LEADERS,
+  INITIAL_DISCIPULOS,
+  INITIAL_PROGRESO,
+} from '@/data/discipulandoInitialData';
+
 export default function PublicDashboard() {
-  const [redes, setRedes] = useState<any[]>([]);
-  const [casas, setCasas] = useState<any[]>([]);
-  const [leaders, setLeaders] = useState<any[]>([]);
-  const [discipulos, setDiscipulos] = useState<any[]>([]);
-  const [progreso, setProgreso] = useState<any[]>([]);
+  const [redes, setRedes] = useState<any[]>(INITIAL_REDES);
+  const [casas, setCasas] = useState<any[]>(INITIAL_CASAS);
+  const [leaders, setLeaders] = useState<any[]>(INITIAL_LEADERS);
+  const [discipulos, setDiscipulos] = useState<any[]>(INITIAL_DISCIPULOS);
+  const [progreso, setProgreso] = useState<any[]>(INITIAL_PROGRESO);
   const [search, setSearch] = useState('');
   const [filterRed, setFilterRed] = useState('all');
   const [filterLider, setFilterLider] = useState('all');
@@ -32,15 +40,15 @@ export default function PublicDashboard() {
         supabase.from('progreso_discipulo').select('*'),
       ]);
 
-      if (rRes.status === 'fulfilled' && rRes.value.data) setRedes(rRes.value.data);
-      if (cRes.status === 'fulfilled' && cRes.value.data) setCasas(cRes.value.data);
+      if (rRes.status === 'fulfilled' && rRes.value.data && rRes.value.data.length > 0) setRedes(rRes.value.data);
+      if (cRes.status === 'fulfilled' && cRes.value.data && cRes.value.data.length > 0) setCasas(cRes.value.data);
       
       let fetchedLeaders: any[] = [];
       if (lRes.status === 'fulfilled' && lRes.value.data && lRes.value.data.length > 0) {
         fetchedLeaders = lRes.value.data;
       }
 
-      if (dRes.status === 'fulfilled' && dRes.value.data) {
+      if (dRes.status === 'fulfilled' && dRes.value.data && dRes.value.data.length > 0) {
         setDiscipulos(dRes.value.data);
         if (fetchedLeaders.length === 0) {
           const lMap = new Map();
@@ -56,9 +64,9 @@ export default function PublicDashboard() {
           });
           fetchedLeaders = Array.from(lMap.values());
         }
+        setLeaders(fetchedLeaders);
       }
-      setLeaders(fetchedLeaders);
-      if (pRes.status === 'fulfilled' && pRes.value.data) setProgreso(pRes.value.data);
+      if (pRes.status === 'fulfilled' && pRes.value.data && pRes.value.data.length > 0) setProgreso(pRes.value.data);
     } catch (e) {
       console.error('Error loading PublicDashboard data:', e);
     }
