@@ -269,9 +269,9 @@ function KanbanView({ grupos, onOpen }: { grupos: any[]; onOpen: (id: string) =>
   }, [grupos]);
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+    <div className="flex sm:grid sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 overflow-x-auto pb-3 snap-x max-w-full scrollbar-none">
       {columns.map(([label, items]) => (
-        <div key={label} className="rounded-xl border bg-muted/30 flex flex-col min-h-[300px]">
+        <div key={label} className="w-[260px] sm:w-auto shrink-0 snap-start rounded-xl border bg-muted/30 flex flex-col min-h-[300px]">
           <div className="px-3 py-2.5 border-b flex items-center justify-between bg-card/50 rounded-t-xl">
             <span className="text-[12px] font-semibold">{label}</span>
             <Badge variant="secondary" className="h-5 text-[10px]">{items.length}</Badge>
@@ -314,11 +314,11 @@ function CalendarView({ grupos, onOpen }: { grupos: any[]; onOpen: (id: string) 
   }, [grupos]);
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7 gap-2">
+    <div className="flex sm:grid sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7 gap-2 overflow-x-auto pb-3 snap-x max-w-full scrollbar-none">
       {[...DIAS, "Sin día"].map((dia) => {
         const items = porDia[dia];
         return (
-          <div key={dia} className="rounded-xl border bg-card overflow-hidden flex flex-col min-h-[220px]">
+          <div key={dia} className="w-[240px] sm:w-auto shrink-0 snap-start rounded-xl border bg-card overflow-hidden flex flex-col min-h-[220px]">
             <div className="px-3 py-2 border-b bg-primary/5 flex items-center justify-between">
               <span className="text-[11.5px] font-semibold">{dia}</span>
               <span className="text-[10px] text-muted-foreground">{items.length}</span>
