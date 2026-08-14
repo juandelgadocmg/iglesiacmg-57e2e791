@@ -324,7 +324,7 @@ export default function GruposPage() {
           <Badge
             variant={!selectedRed ? "default" : "outline"}
             className="cursor-pointer text-[11.5px] px-2.5 py-1 shrink-0 font-normal transition-colors"
-            onClick={() => setSelectedRed(null)}
+            onClick={() => { setSelectedRed(null); setActiveTab("lista"); }}
           >
             Todas ({tableData.length})
           </Badge>
@@ -340,7 +340,7 @@ export default function GruposPage() {
                   "cursor-pointer text-[11.5px] px-2.5 py-1 shrink-0 font-normal transition-colors",
                   isSel && "bg-primary text-primary-foreground"
                 )}
-                onClick={() => setSelectedRed(r)}
+                onClick={() => { setSelectedRed(r); setActiveTab("lista"); }}
               >
                 {r} ({count})
               </Badge>
@@ -398,6 +398,21 @@ export default function GruposPage() {
                 <BarChart3 className="h-3.5 w-3.5" /> Dashboard redes
               </TabsTrigger>
             )}
+            <TabsTrigger value="planificacion" className="gap-1 text-[12.5px] shrink-0">
+              <FileText className="h-3.5 w-3.5" /> Planificación
+            </TabsTrigger>
+            <TabsTrigger value="reportes" className="gap-1 text-[12.5px] shrink-0">
+              <ClipboardList className="h-3.5 w-3.5" /> Reportes
+            </TabsTrigger>
+            <TabsTrigger value="jerarquia" className="gap-1 text-[12.5px] shrink-0">
+              <Network className="h-3.5 w-3.5" /> Jerarquía
+            </TabsTrigger>
+            <TabsTrigger value="mapa" className="gap-1 text-[12.5px] shrink-0">
+              Mapa
+            </TabsTrigger>
+            <TabsTrigger value="organigrama" className="gap-1 text-[12.5px] shrink-0">
+              Organigrama
+            </TabsTrigger>
             {canManageTesoreriaCDP && (
               <TabsTrigger value="tesoreria-cdp" className="gap-1 text-[12.5px] shrink-0">
                 <DollarSign className="h-3.5 w-3.5" /> Tesorería CDP

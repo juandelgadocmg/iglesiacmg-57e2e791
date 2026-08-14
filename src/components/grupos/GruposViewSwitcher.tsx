@@ -68,8 +68,8 @@ export default function GruposViewSwitcher({ grupos, onOpen, onEdit, onDelete, c
   return (
     <div className="space-y-4">
       {/* Barra de vista */}
-      <div className="flex flex-wrap items-center gap-2">
-        <div className="inline-flex rounded-lg border bg-muted/40 p-0.5 max-w-full overflow-x-auto">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2">
+        <div className="inline-flex rounded-lg border bg-muted/40 p-0.5 max-w-full overflow-x-auto no-scrollbar shrink-0">
           {VIEWS.map((v) => (
             <button
               key={v.id}
@@ -86,35 +86,36 @@ export default function GruposViewSwitcher({ grupos, onOpen, onEdit, onDelete, c
             </button>
           ))}
         </div>
-        <div className="flex-1 min-w-0" />
-        <Input
-          placeholder="Buscar grupo, líder, red…"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          aria-label="Buscar grupo, líder o red"
-          className="h-8 w-full sm:w-56 text-[12.5px]"
-        />
-        {tipos.length > 1 && (
-          <div className="inline-flex rounded-lg border bg-muted/40 p-0.5 max-w-full overflow-x-auto">
-            <button
-              onClick={() => setTipoFilter("all")}
-              aria-pressed={tipoFilter === "all"}
-              className={cn("px-2.5 h-7 rounded-md text-[11.5px] shrink-0", tipoFilter === "all" ? "bg-card shadow-sm" : "text-muted-foreground")}
-            >
-              Todos
-            </button>
-            {tipos.map((t) => (
+        <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+          <Input
+            placeholder="Buscar grupo, líder, red…"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            aria-label="Buscar grupo, líder o red"
+            className="h-8 w-full sm:w-56 text-[12.5px]"
+          />
+          {tipos.length > 1 && (
+            <div className="inline-flex rounded-lg border bg-muted/40 p-0.5 max-w-full overflow-x-auto shrink-0">
               <button
-                key={t}
-                onClick={() => setTipoFilter(t)}
-                aria-pressed={tipoFilter === t}
-                className={cn("px-2.5 h-7 rounded-md text-[11.5px] shrink-0", tipoFilter === t ? "bg-card shadow-sm" : "text-muted-foreground")}
+                onClick={() => setTipoFilter("all")}
+                aria-pressed={tipoFilter === "all"}
+                className={cn("px-2.5 h-7 rounded-md text-[11.5px] shrink-0", tipoFilter === "all" ? "bg-card shadow-sm" : "text-muted-foreground")}
               >
-                {t}
+                Todos
               </button>
-            ))}
-          </div>
-        )}
+              {tipos.map((t) => (
+                <button
+                  key={t}
+                  onClick={() => setTipoFilter(t)}
+                  aria-pressed={tipoFilter === t}
+                  className={cn("px-2.5 h-7 rounded-md text-[11.5px] shrink-0", tipoFilter === t ? "bg-card shadow-sm" : "text-muted-foreground")}
+                >
+                  {t}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
 

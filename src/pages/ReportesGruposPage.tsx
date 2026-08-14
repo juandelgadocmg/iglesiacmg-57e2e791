@@ -254,9 +254,9 @@ export default function ReportesGruposPage() {
 
       {/* Tabs */}
       <Tabs value={tab} onValueChange={setTab}>
-        <TabsList>
+        <TabsList className="h-9 w-full flex flex-nowrap overflow-x-auto justify-start max-w-full no-scrollbar pb-0.5">
           {ESTADOS.map((e) => (
-            <TabsTrigger key={e} value={e}>{e}</TabsTrigger>
+            <TabsTrigger key={e} value={e} className="shrink-0 text-xs">{e}</TabsTrigger>
           ))}
         </TabsList>
       </Tabs>

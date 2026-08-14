@@ -302,15 +302,15 @@ export default function GrupoPerfilView({ grupoId, onBack, readOnly = false, can
 
       {/* ====== TABS ====== */}
       <Tabs defaultValue="info" className="space-y-4">
-        <TabsList className="flex-wrap h-auto gap-1">
-          <TabsTrigger value="info">Información</TabsTrigger>
-          <TabsTrigger value="integrantes">Integrantes ({metrics.total})</TabsTrigger>
-          <TabsTrigger value="estadisticas">Estadísticas</TabsTrigger>
-          <TabsTrigger value="reportes">Reportes</TabsTrigger>
-          <TabsTrigger value="planificacion" className="gap-1">
+        <TabsList className="h-9 w-full flex flex-nowrap overflow-x-auto justify-start max-w-full no-scrollbar pb-0.5">
+          <TabsTrigger value="info" className="shrink-0 text-xs">Información</TabsTrigger>
+          <TabsTrigger value="integrantes" className="shrink-0 text-xs">Integrantes ({metrics.total})</TabsTrigger>
+          <TabsTrigger value="estadisticas" className="shrink-0 text-xs">Estadísticas</TabsTrigger>
+          <TabsTrigger value="reportes" className="shrink-0 text-xs">Reportes</TabsTrigger>
+          <TabsTrigger value="planificacion" className="gap-1 shrink-0 text-xs">
             <FileText className="h-3.5 w-3.5" /> Planificación
           </TabsTrigger>
-          <TabsTrigger value="mapa">Mapa</TabsTrigger>
+          <TabsTrigger value="mapa" className="shrink-0 text-xs">Mapa</TabsTrigger>
         </TabsList>
 
         {/* ====== INFO TAB ====== */}
