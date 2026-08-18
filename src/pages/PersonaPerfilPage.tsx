@@ -151,7 +151,10 @@ export default function PersonaPerfilPage() {
     [personaProcesos]
   );
 
-  const completedCount = personaProcesos?.filter((pp) => pp.estado === "Realizado").length || 0;
+  const completedCount = (personaProcesos || []).filter((pp) => {
+    const st = pp.estado?.toLowerCase()?.trim();
+    return st === "realizado" || st === "finalizado" || st === "completado";
+  }).length;
   const totalProcesos = procesos?.length || 0;
   const progressPercent = totalProcesos > 0 ? Math.round((completedCount / totalProcesos) * 100) : 0;
 
@@ -319,19 +322,48 @@ export default function PersonaPerfilPage() {
     setProcesoObservacion((pp as any)?.observacion || "");
     setProcesoDialog({ procesoId, nombre });
   };
+
   const handleSaveProceso = () => {
     if (!procesoDialog || !persona) return;
     updateProceso.mutate(
-      { personaId: persona.id, procesoId: procesoDialog.procesoId, estado: procesoEstado,
-        fecha_completado: procesoFecha ? format(procesoFecha, "yyyy-MM-dd") : null, observacion: procesoObservacion || null },
-      { onSuccess: () => { toast.success("Proceso actualizado"); setProcesoDialog(null); }, onError: () => toast.error("Error al actualizar") }
+      {
+        personaId: persona.id,
+        procesoId: procesoDialog.procesoId,
+        estado: procesoEstado,
+        fecha_completado: procesoFecha ? format(procesoFecha, "yyyy-MM-dd") : null,
+        observacion: procesoObservacion,
+      },
+      {
+        onSuccess: () => {
+          toast.success("Información del hito guardada");
+          setProcesoDialog(null);
+        },
+        onError: (err: any) => toast.error("Error al actualizar hito", { description: err?.message }),
+      }
     );
   };
+
   const handleToggleEstado = (procesoId: string, currentEstado: string) => {
-    const next = currentEstado === "No Realizado" ? "En Curso" : currentEstado === "En Curso" ? "Realizado" : "No Realizado";
+    const pp = procesosMap.get(procesoId);
+    const norm = (currentEstado || "").toLowerCase().trim();
+    let next = "En Curso";
+    if (norm === "en curso") {
+      next = "Realizado";
+    } else if (norm === "realizado" || norm === "finalizado" || norm === "completado") {
+      next = "No Realizado";
+    } else {
+      next = "En Curso";
+    }
+
     updateProceso.mutate(
-      { personaId: persona.id, procesoId, estado: next, fecha_completado: next === "Realizado" ? format(new Date(), "yyyy-MM-dd") : null },
-      { onError: () => toast.error("Error al actualizar") }
+      {
+        personaId: persona.id,
+        procesoId,
+        estado: next,
+        fecha_completado: next === "Realizado" ? (pp?.fecha_completado || format(new Date(), "yyyy-MM-dd")) : (pp?.fecha_completado ?? null),
+        observacion: pp?.observacion ?? undefined,
+      },
+      { onError: (err: any) => toast.error("Error al actualizar estado", { description: err?.message }) }
     );
   };
 
@@ -650,6 +682,7 @@ export default function PersonaPerfilPage() {
               <SideRow label="Vinculación" value={persona.vinculacion || "—"} />
               <SideRow label="Ministerio" value={persona.ministerio || "—"} />
               <SideRow label="Líder" value={persona.lider_responsable || "—"} />
+              <SideRow label="Consolidador" value={persona.seguimiento_por || "—"} />
               <SideRow label="Invitado por" value={persona.invitado_por || "—"} />
               <SideRow label="Ingreso" value={persona.fecha_ingreso ? format(parseISO(persona.fecha_ingreso), "dd MMM yyyy", { locale: es }) : "—"} />
               <SideRow label="Conversión" value={persona.fecha_conversion ? format(parseISO(persona.fecha_conversion), "dd MMM yyyy", { locale: es }) : "—"} />
@@ -684,9 +717,18 @@ export default function PersonaPerfilPage() {
             totalProcesos={totalProcesos}
             onToggle={handleToggleEstado}
             onOpenDetail={openProcesoDialog}
-            onSetDate={(procesoId, date, estado, obs) =>
-              updateProceso.mutate({ personaId: persona.id, procesoId, estado: estado === "No Realizado" ? "En Curso" : estado, fecha_completado: format(date, "yyyy-MM-dd"), observacion: obs || null })
-            }
+            onSetDate={(procesoId, date, estado, obs) => {
+              const pp = procesosMap.get(procesoId);
+              const norm = (estado || "").toLowerCase().trim();
+              const nextEstado = norm === "no realizado" ? "En Curso" : estado;
+              updateProceso.mutate({
+                personaId: persona.id,
+                procesoId,
+                estado: nextEstado,
+                fecha_completado: format(date, "yyyy-MM-dd"),
+                observacion: obs !== null && obs !== undefined ? obs : (pp?.observacion ?? undefined),
+              });
+            }}
           />
         </TabsContent>
 
@@ -851,16 +893,102 @@ export default function PersonaPerfilPage() {
 
 
       {/* ============ DIALOGS ============ */}
+      {/* ============ DIALOG · DETALLE Y EDICIÓN DE HITO / PASO ============ */}
       <Dialog open={!!procesoDialog} onOpenChange={(o) => !o && setProcesoDialog(null)}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2"><FileText className="h-4 w-4" /> Detalle del Proceso</DialogTitle>
-            <p className="text-sm text-muted-foreground">{procesoDialog?.nombre}</p>
+            <DialogTitle className="flex items-center gap-2 text-primary">
+              <FileText className="h-5 w-5" /> Detalle del Hito de Crecimiento
+            </DialogTitle>
+            <p className="text-base font-semibold text-foreground">{procesoDialog?.nombre}</p>
+            <p className="text-xs text-muted-foreground">
+              Guarda información, notas y el estado de este paso. Toda la información se conservará sin perderse entre etapas.
+            </p>
           </DialogHeader>
-          <Textarea placeholder="Información adicional del proceso" value={procesoObservacion} onChange={(e) => setProcesoObservacion(e.target.value)} rows={6} />
+
+          <div className="space-y-4 py-2">
+            {/* Estado Selector */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-foreground flex items-center gap-1">
+                <Activity className="h-3.5 w-3.5 text-primary" /> Estado del hito
+              </label>
+              <Select value={procesoEstado} onValueChange={setProcesoEstado}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Seleccionar estado" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="No Realizado">
+                    <span className="flex items-center gap-2">
+                      <span className="w-2.5 h-2.5 rounded-full bg-muted border border-border" />
+                      Inicial / Pendiente
+                    </span>
+                  </SelectItem>
+                  <SelectItem value="En Curso">
+                    <span className="flex items-center gap-2">
+                      <span className="w-2.5 h-2.5 rounded-full bg-primary" />
+                      En curso
+                    </span>
+                  </SelectItem>
+                  <SelectItem value="Realizado">
+                    <span className="flex items-center gap-2">
+                      <span className="w-2.5 h-2.5 rounded-full bg-success" />
+                      Finalizado
+                    </span>
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Fecha Selector */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-foreground flex items-center gap-1">
+                <Calendar className="h-3.5 w-3.5 text-primary" /> Fecha del paso / completado
+              </label>
+              <div className="flex items-center gap-2">
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className="w-full justify-start text-left font-normal h-10">
+                      <Calendar className="mr-2 h-4 w-4 text-muted-foreground" />
+                      {procesoFecha ? format(procesoFecha, "dd 'de' MMMM, yyyy", { locale: es }) : <span className="text-muted-foreground">Sin fecha registrada</span>}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <CalendarComponent
+                      mode="single"
+                      selected={procesoFecha}
+                      onSelect={setProcesoFecha}
+                      locale={es}
+                    />
+                  </PopoverContent>
+                </Popover>
+                {procesoFecha && (
+                  <Button variant="ghost" size="sm" onClick={() => setProcesoFecha(undefined)} title="Quitar fecha">
+                    Limpiar
+                  </Button>
+                )}
+              </div>
+            </div>
+
+            {/* Observaciones / Información */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-foreground flex items-center gap-1">
+                <MessageSquare className="h-3.5 w-3.5 text-primary" /> Información y notas ingresadas
+              </label>
+              <Textarea
+                placeholder="Escribe aquí la información, observaciones o datos correspondientes a este paso..."
+                value={procesoObservacion}
+                onChange={(e) => setProcesoObservacion(e.target.value)}
+                rows={5}
+                className="resize-none"
+              />
+            </div>
+          </div>
+
           <DialogFooter className="gap-2">
-            <Button onClick={handleSaveProceso}>Guardar</Button>
-            <Button variant="destructive" onClick={() => setProcesoDialog(null)}>Cancelar</Button>
+            <Button variant="outline" onClick={() => setProcesoDialog(null)}>Cancelar</Button>
+            <Button onClick={handleSaveProceso} disabled={updateProceso.isPending}>
+              {updateProceso.isPending ? "Guardando..." : "Guardar información"}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -1247,14 +1375,20 @@ function DiscipuladoRoadmap({ procesos, procesosMap, progressPercent, completedC
                   "border-border/60 bg-card hover:border-primary/30"
                 )}>
                   <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
+                    <div className="min-w-0 flex-1">
                       <p className="text-sm font-semibold text-foreground">{p.nombre}</p>
-                      <div className="flex items-center gap-2 mt-1.5 text-xs text-muted-foreground">
+                      <div className="flex items-center gap-2 mt-1.5 text-xs text-muted-foreground flex-wrap">
                         {pp?.fecha_completado ? (
                           <span className="flex items-center gap-1"><Calendar className="h-3 w-3" /> {format(parseISO(pp.fecha_completado), "dd MMM yyyy", { locale: es })}</span>
                         ) : <span>Sin fecha registrada</span>}
-                        {(pp as any)?.observacion && <span className="text-primary">· Con notas</span>}
+                        {(pp as any)?.observacion && <span className="text-primary font-medium">· Con notas</span>}
                       </div>
+                      {(pp as any)?.observacion && (
+                        <div className="mt-2.5 p-2.5 rounded-xl bg-muted/60 border border-border/50 text-xs text-foreground/90 whitespace-pre-wrap">
+                          <span className="font-semibold text-primary block mb-0.5">Información / Notas:</span>
+                          {(pp as any).observacion}
+                        </div>
+                      )}
                     </div>
                     <div className="flex items-center gap-1 shrink-0">
                       <Button size="sm" variant={done ? "outline" : doing ? "default" : "secondary"} className="h-7 text-xs" onClick={() => onToggle(p.id, estado)}>

@@ -52,27 +52,34 @@ export function useUpdateProceso() {
     mutationFn: async ({ personaId, procesoId, estado, fecha_completado, observacion }: {
       personaId: string; procesoId: string; estado: string; fecha_completado?: string | null; observacion?: string | null;
     }) => {
-      if (estado === "No Realizado") {
-        const { error } = await supabase
-          .from("persona_procesos")
-          .delete()
-          .eq("persona_id", personaId)
-          .eq("proceso_id", procesoId);
-        if (error) throw error;
-      } else {
-        const { error } = await supabase
-          .from("persona_procesos")
-          .upsert({
-            persona_id: personaId,
-            proceso_id: procesoId,
-            estado,
-            fecha_completado: fecha_completado || null,
-            observacion: observacion ?? null,
-          } as any, { onConflict: "persona_id,proceso_id" });
-        if (error) throw error;
-      }
+      // Obtener registro existente para preservar datos no enviados
+      const { data: existing } = await supabase
+        .from("persona_procesos")
+        .select("fecha_completado, observacion")
+        .eq("persona_id", personaId)
+        .eq("proceso_id", procesoId)
+        .maybeSingle();
+
+      const finalFecha = fecha_completado !== undefined ? fecha_completado : (existing?.fecha_completado ?? null);
+      const finalObs = observacion !== undefined ? observacion : (existing?.observacion ?? null);
+
+      const { error } = await supabase
+        .from("persona_procesos")
+        .upsert({
+          persona_id: personaId,
+          proceso_id: procesoId,
+          estado,
+          fecha_completado: finalFecha,
+          observacion: finalObs,
+        } as any, { onConflict: "persona_id,proceso_id" });
+
+      if (error) throw error;
     },
-    onSuccess: (_, vars) => qc.invalidateQueries({ queryKey: ["persona-procesos", vars.personaId] }),
+    onSuccess: (_, vars) => {
+      qc.invalidateQueries({ queryKey: ["persona-procesos", vars.personaId] });
+      qc.invalidateQueries({ queryKey: ["persona-detalle", vars.personaId] });
+      qc.invalidateQueries({ queryKey: ["personas"] });
+    },
   });
 }
 

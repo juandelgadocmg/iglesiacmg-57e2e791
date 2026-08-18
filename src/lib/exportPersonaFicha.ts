@@ -69,6 +69,7 @@ export function buildPersonaFichaPDF(persona: any, timeline: TimelineEvent[]): j
       ["Ministerio", safe(persona.ministerio)],
       ["Vinculación", safe(persona.vinculacion)],
       ["Líder responsable", safe(persona.lider_responsable)],
+      ["Consolidador", safe(persona.seguimiento_por)],
       ["Invitado por", safe(persona.invitado_por)],
       ["Fecha ingreso", fmtDate(persona.fecha_ingreso)],
       ["Fecha conversión", fmtDate(persona.fecha_conversion)],
