@@ -236,14 +236,22 @@ export default function DiscipuladoPage() {
       const redObj = filterRed !== "all" ? redesMap.get(filterRed) : redes[0];
       const redCasas = filterRed !== "all" ? casas.filter((c) => c.red_id === filterRed) : casas;
 
-      generateRedPdf({
-        redName: redObj?.name || "Redes Globales",
-        liderRed: redObj?.lider_red || "Coordinación General",
-        casas: redCasas,
-        leaders: leaders,
-        discipulos: filteredDiscipulos,
-        progreso: progreso,
-      });
+      const html = generateRedPdf(
+        {
+          id: filterRed !== "all" ? filterRed : "",
+          name: redObj?.name || "Redes Globales",
+          lider_red: redObj?.lider_red || "Coordinación General",
+        },
+        leaders,
+        filteredDiscipulos,
+        progreso,
+        casas
+      );
+      if (html) {
+        import("./../modules/discipulado/utils/generateRedPdf").then(m => {
+          m.downloadHtmlAsPdf(html, `Reporte_Red_${redObj?.name || "Global"}.pdf`);
+        });
+      }
       toast.success("Reporte PDF generado exitosamente");
     } catch (e) {
       toast.error("No se pudo generar el PDF");

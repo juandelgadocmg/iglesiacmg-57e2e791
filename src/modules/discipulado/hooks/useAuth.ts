@@ -23,7 +23,7 @@ export function useAuth() {
     enabled: !!user?.id,
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("leaders")
+        .from("personas")
         .select("id, full_name, email")
         .eq("id", user!.id)
         .maybeSingle();
