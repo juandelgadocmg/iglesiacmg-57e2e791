@@ -84,20 +84,18 @@ export const ResultadoFinalView: React.FC<Props> = ({
             </div>
           </div>
 
-          {/* Aviso de revisión docente si hay abiertas */}
-          {esPendienteRevision && (
-            <div className="bg-amber-500/10 border border-amber-500/30 rounded-2xl p-4 flex items-center gap-3 text-amber-600 dark:text-amber-400 text-xs text-left">
-              <AlertCircle className="h-5 w-5 shrink-0" />
-              <div>
-                <p className="font-bold text-amber-700 dark:text-amber-300">
-                  Taller completado — pendiente de revisión del profesor
-                </p>
-                <p className="text-muted-foreground">
-                  Tus respuestas de las Actividades Objetivas (1-9) ya fueron calificadas ({resultado.puntajeTotal}/100). Las respuestas reflexivas y de síntesis están listas en la bandeja del docente.
-                </p>
-              </div>
+          {/* Confirmación de Calificación Inmediata */}
+          <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-2xl p-4 flex items-center gap-3 text-emerald-600 dark:text-emerald-400 text-xs text-left">
+            <CheckCircle2 className="h-5 w-5 shrink-0 text-emerald-500" />
+            <div>
+              <p className="font-bold text-emerald-700 dark:text-emerald-300">
+                Taller completado y calificado inmediatamente — {resultado.puntajeTotal} / 100
+              </p>
+              <p className="text-muted-foreground">
+                Tus respuestas han sido evaluadas y guardadas de una vez. Tu calificación oficial y tu informe de fortalezas están registrados en tu perfil del Aula Virtual.
+              </p>
             </div>
-          )}
+          </div>
         </CardContent>
       </Card>
 

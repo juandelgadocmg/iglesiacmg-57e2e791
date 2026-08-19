@@ -190,14 +190,16 @@ export function useTallerState() {
   const setRespuesta = useCallback((idPregunta: string, valor: any) => {
     setState((prev) => {
       const nextRespuestas = { ...prev.respuestas, [idPregunta]: valor };
+      const resCalculado = calcularPuntaje(nextRespuestas);
       return {
         ...prev,
         estado: prev.estado === "no_iniciado" ? "en_progreso" : prev.estado,
         respuestas: nextRespuestas,
+        resultado: resCalculado,
         updatedAt: new Date().toISOString(),
       };
     });
-  }, []);
+  }, [calcularPuntaje]);
 
   const setRespuestaAbierta = useCallback((idPregunta: string, texto: string) => {
     setState((prev) => {
@@ -248,9 +250,7 @@ export function useTallerState() {
 
   const finalizarTaller = useCallback(async () => {
     const resultadoCalculado = calcularPuntaje(state.respuestas);
-    const tieneAbiertas =
-      Object.keys(state.respuestasAbiertas).length > 0 || !!state.desafio60s?.respuestaTexto;
-    const nuevoEstado = tieneAbiertas ? "requiere_revision" : "completado";
+    const nuevoEstado = "completado";
 
     const nextState: TallerProgressState = {
       ...state,
@@ -262,14 +262,19 @@ export function useTallerState() {
 
     setState(nextState);
 
-    // Intentar sincronizar con Supabase si personaId o user existe
+    // Guardar inmediatamente en localStorage
+    try {
+      localStorage.setItem(storageKey, JSON.stringify(nextState));
+    } catch (e) {}
+
+    // Sincronizar inmediatamente la calificación final con Supabase sem_entregas
     try {
       if (persona?.id) {
         await sb.from("sem_entregas").upsert(
           {
             persona_id: persona.id,
             evaluacion_id: "taller_final_neumatologia",
-            inscripcion_materia_id: persona.id, // Fallback id
+            inscripcion_materia_id: persona.id,
             comentario: JSON.stringify({
               puntaje: resultadoCalculado.puntajeTotal,
               nivel: resultadoCalculado.nivel,
@@ -287,7 +292,7 @@ export function useTallerState() {
     }
 
     return resultadoCalculado;
-  }, [state, calcularPuntaje, persona?.id]);
+  }, [state, calcularPuntaje, persona?.id, storageKey]);
 
   const reiniciarTaller = useCallback(() => {
     const newState: TallerProgressState = {

@@ -147,13 +147,13 @@ export const TallerHeader: React.FC<TallerHeaderProps> = ({
             <button
               onClick={() => onIrAActividad(11)}
               className={cn(
-                "px-2.5 h-8 rounded-lg text-xs font-bold transition-all flex items-center justify-center border gap-1 whitespace-nowrap",
+                "px-3 h-8 rounded-lg text-xs font-bold transition-all flex items-center justify-center border gap-1 whitespace-nowrap",
                 actividadActual === 11
                   ? "bg-amber-600 text-white border-amber-600 shadow-sm"
                   : "bg-amber-500/10 text-amber-600 border-amber-500/30 hover:bg-amber-500/20"
               )}
             >
-              ⏱️ 60s
+              Desafío Final
             </button>
           </div>
         </div>

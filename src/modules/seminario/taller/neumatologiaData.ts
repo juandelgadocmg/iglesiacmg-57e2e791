@@ -96,38 +96,134 @@ export const CONCEPTOS_60_SEGUNDOS: ConceptoDesafio[] = [
 export const ACTIVIDAD_1_DATA = {
   titulo: "Conectando todo",
   subtitulo: "¿Cómo se relacionan estos conceptos?",
-  instrucciones: "Relaciona cada concepto primordial según su función antes de ver el flujo de operación de Dios.",
+  instrucciones: "Aprende y evalúa la diferencia práctica entre DONES, MINISTERIOS y OPERACIONES.",
   tarjetas: [
     {
       id: "dones",
       concepto: "DONES",
-      pregunta: "¿Qué manifiesta el Espíritu?",
-      descripcion: "Manifestaciones sobrenaturales otorgadas a cada uno para provecho común.",
-      referenciaBiblica: "1 Corintios 12:4-7",
+      subtituloConcepto: "¿Qué manifiesta el Espíritu?",
+      pregunta: "¿Cuál de estas situaciones representa principalmente un DON?",
+      opciones: [
+        {
+          id: "A",
+          texto: "A. El Espíritu Santo concede a una persona una manifestación sobrenatural para provecho de otros.",
+          esCorrecta: true,
+        },
+        {
+          id: "B",
+          texto: "B. Una persona es responsable de supervisar y cuidar espiritualmente a una congregación.",
+          esCorrecta: false,
+        },
+        {
+          id: "C",
+          texto: "C. Una iglesia organiza sus diferentes equipos para funcionar de manera ordenada.",
+          esCorrecta: false,
+        },
+      ],
+      respuestaCorrectaId: "A",
+      retroalimentacion: "Los dones son manifestaciones del Espíritu dadas para provecho.",
+      referenciaBiblica: "1 Corintios 12:7",
     },
     {
       id: "ministerios",
       concepto: "MINISTERIOS",
-      pregunta: "¿Cómo servimos al cuerpo?",
-      descripcion: "Servicios y funciones asignadas dentro del cuerpo de Cristo para edificar.",
+      subtituloConcepto: "¿Cómo servimos al cuerpo?",
+      pregunta: "¿Cuál de estas situaciones representa principalmente un MINISTERIO?",
+      opciones: [
+        {
+          id: "A",
+          texto: "A. Dios produce un resultado sobrenatural mediante una manifestación espiritual.",
+          esCorrecta: false,
+        },
+        {
+          id: "B",
+          texto: "B. Una persona ejerce una función de servicio y edificación dentro del cuerpo de Cristo.",
+          esCorrecta: true,
+        },
+        {
+          id: "C",
+          texto: "C. El Espíritu Santo concede una manifestación sobrenatural a un creyente.",
+          esCorrecta: false,
+        },
+      ],
+      respuestaCorrectaId: "B",
+      retroalimentacion: "Los ministerios describen funciones o servicios dentro del cuerpo de Cristo para su edificación.",
       referenciaBiblica: "1 Corintios 12:5 / Efesios 4:11-12",
     },
     {
       id: "operaciones",
       concepto: "OPERACIONES",
-      pregunta: "¿Qué produce Dios mediante esa obra?",
-      descripcion: "Los resultados eficaces y transformadores producidos soberanamente por Dios.",
+      subtituloConcepto: "¿Qué produce Dios?",
+      pregunta: "¿Cuál de estas situaciones representa principalmente una OPERACIÓN?",
+      opciones: [
+        {
+          id: "A",
+          texto: "A. El Espíritu Santo manifiesta un don mediante una persona.",
+          esCorrecta: false,
+        },
+        {
+          id: "B",
+          texto: "B. Una persona ocupa una función de servicio dentro de la iglesia.",
+          esCorrecta: false,
+        },
+        {
+          id: "C",
+          texto: "C. Dios produce un efecto o resultado mediante su obra.",
+          esCorrecta: true,
+        },
+      ],
+      respuestaCorrectaId: "C",
+      retroalimentacion: "Las operaciones se relacionan con la actividad, efecto o resultado que Dios produce.",
       referenciaBiblica: "1 Corintios 12:6",
     },
   ],
   flujoTeologico: [
-    "ESPÍRITU SANTO",
-    "DONES",
-    "MINISTERIOS",
-    "OPERACIONES",
-    "EDIFICACIÓN DEL CUERPO DE CRISTO",
+    { concepto: "DONES", pregunta: "¿Qué manifiesta el Espíritu?" },
+    { concepto: "MINISTERIOS", pregunta: "¿Cómo servimos al cuerpo?" },
+    { concepto: "OPERACIONES", pregunta: "¿Qué produce Dios?" },
+    { concepto: "EDIFICACIÓN DEL CUERPO DE CRISTO", pregunta: "Propósito supremo" },
   ],
-  retroalimentacion: "En 1 Corintios 12:4-6, el apóstol Pablo enseña la diversidad trinitaria: hay diversidad de dones (Espíritu Santo), diversidad de ministerios (Señor Jesús) y diversidad de operaciones (Dios el Padre). Todos obran coordinadamente para la edificación del cuerpo.",
+  casoIntegrador: {
+    historia: "Durante una reunión, el Espíritu Santo manifiesta un don a través de un creyente. Esa persona está sirviendo dentro de un ministerio de la iglesia y, mediante esa intervención, Dios produce restauración en una persona.",
+    preguntas: [
+      {
+        id: "don",
+        etiqueta: "¿QUÉ ES EL DON?",
+        opciones: [
+          { id: "don_correcta", texto: "Manifestación sobrenatural del Espíritu", esCorrecta: true },
+          { id: "don_inc1", texto: "Función administrativa de liderazgo" },
+          { id: "don_inc2", texto: "El resultado final de sanidad física" },
+        ],
+        respuestaCorrectaId: "don_correcta",
+      },
+      {
+        id: "ministerio",
+        etiqueta: "¿QUÉ ES EL MINISTERIO?",
+        opciones: [
+          { id: "min_inc1", texto: "La emoción colectiva vivida en el templo" },
+          { id: "min_correcta", texto: "Función mediante la cual la persona sirve", esCorrecta: true },
+          { id: "min_inc2", texto: "Un diploma de certificación teológica" },
+        ],
+        respuestaCorrectaId: "min_correcta",
+      },
+      {
+        id: "operacion",
+        etiqueta: "¿QUÉ ES LA OPERACIÓN?",
+        opciones: [
+          { id: "op_inc1", texto: "El esfuerzo humano de la congregación" },
+          { id: "op_inc2", texto: "El carisma o don del predicador" },
+          { id: "op_correcta", texto: "Lo que Dios produce mediante esa obra", esCorrecta: true },
+        ],
+        respuestaCorrectaId: "op_correcta",
+      },
+    ],
+  },
+  fraseFinal: [
+    "EL ESPÍRITU MANIFIESTA",
+    "NOSOTROS SERVIMOS",
+    "DIOS OPERA",
+  ],
+  referenciaFinal: "1 Corintios 12:4-6",
 };
 
 // ACTIVIDAD 2: SIETE ESPÍRITUS DE DIOS
