@@ -29,35 +29,39 @@ import CertificadosSection from "@/components/seminario/CertificadosSection";
 import ReportesSection from "@/components/seminario/ReportesSection";
 import MiAulaSection from "@/components/seminario/MiAulaSection";
 
+import TallerNeumatologiaPage from "@/pages/TallerNeumatologiaPage";
+
 type NavItem = { id: string; label: string; icon: any; group: string };
 
 const SIDEBAR: NavItem[] = [
-  { id: "dashboard",     label: "Dashboard",         icon: LayoutDashboard, group: "Visión general" },
-  { id: "programas",     label: "Programas",         icon: BookOpen,        group: "Académico" },
-  { id: "pensum",        label: "Pensum",            icon: Layers,          group: "Académico" },
-  { id: "materias",      label: "Materias",          icon: FileText,        group: "Académico" },
-  { id: "horarios",      label: "Horarios",          icon: CalendarClock,   group: "Académico" },
-  { id: "estudiantes",   label: "Estudiantes",       icon: GraduationCap,   group: "Comunidad" },
-  { id: "docentes",      label: "Docentes",          icon: Users,           group: "Comunidad" },
-  { id: "aula-virtual",  label: "Aula Virtual",      icon: Video,           group: "Operación" },
-  { id: "evaluaciones",  label: "Evaluaciones",      icon: ClipboardCheck,  group: "Operación" },
-  { id: "calificaciones",label: "Calificaciones",    icon: BarChart3,       group: "Operación" },
-  { id: "asistencia",    label: "Asistencia",        icon: UserCheck,       group: "Operación" },
-  { id: "biblioteca",    label: "Biblioteca",        icon: Library,         group: "Recursos" },
-  { id: "certificados",  label: "Certificados",      icon: Award,           group: "Recursos" },
-  { id: "reportes",      label: "Reportes",          icon: FileBarChart2,   group: "Analítica" },
-  { id: "auditoria",     label: "Auditoría",         icon: ShieldCheck,     group: "Sistema" },
-  { id: "zoom-config",   label: "Zoom",              icon: Settings2,       group: "Sistema" },
+  { id: "dashboard",           label: "Dashboard",           icon: LayoutDashboard, group: "Visión general" },
+  { id: "taller-neumatologia", label: "Taller Neumatología", icon: Sparkles,        group: "Académico" },
+  { id: "programas",           label: "Programas",           icon: BookOpen,        group: "Académico" },
+  { id: "pensum",              label: "Pensum",              icon: Layers,          group: "Académico" },
+  { id: "materias",            label: "Materias",            icon: FileText,        group: "Académico" },
+  { id: "horarios",            label: "Horarios",            icon: CalendarClock,   group: "Académico" },
+  { id: "estudiantes",         label: "Estudiantes",         icon: GraduationCap,   group: "Comunidad" },
+  { id: "docentes",            label: "Docentes",            icon: Users,           group: "Comunidad" },
+  { id: "aula-virtual",        label: "Aula Virtual",        icon: Video,           group: "Operación" },
+  { id: "evaluaciones",        label: "Evaluaciones",        icon: ClipboardCheck,  group: "Operación" },
+  { id: "calificaciones",      label: "Calificaciones",      icon: BarChart3,       group: "Operación" },
+  { id: "asistencia",          label: "Asistencia",          icon: UserCheck,       group: "Operación" },
+  { id: "biblioteca",          label: "Biblioteca",          icon: Library,         group: "Recursos" },
+  { id: "certificados",        label: "Certificados",        icon: Award,           group: "Recursos" },
+  { id: "reportes",            label: "Reportes",            icon: FileBarChart2,   group: "Analítica" },
+  { id: "auditoria",           label: "Auditoría",           icon: ShieldCheck,     group: "Sistema" },
+  { id: "zoom-config",         label: "Zoom",                icon: Settings2,       group: "Sistema" },
 ];
 
 const SECTION_META: Record<string, { title: string; description: string }> = {
-  dashboard:      { title: "Dashboard académico",       description: "Métricas en vivo del seminario, promociones y actividad de aula." },
-  programas:      { title: "Programas académicos",      description: "Diseña currículos, ciclos y planes de estudio." },
-  pensum:         { title: "Pensum académico",          description: "Malla curricular por semestre y créditos." },
-  materias:       { title: "Materias",                  description: "Catálogo maestro de asignaturas con áreas y horas." },
-  horarios:       { title: "Horarios y ofertas",        description: "Programación de clases por periodo y docente." },
-  estudiantes:    { title: "Estudiantes",               description: "Matrícula, seguimiento académico y notas históricas." },
-  docentes:       { title: "Docentes",                  description: "Cuerpo académico, asignaciones y hoja de vida." },
+  dashboard:            { title: "Dashboard académico",       description: "Métricas en vivo del seminario, promociones y actividad de aula." },
+  "taller-neumatologia":{ title: "Taller Final de Neumatología",description: "Evaluación práctica interactiva 'El Espíritu en operación'." },
+  programas:            { title: "Programas académicos",      description: "Diseña currículos, ciclos y planes de estudio." },
+  pensum:               { title: "Pensum académico",          description: "Malla curricular por semestre y créditos." },
+  materias:             { title: "Materias",                  description: "Catálogo maestro de asignaturas con áreas y horas." },
+  horarios:             { title: "Horarios y ofertas",        description: "Programación de clases por periodo y docente." },
+  estudiantes:          { title: "Estudiantes",               description: "Matrícula, seguimiento académico y notas históricas." },
+  docentes:             { title: "Docentes",                  description: "Cuerpo académico, asignaciones y hoja de vida." },
   "aula-virtual": { title: "Aula Virtual",              description: "Clases en Zoom, grabaciones y materiales por sesión." },
   evaluaciones:   { title: "Evaluaciones",              description: "Cortes, pesos y esquema de calificación por oferta." },
   calificaciones: { title: "Calificaciones",            description: "Matriz de notas, recalculo y publicación oficial." },
@@ -223,6 +227,7 @@ export default function SeminarioPage() {
 
         {/* Content */}
         <div className="flex-1 overflow-auto p-4 md:p-6">
+          {section === "taller-neumatologia" && <TallerNeumatologiaPage />}
           {section === "programas" && <ProgramasSection />}
           {section === "pensum" && <PensumSection readOnly={isEstudianteOnly} />}
           {section === "materias" && <MateriasSection readOnly={isEstudianteOnly} />}
