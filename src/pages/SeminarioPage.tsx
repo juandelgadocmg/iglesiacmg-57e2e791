@@ -87,8 +87,8 @@ export default function SeminarioPage() {
   const isStaff = effectiveRoles.some((r) => STAFF_ROLES.includes(r));
   const isDocenteOnly = !isStaff && effectiveRoles.includes("seminario_docente" as any);
   const isEstudianteOnly = !isStaff && !isDocenteOnly && effectiveRoles.includes("seminario_estudiante" as any);
-  const DOCENTE_TABS = ["horarios", "aula-virtual", "evaluaciones", "calificaciones", "asistencia", "biblioteca"];
-  const ESTUDIANTE_TABS = ["pensum", "aula-virtual", "calificaciones", "biblioteca"];
+  const DOCENTE_TABS = ["taller-neumatologia", "horarios", "aula-virtual", "evaluaciones", "calificaciones", "asistencia", "biblioteca"];
+  const ESTUDIANTE_TABS = ["taller-neumatologia", "pensum", "aula-virtual", "calificaciones", "biblioteca"];
 
   const sidebar = useMemo(() => {
     if (isEstudianteOnly) return SIDEBAR.filter((s) => ESTUDIANTE_TABS.includes(s.id));

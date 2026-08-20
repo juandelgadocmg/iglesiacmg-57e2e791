@@ -51,6 +51,7 @@ import { cn } from "@/lib/utils";
 import { useUrlParam } from "@/hooks/useUrlParam";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { QRCodeSVG } from "qrcode.react";
+import { TallerNeumatologiaAulaTab } from "@/components/seminario/TallerNeumatologiaAulaTab";
 
 const tipoColor: Record<string, string> = {
   Miembro: "bg-primary/15 text-primary border-primary/30",
@@ -520,6 +521,7 @@ export default function PersonaPerfilPage() {
           <TabsList className="h-auto p-0 bg-transparent gap-1 overflow-x-auto flex-nowrap w-full justify-start rounded-none">
             {[
               { v: "resumen", label: "Indicadores", icon: User },
+              { v: "seminario", label: "Seminario & Talleres", icon: GraduationCap },
               { v: "actividad", label: "Timeline", icon: Activity },
               { v: "seguimiento", label: "Seguimiento", icon: Target },
               { v: "discipulado", label: "Discipulado", icon: Route },
@@ -544,6 +546,11 @@ export default function PersonaPerfilPage() {
             ))}
           </TabsList>
         </div>
+
+        {/* TAB · SEMINARIO Y TALLERES */}
+        <TabsContent value="seminario" className="mt-0 space-y-4">
+          <TallerNeumatologiaAulaTab materiaNombre="Neumatología" materiaCodigo="NEU-101" embeddedInCourse={false} />
+        </TabsContent>
 
         {/* ======================================================
              TAB · RESUMEN — Dashboard ejecutivo (bento + sidebar)
