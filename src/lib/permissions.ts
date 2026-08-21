@@ -84,8 +84,8 @@ export type ActionPermission =
   | "share:view_audit";
 
 export const ACTION_PERMISSIONS: Record<ActionPermission, AppRole[]> = {
-  "personas:create": ["admin", "super_admin", "pastor", "lider", "secretaria", "consolidador_lider", "consolidador"],
-  "personas:edit":   ["admin", "super_admin", "pastor", "lider", "secretaria", "consolidador_lider", "consolidador"],
+  "personas:create": ["admin", "super_admin", "pastor", "lider", "lider_red", "lider_casa_paz", "secretaria", "consolidador_lider", "consolidador", "maestro", "tesoreria"],
+  "personas:edit":   ["admin", "super_admin", "pastor", "lider", "lider_red", "lider_casa_paz", "secretaria", "consolidador_lider", "consolidador", "maestro", "tesoreria"],
   "personas:delete": ["admin", "super_admin", "pastor"],
   "grupos:create":   ["admin", "super_admin", "pastor", "lider"],
   "grupos:edit":     ["admin", "super_admin", "pastor", "lider"],
