@@ -15,7 +15,7 @@ import {
   Home, Users, UsersRound, Church, CalendarDays, GraduationCap, BookMarked,
   Award, DollarSign, BarChart3, HandHeart, LifeBuoy, Mail, Settings,
   UserCog, ShieldCheck, ChevronLeft, ChevronRight, LogOut, Star, Clock,
-  ChevronDown, Sparkles, BookOpenText, ExternalLink,
+  ChevronDown, Sparkles, BookOpenText, ExternalLink, CheckCircle2,
 } from "lucide-react";
 import { useUnreadCount } from "@/hooks/useMensajes";
 import { useDiscipulando } from "@/hooks/useDiscipulando";
@@ -35,6 +35,7 @@ const ZONES: { label: string; items: Item[] }[] = [
   {
     label: "Formación",
     items: [
+      { label: "Afirmación", icon: CheckCircle2, to: "/afirmacion" },
       { label: "Academia", icon: GraduationCap, to: "/academia" },
       { label: "Seminario", icon: BookMarked, to: "/seminario" },
       { label: "Certificados", icon: Award, to: "/certificados" },

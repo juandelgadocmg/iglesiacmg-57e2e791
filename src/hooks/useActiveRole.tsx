@@ -46,18 +46,19 @@ export function ActiveRoleProvider({ children }: { children: ReactNode }) {
 
   // On roles load, set the highest-priority role as default
   useEffect(() => {
-    if (roles.length === 0) return;
-    const sorted = [...roles].sort(
+    const safeRoles = roles || [];
+    if (safeRoles.length === 0) return;
+    const sorted = [...safeRoles].sort(
       (a, b) => ROLE_PRIORITY.indexOf(a) - ROLE_PRIORITY.indexOf(b)
     );
     // Restore from localStorage if still valid
     const saved = localStorage.getItem("cmg_active_role");
-    if (saved && (roles as string[]).includes(saved)) {
+    if (saved && safeRoles.includes(saved)) {
       setActiveRoleState(saved as AppRole);
     } else {
       setActiveRoleState(sorted[0]);
     }
-  }, [roles.join(",")]);
+  }, [(roles || []).join(",")]);
 
   const setActiveRole = (role: AppRole) => {
     setActiveRoleState(role);
