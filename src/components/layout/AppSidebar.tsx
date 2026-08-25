@@ -32,7 +32,6 @@ const menuItems: MenuItem[] = [
   { label: "Reuniones", icon: Church, path: "/servicios", section: "Comunidad" },
   { label: "Afirmación", icon: CheckCircle2, path: "/afirmacion", section: "Formación" },
   { label: "Academia", icon: GraduationCap, path: "/academia", section: "Formación" },
-  { label: "Discipulado", icon: UserCheck, path: "/discipulado", section: "Formación" },
   { label: "Seminario", icon: BookMarked, path: "/seminario", section: "Formación" },
   { label: "Certificados", icon: Award, path: "/certificados", section: "Formación" },
   { label: "Finanzas", icon: DollarSign, path: "/finanzas", section: "Operación" },
