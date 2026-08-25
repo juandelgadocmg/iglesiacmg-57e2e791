@@ -84,7 +84,11 @@ const App = () => (
               <Route path="/eventos" element={<RoleGuard><EventosPage /></RoleGuard>} />
               <Route path="/academia" element={<RoleGuard><AcademiaPage /></RoleGuard>} />
               <Route path="/afirmacion" element={<RoleGuard><AfirmacionPage /></RoleGuard>} />
+              <Route path="/afirmacion/*" element={<RoleGuard><AfirmacionPage /></RoleGuard>} />
               <Route path="/discipulado" element={<RoleGuard><AfirmacionPage /></RoleGuard>} />
+              <Route path="/discipulado/*" element={<RoleGuard><AfirmacionPage /></RoleGuard>} />
+              <Route path="/consolidacion" element={<RoleGuard><AfirmacionPage /></RoleGuard>} />
+              <Route path="/consolidacion/*" element={<RoleGuard><AfirmacionPage /></RoleGuard>} />
               <Route path="/seminario" element={<RoleGuard><SeminarioPage /></RoleGuard>} />
               <Route path="/seminario/taller-neumatologia" element={<RoleGuard><TallerNeumatologiaPage /></RoleGuard>} />
               <Route path="/certificados" element={<RoleGuard><CertificadosPage /></RoleGuard>} />
