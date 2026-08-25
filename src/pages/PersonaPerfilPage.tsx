@@ -31,7 +31,8 @@ import PersonaFormDialog from "@/components/forms/PersonaFormDialog";
 import PersonaActivityTimeline, { type TimelineEvent } from "@/components/persona/PersonaActivityTimeline";
 import { SeguimientoTab, MinisteriosTab, ProximasReunionesTab, NotasTab, ArchivosTab } from "@/components/persona/PersonaExtraTabs";
 import PersonaHistorialTab from "@/components/persona/PersonaHistorialTab";
-import { History } from "lucide-react";
+import { RegistrarLlamadaConsolidacionDialog } from "@/components/persona/RegistrarLlamadaConsolidacionDialog";
+import { History, PhoneCall } from "lucide-react";
 import {
   ArrowLeft, Phone, Mail, MapPin, Calendar, Church, Users, Briefcase,
   Heart, BookOpen, CheckCircle2, XCircle, Clock, User, FileText,
@@ -98,6 +99,7 @@ export default function PersonaPerfilPage() {
   const [exportPreview, setExportPreview] = useState<null | "pdf" | "csv">(null);
   const [qrCheckinOpen, setQrCheckinOpen] = useState(false);
   const [qrCheckinServicio, setQrCheckinServicio] = useState<string>("");
+  const [openLlamadaModal, setOpenLlamadaModal] = useState(false);
   const [activeTab, setActiveTab] = useUrlParam("tab", "resumen");
   const { data: servicios } = useServicios();
   const upsertAsistencia = useUpsertAsistencia();
@@ -461,7 +463,10 @@ export default function PersonaPerfilPage() {
 
             {/* Actions */}
             <div className="flex flex-wrap gap-2 md:pb-3">
-              <Button size="sm" className="gap-1.5 rounded-full shadow-sm" onClick={openRegistrarAsistencia}>
+              <Button size="sm" className="gap-1.5 rounded-full shadow-sm" onClick={() => setOpenLlamadaModal(true)}>
+                <PhoneCall className="h-4 w-4" /> Registrar llamada
+              </Button>
+              <Button size="sm" variant="outline" className="gap-1.5 rounded-full shadow-sm" onClick={openRegistrarAsistencia}>
                 <ClipboardCheck className="h-4 w-4" /> Registrar asistencia
               </Button>
               <Button size="sm" variant="outline" className="gap-1.5 rounded-full" onClick={() => setEditing(true)}>
@@ -475,6 +480,7 @@ export default function PersonaPerfilPage() {
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-56">
                   <DropdownMenuLabel>Acciones rápidas</DropdownMenuLabel>
+                  <DropdownMenuItem onClick={() => setOpenLlamadaModal(true)}><PhoneCall className="h-4 w-4 mr-2" /> Registrar llamada consolidación</DropdownMenuItem>
                   <DropdownMenuItem onClick={generarCertificado}><Award className="h-4 w-4 mr-2" /> Generar certificado</DropdownMenuItem>
                   <DropdownMenuItem onClick={openRegistrarAsistencia}><ClipboardCheck className="h-4 w-4 mr-2" /> Registrar asistencia</DropdownMenuItem>
                   <DropdownMenuSeparator />
@@ -1063,6 +1069,12 @@ export default function PersonaPerfilPage() {
         kind={exportPreview ?? "pdf"}
         persona={persona}
         timeline={timeline}
+      />
+
+      <RegistrarLlamadaConsolidacionDialog
+        open={openLlamadaModal}
+        onOpenChange={setOpenLlamadaModal}
+        persona={persona}
       />
     </div>
   );

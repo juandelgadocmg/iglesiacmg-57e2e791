@@ -51,7 +51,9 @@ import {
   Download,
   Layers,
   Check,
+  PhoneCall,
 } from "lucide-react";
+import { ConsolidacionDashboardTab } from "@/components/persona/ConsolidacionDashboardTab";
 import { useDiscipulando } from "@/hooks/useDiscipulando";
 import { toast } from "sonner";
 
@@ -411,9 +413,12 @@ export default function DiscipuladoPage() {
       </div>
 
       {/* ── MAIN TABS SYSTEM ────────────────────────────────────────── */}
-      <Tabs defaultValue="discipulos" className="w-full space-y-6">
+      <Tabs defaultValue="consolidacion" className="w-full space-y-6">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-border/60 pb-3">
           <TabsList className="bg-muted/70 p-1 rounded-2xl">
+            <TabsTrigger value="consolidacion" className="rounded-xl px-4 py-2 text-xs font-bold gap-2 data-[state=active]:bg-card data-[state=active]:shadow-sm">
+              <PhoneCall size={15} /> Consolidación (45 Días)
+            </TabsTrigger>
             <TabsTrigger value="discipulos" className="rounded-xl px-4 py-2 text-xs font-bold gap-2 data-[state=active]:bg-card data-[state=active]:shadow-sm">
               <Users size={15} /> Discípulos ({filteredDiscipulos.length})
             </TabsTrigger>
@@ -428,6 +433,11 @@ export default function DiscipuladoPage() {
             </TabsTrigger>
           </TabsList>
         </div>
+
+        {/* ── TAB CONSOLIDACIÓN (45 DÍAS) ───────────────────────────── */}
+        <TabsContent value="consolidacion" className="space-y-6 m-0">
+          <ConsolidacionDashboardTab />
+        </TabsContent>
 
         {/* ── TAB 1: LISTADO DE DISCÍPULOS ────────────────────────────── */}
         <TabsContent value="discipulos" className="space-y-6 m-0">
