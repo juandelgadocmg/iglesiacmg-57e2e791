@@ -30,6 +30,9 @@ import {
   Clock,
   Heart,
   TrendingUp,
+  Phone,
+  PhoneOff,
+  MessageSquare,
 } from "lucide-react";
 import { toast } from "sonner";
 import { ConsolidacionDashboardTab } from "@/components/persona/ConsolidacionDashboardTab";
@@ -37,12 +40,17 @@ import { RegistrarLlamadaConsolidacionDialog } from "@/components/persona/Regist
 import ExportPersonasDialog from "@/components/forms/ExportPersonasDialog";
 import { useConsolidacionLlamadas } from "@/hooks/useConsolidacionLlamadas";
 
+const normName = (s: string) =>
+  (s || "").toLowerCase().trim().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+
 export default function AfirmacionPage() {
   // State initialization
   const [redes, setRedes] = useState<any[]>(INITIAL_REDES);
   const [casas, setCasas] = useState<any[]>(INITIAL_CASAS);
   const [leaders, setLeaders] = useState<any[]>(INITIAL_LEADERS);
   const [discipulos, setDiscipulos] = useState<any[]>(INITIAL_DISCIPULOS);
+  const [realPersonas, setRealPersonas] = useState<any[]>([]);
+  const [personasPhoneMap, setPersonasPhoneMap] = useState<Map<string, string>>(new Map());
   const [progreso, setProgreso] = useState<any[]>(INITIAL_PROGRESO);
 
   // Filters
@@ -58,12 +66,13 @@ export default function AfirmacionPage() {
     let isMounted = true;
     async function loadLiveData() {
       try {
-        const [rRes, cRes, lRes, dRes, pRes] = await Promise.allSettled([
+        const [rRes, cRes, lRes, dRes, pRes, personasRes] = await Promise.allSettled([
           supabase.from("redes" as any).select("*").order("name"),
           supabase.from("casas_de_paz" as any).select("*, redes(name)").order("name"),
           supabase.from("leaders" as any).select("id, full_name, casa_de_paz_id").order("full_name"),
           supabase.from("discipulos" as any).select("*").order("full_name"),
           supabase.from("progreso_discipulo" as any).select("*"),
+          supabase.from("personas").select("id, nombres, apellidos, telefono, whatsapp").order("nombres"),
         ]);
 
         if (!isMounted) return;
@@ -73,6 +82,31 @@ export default function AfirmacionPage() {
         if (lRes.status === "fulfilled" && lRes.value.data && lRes.value.data.length > 0) setLeaders(lRes.value.data);
         if (dRes.status === "fulfilled" && dRes.value.data && dRes.value.data.length > 0) setDiscipulos(dRes.value.data);
         if (pRes.status === "fulfilled" && pRes.value.data && pRes.value.data.length > 0) setProgreso(pRes.value.data);
+
+        if (personasRes.status === "fulfilled" && personasRes.value.data) {
+          const map = new Map<string, string>();
+          const fetchedRealPersonas: any[] = [];
+          personasRes.value.data.forEach((p: any) => {
+            const name = `${p.nombres || ""} ${p.apellidos || ""}`.trim();
+            const phoneNum = p.telefono || p.whatsapp;
+            if (name && phoneNum) {
+              map.set(normName(name), phoneNum);
+            }
+            if (name) {
+              fetchedRealPersonas.push({
+                id: p.id,
+                full_name: name,
+                telefono: p.telefono,
+                whatsapp: p.whatsapp,
+                phone: p.telefono || p.whatsapp,
+              });
+            }
+          });
+          setPersonasPhoneMap(map);
+          if (fetchedRealPersonas.length > 0) {
+            setRealPersonas(fetchedRealPersonas);
+          }
+        }
       } catch (err) {
         console.warn("Using local fallback state for Afirmación:", err);
       }
@@ -83,16 +117,32 @@ export default function AfirmacionPage() {
     };
   }, []);
 
-  // Filtered list
+  // Merged and Filtered list
+  const combinedPeople = useMemo(() => {
+    const list = [...discipulos];
+    const existingNames = new Set(list.map((d) => normName(d.full_name || "")));
+
+    realPersonas.forEach((rp) => {
+      if (!existingNames.has(normName(rp.full_name))) {
+        list.push(rp);
+      }
+    });
+
+    return list;
+  }, [discipulos, realPersonas]);
+
   const filteredDiscipulos = useMemo(() => {
-    return discipulos.filter((d) => {
+    const s = search.toLowerCase().trim();
+    return combinedPeople.filter((d) => {
+      const name = d.full_name || "";
+      const phone = d.phone || d.telefono || d.whatsapp || personasPhoneMap.get(normName(name)) || "";
       const matchSearch =
-        !search ||
-        d.full_name?.toLowerCase().includes(search.toLowerCase()) ||
-        d.phone?.includes(search);
+        !s ||
+        name.toLowerCase().includes(s) ||
+        phone.includes(s);
       return matchSearch;
     });
-  }, [discipulos, search]);
+  }, [combinedPeople, search, personasPhoneMap]);
 
   return (
     <div className="space-y-8 pb-10">
@@ -225,24 +275,55 @@ export default function AfirmacionPage() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {filteredDiscipulos.map((d) => (
-              <Card key={d.id} className="p-4 rounded-2xl border hover:shadow-md transition-all">
-                <div className="flex items-center gap-3">
-                  <Avatar className="h-10 w-10 border border-primary/20">
-                    <AvatarFallback className="bg-primary/10 text-primary font-bold">
-                      {d.full_name?.slice(0, 2).toUpperCase() || "AF"}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="min-w-0 flex-1">
-                    <h3 className="font-bold text-sm truncate">{d.full_name}</h3>
-                    <p className="text-xs text-muted-foreground truncate">{d.phone || "Sin teléfono"}</p>
+            {filteredDiscipulos.map((d) => {
+              const name = d.full_name || `${d.nombres || ''} ${d.apellidos || ''}`.trim();
+              const phone = d.phone || d.telefono || d.whatsapp || personasPhoneMap.get(normName(name)) || null;
+              const cleanPhone = phone ? phone.replace(/\D/g, "") : "";
+
+              return (
+                <Card key={d.id} className="p-4 rounded-2xl border hover:shadow-md transition-all bg-card/90">
+                  <div className="flex items-center gap-3">
+                    <Avatar className="h-11 w-11 border border-primary/20 shrink-0">
+                      <AvatarFallback className="bg-primary/10 text-primary font-bold text-sm">
+                        {name.slice(0, 2).toUpperCase() || "AF"}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="min-w-0 flex-1 space-y-1">
+                      <h3 className="font-bold text-sm truncate text-foreground">{name}</h3>
+                      {phone ? (
+                        <div className="flex flex-wrap items-center gap-2 text-xs">
+                          <a
+                            href={`tel:${phone}`}
+                            className="inline-flex items-center gap-1.5 font-medium text-muted-foreground hover:text-primary transition-colors"
+                            title="Llamar"
+                          >
+                            <Phone className="h-3.5 w-3.5 text-primary" /> {phone}
+                          </a>
+                          {cleanPhone.length >= 7 && (
+                            <a
+                              href={`https://wa.me/${cleanPhone.length === 10 ? '57' + cleanPhone : cleanPhone}`}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 dark:text-emerald-400 hover:underline bg-emerald-500/10 px-2 py-0.5 rounded-full transition-colors"
+                              title="Enviar WhatsApp"
+                            >
+                              <MessageSquare className="h-3 w-3" /> WhatsApp
+                            </a>
+                          )}
+                        </div>
+                      ) : (
+                        <p className="text-xs text-muted-foreground/80 italic flex items-center gap-1">
+                          <PhoneOff className="h-3 w-3 text-muted-foreground/50" /> Sin teléfono registrado
+                        </p>
+                      )}
+                    </div>
+                    <Badge variant="outline" className="text-[10px] bg-emerald-500/10 text-emerald-700 border-emerald-500/20 shrink-0 font-medium">
+                      Afirmación
+                    </Badge>
                   </div>
-                  <Badge variant="outline" className="text-[10px] bg-emerald-500/10 text-emerald-700">
-                    Afirmación
-                  </Badge>
-                </div>
-              </Card>
-            ))}
+                </Card>
+              );
+            })}
           </div>
         </TabsContent>
 
