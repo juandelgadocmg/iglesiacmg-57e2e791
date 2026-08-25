@@ -21,6 +21,7 @@ import {
   useConsolidacionLlamadas,
 } from "@/hooks/useConsolidacionLlamadas";
 import { supabase } from "@/integrations/supabase/client";
+import { INITIAL_DISCIPULOS } from "@/data/discipulandoInitialData";
 
 interface Props {
   open: boolean;
@@ -64,25 +65,65 @@ export function RegistrarLlamadaConsolidacionDialog({
       setSelectedPersonaId(persona.id);
       setPersonaNombre(`${persona.nombres} ${persona.apellidos}`);
     } else if (open) {
-      // Fetch personas list if no pre-selected persona
       setLoadingPersonas(true);
-      supabase
-        .from("personas")
-        .select("id, nombres, apellidos, grupos(red)")
-        .order("nombres", { ascending: true })
-        .limit(300)
-        .then(({ data, error }) => {
-          setLoadingPersonas(false);
-          if (!error && data) {
-            setPersonaOptions(
-              data.map((p: any) => ({
-                id: p.id,
-                nombre: `${p.nombres} ${p.apellidos}`,
-                red: p.grupos?.red,
-              }))
-            );
+
+      async function fetchPeopleOptions() {
+        const optionsMap = new Map<string, { id: string; nombre: string; red?: string }>();
+
+        // 1. Initial Discipulos Backup
+        INITIAL_DISCIPULOS.forEach((d) => {
+          if (d.id && d.full_name) {
+            optionsMap.set(d.id, { id: d.id, nombre: d.full_name });
           }
         });
+
+        // 2. Fetch DB Personas
+        try {
+          const { data: pData, error: pError } = await supabase
+            .from("personas")
+            .select("id, nombres, apellidos")
+            .order("nombres", { ascending: true })
+            .limit(500);
+
+          if (!pError && pData && pData.length > 0) {
+            pData.forEach((p: any) => {
+              const name = `${p.nombres || ""} ${p.apellidos || ""}`.trim();
+              if (p.id && name) {
+                optionsMap.set(p.id, { id: p.id, nombre: name });
+              }
+            });
+          }
+        } catch (e) {
+          console.warn("Could not load personas table options:", e);
+        }
+
+        // 3. Fetch DB Discipulos
+        try {
+          const { data: dData, error: dError } = await supabase
+            .from("discipulos" as any)
+            .select("id, full_name")
+            .order("full_name", { ascending: true })
+            .limit(500);
+
+          if (!dError && dData && dData.length > 0) {
+            dData.forEach((d: any) => {
+              if (d.id && d.full_name) {
+                optionsMap.set(d.id, { id: d.id, nombre: d.full_name });
+              }
+            });
+          }
+        } catch (e) {
+          console.warn("Could not load discipulos table options:", e);
+        }
+
+        const sortedOptions = Array.from(optionsMap.values()).sort((a, b) =>
+          a.nombre.localeCompare(b.nombre)
+        );
+        setPersonaOptions(sortedOptions);
+        setLoadingPersonas(false);
+      }
+
+      fetchPeopleOptions();
     }
   }, [persona, open]);
 
