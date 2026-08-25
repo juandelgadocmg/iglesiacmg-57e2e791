@@ -30,6 +30,7 @@ export const ROUTE_PERMISSIONS: Record<string, AppRole[]> = {
   "/finanzas": ["admin", "super_admin", "tesoreria"],
   "/eventos": ["admin", "super_admin", "pastor", "lider", "secretaria"],
   "/academia": ["admin", "super_admin", "pastor", "maestro"],
+  "/afirmacion": [],
   "/discipulado": [],
   "/seminario": ["admin", "super_admin", "pastor", "maestro", "seminario_admin", "seminario_docente", "seminario_estudiante"],
   "/mensajes": [],

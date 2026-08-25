@@ -30,7 +30,7 @@ const menuItems: MenuItem[] = [
   { label: "Cumpleaños", icon: Cake, path: "/cumpleanos", section: "Comunidad" },
   { label: "Grupos", icon: UsersRound, path: "/grupos", section: "Comunidad" },
   { label: "Reuniones", icon: Church, path: "/servicios", section: "Comunidad" },
-  { label: "Eventos", icon: CalendarDays, path: "/eventos", section: "Comunidad" },
+  { label: "Afirmación", icon: CheckCircle2, path: "/afirmacion", section: "Formación" },
   { label: "Academia", icon: GraduationCap, path: "/academia", section: "Formación" },
   { label: "Discipulado", icon: UserCheck, path: "/discipulado", section: "Formación" },
   { label: "Seminario", icon: BookMarked, path: "/seminario", section: "Formación" },

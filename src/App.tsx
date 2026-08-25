@@ -23,6 +23,7 @@ import AcademiaPage from "@/pages/AcademiaPage";
 import SeminarioPage from "@/pages/SeminarioPage";
 import TallerNeumatologiaPage from "@/pages/TallerNeumatologiaPage";
 import DiscipuladoPage from "@/pages/DiscipuladoPage";
+import AfirmacionPage from "@/pages/AfirmacionPage";
 import CertificadosPage from "@/pages/CertificadosPage";
 import ReportesPage from "@/pages/ReportesPage";
 import PeticionesPage from "@/pages/PeticionesPage";
@@ -82,7 +83,8 @@ const App = () => (
               <Route path="/finanzas" element={<RoleGuard><FinanzasPage /></RoleGuard>} />
               <Route path="/eventos" element={<RoleGuard><EventosPage /></RoleGuard>} />
               <Route path="/academia" element={<RoleGuard><AcademiaPage /></RoleGuard>} />
-              <Route path="/discipulado" element={<RoleGuard><DiscipuladoPage /></RoleGuard>} />
+              <Route path="/afirmacion" element={<RoleGuard><AfirmacionPage /></RoleGuard>} />
+              <Route path="/discipulado" element={<RoleGuard><AfirmacionPage /></RoleGuard>} />
               <Route path="/seminario" element={<RoleGuard><SeminarioPage /></RoleGuard>} />
               <Route path="/seminario/taller-neumatologia" element={<RoleGuard><TallerNeumatologiaPage /></RoleGuard>} />
               <Route path="/certificados" element={<RoleGuard><CertificadosPage /></RoleGuard>} />
