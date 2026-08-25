@@ -18,20 +18,23 @@ function isPreviewHost(hostname: string): boolean {
 }
 
 async function unregisterAppSW() {
-  if (!("serviceWorker" in navigator)) return;
+  if (typeof window === "undefined") return;
   try {
-    const regs = await navigator.serviceWorker.getRegistrations();
-    await Promise.all(
-      regs
-        .filter((r) => {
-          const url = r.active?.scriptURL || r.installing?.scriptURL || r.waiting?.scriptURL || "";
-          return url.endsWith("/sw.js");
-        })
-        .map((r) => r.unregister())
-    );
+    if ("caches" in window) {
+      const names = await caches.keys();
+      await Promise.all(names.map((name) => caches.delete(name)));
+    }
+    if ("serviceWorker" in navigator) {
+      const regs = await navigator.serviceWorker.getRegistrations();
+      await Promise.all(regs.map((r) => r.unregister()));
+    }
   } catch {
     /* ignore */
   }
+}
+
+if (typeof window !== "undefined") {
+  (window as any).__clearDoxaCaches = unregisterAppSW;
 }
 
 export async function registerPWA() {

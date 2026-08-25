@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
 import { ThemeProvider } from "@/hooks/useTheme";
 import { ActiveRoleProvider } from "@/hooks/useActiveRole";
@@ -43,8 +43,15 @@ import HoyPage from "@/pages/HoyPage";
 import CumpleanosPage from "@/pages/CumpleanosPage";
 import AlertasPage from "@/pages/AlertasPage";
 import ActividadPage from "@/pages/ActividadPage";
-import PWAUpdatePrompt from "@/components/pwa/PWAUpdatePrompt";
-import { installOfflineQueueAutoFlush } from "@/lib/qrOfflineQueue";
+import AsistenciaPage from "@/pages/AsistenciaPage";
+import BannersPage from "@/pages/BannersPage";
+import DonacionesPage from "@/pages/DonacionesPage";
+import GraficoMinisterioPage from "@/pages/GraficoMinisterioPage";
+import InscripcionesPage from "@/pages/InscripcionesPage";
+import MapaGruposPage from "@/pages/MapaGruposPage";
+import ReportesGruposPage from "@/pages/ReportesGruposPage";
+import SenalEnVivoPage from "@/pages/SenalEnVivoPage";
+import VideosPage from "@/pages/VideosPage";
 
 const queryClient = new QueryClient();
 if (typeof window !== "undefined") {
@@ -60,7 +67,6 @@ const App = () => (
         <Sonner />
         <PWAUpdatePrompt />
 
-
       <BrowserRouter>
         <AuthProvider>
           <ActiveRoleProvider>
@@ -73,6 +79,17 @@ const App = () => (
             <Route path="/.lovable/oauth/consent" element={<OAuthConsentPage />} />
             <Route path="/design-system" element={<DesignSystemPage />} />
             <Route path="/chat/compartida/:token" element={<ChatSharePage />} />
+
+            {/* Aliases for legacy or bookmarked paths */}
+            <Route path="/lideres" element={<Navigate to="/personas" replace />} />
+            <Route path="/lideres/*" element={<Navigate to="/personas" replace />} />
+            <Route path="/lider/:id" element={<Navigate to="/personas" replace />} />
+            <Route path="/discipulos" element={<Navigate to="/afirmacion" replace />} />
+            <Route path="/discipulos/*" element={<Navigate to="/afirmacion" replace />} />
+            <Route path="/metas" element={<Navigate to="/afirmacion" replace />} />
+            <Route path="/export-lideres" element={<Navigate to="/afirmacion" replace />} />
+            <Route path="/setup" element={<Navigate to="/dashboard" replace />} />
+
             <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
               <Route path="/hoy" element={<HoyPage />} />
               <Route path="/dashboard" element={<Dashboard />} />
@@ -102,6 +119,15 @@ const App = () => (
               <Route path="/cumpleanos" element={<CumpleanosPage />} />
               <Route path="/alertas" element={<AlertasPage />} />
               <Route path="/actividad" element={<ActividadPage />} />
+              <Route path="/asistencia" element={<RoleGuard><AsistenciaPage /></RoleGuard>} />
+              <Route path="/banners" element={<RoleGuard><BannersPage /></RoleGuard>} />
+              <Route path="/donaciones" element={<RoleGuard><DonacionesPage /></RoleGuard>} />
+              <Route path="/grafico-ministerio" element={<RoleGuard><GraficoMinisterioPage /></RoleGuard>} />
+              <Route path="/inscripciones" element={<RoleGuard><InscripcionesPage /></RoleGuard>} />
+              <Route path="/mapa-grupos" element={<RoleGuard><MapaGruposPage /></RoleGuard>} />
+              <Route path="/reportes-grupos" element={<RoleGuard><ReportesGruposPage /></RoleGuard>} />
+              <Route path="/senal-en-vivo" element={<RoleGuard><SenalEnVivoPage /></RoleGuard>} />
+              <Route path="/videos" element={<RoleGuard><VideosPage /></RoleGuard>} />
               <Route path="/verificar-academico/:id" element={<VerificarAcademicoPage />} />
             </Route>
             <Route path="*" element={<NotFound />} />
