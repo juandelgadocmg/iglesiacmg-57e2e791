@@ -52,6 +52,8 @@ import MapaGruposPage from "@/pages/MapaGruposPage";
 import ReportesGruposPage from "@/pages/ReportesGruposPage";
 import SenalEnVivoPage from "@/pages/SenalEnVivoPage";
 import VideosPage from "@/pages/VideosPage";
+import PWAUpdatePrompt from "@/components/pwa/PWAUpdatePrompt";
+import { installOfflineQueueAutoFlush } from "@/lib/qrOfflineQueue";
 
 const queryClient = new QueryClient();
 if (typeof window !== "undefined") {
