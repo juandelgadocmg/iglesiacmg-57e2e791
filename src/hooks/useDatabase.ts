@@ -93,6 +93,42 @@ export interface PersonaExportFiltros {
   campo?: "created_at" | "fecha_ingreso" | "ingreso_proceso"; // campo de fecha a filtrar (default: created_at)
 }
 
+const CANONICAL_SEQUENCE = [
+  "llamada de consolidación 1",
+  "mensaje 1",
+  "llamada de consolidación 2",
+  "mensaje 2",
+  "llamada de consolidación 3",
+  "mensaje 3",
+  "mensaje 4",
+  "mensaje 5",
+  "mensaje 6",
+  "visita",
+  "consejería",
+  "fiesta de bienvenida",
+  "nací para triunfar día 1",
+  "semana de poder 1",
+  "semana de poder 2",
+  "semana de poder 3",
+  "una nueva vida y un nuevo comienzo",
+  "retiro de sanidad interior y liberación",
+  "bautismo",
+  "discipulado de nuevos creyentes",
+  "escuela de evangelismo sobrenatural",
+  "escuela de líderes de casa de paz",
+  "retiro de líderes de casas de paz",
+  "escuela de mentores",
+  "retiro de mentores",
+  "escuela del ministerio quíntuple",
+];
+
+function getCanonicalOrder(nombre: string, fallbackOrden: number): number {
+  const normName = String(nombre || "").toLowerCase().trim();
+  const idx = CANONICAL_SEQUENCE.findIndex((seq) => normName.includes(seq) || seq.includes(normName));
+  if (idx !== -1) return (idx + 1) * 10;
+  return fallbackOrden * 10;
+}
+
 export function useProcesosCrecimiento() {
   return useQuery({
     queryKey: ["procesos_crecimiento"],
@@ -125,7 +161,7 @@ export function useProcesosCrecimiento() {
               .select("id, nombre, orden");
 
             if (inserted && inserted.length > 0) {
-              list = [...list, ...inserted].sort((a, b) => a.orden - b.orden);
+              list = [...list, ...inserted];
             }
           }
         } catch (e) {
@@ -148,6 +184,9 @@ export function useProcesosCrecimiento() {
           list.splice(sdp1Idx + 1, 0, ...newItems);
         }
       }
+
+      // Ordenar canónicamente para garantizar: Semana de Poder 1 -> Semana de Poder 2 -> Semana de Poder 3 -> Una Nueva Vida...
+      list.sort((a, b) => getCanonicalOrder(a.nombre, a.orden) - getCanonicalOrder(b.nombre, b.orden));
 
       return list;
     },
