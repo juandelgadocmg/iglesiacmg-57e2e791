@@ -89,7 +89,9 @@ export default function PersonasPage() {
     return (localStorage.getItem("personas_view_mode") as "cards" | "tabla") || "cards";
   });
   const [railOpen, setRailOpen] = useState(() => {
-    return localStorage.getItem("personas_rail_open") !== "false";
+    const saved = localStorage.getItem("personas_rail_open");
+    if (saved !== null) return saved === "true";
+    return typeof window !== "undefined" && window.innerWidth >= 1440;
   });
 
   const toggleRail = () => {
@@ -304,126 +306,135 @@ export default function PersonasPage() {
       {/* Panel central */}
       <section className="flex-1 flex flex-col min-w-0 rounded-xl border bg-card overflow-hidden">
         {/* Toolbar */}
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 px-4 py-3 border-b bg-background/40 shrink-0">
-          <div className="flex items-center gap-2 min-w-0 flex-wrap">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="hidden lg:flex h-8 w-8 shrink-0"
-              onClick={toggleRail}
-              title={railOpen ? "Contraer panel de vistas" : "Expandir panel de vistas"}
-            >
-              <Icon icon={railOpen ? PanelLeftClose : PanelLeftOpen} size="xs" />
-            </Button>
-            <Icon icon={activeSegment.icon} size="sm" className="text-primary shrink-0" />
-            <h2 className="doxa-body-sm font-semibold truncate">{activeSegment.label}</h2>
-            <Badge variant="secondary" className="doxa-caption shrink-0">{filtered.length}</Badge>
-
-            <div className="h-4 w-px bg-border mx-1 hidden sm:block" />
-
-            {/* Selector de Vista (Tarjetas / Tabla) */}
-            <div className="flex items-center bg-muted/60 p-0.5 rounded-lg border shrink-0">
+        <div className="flex flex-col gap-2.5 px-4 py-3 border-b bg-background/40 shrink-0">
+          {/* Fila 1: Título, Vista (Tarjetas/Tabla) y Botones de Acción */}
+          <div className="flex items-center justify-between gap-3 flex-wrap">
+            <div className="flex items-center gap-2 min-w-0">
               <Button
-                variant={viewMode === "cards" ? "secondary" : "ghost"}
-                size="sm"
-                className="h-7 px-2.5 text-xs gap-1.5"
-                onClick={() => handleViewModeChange("cards")}
-                title="Vista de Tarjetas"
+                variant="ghost"
+                size="icon"
+                className="hidden lg:flex h-8 w-8 shrink-0"
+                onClick={toggleRail}
+                title={railOpen ? "Contraer panel de vistas" : "Expandir panel de vistas"}
               >
-                <LayoutGrid className="h-3.5 w-3.5" />
-                <span className="hidden sm:inline">Tarjetas</span>
+                <Icon icon={railOpen ? PanelLeftClose : PanelLeftOpen} size="xs" />
               </Button>
-              <Button
-                variant={viewMode === "tabla" ? "secondary" : "ghost"}
-                size="sm"
-                className="h-7 px-2.5 text-xs gap-1.5"
-                onClick={() => handleViewModeChange("tabla")}
-                title="Vista de Tabla"
-              >
-                <Table2 className="h-3.5 w-3.5" />
-                <span className="hidden sm:inline">Tabla</span>
-              </Button>
+              <Icon icon={activeSegment.icon} size="sm" className="text-primary shrink-0" />
+              <h2 className="doxa-body-sm font-semibold truncate">{activeSegment.label}</h2>
+              <Badge variant="secondary" className="doxa-caption shrink-0">{filtered.length}</Badge>
+
+              <div className="h-4 w-px bg-border mx-1 hidden sm:block" />
+
+              {/* Selector de Vista (Tarjetas / Tabla) */}
+              <div className="flex items-center bg-muted/60 p-0.5 rounded-lg border shrink-0">
+                <Button
+                  variant={viewMode === "cards" ? "secondary" : "ghost"}
+                  size="sm"
+                  className="h-7 px-2.5 text-xs gap-1.5"
+                  onClick={() => handleViewModeChange("cards")}
+                  title="Vista de Tarjetas"
+                >
+                  <LayoutGrid className="h-3.5 w-3.5" />
+                  <span className="hidden sm:inline">Tarjetas</span>
+                </Button>
+                <Button
+                  variant={viewMode === "tabla" ? "secondary" : "ghost"}
+                  size="sm"
+                  className="h-7 px-2.5 text-xs gap-1.5"
+                  onClick={() => handleViewModeChange("tabla")}
+                  title="Vista de Tabla"
+                >
+                  <Table2 className="h-3.5 w-3.5" />
+                  <span className="hidden sm:inline">Tabla</span>
+                </Button>
+              </div>
+            </div>
+
+            {/* Acciones principales */}
+            <div className="flex items-center gap-1.5 flex-wrap shrink-0">
+              <ExportDropdown
+                title="Personas"
+                filename={`personas${segment !== "todos" ? "_" + segment.replace(":", "-") : ""}${estado !== "all" ? "_" + estado : ""}`}
+                columns={exportColumns.length ? exportColumns : ALL_EXPORT_COLS.slice(0, 7)}
+                data={exportData}
+                filters={exportFilters}
+              />
+              <ExportPersonasDialog />
+              {canCreate && <ImportPersonasDialog />}
+              {canCreate && <PersonaFormDialog onCreated={handleCreated} />}
             </div>
           </div>
 
-          <div className="flex items-center gap-2 flex-wrap min-w-0 justify-end">
-            <div className="relative flex-1 sm:flex-initial min-w-[140px]">
-              <Icon icon={Search} size="xs" className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
-              <Input
-                placeholder="Buscar…"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="pl-9 w-full sm:w-44 lg:w-56 doxa-caption h-8"
-              />
-              {search && (
-                <button onClick={() => setSearch("")} className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded hover:bg-muted">
-                  <Icon icon={X} size="xs" className="text-muted-foreground" />
-                </button>
-              )}
+          {/* Fila 2: Búsqueda, Filtro de Estado, Ordenar y Configuración de Columnas */}
+          <div className="flex items-center justify-between gap-2 flex-wrap pt-2 border-t border-border/40">
+            <div className="flex items-center gap-2 flex-1 min-w-[200px] flex-wrap">
+              <div className="relative flex-1 min-w-[140px] max-w-sm">
+                <Icon icon={Search} size="xs" className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+                <Input
+                  placeholder="Buscar personas..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="pl-9 w-full doxa-caption h-8"
+                />
+                {search && (
+                  <button onClick={() => setSearch("")} className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded hover:bg-muted">
+                    <Icon icon={X} size="xs" className="text-muted-foreground" />
+                  </button>
+                )}
+              </div>
+
+              <Select value={estado} onValueChange={setEstado}>
+                <SelectTrigger className="w-32 sm:w-36 doxa-caption h-8">
+                  <Icon icon={Filter} size="xs" className="mr-1" /><SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos estados</SelectItem>
+                  <SelectItem value="Activo">Activo</SelectItem>
+                  <SelectItem value="Inactivo">Inactivo</SelectItem>
+                  <SelectItem value="En proceso">En proceso</SelectItem>
+                </SelectContent>
+              </Select>
+
+              <Button size="sm" variant="ghost" className="gap-1 doxa-caption h-8 px-2"
+                onClick={() => setSortBy((s) => s === "nombre" ? "recientes" : "nombre")}>
+                <Icon icon={ArrowUpDown} size="xs" />
+                <span className="hidden sm:inline">{sortBy === "nombre" ? "A–Z" : "Recientes"}</span>
+              </Button>
             </div>
 
-            <Select value={estado} onValueChange={setEstado}>
-              <SelectTrigger className="w-32 sm:w-36 doxa-caption h-8">
-                <Icon icon={Filter} size="xs" className="mr-1" /><SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos estados</SelectItem>
-                <SelectItem value="Activo">Activo</SelectItem>
-                <SelectItem value="Inactivo">Inactivo</SelectItem>
-                <SelectItem value="En proceso">En proceso</SelectItem>
-              </SelectContent>
-            </Select>
-
-            <Button size="sm" variant="ghost" className="gap-1 doxa-caption h-8 px-2"
-              onClick={() => setSortBy((s) => s === "nombre" ? "recientes" : "nombre")}>
-              <Icon icon={ArrowUpDown} size="xs" />
-              <span className="hidden sm:inline">{sortBy === "nombre" ? "A–Z" : "Recientes"}</span>
-            </Button>
-
-            <div className="h-4 w-px bg-border mx-0.5 hidden sm:block" />
-
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button variant="outline" size="sm" className="gap-1.5 h-8 px-2.5" title="Columnas de exportación">
-                  <SlidersHorizontal className="h-3.5 w-3.5" />
-                  <span className="hidden xl:inline">Columnas</span>
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent align="end" className="w-64 p-3 space-y-2">
-                <p className="doxa-caption font-semibold">Columnas a exportar</p>
-                <p className="doxa-caption text-muted-foreground">{selectedCols.length} de {ALL_EXPORT_COLS.length}</p>
-                <div className="max-h-64 overflow-auto space-y-1 pr-1">
-                  {ALL_EXPORT_COLS.map(c => (
-                    <label key={c.key} className="flex items-center gap-2 py-1 doxa-caption cursor-pointer hover:bg-muted rounded px-1">
-                      <Checkbox
-                        checked={selectedCols.includes(c.key)}
-                        onCheckedChange={(v) => setSelectedCols(prev =>
-                          v ? [...prev, c.key] : prev.filter(k => k !== c.key)
-                        )}
-                      />
-                      {c.header}
-                    </label>
-                  ))}
-                </div>
-                <div className="flex gap-2 pt-2 border-t">
-                  <Button size="sm" variant="ghost" className="flex-1 doxa-caption"
-                    onClick={() => setSelectedCols(ALL_EXPORT_COLS.map(c => c.key))}>Todas</Button>
-                  <Button size="sm" variant="ghost" className="flex-1 doxa-caption"
-                    onClick={() => setSelectedCols([])}>Ninguna</Button>
-                </div>
-              </PopoverContent>
-            </Popover>
-
-            <ExportDropdown
-              title="Personas"
-              filename={`personas${segment !== "todos" ? "_" + segment.replace(":", "-") : ""}${estado !== "all" ? "_" + estado : ""}`}
-              columns={exportColumns.length ? exportColumns : ALL_EXPORT_COLS.slice(0, 7)}
-              data={exportData}
-              filters={exportFilters}
-            />
-            <ExportPersonasDialog />
-            {canCreate && <ImportPersonasDialog />}
-            {canCreate && <PersonaFormDialog onCreated={handleCreated} />}
+            <div className="flex items-center gap-2 shrink-0">
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" size="sm" className="gap-1.5 h-8 px-2.5" title="Columnas de exportación">
+                    <SlidersHorizontal className="h-3.5 w-3.5" />
+                    <span>Columnas</span>
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent align="end" className="w-64 p-3 space-y-2">
+                  <p className="doxa-caption font-semibold">Columnas a exportar</p>
+                  <p className="doxa-caption text-muted-foreground">{selectedCols.length} de {ALL_EXPORT_COLS.length}</p>
+                  <div className="max-h-64 overflow-auto space-y-1 pr-1">
+                    {ALL_EXPORT_COLS.map(c => (
+                      <label key={c.key} className="flex items-center gap-2 py-1 doxa-caption cursor-pointer hover:bg-muted rounded px-1">
+                        <Checkbox
+                          checked={selectedCols.includes(c.key)}
+                          onCheckedChange={(v) => setSelectedCols(prev =>
+                            v ? [...prev, c.key] : prev.filter(k => k !== c.key)
+                          )}
+                        />
+                        {c.header}
+                      </label>
+                    ))}
+                  </div>
+                  <div className="flex gap-2 pt-2 border-t">
+                    <Button size="sm" variant="ghost" className="flex-1 doxa-caption"
+                      onClick={() => setSelectedCols(ALL_EXPORT_COLS.map(c => c.key))}>Todas</Button>
+                    <Button size="sm" variant="ghost" className="flex-1 doxa-caption"
+                      onClick={() => setSelectedCols([])}>Ninguna</Button>
+                  </div>
+                </PopoverContent>
+              </Popover>
+            </div>
           </div>
         </div>
 
@@ -454,7 +465,7 @@ export default function PersonasPage() {
             />
           ) : viewMode === "tabla" ? (
             <div className="overflow-x-auto border rounded-xl bg-card">
-              <table className="w-full text-left doxa-caption border-collapse">
+              <table className="w-full min-w-[950px] text-left doxa-caption border-collapse">
                 <thead className="bg-muted/60 border-b sticky top-0 z-10 font-semibold text-muted-foreground">
                   <tr>
                     <th className="p-3 w-10 text-center">
