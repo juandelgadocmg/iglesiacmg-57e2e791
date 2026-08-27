@@ -69,13 +69,10 @@ export default function PersonasPage() {
   const [editing, setEditing] = useState<any>(null);
   const { activeRole } = useActiveRole();
   const { isLoading: rolesLoading } = useUserRoles();
-  const { isLoading: permissionOverridesLoading, isError: permissionOverridesError } = useRolePermissions();
-  const can = useCan();
-  const canEdit = can("personas:edit");
+  const { ready: permissionsReady, can } = useRolePermissions();
   const canCreate = can("personas:create");
+  const canEdit = can("personas:edit");
   const canDelete = can("personas:delete");
-  const permissionsReady = !rolesLoading && (!permissionOverridesLoading || permissionOverridesError);
-  const dock = useContextDock();
   const { push: pushRecent } = useRecentEntities();
   const { pins, toggle } = useUserPins();
 
@@ -116,7 +113,6 @@ export default function PersonasPage() {
 
   const { data: procesosCrecimiento = [] } = useProcesosCrecimiento();
 
-  // Columnas de exportación seleccionables (Datos básicos + Todos los pasos del proceso de afirmación y crecimiento)
   const ALL_EXPORT_COLS = useMemo(() => {
     const baseCols = [
       { header: "Nombres", key: "nombres" },
@@ -133,12 +129,26 @@ export default function PersonasPage() {
       { header: "Ingreso", key: "fecha_ingreso" },
     ];
 
-    const procesosCols = (procesosCrecimiento || []).map((proc: any) => ({
-      header: `Paso: ${proc.nombre}`,
-      key: `proc_${proc.id}`,
+    const afirmacionCols = OFFICIAL_AFIRMACION_STEPS.map((step) => ({
+      header: step.header,
+      key: step.key,
     }));
 
-    return [...baseCols, ...procesosCols];
+    const dbProcesosCols = (procesosCrecimiento || [])
+      .filter(
+        (proc: any) =>
+          !OFFICIAL_AFIRMACION_STEPS.some(
+            (s) =>
+              proc.nombre.toLowerCase().includes(s.code.toLowerCase()) ||
+              proc.nombre.toLowerCase().includes(s.label.toLowerCase().slice(0, 5))
+          )
+      )
+      .map((proc: any) => ({
+        header: `Paso: ${proc.nombre}`,
+        key: `proc_${proc.id}`,
+      }));
+
+    return [...baseCols, ...afirmacionCols, ...dbProcesosCols];
   }, [procesosCrecimiento]);
 
   const [selectedCols, setSelectedCols] = useState<string[]>(
@@ -238,7 +248,6 @@ export default function PersonasPage() {
     });
 
   const segmentCount = (seg: Segment) => (personas || []).filter(seg.filter).length;
-  // Datos filtrados listos para exportar (respeta segmento, estado, búsqueda, orden y mapea pasos del proceso)
   const exportData = useMemo(
     () =>
       filtered.map((p: any) => {
@@ -248,17 +257,45 @@ export default function PersonasPage() {
         };
 
         const pMap = new Map<string, any>();
-        (p.persona_procesos || []).forEach((pp: any) => pMap.set(pp.proceso_id, pp));
+        (p.persona_procesos || []).forEach((pp: any) => {
+          if (pp.proceso_id) pMap.set(pp.proceso_id, pp);
+        });
+
+        OFFICIAL_AFIRMACION_STEPS.forEach((step) => {
+          const ppFound = (p.persona_procesos || []).find((pp: any) => {
+            const name = norm(pp.procesos_crecimiento?.nombre || pp.proceso_nombre || pp.nombre || "");
+            const code = norm(pp.codigo || pp.etapa_code || "");
+            return (
+              name.includes(norm(step.code)) ||
+              name.includes(norm(step.label.slice(0, 6))) ||
+              code === norm(step.code)
+            );
+          });
+
+          if (ppFound) {
+            row[step.key] =
+              ppFound.estado === "Completado"
+                ? ppFound.fecha_completado
+                  ? `Completado (${ppFound.fecha_completado})`
+                  : "Completado"
+                : ppFound.estado || "En proceso";
+          } else {
+            row[step.key] = "Pendiente";
+          }
+        });
 
         (procesosCrecimiento || []).forEach((proc: any) => {
-          const pp = pMap.get(proc.id);
-          row[`proc_${proc.id}`] = pp
-            ? pp.estado === "Completado"
-              ? pp.fecha_completado
-                ? `Completado (${pp.fecha_completado})`
-                : "Completado"
-              : pp.estado || "En proceso"
-            : "Pendiente";
+          const key = `proc_${proc.id}`;
+          if (!row[key]) {
+            const pp = pMap.get(proc.id);
+            row[key] = pp
+              ? pp.estado === "Completado"
+                ? pp.fecha_completado
+                  ? `Completado (${pp.fecha_completado})`
+                  : "Completado"
+                : pp.estado || "En proceso"
+              : "Pendiente";
+          }
         });
 
         return row;
