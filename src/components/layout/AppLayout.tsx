@@ -16,7 +16,7 @@ export default function AppLayout() {
         <AppSidebarNew mobileOpen={mobileMenuOpen} onMobileClose={() => setMobileMenuOpen(false)} />
         <div className="flex-1 flex flex-col h-full min-w-0 max-w-full overflow-hidden">
           <AppTopBar onMenuClick={() => setMobileMenuOpen(true)} />
-          <main className="flex-1 min-h-0 p-3 md:p-6 overflow-x-hidden overflow-y-auto min-w-0 max-w-full">
+          <main className="flex-1 min-h-0 p-2 md:p-3 overflow-x-hidden overflow-y-auto min-w-0 max-w-full">
             <Outlet />
           </main>
         </div>
