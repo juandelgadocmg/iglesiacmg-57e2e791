@@ -16,7 +16,7 @@ export function usePersonas() {
       while (hasMore) {
         const { data, error } = await supabase
           .from("personas")
-          .select("*, grupos!fk_personas_grupo(nombre)")
+          .select("*, grupos!fk_personas_grupo(nombre), persona_procesos(proceso_id, estado, fecha_completado, observacion)")
           .order("created_at", { ascending: false })
           .order("id", { ascending: true })
           .range(from, from + PAGE_SIZE - 1);

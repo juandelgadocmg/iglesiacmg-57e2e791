@@ -22,7 +22,7 @@ import ImportPersonasDialog from "@/components/forms/ImportPersonasDialog";
 import PersonaQuickView from "@/components/persona/PersonaQuickView";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { usePersonas, useDeletePersona } from "@/hooks/useDatabase";
+import { usePersonas, useDeletePersona, useProcesosCrecimiento } from "@/hooks/useDatabase";
 import { useCan } from "@/hooks/useCan";
 import { useActiveRole } from "@/hooks/useActiveRole";
 import { useUserRoles } from "@/hooks/useUserRoles";
@@ -114,21 +114,33 @@ export default function PersonasPage() {
     localStorage.setItem("personas_view_mode", mode);
   };
 
-  // Columnas de exportación seleccionables
-  const ALL_EXPORT_COLS = useMemo(() => ([
-    { header: "Nombres", key: "nombres" },
-    { header: "Apellidos", key: "apellidos" },
-    { header: "Documento", key: "documento" },
-    { header: "Teléfono", key: "telefono" },
-    { header: "WhatsApp", key: "whatsapp" },
-    { header: "Email", key: "email" },
-    { header: "Tipo", key: "tipo_persona" },
-    { header: "Grupo", key: "grupoNombre" },
-    { header: "Estado", key: "estado_iglesia" },
-    { header: "Dirección", key: "direccion" },
-    { header: "Nacimiento", key: "fecha_nacimiento" },
-    { header: "Ingreso", key: "fecha_ingreso" },
-  ]), []);
+  const { data: procesosCrecimiento = [] } = useProcesosCrecimiento();
+
+  // Columnas de exportación seleccionables (Datos básicos + Todos los pasos del proceso de afirmación y crecimiento)
+  const ALL_EXPORT_COLS = useMemo(() => {
+    const baseCols = [
+      { header: "Nombres", key: "nombres" },
+      { header: "Apellidos", key: "apellidos" },
+      { header: "Documento", key: "documento" },
+      { header: "Teléfono", key: "telefono" },
+      { header: "WhatsApp", key: "whatsapp" },
+      { header: "Email", key: "email" },
+      { header: "Tipo", key: "tipo_persona" },
+      { header: "Grupo", key: "grupoNombre" },
+      { header: "Estado", key: "estado_iglesia" },
+      { header: "Dirección", key: "direccion" },
+      { header: "Nacimiento", key: "fecha_nacimiento" },
+      { header: "Ingreso", key: "fecha_ingreso" },
+    ];
+
+    const procesosCols = (procesosCrecimiento || []).map((proc: any) => ({
+      header: `Paso: ${proc.nombre}`,
+      key: `proc_${proc.id}`,
+    }));
+
+    return [...baseCols, ...procesosCols];
+  }, [procesosCrecimiento]);
+
   const [selectedCols, setSelectedCols] = useState<string[]>(
     ["nombres", "apellidos", "telefono", "email", "tipo_persona", "grupoNombre", "estado_iglesia"]
   );
@@ -226,10 +238,32 @@ export default function PersonasPage() {
     });
 
   const segmentCount = (seg: Segment) => (personas || []).filter(seg.filter).length;
-  // Datos filtrados listos para exportar (respeta segmento, estado, búsqueda, orden)
+  // Datos filtrados listos para exportar (respeta segmento, estado, búsqueda, orden y mapea pasos del proceso)
   const exportData = useMemo(
-    () => filtered.map((p: any) => ({ ...p, grupoNombre: p.grupos?.nombre || "" })),
-    [filtered]
+    () =>
+      filtered.map((p: any) => {
+        const row: any = {
+          ...p,
+          grupoNombre: p.grupos?.nombre || "",
+        };
+
+        const pMap = new Map<string, any>();
+        (p.persona_procesos || []).forEach((pp: any) => pMap.set(pp.proceso_id, pp));
+
+        (procesosCrecimiento || []).forEach((proc: any) => {
+          const pp = pMap.get(proc.id);
+          row[`proc_${proc.id}`] = pp
+            ? pp.estado === "Completado"
+              ? pp.fecha_completado
+                ? `Completado (${pp.fecha_completado})`
+                : "Completado"
+              : pp.estado || "En proceso"
+            : "Pendiente";
+        });
+
+        return row;
+      }),
+    [filtered, procesosCrecimiento]
   );
   const exportColumns = useMemo(
     () => ALL_EXPORT_COLS.filter(c => selectedCols.includes(c.key)),
