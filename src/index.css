@@ -196,10 +196,8 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
-    /* DOXA Global Scale — +25% across the entire product.
-       All rem-based Tailwind sizes (text-sm, p-4, h-10, gap-2…)
-       inherit this bump automatically. */
-    font-size: 20px;
+    /* DOXA Alegra-Style Compact Scale (13.5px base font-size) */
+    font-size: 13.5px;
   }
 
   body {
@@ -208,7 +206,7 @@
     font-feature-settings: "ss01", "cv11";
     letter-spacing: -0.005em;
     font-size: 1rem;
-    line-height: 1.55;
+    line-height: 1.5;
     overflow-x: hidden;
     max-width: 100vw;
   }
@@ -250,29 +248,29 @@
     letter-spacing: -0.02em;
   }
 
-  /* DOXA Global Type Scale — +25% */
+  /* DOXA Alegra-Style Type Scale */
   h1 {
-    font-size: 40px;
-    line-height: 1.15;
-  }
-  h2 {
-    font-size: 34px;
+    font-size: 24px;
     line-height: 1.2;
   }
-  h3 {
-    font-size: 30px;
+  h2 {
+    font-size: 20px;
     line-height: 1.25;
   }
-  h4 {
-    font-size: 25px;
+  h3 {
+    font-size: 17px;
     line-height: 1.3;
   }
-  h5 {
-    font-size: 22px;
+  h4 {
+    font-size: 15px;
     line-height: 1.35;
   }
+  h5 {
+    font-size: 13.5px;
+    line-height: 1.4;
+  }
   h6 {
-    font-size: 20px;
+    font-size: 12.5px;
     line-height: 1.4;
   }
 
@@ -287,106 +285,53 @@
 @layer utilities {
   .doxa-display-xl {
     font-family: "Sora", system-ui, sans-serif;
-    font-size: 60px;
-    line-height: 1.1;
+    font-size: 36px;
+    line-height: 1.15;
     letter-spacing: -0.025em;
     font-weight: 700;
   }
   .doxa-display-lg {
     font-family: "Sora", system-ui, sans-serif;
-    font-size: 50px;
+    font-size: 30px;
     line-height: 1.15;
     letter-spacing: -0.02em;
     font-weight: 700;
   }
   .doxa-h1 {
     font-family: "Sora", system-ui, sans-serif;
-    font-size: 40px;
-    line-height: 1.15;
+    font-size: 24px;
+    line-height: 1.2;
     font-weight: 700;
   }
   .doxa-h2 {
     font-family: "Sora", system-ui, sans-serif;
-    font-size: 34px;
-    line-height: 1.2;
+    font-size: 20px;
+    line-height: 1.25;
     font-weight: 600;
   }
   .doxa-h3 {
     font-family: "Sora", system-ui, sans-serif;
-    font-size: 30px;
-    line-height: 1.25;
+    font-size: 17px;
+    line-height: 1.3;
     font-weight: 600;
   }
   .doxa-h4 {
     font-family: "Sora", system-ui, sans-serif;
-    font-size: 25px;
-    line-height: 1.3;
+    font-size: 15px;
+    line-height: 1.35;
     font-weight: 600;
   }
   .doxa-body {
-    font-size: 20px;
-    line-height: 1.55;
-  }
-  .doxa-body-sm {
-    font-size: 18px;
+    font-size: 13.5px;
     line-height: 1.5;
   }
-  .doxa-caption {
-    font-size: 17px;
+  .doxa-body-sm {
+    font-size: 12.5px;
     line-height: 1.45;
   }
-
-  /* ── DOXA Global Uplift — override ALL hardcoded arbitrary
-     Tailwind text sizes across the app so legacy components
-     inherit the +25/30% scale without file-by-file refactor.
-     Sizes ≤ 15px get bumped; larger ones already scale well. */
-  .text-\[6px\] {
-    font-size: 11px !important;
-    line-height: 1.4 !important;
-  }
-  .text-\[8px\] {
-    font-size: 13px !important;
-    line-height: 1.4 !important;
-  }
-  .text-\[9px\] {
-    font-size: 14px !important;
-    line-height: 1.4 !important;
-  }
-  .text-\[10px\] {
-    font-size: 15px !important;
-    line-height: 1.45 !important;
-  }
-  .text-\[11px\] {
-    font-size: 16px !important;
-    line-height: 1.45 !important;
-  }
-  .text-\[12px\] {
-    font-size: 17px !important;
-    line-height: 1.5 !important;
-  }
-  .text-\[13px\] {
-    font-size: 18px !important;
-    line-height: 1.5 !important;
-  }
-  .text-\[14px\] {
-    font-size: 19px !important;
-    line-height: 1.55 !important;
-  }
-  .text-\[15px\] {
-    font-size: 20px !important;
-    line-height: 1.55 !important;
-  }
-  .text-\[16px\] {
-    font-size: 21px !important;
-    line-height: 1.55 !important;
-  }
-  .text-\[17px\] {
-    font-size: 22px !important;
-    line-height: 1.55 !important;
-  }
-  .text-\[18px\] {
-    font-size: 23px !important;
-    line-height: 1.55 !important;
+  .doxa-caption {
+    font-size: 11.5px;
+    line-height: 1.4;
   }
 }
 
