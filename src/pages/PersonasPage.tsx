@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import {
   Users, Search, Phone, Mail, Filter, X, ChevronLeft, ChevronRight,
   Cake, UsersRound, Sparkles, UserX, Pencil, Star, ArrowUpDown, MoreHorizontal,
-  MessageSquare,
+  MessageSquare, LayoutGrid, Table2, PanelLeftClose, PanelLeftOpen, Eye,
 } from "lucide-react";
 import { Icon } from "@/design-system/primitives/Icon";
 import { toast } from "sonner";
@@ -85,6 +85,15 @@ export default function PersonasPage() {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [page, setPage] = useState(1);
   const [sortBy, setSortBy] = useState<"nombre" | "recientes">("recientes");
+  const [viewMode, setViewMode] = useState<"cards" | "tabla">(() => {
+    return (localStorage.getItem("personas_view_mode") as "cards" | "tabla") || "cards";
+  });
+  const [railOpen, setRailOpen] = useState(true);
+
+  const handleViewModeChange = (mode: "cards" | "tabla") => {
+    setViewMode(mode);
+    localStorage.setItem("personas_view_mode", mode);
+  };
 
   // Columnas de exportación seleccionables
   const ALL_EXPORT_COLS = useMemo(() => ([
@@ -232,32 +241,49 @@ export default function PersonasPage() {
       )}
 
       {/* Rail izquierdo — segmentos */}
-      <aside className="hidden lg:flex w-60 shrink-0 flex-col rounded-xl border bg-card overflow-hidden">
-        <div className="px-4 py-3 border-b">
-          <div className="doxa-caption uppercase tracking-wider text-muted-foreground font-bold">Vistas</div>
-          <div className="doxa-caption text-muted-foreground mt-1">
-            {activeRole === "lider_red" ? "Personas de tu red" : "Toda la comunidad"}
-          </div>
+      <aside className={cn(
+        "hidden lg:flex flex-col shrink-0 rounded-xl border bg-card overflow-hidden transition-all duration-200",
+        railOpen ? "w-60" : "w-14 items-center"
+      )}>
+        <div className={cn("px-4 py-3 border-b flex items-center justify-between w-full", !railOpen && "px-2 justify-center")}>
+          {railOpen ? (
+            <div>
+              <div className="doxa-caption uppercase tracking-wider text-muted-foreground font-bold">Vistas</div>
+              <div className="doxa-caption text-muted-foreground mt-0.5">
+                {activeRole === "lider_red" ? "Personas de tu red" : "Toda la comunidad"}
+              </div>
+            </div>
+          ) : (
+            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setRailOpen(true)} title="Expandir vistas">
+              <PanelLeftOpen className="h-4 w-4 text-muted-foreground" />
+            </Button>
+          )}
         </div>
-        <div className="flex-1 overflow-y-auto p-2 space-y-1">
+        <div className="flex-1 overflow-y-auto p-2 space-y-1 w-full">
           {SMART_SEGMENTS.map((s) => (
-            <SegmentBtn key={s.id} seg={s} active={segment === s.id} count={segmentCount(s)} onClick={() => setSegment(s.id)} />
+            <SegmentBtn key={s.id} seg={s} active={segment === s.id} count={segmentCount(s)} collapsed={!railOpen} onClick={() => setSegment(s.id)} />
           ))}
-          <div className="px-2 py-2 doxa-caption uppercase tracking-wider font-bold text-muted-foreground/70">Por tipo</div>
+          <div className={cn("px-2 py-2 doxa-caption uppercase tracking-wider font-bold text-muted-foreground/70", !railOpen && "text-center text-[10px]")}>
+            {railOpen ? "Por tipo" : "Tipo"}
+          </div>
           {TIPO_SEGMENTS.map((s) => (
-            <SegmentBtn key={s.id} seg={s} active={segment === s.id} count={segmentCount(s)} onClick={() => setSegment(s.id)} />
+            <SegmentBtn key={s.id} seg={s} active={segment === s.id} count={segmentCount(s)} collapsed={!railOpen} onClick={() => setSegment(s.id)} />
           ))}
           {pins.filter((p) => p.kind === "persona").length > 0 && (
             <>
-              <div className="px-2 py-2 doxa-caption uppercase tracking-wider font-bold text-muted-foreground/70">Anclados</div>
+              <div className={cn("px-2 py-2 doxa-caption uppercase tracking-wider font-bold text-muted-foreground/70", !railOpen && "hidden")}>Anclados</div>
               {pins.filter((p) => p.kind === "persona").slice(0, 6).map((p) => (
                 <button
                   key={p.id}
                   onClick={() => navigate(p.to)}
-                  className="w-full flex items-center gap-2 px-3 py-2 rounded-md doxa-caption text-muted-foreground hover:text-foreground hover:bg-muted"
+                  title={p.label}
+                  className={cn(
+                    "w-full flex items-center gap-2 rounded-md doxa-caption text-muted-foreground hover:text-foreground hover:bg-muted transition-colors",
+                    railOpen ? "px-3 py-2" : "p-2 justify-center"
+                  )}
                 >
-                  <Icon icon={Star} size="xs" className="text-amber-500 fill-amber-400" />
-                  <span className="flex-1 truncate text-left">{p.label}</span>
+                  <Icon icon={Star} size="xs" className="text-amber-500 fill-amber-400 shrink-0" />
+                  {railOpen && <span className="flex-1 truncate text-left">{p.label}</span>}
                 </button>
               ))}
             </>
@@ -268,21 +294,56 @@ export default function PersonasPage() {
       {/* Panel central */}
       <section className="flex-1 flex flex-col min-w-0 rounded-xl border bg-card overflow-hidden">
         {/* Toolbar */}
-        <div className="flex items-center gap-3 px-4 py-3 border-b bg-background/40">
-          <div className="flex items-center gap-2 min-w-0">
-            <Icon icon={activeSegment.icon} size="sm" className="text-primary" />
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 px-4 py-3 border-b bg-background/40 shrink-0">
+          <div className="flex items-center gap-2 min-w-0 flex-wrap">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="hidden lg:flex h-8 w-8 shrink-0"
+              onClick={() => setRailOpen(!railOpen)}
+              title={railOpen ? "Contraer panel de vistas" : "Expandir panel de vistas"}
+            >
+              <Icon icon={railOpen ? PanelLeftClose : PanelLeftOpen} size="xs" />
+            </Button>
+            <Icon icon={activeSegment.icon} size="sm" className="text-primary shrink-0" />
             <h2 className="doxa-body-sm font-semibold truncate">{activeSegment.label}</h2>
             <Badge variant="secondary" className="doxa-caption shrink-0">{filtered.length}</Badge>
+
+            <div className="h-4 w-px bg-border mx-1 hidden sm:block" />
+
+            {/* Selector de Vista (Tarjetas / Tabla) */}
+            <div className="flex items-center bg-muted/60 p-0.5 rounded-lg border shrink-0">
+              <Button
+                variant={viewMode === "cards" ? "secondary" : "ghost"}
+                size="sm"
+                className="h-7 px-2.5 text-xs gap-1.5"
+                onClick={() => handleViewModeChange("cards")}
+                title="Vista de Tarjetas"
+              >
+                <LayoutGrid className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">Tarjetas</span>
+              </Button>
+              <Button
+                variant={viewMode === "tabla" ? "secondary" : "ghost"}
+                size="sm"
+                className="h-7 px-2.5 text-xs gap-1.5"
+                onClick={() => handleViewModeChange("tabla")}
+                title="Vista de Tabla"
+              >
+                <Table2 className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">Tabla</span>
+              </Button>
+            </div>
           </div>
-          <div className="flex-1" />
-          <div className="hidden md:flex items-center gap-2">
-            <div className="relative">
+
+          <div className="flex items-center gap-2 flex-wrap min-w-0 justify-end">
+            <div className="relative flex-1 sm:flex-initial min-w-[140px]">
               <Icon icon={Search} size="xs" className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
               <Input
                 placeholder="Buscar…"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="pl-9 w-64 doxa-caption"
+                className="pl-9 w-full sm:w-44 lg:w-56 doxa-caption h-8"
               />
               {search && (
                 <button onClick={() => setSearch("")} className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded hover:bg-muted">
@@ -290,8 +351,9 @@ export default function PersonasPage() {
                 </button>
               )}
             </div>
+
             <Select value={estado} onValueChange={setEstado}>
-              <SelectTrigger className="w-36 doxa-caption">
+              <SelectTrigger className="w-32 sm:w-36 doxa-caption h-8">
                 <Icon icon={Filter} size="xs" className="mr-1" /><SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -301,18 +363,20 @@ export default function PersonasPage() {
                 <SelectItem value="En proceso">En proceso</SelectItem>
               </SelectContent>
             </Select>
-            <Button size="sm" variant="ghost" className="gap-1 doxa-caption"
+
+            <Button size="sm" variant="ghost" className="gap-1 doxa-caption h-8 px-2"
               onClick={() => setSortBy((s) => s === "nombre" ? "recientes" : "nombre")}>
               <Icon icon={ArrowUpDown} size="xs" />
-              {sortBy === "nombre" ? "A–Z" : "Recientes"}
+              <span className="hidden sm:inline">{sortBy === "nombre" ? "A–Z" : "Recientes"}</span>
             </Button>
-          </div>
-          <div className="flex items-center gap-1">
+
+            <div className="h-4 w-px bg-border mx-0.5 hidden sm:block" />
+
             <Popover>
               <PopoverTrigger asChild>
-                <Button variant="outline" size="sm" className="gap-1.5" title="Columnas de exportación">
-                  <SlidersHorizontal className="h-4 w-4" />
-                  <span className="hidden lg:inline">Columnas</span>
+                <Button variant="outline" size="sm" className="gap-1.5 h-8 px-2.5" title="Columnas de exportación">
+                  <SlidersHorizontal className="h-3.5 w-3.5" />
+                  <span className="hidden xl:inline">Columnas</span>
                 </Button>
               </PopoverTrigger>
               <PopoverContent align="end" className="w-64 p-3 space-y-2">
@@ -339,6 +403,7 @@ export default function PersonasPage() {
                 </div>
               </PopoverContent>
             </Popover>
+
             <ExportDropdown
               title="Personas"
               filename={`personas${segment !== "todos" ? "_" + segment.replace(":", "-") : ""}${estado !== "all" ? "_" + estado : ""}`}
@@ -368,7 +433,7 @@ export default function PersonasPage() {
           </Select>
         </div>
 
-        {/* Galería de personas */}
+        {/* Contenido: Galería de personas o Tabla */}
         <div className="flex-1 overflow-auto p-4">
           {filtered.length === 0 ? (
             <EmptyState
@@ -377,8 +442,169 @@ export default function PersonasPage() {
               description="Ajusta los filtros o la vista para encontrar personas."
               action={canCreate ? <PersonaFormDialog onCreated={handleCreated} /> : undefined}
             />
+          ) : viewMode === "tabla" ? (
+            <div className="overflow-x-auto border rounded-xl bg-card">
+              <table className="w-full text-left doxa-caption border-collapse">
+                <thead className="bg-muted/60 border-b sticky top-0 z-10 font-semibold text-muted-foreground">
+                  <tr>
+                    <th className="p-3 w-10 text-center">
+                      <Checkbox
+                        checked={pageItems.length > 0 && pageItems.every((p: any) => selected.has(p.id))}
+                        onCheckedChange={(v) => {
+                          if (v) {
+                            setSelected(new Set([...selected, ...pageItems.map((p: any) => p.id)]));
+                          } else {
+                            const copy = new Set(selected);
+                            pageItems.forEach((p: any) => copy.delete(p.id));
+                            setSelected(copy);
+                          }
+                        }}
+                      />
+                    </th>
+                    <th className="p-3">Persona</th>
+                    <th className="p-3">Teléfono</th>
+                    <th className="p-3">Email</th>
+                    <th className="p-3">Grupo</th>
+                    <th className="p-3">Tipo</th>
+                    <th className="p-3">Estado</th>
+                    <th className="p-3">Fecha Alta</th>
+                    <th className="p-3 text-right">Acciones</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y bg-card">
+                  {pageItems.map((p: any) => {
+                    const isSel = selected.has(p.id);
+                    const initials = `${p.nombres?.[0] ?? ""}${p.apellidos?.[0] ?? ""}`.toUpperCase();
+                    const tipos = getTipos(p);
+                    const estado = p.estado_iglesia || "—";
+                    const estadoTone =
+                      estado === "Activo" ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/20" :
+                      estado === "Inactivo" ? "bg-rose-500/15 text-rose-700 dark:text-rose-400 border-rose-500/20" :
+                      "bg-amber-500/15 text-amber-700 dark:text-amber-500 border-amber-500/20";
+
+                    return (
+                      <tr
+                        key={p.id}
+                        onClick={() => openQuickView(p)}
+                        onDoubleClick={() => navigate(`/personas/${p.id}`)}
+                        className={cn(
+                          "hover:bg-muted/50 transition-colors cursor-pointer",
+                          isSel && "bg-primary/5"
+                        )}
+                      >
+                        <td className="p-3 text-center" onClick={(e) => e.stopPropagation()}>
+                          <Checkbox checked={isSel} onCheckedChange={() => toggleSelect(p.id)} />
+                        </td>
+                        <td className="p-3">
+                          <div className="flex items-center gap-3">
+                            <Avatar className="h-9 w-9 shrink-0">
+                              <AvatarFallback className="text-xs font-bold bg-primary/10 text-primary">
+                                {initials}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div className="min-w-0">
+                              <div className="font-semibold text-foreground hover:underline truncate max-w-[220px]" title={`${p.nombres} ${p.apellidos}`}>
+                                {p.nombres} {p.apellidos}
+                              </div>
+                              {p.documento && (
+                                <div className="text-xs text-muted-foreground">Doc: {p.documento}</div>
+                              )}
+                            </div>
+                          </div>
+                        </td>
+                        <td className="p-3 whitespace-nowrap">
+                          {p.telefono ? (
+                            <div className="flex items-center gap-1.5 text-muted-foreground">
+                              <Icon icon={Phone} size="xs" />
+                              <span>{p.telefono}</span>
+                              <a
+                                href={`https://web.whatsapp.com/send?phone=${(p.telefono || "").replace(/\D/g, "")}`}
+                                target="_blank" rel="noopener noreferrer"
+                                title="Abrir WhatsApp"
+                                onClick={(e) => e.stopPropagation()}
+                                className="ml-1 p-1 hover:bg-muted rounded text-emerald-600"
+                              >
+                                <Icon icon={MessageSquare} size="xs" />
+                              </a>
+                            </div>
+                          ) : (
+                            <span className="text-muted-foreground/50">—</span>
+                          )}
+                        </td>
+                        <td className="p-3">
+                          {p.email ? (
+                            <div className="flex items-center gap-1.5 text-muted-foreground max-w-[220px] truncate" title={p.email}>
+                              <Icon icon={Mail} size="xs" className="shrink-0" />
+                              <span className="truncate">{p.email}</span>
+                            </div>
+                          ) : (
+                            <span className="text-muted-foreground/50">—</span>
+                          )}
+                        </td>
+                        <td className="p-3 whitespace-nowrap">
+                          {p.grupos?.nombre ? (
+                            <Badge variant="outline" className="font-normal" title={p.grupos.nombre}>{p.grupos.nombre}</Badge>
+                          ) : (
+                            <span className="text-muted-foreground/50">Sin grupo</span>
+                          )}
+                        </td>
+                        <td className="p-3">
+                          <div className="flex flex-wrap gap-1">
+                            {tipos.slice(0, 2).map((t) => (
+                              <Badge key={t} variant="secondary" className="font-normal text-[11px] px-1.5 py-0">{t}</Badge>
+                            ))}
+                            {tipos.length > 2 && (
+                              <span className="text-xs text-muted-foreground">+{tipos.length - 2}</span>
+                            )}
+                          </div>
+                        </td>
+                        <td className="p-3 whitespace-nowrap">
+                          <span className={cn("px-2 py-0.5 rounded-full border text-xs font-medium", estadoTone)}>
+                            {estado}
+                          </span>
+                        </td>
+                        <td className="p-3 whitespace-nowrap text-muted-foreground">
+                          {p.created_at ? format(new Date(p.created_at), "dd MMM yyyy") : "—"}
+                        </td>
+                        <td className="p-3 text-right whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
+                          <div className="flex items-center justify-end gap-1">
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-8 w-8 p-0"
+                              title="Ver perfil"
+                              onClick={() => navigate(`/personas/${p.id}`)}
+                            >
+                              <Icon icon={Eye} size="xs" />
+                            </Button>
+                            {canEdit && (
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-8 w-8 p-0"
+                                title="Editar"
+                                onClick={() => setEditing({ ...p })}
+                              >
+                                <Icon icon={Pencil} size="xs" className="text-muted-foreground" />
+                              </Button>
+                            )}
+                            {canDelete && (
+                              <DeletePersonaDialog
+                                personaId={p.id}
+                                personaNombre={`${p.nombres} ${p.apellidos}`}
+                                onConfirm={() => handleDelete(p.id)}
+                              />
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4">
               {pageItems.map((p: any) => {
                 const tipos = getTipos(p);
                 const isSel = selected.has(p.id);
@@ -437,10 +663,10 @@ export default function PersonasPage() {
                     <div className="px-4 pt-3 pb-4">
                       <div className="flex items-start justify-between gap-2 mb-1">
                         <div className="min-w-0 flex-1">
-                          <div className="font-semibold doxa-body-sm leading-tight truncate">
+                          <div className="font-semibold doxa-body-sm leading-tight truncate" title={`${p.nombres} ${p.apellidos}`}>
                             {p.nombres} {p.apellidos}
                           </div>
-                          <div className="doxa-caption text-muted-foreground mt-0.5 truncate">
+                          <div className="doxa-caption text-muted-foreground mt-0.5 truncate" title={p.grupos?.nombre || "Sin grupo"}>
                             {p.grupos?.nombre || "Sin grupo"}
                           </div>
                         </div>
@@ -464,13 +690,13 @@ export default function PersonasPage() {
                       {/* contacto */}
                       <div className="mt-3 space-y-1 doxa-caption text-muted-foreground">
                         {p.telefono && (
-                          <div className="flex items-center gap-2 truncate">
+                          <div className="flex items-center gap-2 truncate" title={p.telefono}>
                             <Icon icon={Phone} size="xs" />
                             <span className="truncate">{p.telefono}</span>
                           </div>
                         )}
                         {p.email && (
-                          <div className="flex items-center gap-2 truncate">
+                          <div className="flex items-center gap-2 truncate" title={p.email}>
                             <Icon icon={Mail} size="xs" />
                             <span className="truncate">{p.email}</span>
                           </div>
@@ -526,10 +752,9 @@ export default function PersonasPage() {
           )}
         </div>
 
-
         {/* Footer paginación */}
         {filtered.length > 0 && (
-          <div className="flex items-center justify-between gap-2 px-4 py-2 border-t bg-background/40 doxa-caption text-muted-foreground">
+          <div className="flex items-center justify-between gap-2 px-4 py-2 border-t bg-background/40 doxa-caption text-muted-foreground shrink-0">
             <span>
               {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, filtered.length)} de {filtered.length}
               {selected.size > 0 && <span className="ml-3 text-primary font-medium">· {selected.size} seleccionadas</span>}
@@ -565,20 +790,22 @@ export default function PersonasPage() {
   );
 }
 
-function SegmentBtn({ seg, active, count, onClick }: { seg: Segment; active: boolean; count: number; onClick: () => void }) {
+function SegmentBtn({ seg, active, count, collapsed, onClick }: { seg: Segment; active: boolean; count: number; collapsed?: boolean; onClick: () => void }) {
   return (
     <button
       onClick={onClick}
+      title={`${seg.label} (${count})`}
       className={cn(
-        "w-full flex items-center gap-2 px-3 py-2 rounded-md doxa-caption transition-colors",
+        "w-full flex items-center gap-2 rounded-md doxa-caption transition-colors",
         active
           ? "bg-primary/10 text-primary font-medium"
-          : "text-muted-foreground hover:text-foreground hover:bg-muted"
+          : "text-muted-foreground hover:text-foreground hover:bg-muted",
+        collapsed ? "p-2 justify-center" : "px-3 py-2"
       )}
     >
-      <Icon icon={seg.icon} size="xs" className={cn(active && "text-primary")} />
-      <span className="flex-1 text-left truncate">{seg.label}</span>
-      <span className={cn("doxa-caption tabular-nums", active ? "text-primary" : "text-muted-foreground/70")}>{count}</span>
+      <Icon icon={seg.icon} size="xs" className={cn("shrink-0", active && "text-primary")} />
+      {!collapsed && <span className="flex-1 text-left truncate">{seg.label}</span>}
+      {!collapsed && <span className={cn("doxa-caption tabular-nums", active ? "text-primary" : "text-muted-foreground/70")}>{count}</span>}
     </button>
   );
 }
