@@ -625,6 +625,8 @@ export default function PersonasPage() {
                       </tr>
                     );
                   })}
+                </tbody>
+              </table>
             </div>
           ) : (
             <div className="grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-4">
