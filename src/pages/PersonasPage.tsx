@@ -234,7 +234,7 @@ export default function PersonasPage() {
   }
 
   return (
-    <div className="flex gap-4 md:gap-6 h-[calc(100vh-6.5rem)] min-h-[560px]">
+    <div className="flex gap-4 md:gap-6 h-[calc(100vh-8.5rem)] min-h-[500px]">
       {editing && <PersonaFormDialog initialData={editing} onClose={() => setEditing(null)} />}
       {(canCreate || autoNewOpen) && (
         <PersonaFormDialog open={autoNewOpen} onOpenChange={setAutoNewOpen} onCreated={handleCreated} />
@@ -243,7 +243,7 @@ export default function PersonasPage() {
       {/* Rail izquierdo — segmentos */}
       <aside className={cn(
         "hidden lg:flex flex-col shrink-0 rounded-xl border bg-card overflow-hidden transition-all duration-200",
-        railOpen ? "w-60" : "w-14 items-center"
+        railOpen ? "w-52" : "w-14 items-center"
       )}>
         <div className={cn("px-4 py-3 border-b flex items-center justify-between w-full", !railOpen && "px-2 justify-center")}>
           {railOpen ? (
@@ -604,7 +604,7 @@ export default function PersonasPage() {
               </table>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4">
+            <div className="grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-4">
               {pageItems.map((p: any) => {
                 const tipos = getTipos(p);
                 const isSel = selected.has(p.id);
@@ -663,7 +663,7 @@ export default function PersonasPage() {
                     <div className="px-4 pt-3 pb-4">
                       <div className="flex items-start justify-between gap-2 mb-1">
                         <div className="min-w-0 flex-1">
-                          <div className="font-semibold doxa-body-sm leading-tight truncate" title={`${p.nombres} ${p.apellidos}`}>
+                          <div className="font-semibold doxa-body-sm leading-tight line-clamp-2 break-words" title={`${p.nombres} ${p.apellidos}`}>
                             {p.nombres} {p.apellidos}
                           </div>
                           <div className="doxa-caption text-muted-foreground mt-0.5 truncate" title={p.grupos?.nombre || "Sin grupo"}>
@@ -691,14 +691,14 @@ export default function PersonasPage() {
                       <div className="mt-3 space-y-1 doxa-caption text-muted-foreground">
                         {p.telefono && (
                           <div className="flex items-center gap-2 truncate" title={p.telefono}>
-                            <Icon icon={Phone} size="xs" />
+                            <Icon icon={Phone} size="xs" className="shrink-0" />
                             <span className="truncate">{p.telefono}</span>
                           </div>
                         )}
                         {p.email && (
-                          <div className="flex items-center gap-2 truncate" title={p.email}>
-                            <Icon icon={Mail} size="xs" />
-                            <span className="truncate">{p.email}</span>
+                          <div className="flex items-center gap-2 min-w-0" title={p.email}>
+                            <Icon icon={Mail} size="xs" className="shrink-0" />
+                            <span className="truncate text-xs break-all">{p.email}</span>
                           </div>
                         )}
                         {p.created_at && (
