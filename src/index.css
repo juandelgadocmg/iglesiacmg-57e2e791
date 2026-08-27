@@ -540,6 +540,29 @@
   scrollbar-color: hsl(215 15% 28%) transparent;
 }
 
+/* ── Always Visible Table Scrollbar ─────────────────────── */
+.table-scrollbar {
+  scrollbar-color: hsl(var(--primary) / 0.4) hsl(var(--muted) / 0.6);
+  scrollbar-width: auto;
+}
+.table-scrollbar::-webkit-scrollbar {
+  height: 10px;
+  width: 10px;
+}
+.table-scrollbar::-webkit-scrollbar-track {
+  background: hsl(var(--muted) / 0.6);
+  border-radius: 6px;
+}
+.table-scrollbar::-webkit-scrollbar-thumb {
+  background: hsl(var(--primary) / 0.4);
+  border: 2px solid transparent;
+  background-clip: padding-box;
+  border-radius: 6px;
+}
+.table-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--primary) / 0.7);
+}
+
 /* ── Text selection ─────────────────────────────────────── */
 ::selection {
   background: hsl(var(--accent) / 0.28);

@@ -475,8 +475,8 @@ export default function PersonasPage() {
               action={canCreate ? <PersonaFormDialog onCreated={handleCreated} /> : undefined}
             />
           ) : viewMode === "tabla" ? (
-            <div className="overflow-x-auto border rounded-lg bg-card">
-              <table className="w-full text-left text-xs border-collapse">
+            <div className="table-scrollbar overflow-x-auto border rounded-xl bg-card w-full max-w-full pb-1.5 shadow-xs">
+              <table className="w-full min-w-[1050px] text-left text-xs border-collapse">
                 <thead className="bg-muted/70 border-b sticky top-0 z-10 font-medium text-muted-foreground text-[11px] uppercase tracking-wider">
                   <tr>
                     <th className="p-2 w-8 text-center">
@@ -493,14 +493,14 @@ export default function PersonasPage() {
                         }}
                       />
                     </th>
-                    <th className="py-2 px-2.5">Persona</th>
-                    <th className="py-2 px-2.5">Teléfono</th>
-                    <th className="py-2 px-2.5">Email</th>
-                    <th className="py-2 px-2.5">Grupo</th>
-                    <th className="py-2 px-2.5">Tipo</th>
-                    <th className="py-2 px-2.5">Estado</th>
-                    <th className="py-2 px-2.5">Alta</th>
-                    <th className="py-2 px-2.5 text-right w-16">Acciones</th>
+                    <th className="py-2 px-2.5 min-w-[210px]">Persona</th>
+                    <th className="py-2 px-2.5 min-w-[140px]">Teléfono</th>
+                    <th className="py-2 px-2.5 min-w-[200px]">Email</th>
+                    <th className="py-2 px-2.5 min-w-[130px]">Grupo</th>
+                    <th className="py-2 px-2.5 min-w-[130px]">Tipo</th>
+                    <th className="py-2 px-2.5 min-w-[90px]">Estado</th>
+                    <th className="py-2 px-2.5 min-w-[100px]">Alta</th>
+                    <th className="py-2 px-2.5 text-right min-w-[100px]">Acciones</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y bg-card">
@@ -535,7 +535,7 @@ export default function PersonasPage() {
                               </AvatarFallback>
                             </Avatar>
                             <div className="min-w-0">
-                              <div className="font-semibold text-foreground hover:underline truncate max-w-[180px]" title={`${p.nombres} ${p.apellidos}`}>
+                              <div className="font-semibold text-foreground hover:underline truncate max-w-[220px]" title={`${p.nombres} ${p.apellidos}`}>
                                 {p.nombres} {p.apellidos}
                               </div>
                               {p.documento && (
@@ -564,7 +564,7 @@ export default function PersonasPage() {
                         </td>
                         <td className="py-1.5 px-2.5 text-muted-foreground">
                           {p.email ? (
-                            <span className="truncate max-w-[150px] inline-block" title={p.email}>{p.email}</span>
+                            <span className="truncate max-w-[220px] inline-block" title={p.email}>{p.email}</span>
                           ) : (
                             <span className="opacity-40">—</span>
                           )}
