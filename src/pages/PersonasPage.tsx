@@ -61,6 +61,17 @@ const TIPO_SEGMENTS: Segment[] = [
 
 const PAGE_SIZE = 20;
 
+const OFFICIAL_AFIRMACION_STEPS = [
+  { key: "etapa_NPT", header: "1. NPT (Triunfar)", code: "NPT", label: "Nací para triunfar" },
+  { key: "etapa_TSDP", header: "2. TSDP (3 Semanas)", code: "TSDP", label: "Tres semanas de poder" },
+  { key: "etapa_NVNC", header: "3. NVNC (Nueva Vida)", code: "NVNC", label: "Nueva vida y nuevo comienzo" },
+  { key: "etapa_RSI", header: "4. RSI (Sanidad/Liberación)", code: "RSI", label: "Retiro de sanidad interior" },
+  { key: "etapa_DNC", header: "5. DNC (Nuevo Creyente)", code: "DNC", label: "Discipulado nuevo creyente" },
+  { key: "etapa_ES", header: "6. ES (Evangelismo)", code: "ES", label: "Escuela de evangelismo" },
+  { key: "etapa_LCP", header: "7. LCP (Líder Casa de Paz)", code: "LCP", label: "Líderes de casas de paz" },
+  { key: "etapa_RLCP", header: "8. RLCP (Líder Consolidado)", code: "RLCP", label: "Retiro líderes casas de paz" },
+];
+
 export default function PersonasPage() {
   const navigate = useNavigate();
   const location = useLocation();
