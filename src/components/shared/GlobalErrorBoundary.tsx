@@ -22,22 +22,20 @@ export default class GlobalErrorBoundary extends React.Component<Props, State> {
     console.error("[GlobalErrorBoundary] Uncaught UI error:", error, errorInfo);
   }
 
-  handleClearCacheAndReload = () => {
+  handleClearCacheAndReload = async () => {
     try {
       if ("caches" in window) {
-        caches.keys().then((names) => {
-          names.forEach((name) => caches.delete(name));
-        });
+        const names = await caches.keys();
+        await Promise.all(names.map((name) => caches.delete(name)));
       }
       if ("serviceWorker" in navigator) {
-        navigator.serviceWorker.getRegistrations().then((regs) => {
-          regs.forEach((r) => r.unregister());
-        });
+        const regs = await navigator.serviceWorker.getRegistrations();
+        await Promise.all(regs.map((r) => r.unregister()));
       }
     } catch {
       /* ignore */
     }
-    window.location.href = "/";
+    window.location.href = "/personas?v=" + Date.now();
   };
 
   render() {

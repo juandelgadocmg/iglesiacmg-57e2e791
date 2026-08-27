@@ -68,6 +68,7 @@ export default function PersonasPage() {
   const deletePersona = useDeletePersona();
   const [editing, setEditing] = useState<any>(null);
   const { activeRole } = useActiveRole();
+  const { isLoading: rolesLoading } = useUserRoles();
   const can = useCan();
   const { isLoading: permissionOverridesLoading, isError: permissionOverridesError } = useRolePermissions();
   const permissionsReady = !rolesLoading && (!permissionOverridesLoading || permissionOverridesError);
