@@ -67,10 +67,29 @@ export async function registerPWA() {
       );
     };
 
-    wb.addEventListener("waiting", notifyUpdate);
-    wb.addEventListener("externalwaiting" as any, notifyUpdate);
+    wb.addEventListener("waiting", () => {
+      wb.messageSkipWaiting();
+      notifyUpdate();
+    });
+
+    wb.addEventListener("externalwaiting" as any, () => {
+      wb.messageSkipWaiting();
+      notifyUpdate();
+    });
+
+    wb.addEventListener("controlling", () => {
+      window.location.reload();
+    });
 
     await wb.register();
+
+    // Comprobar actualizaciones automáticamente al enfocar la pestaña o cada 60s
+    window.addEventListener("focus", () => {
+      wb.update().catch(() => {});
+    });
+    setInterval(() => {
+      wb.update().catch(() => {});
+    }, 60 * 1000);
   } catch {
     /* ignore */
   }
