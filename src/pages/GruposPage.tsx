@@ -271,9 +271,9 @@ export default function GruposPage() {
     : 0;
 
   return (
-    <div className="animate-fade-in -m-3 md:-m-6 flex flex-col md:flex-row min-h-[calc(100vh-3.5rem)]">
+    <div className="animate-fade-in -m-3 md:-m-6 flex flex-col md:flex-row h-[calc(100vh-3.5rem)] overflow-hidden">
       {/* Desktop Sidebar Rail */}
-      <div className="hidden md:block shrink-0">
+      <div className="hidden md:block shrink-0 h-full overflow-y-auto">
         <GruposRedRail
           grupos={tableData}
           selectedRed={selectedRed}
@@ -307,7 +307,7 @@ export default function GruposPage() {
         </SheetContent>
       </Sheet>
 
-      <div className="flex-1 min-w-0 p-3 md:p-6 space-y-4">
+      <div className="flex-1 min-w-0 p-3 md:p-6 space-y-4 overflow-y-auto h-full">
         {/* Mobile Horizontal Quick Red Bar */}
         <div className="md:hidden flex items-center gap-1.5 overflow-x-auto pb-1 max-w-full scrollbar-none">
           <Button

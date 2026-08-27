@@ -176,7 +176,7 @@ function CardsView({ grupos, onOpen, onEdit, canEdit }: { grupos: any[]; onOpen:
     return <EmptyState />;
   }
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-3">
+    <div className="grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-3">
       {grupos.map((g) => {
         const health = healthFor(g);
         return (
@@ -190,13 +190,13 @@ function CardsView({ grupos, onOpen, onEdit, canEdit }: { grupos: any[]; onOpen:
             </div>
             <div className="p-4">
               <div className="flex items-start justify-between gap-2">
-                <div className="min-w-0">
+                <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
                     <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">{g.red || "Sin red"}</span>
                     <span className="text-[10px] text-muted-foreground/50">·</span>
                     <span className="text-[10px] text-muted-foreground">{g.tipo}</span>
                   </div>
-                  <h3 className="font-semibold text-[15px] truncate mt-0.5">{g.nombre}</h3>
+                  <h3 className="font-semibold text-[15px] line-clamp-2 break-words mt-0.5" title={g.nombre}>{g.nombre}</h3>
                 </div>
                 <StatusBadge status={g.estado} />
               </div>

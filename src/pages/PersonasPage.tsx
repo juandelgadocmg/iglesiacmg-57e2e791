@@ -88,7 +88,17 @@ export default function PersonasPage() {
   const [viewMode, setViewMode] = useState<"cards" | "tabla">(() => {
     return (localStorage.getItem("personas_view_mode") as "cards" | "tabla") || "cards";
   });
-  const [railOpen, setRailOpen] = useState(true);
+  const [railOpen, setRailOpen] = useState(() => {
+    return localStorage.getItem("personas_rail_open") !== "false";
+  });
+
+  const toggleRail = () => {
+    setRailOpen((prev) => {
+      const next = !prev;
+      localStorage.setItem("personas_rail_open", String(next));
+      return next;
+    });
+  };
 
   const handleViewModeChange = (mode: "cards" | "tabla") => {
     setViewMode(mode);
@@ -234,7 +244,7 @@ export default function PersonasPage() {
   }
 
   return (
-    <div className="flex gap-4 md:gap-6 h-[calc(100vh-8.5rem)] min-h-[500px]">
+    <div className="animate-fade-in -m-3 md:-m-6 flex gap-3 md:gap-4 h-[calc(100vh-3.5rem)] min-h-[500px] p-3 md:p-6 overflow-hidden">
       {editing && <PersonaFormDialog initialData={editing} onClose={() => setEditing(null)} />}
       {(canCreate || autoNewOpen) && (
         <PersonaFormDialog open={autoNewOpen} onOpenChange={setAutoNewOpen} onCreated={handleCreated} />
@@ -254,7 +264,7 @@ export default function PersonasPage() {
               </div>
             </div>
           ) : (
-            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setRailOpen(true)} title="Expandir vistas">
+            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={toggleRail} title="Expandir vistas">
               <PanelLeftOpen className="h-4 w-4 text-muted-foreground" />
             </Button>
           )}
@@ -300,7 +310,7 @@ export default function PersonasPage() {
               variant="ghost"
               size="icon"
               className="hidden lg:flex h-8 w-8 shrink-0"
-              onClick={() => setRailOpen(!railOpen)}
+              onClick={toggleRail}
               title={railOpen ? "Contraer panel de vistas" : "Expandir panel de vistas"}
             >
               <Icon icon={railOpen ? PanelLeftClose : PanelLeftOpen} size="xs" />

@@ -190,9 +190,9 @@ export default function ReportesPage() {
   }
 
   return (
-    <div className="animate-fade-in -m-3 md:-m-6 flex min-h-[calc(100vh-3.5rem)]">
+    <div className="animate-fade-in -m-3 md:-m-6 flex h-[calc(100vh-3.5rem)] overflow-hidden">
       {/* Rail izquierdo — dominios */}
-      <aside className="w-60 shrink-0 border-r bg-card/40 flex flex-col h-[calc(100vh-3.5rem)] sticky top-14">
+      <aside className="w-60 shrink-0 border-r bg-card/40 flex flex-col h-full overflow-y-auto">
         <div className="p-4 border-b">
           <p className="text-[11px] uppercase tracking-wide text-muted-foreground font-semibold">Biblioteca</p>
           <h2 className="text-sm font-semibold mt-0.5">Reportes DOXA</h2>
@@ -226,7 +226,7 @@ export default function ReportesPage() {
       </aside>
 
       {/* Área principal */}
-      <div className="flex-1 min-w-0 p-3 md:p-6 space-y-6">
+      <div className="flex-1 min-w-0 p-3 md:p-6 space-y-6 overflow-y-auto h-full">
         <ModuleHero
           variant="reportes"
           title={DOMAINS.find((d) => d.id === domain)?.label || "Reportes"}

@@ -291,9 +291,9 @@ export default function CertificadosPage() {
   const tiposDisponibles = Object.keys(TIPO_META);
 
   return (
-    <div className="animate-fade-in -m-3 md:-m-6 flex min-h-[calc(100vh-3.5rem)]">
+    <div className="animate-fade-in -m-3 md:-m-6 flex h-[calc(100vh-3.5rem)] overflow-hidden">
       {/* Rail izquierdo */}
-      <aside className="w-60 shrink-0 border-r bg-card/40 hidden md:flex flex-col h-[calc(100vh-3.5rem)] sticky top-14 overflow-y-auto">
+      <aside className="w-60 shrink-0 border-r bg-card/40 hidden md:flex flex-col h-full overflow-y-auto">
         <div className="p-4 border-b">
           <p className="text-[10.5px] uppercase tracking-wide text-muted-foreground font-semibold">Emisión</p>
           <h2 className="text-sm font-semibold mt-0.5">Certificados</h2>
@@ -341,7 +341,7 @@ export default function CertificadosPage() {
       </aside>
 
       {/* Main */}
-      <div className="flex-1 min-w-0 p-3 md:p-6 space-y-5">
+      <div className="flex-1 min-w-0 p-3 md:p-6 space-y-5 overflow-y-auto h-full">
         <ModuleHero
           variant="certificados"
           title={tipoFilter === "all" ? "Todos los certificados" : tipoFilter}

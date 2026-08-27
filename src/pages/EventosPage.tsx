@@ -236,9 +236,9 @@ export default function EventosPage() {
   ];
 
   return (
-    <div className="animate-fade-in -m-3 md:-m-6 flex flex-col md:flex-row min-h-[calc(100vh-3.5rem)]">
+    <div className="animate-fade-in -m-3 md:-m-6 flex flex-col md:flex-row h-[calc(100vh-3.5rem)] overflow-hidden">
       {/* Rail izquierdo (desktop) */}
-      <aside className="hidden md:flex w-60 shrink-0 border-r bg-card/40 flex-col h-[calc(100vh-3.5rem)] sticky top-14">
+      <aside className="hidden md:flex w-60 shrink-0 border-r bg-card/40 flex-col h-full overflow-y-auto">
 
         <div className="p-4 border-b">
           <p className="text-[11px] uppercase tracking-wide text-muted-foreground font-semibold">Agenda</p>
@@ -298,7 +298,7 @@ export default function EventosPage() {
       </aside>
 
       {/* Main */}
-      <div className="flex-1 min-w-0 p-3 md:p-6 space-y-5">
+      <div className="flex-1 min-w-0 p-3 md:p-6 space-y-5 overflow-y-auto h-full">
         {/* Mobile filters (search + bucket chips) */}
         <div className="md:hidden space-y-2">
           <div className="relative">
@@ -523,7 +523,7 @@ export default function EventosPage() {
         )}
 
         {view === "grid" && (
-          <section className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+          <section className="grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-3">
             {filtered.length === 0 && (
               <div className="col-span-full py-16 text-center text-muted-foreground text-sm">Sin eventos en esta vista</div>
             )}

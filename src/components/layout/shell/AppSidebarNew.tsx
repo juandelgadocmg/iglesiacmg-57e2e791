@@ -65,7 +65,18 @@ const ADMIN: Item[] = [
 ];
 
 function Content({ onNav }: { onNav?: () => void }) {
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsed, setCollapsed] = useState(() => {
+    return localStorage.getItem("doxa_main_sidebar_collapsed") === "true";
+  });
+
+  const toggleCollapsed = () => {
+    setCollapsed((prev) => {
+      const next = !prev;
+      localStorage.setItem("doxa_main_sidebar_collapsed", String(next));
+      return next;
+    });
+  };
+
   const [adminOpen, setAdminOpen] = useState(false);
   const { pathname } = useLocation();
   const nav = useNavigate();
@@ -260,7 +271,7 @@ function Content({ onNav }: { onNav?: () => void }) {
         </button>
         {!isMobile && (
           <button
-            onClick={() => setCollapsed(!collapsed)}
+            onClick={toggleCollapsed}
             className={cn(
               "w-full flex items-center gap-2.5 h-8 rounded-md text-[12.5px] text-muted-foreground hover:text-foreground hover:bg-muted",
               showCollapsed ? "justify-center px-0" : "px-2.5"
