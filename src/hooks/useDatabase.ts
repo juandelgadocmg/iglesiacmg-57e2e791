@@ -102,7 +102,54 @@ export function useProcesosCrecimiento() {
         .select("id, nombre, orden")
         .order("orden", { ascending: true });
       if (error) throw error;
-      return data || [];
+      let list = data || [];
+
+      // Verificar si faltan Semana de Poder 2 o Semana de Poder 3
+      const hasSdp1 = list.some((p) => p.nombre.toLowerCase().includes("semana de poder 1") || p.nombre.toLowerCase().includes("semana poder 1"));
+      const hasSdp2 = list.some((p) => p.nombre.toLowerCase().includes("semana de poder 2") || p.nombre.toLowerCase().includes("semana poder 2"));
+      const hasSdp3 = list.some((p) => p.nombre.toLowerCase().includes("semana de poder 3") || p.nombre.toLowerCase().includes("semana poder 3"));
+
+      if (hasSdp1 && (!hasSdp2 || !hasSdp3)) {
+        try {
+          const sdp1Obj = list.find((p) => p.nombre.toLowerCase().includes("semana de poder 1"));
+          const baseOrden = sdp1Obj ? sdp1Obj.orden : 15;
+
+          const toInsert: any[] = [];
+          if (!hasSdp2) toInsert.push({ nombre: "Semana de Poder 2", orden: baseOrden + 1 });
+          if (!hasSdp3) toInsert.push({ nombre: "Semana de Poder 3", orden: baseOrden + 2 });
+
+          if (toInsert.length > 0) {
+            const { data: inserted } = await supabase
+              .from("procesos_crecimiento")
+              .insert(toInsert)
+              .select("id, nombre, orden");
+
+            if (inserted && inserted.length > 0) {
+              list = [...list, ...inserted].sort((a, b) => a.orden - b.orden);
+            }
+          }
+        } catch (e) {
+          console.warn("Auto-insert Semana de Poder 2/3 error:", e);
+        }
+      }
+
+      // Si no están guardados en BD aún, inyectarlos sintéticamente para garantizar la vista completa
+      const finalHasSdp2 = list.some((p) => p.nombre.toLowerCase().includes("semana de poder 2") || p.nombre.toLowerCase().includes("semana poder 2"));
+      const finalHasSdp3 = list.some((p) => p.nombre.toLowerCase().includes("semana de poder 3") || p.nombre.toLowerCase().includes("semana poder 3"));
+
+      if (!finalHasSdp2 || !finalHasSdp3) {
+        const sdp1Idx = list.findIndex((p) => p.nombre.toLowerCase().includes("semana de poder 1"));
+        if (sdp1Idx !== -1) {
+          const sdp1Item = list[sdp1Idx];
+          const newItems: any[] = [];
+          if (!finalHasSdp2) newItems.push({ id: `synthetic_sdp2`, nombre: "Semana de Poder 2", orden: sdp1Item.orden + 0.1 });
+          if (!finalHasSdp3) newItems.push({ id: `synthetic_sdp3`, nombre: "Semana de Poder 3", orden: sdp1Item.orden + 0.2 });
+
+          list.splice(sdp1Idx + 1, 0, ...newItems);
+        }
+      }
+
+      return list;
     },
   });
 }
