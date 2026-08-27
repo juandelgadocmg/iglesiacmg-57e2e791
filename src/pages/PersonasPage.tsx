@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -100,6 +100,13 @@ export default function PersonasPage() {
       localStorage.setItem("personas_rail_open", String(next));
       return next;
     });
+  };
+
+  const tableRef = useRef<HTMLDivElement>(null);
+  const handleTableScroll = (dir: "left" | "right") => {
+    if (tableRef.current) {
+      tableRef.current.scrollBy({ left: dir === "right" ? 320 : -320, behavior: "smooth" });
+    }
   };
 
   const handleViewModeChange = (mode: "cards" | "tabla") => {
@@ -346,6 +353,26 @@ export default function PersonasPage() {
                 <span className="hidden sm:inline">Tabla</span>
               </button>
             </div>
+
+            {viewMode === "tabla" && (
+              <div className="flex items-center gap-1 bg-primary/10 border border-primary/25 px-1.5 py-0.5 rounded-md text-[11px] font-semibold text-primary shrink-0">
+                <button
+                  onClick={() => handleTableScroll("left")}
+                  className="p-0.5 hover:bg-primary/20 rounded transition-colors"
+                  title="Deslizar tabla a la izquierda"
+                >
+                  <ChevronLeft className="h-3.5 w-3.5" />
+                </button>
+                <span className="hidden sm:inline">Deslizar</span>
+                <button
+                  onClick={() => handleTableScroll("right")}
+                  className="p-0.5 hover:bg-primary/20 rounded transition-colors"
+                  title="Deslizar tabla a la derecha (ver más columnas)"
+                >
+                  <ChevronRight className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Derecha: Búsqueda, Filtros y Acciones */}
@@ -475,7 +502,7 @@ export default function PersonasPage() {
               action={canCreate ? <PersonaFormDialog onCreated={handleCreated} /> : undefined}
             />
           ) : viewMode === "tabla" ? (
-            <div className="table-scrollbar overflow-x-auto border rounded-xl bg-card w-full max-w-full pb-1.5 shadow-xs">
+            <div ref={tableRef} className="table-scrollbar overflow-x-scroll border rounded-xl bg-card w-full max-w-full pb-2.5 shadow-xs">
               <table className="w-full min-w-[1050px] text-left text-xs border-collapse">
                 <thead className="bg-muted/70 border-b sticky top-0 z-10 font-medium text-muted-foreground text-[11px] uppercase tracking-wider">
                   <tr>
