@@ -1,40 +1,39 @@
-import { useState, useMemo } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useState, useMemo, useRef } from "react";
+import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   Search,
   Users,
-  Home,
-  Network,
   CheckCircle2,
   PhoneCall,
   Sparkles,
   Download,
   Award,
-  Clock,
+  AlertTriangle,
   TrendingUp,
   Phone,
-  PhoneOff,
   MessageSquare,
-  AlertTriangle,
-  Calendar,
   ChevronRight,
-  Filter,
-  UserCheck,
 } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
 import { ConsolidacionDashboardTab } from "@/components/persona/ConsolidacionDashboardTab";
 import { RegistrarLlamadaConsolidacionDialog } from "@/components/persona/RegistrarLlamadaConsolidacionDialog";
 import ExportPersonasDialog from "@/components/forms/ExportPersonasDialog";
-import { useAfirmacionRuta, PersonaAfirmacionRuta } from "@/hooks/useAfirmacionRuta";
+import { useAfirmacionRuta, PersonaAfirmacionRuta, HITOS_AFIRMACION_16 } from "@/hooks/useAfirmacionRuta";
 import { AfirmacionTimelineModal } from "@/components/afirmacion/AfirmacionTimelineModal";
+
+// Short labels for table column headers
+const HITO_SHORT_LABELS = [
+  "Llam 1", "Msj 1", "Llam 2", "Msj 2", "Llam 3", "Msj 3",
+  "Msj 4", "Msj 5", "Msj 6", "Visita", "Consej.",
+  "Fiesta", "NPT", "SdP 1", "SdP 2", "SdP 3",
+];
 
 export default function AfirmacionPage() {
   const { personasRuta, isLoading, stats, updateHito } = useAfirmacionRuta();
@@ -117,7 +116,6 @@ export default function AfirmacionPage() {
 
       {/* ── REAL KPI METRICS SUMMARY ────────────────────────────────────── */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3.5">
-        {/* KPI 1: Personas en Afirmación */}
         <Card className="border-border/60 bg-card/80 backdrop-blur-md shadow-sm rounded-2xl p-4">
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
@@ -133,7 +131,6 @@ export default function AfirmacionPage() {
           <div className="text-[10px] text-muted-foreground mt-0.5">Personas registradas</div>
         </Card>
 
-        {/* KPI 2: Personas en Proceso */}
         <Card className="border-border/60 bg-card/80 backdrop-blur-md shadow-sm rounded-2xl p-4">
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-bold uppercase tracking-wider text-sky-600">
@@ -149,7 +146,6 @@ export default function AfirmacionPage() {
           <div className="text-[10px] text-muted-foreground mt-0.5">Avanzando en la ruta</div>
         </Card>
 
-        {/* KPI 3: Hitos Completados */}
         <Card className="border-border/60 bg-card/80 backdrop-blur-md shadow-sm rounded-2xl p-4">
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400">
@@ -165,7 +161,6 @@ export default function AfirmacionPage() {
           <div className="text-[10px] text-muted-foreground mt-0.5">Hitos superados acumulados</div>
         </Card>
 
-        {/* KPI 4: Llamadas Registradas */}
         <Card className="border-border/60 bg-card/80 backdrop-blur-md shadow-sm rounded-2xl p-4">
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
@@ -181,7 +176,6 @@ export default function AfirmacionPage() {
           <div className="text-[10px] text-muted-foreground mt-0.5">Llamadas consolidadas</div>
         </Card>
 
-        {/* KPI 5: Seguimientos Atrasados */}
         <Card className="border-border/60 bg-card/80 backdrop-blur-md shadow-sm rounded-2xl p-4">
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-bold uppercase tracking-wider text-rose-600">
@@ -197,7 +191,6 @@ export default function AfirmacionPage() {
           <div className="text-[10px] text-muted-foreground mt-0.5">Requieren atención urgente</div>
         </Card>
 
-        {/* KPI 6: Porcentaje Avance General */}
         <Card className="border-border/60 bg-card/80 backdrop-blur-md shadow-sm rounded-2xl p-4">
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-bold uppercase tracking-wider text-primary">
@@ -233,7 +226,7 @@ export default function AfirmacionPage() {
           </TabsList>
         </div>
 
-        {/* TAB 1: PERSONAS EN AFIRMACIÓN (RUTA DE 16 HITOS) */}
+        {/* TAB 1: PERSONAS EN AFIRMACIÓN — TABLA */}
         <TabsContent value="personas" className="space-y-6 m-0">
           {/* Search & Filters */}
           <div className="flex flex-col sm:flex-row items-center gap-3 bg-card p-4 rounded-2xl border border-border/70 shadow-sm">
@@ -273,7 +266,7 @@ export default function AfirmacionPage() {
             </div>
           </div>
 
-          {/* Personas Grid */}
+          {/* Table View */}
           {isLoading ? (
             <div className="text-center py-12 text-muted-foreground text-sm font-medium">
               Cargando personas y sus rutas de 16 hitos...
@@ -284,116 +277,204 @@ export default function AfirmacionPage() {
               <p className="text-xs mt-1">Intenta ajustando la búsqueda o el filtro de estado.</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {filteredPersonas.map((p) => {
-                const isDone = p.estadoGeneral === "Finalizado";
-                const isDoing = p.estadoGeneral === "En curso";
-                const cleanPhone = p.whatsapp || p.telefono ? (p.whatsapp || p.telefono)!.replace(/\D/g, "") : "";
+            <div className="rounded-2xl border border-border/70 bg-card shadow-sm overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs">
+                  <thead>
+                    <tr className="bg-muted/60 border-b border-border/70">
+                      <th className="sticky left-0 z-20 bg-muted/95 backdrop-blur px-3 py-3 text-left font-bold text-foreground whitespace-nowrap min-w-[180px]">
+                        Nombre
+                      </th>
+                      <th className="px-2 py-3 text-left font-bold text-muted-foreground whitespace-nowrap min-w-[80px]">
+                        Teléfono
+                      </th>
+                      <th className="px-2 py-3 text-left font-bold text-muted-foreground whitespace-nowrap min-w-[85px]">
+                        Ingreso
+                      </th>
+                      <th className="px-2 py-3 text-center font-bold text-muted-foreground whitespace-nowrap min-w-[50px]">
+                        Días
+                      </th>
+                      <th className="px-2 py-3 text-left font-bold text-muted-foreground whitespace-nowrap min-w-[110px]">
+                        Consolidador
+                      </th>
+                      <th className="px-2 py-3 text-left font-bold text-muted-foreground whitespace-nowrap min-w-[80px]">
+                        Red
+                      </th>
+                      {/* 16 Hitos columns */}
+                      {HITO_SHORT_LABELS.map((label, i) => (
+                        <th
+                          key={i}
+                          className="px-1 py-3 text-center font-bold text-muted-foreground whitespace-nowrap min-w-[52px]"
+                          title={HITOS_AFIRMACION_16[i]?.nombre}
+                        >
+                          <span className="block text-[9px] leading-tight">{label}</span>
+                        </th>
+                      ))}
+                      <th className="px-2 py-3 text-center font-bold text-muted-foreground whitespace-nowrap min-w-[55px]">
+                        Avance
+                      </th>
+                      <th className="px-2 py-3 text-center font-bold text-muted-foreground whitespace-nowrap min-w-[70px]">
+                        Estado
+                      </th>
+                      <th className="px-2 py-3 text-center font-bold text-muted-foreground whitespace-nowrap min-w-[50px]">
+                        Acción
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredPersonas.map((p, rowIdx) => {
+                      const isDone = p.estadoGeneral === "Finalizado";
+                      const isDoing = p.estadoGeneral === "En curso";
+                      const cleanPhone = p.whatsapp || p.telefono ? (p.whatsapp || p.telefono)!.replace(/\D/g, "") : "";
 
-                return (
-                  <Card
-                    key={p.id}
-                    className="p-5 rounded-2xl border border-border/70 hover:border-primary/40 hover:shadow-md transition-all bg-card/95 flex flex-col justify-between"
-                  >
-                    <div className="space-y-3">
-                      {/* Top Row: Avatar + Name + Status */}
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="flex items-center gap-3 min-w-0">
-                          <Avatar className="h-11 w-11 border border-primary/20 shrink-0">
-                            <AvatarFallback className="bg-primary/10 text-primary font-bold text-sm">
-                              {p.nombreCompleto.slice(0, 2).toUpperCase()}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div className="min-w-0 space-y-0.5">
-                            <h3 className="font-bold text-sm truncate text-foreground">{p.nombreCompleto}</h3>
-                            <p className="text-[11px] text-muted-foreground flex items-center gap-1.5 flex-wrap">
-                              <span>Ingreso: {p.fechaIngreso ? format(parseISO(p.fechaIngreso), "dd/MM/yyyy") : "—"}</span>
-                              <span>·</span>
-                              <span className="font-semibold text-primary">Día {p.diasDesdeIngreso}</span>
-                            </p>
-                          </div>
-                        </div>
-
-                        <Badge
-                          variant={isDone ? "default" : isDoing ? "secondary" : "outline"}
-                          className={`text-[10px] shrink-0 font-bold ${
-                            isDone
-                              ? "bg-emerald-500 text-white"
-                              : isDoing
-                              ? "bg-sky-500/15 text-sky-700 border-sky-500/30"
-                              : "text-muted-foreground"
+                      return (
+                        <tr
+                          key={p.id}
+                          className={`border-b border-border/40 hover:bg-muted/30 transition-colors ${
+                            rowIdx % 2 === 0 ? "bg-card" : "bg-muted/10"
                           }`}
                         >
-                          {isDone ? "🟢 Finalizado" : isDoing ? "🔵 En curso" : "⚪ Pendiente"}
-                        </Badge>
-                      </div>
+                          {/* Nombre (sticky) */}
+                          <td className="sticky left-0 z-10 bg-inherit px-3 py-2.5 font-semibold text-foreground whitespace-nowrap">
+                            <div className="flex items-center gap-2">
+                              <div className="h-7 w-7 rounded-full bg-primary/10 text-primary flex items-center justify-center text-[10px] font-bold shrink-0">
+                                {p.nombreCompleto.slice(0, 2).toUpperCase()}
+                              </div>
+                              <span className="truncate max-w-[140px]">{p.nombreCompleto}</span>
+                            </div>
+                          </td>
 
-                      {/* Progress Bar & Hito Info */}
-                      <div className="space-y-1.5 pt-1">
-                        <div className="flex items-center justify-between text-xs">
-                          <span className="font-bold text-foreground">
-                            Hito {p.hitoActualNum} de 16
-                          </span>
-                          <span className="font-extrabold text-primary tabular-nums">
-                            {p.porcentajeCompletado}%
-                          </span>
-                        </div>
-                        <Progress value={p.porcentajeCompletado} className="h-2 rounded-full" />
-                        <div className="flex items-center justify-between text-[11px] text-muted-foreground pt-0.5">
-                          <span className="truncate max-w-[180px]">
-                            <strong className="text-foreground">Próximo:</strong> {p.proximoHitoNombre}
-                          </span>
-                          <span>{p.hitosCompletados}/16 hitos</span>
-                        </div>
-                      </div>
+                          {/* Teléfono */}
+                          <td className="px-2 py-2.5 text-muted-foreground whitespace-nowrap">
+                            <div className="flex items-center gap-1">
+                              {p.telefono ? (
+                                <>
+                                  <a href={`tel:${p.telefono}`} className="hover:text-primary transition-colors" title="Llamar">
+                                    <Phone className="h-3 w-3" />
+                                  </a>
+                                  <span className="text-[10px]">{p.telefono}</span>
+                                  {cleanPhone.length >= 7 && (
+                                    <a
+                                      href={`https://wa.me/${cleanPhone.length === 10 ? '57' + cleanPhone : cleanPhone}`}
+                                      target="_blank"
+                                      rel="noreferrer"
+                                      className="text-emerald-600 hover:text-emerald-500 transition-colors"
+                                      title="WhatsApp"
+                                    >
+                                      <MessageSquare className="h-3 w-3" />
+                                    </a>
+                                  )}
+                                </>
+                              ) : (
+                                <span className="text-[10px] text-muted-foreground/50">—</span>
+                              )}
+                            </div>
+                          </td>
 
-                      {/* Responsable info */}
-                      <div className="text-[11px] text-muted-foreground pt-1 flex items-center justify-between border-t border-border/50">
-                        <span>Consolidador: <strong className="text-foreground">{p.consolidadorNombre}</strong></span>
-                        {p.tieneAtrasos && (
-                          <Badge variant="destructive" className="text-[9px] py-0 font-medium">
-                            Atrasado
-                          </Badge>
-                        )}
-                      </div>
-                    </div>
+                          {/* Fecha Ingreso */}
+                          <td className="px-2 py-2.5 text-muted-foreground whitespace-nowrap text-[10px]">
+                            {p.fechaIngreso ? format(parseISO(p.fechaIngreso), "dd/MM/yyyy") : "—"}
+                          </td>
 
-                    {/* Bottom Actions */}
-                    <div className="pt-4 mt-3 border-t border-border/60 flex items-center justify-between gap-2">
-                      <div className="flex items-center gap-1.5">
-                        {p.telefono && (
-                          <a
-                            href={`tel:${p.telefono}`}
-                            className="p-2 rounded-xl bg-muted hover:bg-primary/10 hover:text-primary transition-colors text-muted-foreground"
-                            title="Llamar"
-                          >
-                            <Phone className="h-3.5 w-3.5" />
-                          </a>
-                        )}
-                        {cleanPhone.length >= 7 && (
-                          <a
-                            href={`https://wa.me/${cleanPhone.length === 10 ? '57' + cleanPhone : cleanPhone}`}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="p-2 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 transition-colors"
-                            title="Enviar WhatsApp"
-                          >
-                            <MessageSquare className="h-3.5 w-3.5" />
-                          </a>
-                        )}
-                      </div>
+                          {/* Días */}
+                          <td className="px-2 py-2.5 text-center font-semibold text-primary whitespace-nowrap tabular-nums">
+                            {p.diasDesdeIngreso}
+                          </td>
 
-                      <Button
-                        size="sm"
-                        onClick={() => handleOpenTimeline(p)}
-                        className="rounded-xl font-bold text-xs gap-1.5 bg-primary text-primary-foreground shadow-sm hover:opacity-90"
-                      >
-                        Ver Timeline <ChevronRight className="h-3.5 w-3.5" />
-                      </Button>
-                    </div>
-                  </Card>
-                );
-              })}
+                          {/* Consolidador */}
+                          <td className="px-2 py-2.5 text-muted-foreground whitespace-nowrap truncate max-w-[110px] text-[10px]">
+                            {p.consolidadorNombre}
+                          </td>
+
+                          {/* Red */}
+                          <td className="px-2 py-2.5 text-muted-foreground whitespace-nowrap truncate max-w-[80px] text-[10px]">
+                            {p.redNombre}
+                          </td>
+
+                          {/* 16 Hitos cells */}
+                          {p.hitos.map((h, hi) => {
+                            const done = h.estado === "Finalizado";
+                            const inProgress = h.estado === "En curso";
+                            const overdue = h.atrasado;
+
+                            return (
+                              <td
+                                key={hi}
+                                className="px-1 py-2.5 text-center"
+                                title={`${h.hitoDef.nombre}: ${h.estado}${h.fechaRealizada ? ` (${h.fechaRealizada})` : ""}${h.resultadoLlamada ? ` — ${h.resultadoLlamada}` : ""}`}
+                              >
+                                {done ? (
+                                  <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-emerald-500/15 text-emerald-600">
+                                    <CheckCircle2 className="h-3.5 w-3.5" />
+                                  </span>
+                                ) : inProgress ? (
+                                  <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-sky-500/15 text-sky-600">
+                                    <span className="block w-2 h-2 rounded-full bg-sky-500 animate-pulse" />
+                                  </span>
+                                ) : overdue ? (
+                                  <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-rose-500/10 text-rose-500">
+                                    <AlertTriangle className="h-3 w-3" />
+                                  </span>
+                                ) : (
+                                  <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-muted/60 text-muted-foreground/30">
+                                    <span className="block w-1.5 h-1.5 rounded-full bg-current" />
+                                  </span>
+                                )}
+                              </td>
+                            );
+                          })}
+
+                          {/* Avance % */}
+                          <td className="px-2 py-2.5 text-center whitespace-nowrap">
+                            <div className="flex flex-col items-center gap-0.5">
+                              <span className="font-extrabold text-primary tabular-nums text-[11px]">
+                                {p.porcentajeCompletado}%
+                              </span>
+                              <span className="text-[9px] text-muted-foreground">{p.hitosCompletados}/16</span>
+                            </div>
+                          </td>
+
+                          {/* Estado */}
+                          <td className="px-2 py-2.5 text-center whitespace-nowrap">
+                            <Badge
+                              variant={isDone ? "default" : isDoing ? "secondary" : "outline"}
+                              className={`text-[9px] font-bold px-1.5 py-0.5 ${
+                                isDone
+                                  ? "bg-emerald-500 text-white"
+                                  : isDoing
+                                  ? "bg-sky-500/15 text-sky-700 border-sky-500/30"
+                                  : p.tieneAtrasos
+                                  ? "bg-rose-500/10 text-rose-600 border-rose-500/30"
+                                  : "text-muted-foreground"
+                              }`}
+                            >
+                              {isDone ? "Finalizado" : isDoing ? "En curso" : p.tieneAtrasos ? "Atrasado" : "Pendiente"}
+                            </Badge>
+                          </td>
+
+                          {/* Acción */}
+                          <td className="px-2 py-2.5 text-center">
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => handleOpenTimeline(p)}
+                              className="rounded-lg h-7 w-7 p-0 hover:bg-primary/10 hover:text-primary"
+                              title="Ver Timeline"
+                            >
+                              <ChevronRight className="h-4 w-4" />
+                            </Button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+              {/* Footer count */}
+              <div className="px-4 py-2.5 bg-muted/40 border-t border-border/50 text-[11px] text-muted-foreground font-medium flex items-center justify-between">
+                <span>Mostrando {filteredPersonas.length} de {personasRuta.length} personas</span>
+                <span className="text-primary font-bold">{stats.hitosCompletadosTotales} hitos completados en total</span>
+              </div>
             </div>
           )}
         </TabsContent>
