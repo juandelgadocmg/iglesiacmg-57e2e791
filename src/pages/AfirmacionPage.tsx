@@ -44,6 +44,9 @@ export default function AfirmacionPage() {
 
   // Filters
   const [search, setSearch] = useState("");
+  const [filterOrigen, setFilterOrigen] = useState<string>("todos");
+  const [filterFecha, setFilterFecha] = useState<string>("todas");
+  const [filterConsolidador, setFilterConsolidador] = useState<string>("todos");
   const [filterEstado, setFilterEstado] = useState<string>("todos");
 
   // Selected persona for Timeline modal
@@ -51,10 +54,24 @@ export default function AfirmacionPage() {
   const [openTimelineModal, setOpenTimelineModal] = useState(false);
   const [openRegistrarLlamadaDialog, setOpenRegistrarLlamadaDialog] = useState(false);
 
-  // Filtered personas list (All personas returned here entered through Personas module)
+  const consolidadoresOptions = useMemo(() => {
+    const set = new Set<string>();
+    personasRuta.forEach((p) => {
+      if (p.consolidadorNombre && p.consolidadorNombre !== "Sin asignación") {
+        set.add(p.consolidadorNombre);
+      }
+    });
+    return Array.from(set).sort();
+  }, [personasRuta]);
+
+  // Filtered personas list
   const filteredPersonas = useMemo(() => {
     const s = search.toLowerCase().trim();
+    const now = new Date();
+    const todayTime = now.getTime();
+
     return personasRuta.filter((p) => {
+      // 1. Search text
       const matchSearch =
         !s ||
         p.nombreCompleto.toLowerCase().includes(s) ||
@@ -63,7 +80,35 @@ export default function AfirmacionPage() {
 
       if (!matchSearch) return false;
 
-      // Filter by status
+      // 2. Origen filter
+      if (filterOrigen === "directo" && p.origen !== "Directo") return false;
+      if (filterOrigen === "grupo" && p.origen !== "Grupo") return false;
+
+      // 3. Consolidador filter
+      if (filterConsolidador !== "todos" && p.consolidadorNombre !== filterConsolidador) {
+        return false;
+      }
+
+      // 4. Fecha de ingreso filter
+      if (filterFecha !== "todas" && p.fechaIngreso) {
+        const ingTime = new Date(p.fechaIngreso).getTime();
+        const diffDays = (todayTime - ingTime) / (1000 * 60 * 60 * 24);
+
+        if (filterFecha === "7dias" && diffDays > 7) return false;
+        if (filterFecha === "30dias" && diffDays > 30) return false;
+        if (filterFecha === "este_mes") {
+          const ingDate = new Date(p.fechaIngreso);
+          if (ingDate.getMonth() !== now.getMonth() || ingDate.getFullYear() !== now.getFullYear()) {
+            return false;
+          }
+        }
+        if (filterFecha === "este_anio") {
+          const ingDate = new Date(p.fechaIngreso);
+          if (ingDate.getFullYear() !== now.getFullYear()) return false;
+        }
+      }
+
+      // 5. Estado filter
       if (filterEstado === "en_curso") return p.estadoGeneral === "En curso";
       if (filterEstado === "finalizado") return p.estadoGeneral === "Finalizado";
       if (filterEstado === "pendiente") return p.estadoGeneral === "Pendiente";
@@ -71,7 +116,7 @@ export default function AfirmacionPage() {
 
       return true;
     });
-  }, [personasRuta, search, filterEstado]);
+  }, [personasRuta, search, filterOrigen, filterFecha, filterConsolidador, filterEstado]);
 
   const handleOpenTimeline = (p: PersonaAfirmacionRuta) => {
     setSelectedPersona(p);
@@ -248,9 +293,9 @@ export default function AfirmacionPage() {
 
         {/* TAB 1: PERSONAS EN AFIRMACIÓN — TABLA */}
         <TabsContent value="personas" className="space-y-6 m-0">
-          {/* Search & Filters */}
-          <div className="flex flex-col sm:flex-row items-center gap-3 bg-card p-4 rounded-2xl border border-border/70 shadow-sm">
-            <div className="relative flex-1 w-full">
+          {/* Search & Filters Toolbar */}
+          <div className="flex flex-col gap-3 bg-card p-4 rounded-2xl border border-border/70 shadow-sm">
+            <div className="relative w-full">
               <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
               <Input
                 placeholder="Buscar por nombre, teléfono o consolidador..."
@@ -260,27 +305,57 @@ export default function AfirmacionPage() {
               />
             </div>
 
-            <div className="flex items-center gap-2 w-full sm:w-auto">
-              <Select value={filterEstado} onValueChange={setFilterEstado}>
-                <SelectTrigger className="h-10 rounded-xl bg-background border-border text-xs min-w-[160px]">
-                  <SelectValue placeholder="Filtrar por estado" />
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 w-full">
+              {/* Filtro de Origen */}
+              <Select value={filterOrigen} onValueChange={setFilterOrigen}>
+                <SelectTrigger className="h-9 rounded-xl bg-background border-border text-xs">
+                  <SelectValue placeholder="Origen" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="todos" className="text-xs">
-                    Todos los estados
-                  </SelectItem>
-                  <SelectItem value="en_curso" className="text-xs">
-                    🔵 En curso
-                  </SelectItem>
-                  <SelectItem value="finalizado" className="text-xs">
-                    🟢 Finalizados
-                  </SelectItem>
-                  <SelectItem value="pendiente" className="text-xs">
-                    ⚪ Pendientes
-                  </SelectItem>
-                  <SelectItem value="atrasado" className="text-xs">
-                    🔴 Con Atrasos
-                  </SelectItem>
+                  <SelectItem value="todos" className="text-xs">Todos los Orígenes</SelectItem>
+                  <SelectItem value="directo" className="text-xs">🎯 Directos (Personas)</SelectItem>
+                  <SelectItem value="grupo" className="text-xs">🏠 Casas de Paz (Grupos)</SelectItem>
+                </SelectContent>
+              </Select>
+
+              {/* Filtro de Fecha */}
+              <Select value={filterFecha} onValueChange={setFilterFecha}>
+                <SelectTrigger className="h-9 rounded-xl bg-background border-border text-xs">
+                  <SelectValue placeholder="Fecha Ingreso" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todas" className="text-xs">Todas las Fechas</SelectItem>
+                  <SelectItem value="7dias" className="text-xs">Últimos 7 Días</SelectItem>
+                  <SelectItem value="30dias" className="text-xs">Últimos 30 Días</SelectItem>
+                  <SelectItem value="este_mes" className="text-xs">Este Mes</SelectItem>
+                  <SelectItem value="este_anio" className="text-xs">Este Año</SelectItem>
+                </SelectContent>
+              </Select>
+
+              {/* Filtro de Consolidador */}
+              <Select value={filterConsolidador} onValueChange={setFilterConsolidador}>
+                <SelectTrigger className="h-9 rounded-xl bg-background border-border text-xs">
+                  <SelectValue placeholder="Consolidador" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todos" className="text-xs">Todos los Consolidadores</SelectItem>
+                  {consolidadoresOptions.map((c) => (
+                    <SelectItem key={c} value={c} className="text-xs">{c}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              {/* Filtro de Estado */}
+              <Select value={filterEstado} onValueChange={setFilterEstado}>
+                <SelectTrigger className="h-9 rounded-xl bg-background border-border text-xs">
+                  <SelectValue placeholder="Estado" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todos" className="text-xs">Todos los Estados</SelectItem>
+                  <SelectItem value="en_curso" className="text-xs">🔵 En curso</SelectItem>
+                  <SelectItem value="finalizado" className="text-xs">🟢 Finalizados</SelectItem>
+                  <SelectItem value="pendiente" className="text-xs">⚪ Pendientes</SelectItem>
+                  <SelectItem value="atrasado" className="text-xs">🔴 Con Atrasos</SelectItem>
                 </SelectContent>
               </Select>
             </div>

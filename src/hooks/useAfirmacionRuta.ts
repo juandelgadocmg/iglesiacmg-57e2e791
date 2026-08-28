@@ -123,6 +123,26 @@ function matchHitoWithProceso(hitoDef: HitoAfirmacionDef, procNombre: string): b
   return false;
 }
 
+export const PROCESOS_HARDCODED_MAP: Record<string, string> = {
+  "Ingreso a la Iglesia": "533cfe37-15fa-42ce-8b5c-23e9dd685d99",
+  "Llamada de Consolidación 1": "f61eb6d6-059c-49c4-8a50-02f3fb2fd382",
+  "Mensaje 1": "beb09fb3-d9ec-4766-a104-973afd0774b9",
+  "Llamada de Consolidación 2": "987cf897-c292-4a5c-a46a-ab6166f2a0eb",
+  "Mensaje 2": "98976585-2920-4317-8c94-97201d121131",
+  "Llamada de Consolidación 3": "184e1f0e-de0c-49f8-8dad-a5a76669f378",
+  "Mensaje 3": "235b788e-ccb2-48a4-9753-4b4c212bc43f",
+  "Mensaje 4": "dc200a35-6369-472b-9e2b-be673bc46431",
+  "Mensaje 5": "94d5b9eb-99ed-4b63-94b6-79011066bcea",
+  "Mensaje 6": "9e95eee6-ccbb-48d8-ac9f-48cee65cb39f",
+  "Visita": "dfe05ecf-9eae-42a0-ad57-251dca1cb630",
+  "Consejería": "3e1ff265-f694-4c67-8b70-c9c045ad1904",
+  "Fiesta de Bienvenida": "67056560-78cc-41f0-aae3-9879a34fdc80",
+  "Nací para Triunfar Día 1": "18db1d26-851a-47be-b695-8ae7ead452a0",
+  "Semana de Poder 1": "923c9bf3-feb5-4112-a758-0e75a44cb46b",
+  "Semana de Poder 2": "923c9bf3-feb5-4112-a758-0e75a44cb46c",
+  "Semana de Poder 3": "923c9bf3-feb5-4112-a758-0e75a44cb46d",
+};
+
 export function useAfirmacionRuta() {
   const queryClient = useQueryClient();
 
@@ -230,9 +250,18 @@ export function useAfirmacionRuta() {
 
       console.log(`[Afirmacion] Total personas BD: ${personasData.length}, Ingresaron por Personas: ${personasIngresoPersonas.length}`);
 
-      // Build map of procesosDB for easy lookup (by name AND by id)
+      // Build map of procesosDB for easy lookup (by name AND by id, including hardcoded UUIDs)
       const procMapByNormName = new Map<string, any>();
       const procMapById = new Map<string, any>();
+
+      // First populate with hardcoded UUID map
+      Object.entries(PROCESOS_HARDCODED_MAP).forEach(([name, uuid]) => {
+        const obj = { id: uuid, nombre: name };
+        procMapByNormName.set(norm(name), obj);
+        procMapById.set(uuid, obj);
+      });
+
+      // Then overwrite/augment with real database records
       procesosDB.forEach((p) => {
         procMapByNormName.set(norm(p.nombre), p);
         procMapById.set(p.id, p);
@@ -241,7 +270,7 @@ export function useAfirmacionRuta() {
       const todayStr = new Date().toISOString().slice(0, 10);
       const todayTime = new Date(todayStr).getTime();
 
-      const list: PersonaAfirmacionRuta[] = personasIngresoPersonas.map((p: any) => {
+      const list: PersonaAfirmacionRuta[] = personasData.map((p: any) => {
         const nombreCompleto = `${p.nombres || ""} ${p.apellidos || ""}`.trim() || "Sin Nombre";
         const rawIngreso = p.fecha_ingreso || p.ingreso_proceso || p.created_at || todayStr;
         const entryDateObj = new Date(rawIngreso);
@@ -270,16 +299,18 @@ export function useAfirmacionRuta() {
 
         const hitosEstados: PersonaHitoEstado[] = HITOS_AFIRMACION_16.map((hitoDef) => {
           const procMatch = procMapByNormName.get(norm(hitoDef.nombre));
+          const hardcodedUuid = PROCESOS_HARDCODED_MAP[hitoDef.nombre];
 
-          // Find matching process: check proceso_id equality or normalized name match
+          // Find matching process: check proceso_id, hardcoded UUIDs, or normalized name
           const userPP = pPpList.find((pp: any) => {
             if (procMatch?.id && pp.proceso_id === procMatch.id) return true;
+            if (hardcodedUuid && pp.proceso_id === hardcodedUuid) return true;
             const proc = procMapById.get(pp.proceso_id);
             const procName = proc?.nombre || pp.proceso_nombre || pp.nombre || "";
             return matchHitoWithProceso(hitoDef, procName);
           });
 
-          const procId = userPP?.proceso_id || procMatch?.id;
+          const procId = userPP?.proceso_id || procMatch?.id || hardcodedUuid;
 
           // Scheduled Date = Fecha Ingreso + offsetDias
           const progDate = new Date(entryTime + hitoDef.offsetDias * 86400000);
@@ -294,7 +325,18 @@ export function useAfirmacionRuta() {
 
           if (userPP) {
             const rawEst = String(userPP.estado || "").toLowerCase().trim();
-            if (rawEst === "completado" || rawEst === "realizado" || rawEst === "finalizado") {
+            const isCompleted =
+              rawEst === "completado" ||
+              rawEst === "realizado" ||
+              rawEst === "finalizado" ||
+              rawEst === "aprobado" ||
+              rawEst === "si" ||
+              rawEst === "sí" ||
+              rawEst === "1" ||
+              rawEst === "true" ||
+              Boolean(userPP.fecha_completado);
+
+            if (isCompleted) {
               estado = "Finalizado";
               realizada = true;
             } else if (rawEst === "en curso" || rawEst === "en proceso") {
