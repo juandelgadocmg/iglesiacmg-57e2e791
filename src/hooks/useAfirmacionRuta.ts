@@ -2,7 +2,6 @@ import { useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { INITIAL_DISCIPULOS } from "@/data/discipulandoInitialData";
 
 export interface HitoAfirmacionDef {
   index: number; // 1 to 16
@@ -165,18 +164,13 @@ export function useAfirmacionRuta() {
   const { data: personasRuta = [], isLoading, refetch } = useQuery({
     queryKey: ["afirmacion_personas_ruta", procesosDB.length, llamadasAudit.length],
     queryFn: async () => {
-      // 1. Fetch real personas from Supabase personas table
+      // 1. Fetch ONLY real personas from Supabase personas table
       const { data: dbPersonas } = await supabase
         .from("personas")
         .select("*, grupos(id, nombre, red)")
         .order("created_at", { ascending: false });
 
-      // 2. Fetch discipulos table if exists
-      const { data: dbDiscipulos } = await supabase
-        .from("discipulos" as any)
-        .select("*");
-
-      // 3. Fetch ALL persona_procesos with joined procesos_crecimiento
+      // 2. Fetch ALL persona_procesos with joined procesos_crecimiento
       const { data: dbPersonaProcesos } = await supabase
         .from("persona_procesos")
         .select("*, procesos_crecimiento(id, nombre, orden)");
@@ -191,56 +185,8 @@ export function useAfirmacionRuta() {
         }
       });
 
-      // 4. Combine all unique people
-      const combinedPeopleMap = new Map<string, any>();
-
-      // INITIAL_DISCIPULOS
-      INITIAL_DISCIPULOS.forEach((d) => {
-        if (d.full_name) {
-          combinedPeopleMap.set(norm(d.full_name), {
-            id: d.id || `init_${norm(d.full_name)}`,
-            nombres: d.full_name,
-            apellidos: "",
-            fecha_ingreso: d.created_at || d.ingreso_proceso,
-            created_at: d.created_at,
-            telefono: d.phone || d.whatsapp,
-            seguimiento_por: d.lider_responsable,
-            red: d.red_nombre,
-          });
-        }
-      });
-
-      // DB Discipulos
-      (dbDiscipulos || []).forEach((d: any) => {
-        const name = d.full_name || `${d.nombres || ""} ${d.apellidos || ""}`.trim();
-        if (name) {
-          combinedPeopleMap.set(norm(name), {
-            id: d.id,
-            nombres: name,
-            apellidos: "",
-            fecha_ingreso: d.fecha_ingreso || d.created_at,
-            created_at: d.created_at,
-            telefono: d.telefono || d.whatsapp,
-            seguimiento_por: d.lider_responsable,
-          });
-        }
-      });
-
-      // DB Personas
-      (dbPersonas || []).forEach((p: any) => {
-        const name = `${p.nombres || ""} ${p.apellidos || ""}`.trim();
-        if (name) {
-          combinedPeopleMap.set(norm(name), {
-            ...p,
-            id: p.id,
-            nombres: p.nombres,
-            apellidos: p.apellidos,
-            fecha_ingreso: p.fecha_ingreso || p.ingreso_proceso || p.created_at,
-          });
-        }
-      });
-
-      const personasData = Array.from(combinedPeopleMap.values());
+      // Use ONLY real DB personas
+      const personasData = dbPersonas || [];
 
       // Build map of procesosDB for easy lookup
       const procMapByNormName = new Map<string, any>();
