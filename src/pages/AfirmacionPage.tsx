@@ -19,6 +19,8 @@ import {
   Phone,
   MessageSquare,
   ChevronRight,
+  Target,
+  Home,
 } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
@@ -41,6 +43,7 @@ export default function AfirmacionPage() {
   // Filters
   const [search, setSearch] = useState("");
   const [filterEstado, setFilterEstado] = useState<string>("todos");
+  const [filterOrigen, setFilterOrigen] = useState<string>("todos");
 
   // Selected persona for Timeline modal
   const [selectedPersona, setSelectedPersona] = useState<PersonaAfirmacionRuta | null>(null);
@@ -59,6 +62,11 @@ export default function AfirmacionPage() {
 
       if (!matchSearch) return false;
 
+      // Filter by origin
+      if (filterOrigen === "directo" && p.origen !== "Directo") return false;
+      if (filterOrigen === "grupo" && p.origen !== "Grupo") return false;
+
+      // Filter by status
       if (filterEstado === "en_curso") return p.estadoGeneral === "En curso";
       if (filterEstado === "finalizado") return p.estadoGeneral === "Finalizado";
       if (filterEstado === "pendiente") return p.estadoGeneral === "Pendiente";
@@ -66,7 +74,7 @@ export default function AfirmacionPage() {
 
       return true;
     });
-  }, [personasRuta, search, filterEstado]);
+  }, [personasRuta, search, filterEstado, filterOrigen]);
 
   const handleOpenTimeline = (p: PersonaAfirmacionRuta) => {
     setSelectedPersona(p);
@@ -207,6 +215,77 @@ export default function AfirmacionPage() {
         </Card>
       </div>
 
+      {/* ── CONTROL Y ESTADÍSTICAS POR ORIGEN ────────────────────────────── */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Card Origen Directo */}
+        <Card className="border-sky-500/20 bg-gradient-to-br from-sky-500/5 via-card to-card p-5 rounded-2xl shadow-sm border">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 rounded-xl bg-sky-500/15 text-sky-600 font-bold">
+                <Target className="h-5 w-5" />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
+                  Origen: Módulo Personas (Directo)
+                  <Badge variant="outline" className="bg-sky-500/10 text-sky-700 dark:text-sky-300 border-sky-500/30 text-[10px]">
+                    {stats.totalDirectas} registradas
+                  </Badge>
+                </h3>
+                <p className="text-xs text-muted-foreground mt-0.5">Ingresadas directamente desde la iglesia central / Afirmación</p>
+              </div>
+            </div>
+          </div>
+          <div className="grid grid-cols-3 gap-3 mt-4 pt-3 border-t border-border/50 text-center">
+            <div>
+              <span className="text-[10px] uppercase font-bold text-muted-foreground block">Avance Prom.</span>
+              <span className="text-lg font-extrabold text-sky-600 tabular-nums">{stats.directasAvance}%</span>
+            </div>
+            <div>
+              <span className="text-[10px] uppercase font-bold text-muted-foreground block">En Proceso</span>
+              <span className="text-lg font-extrabold text-foreground tabular-nums">{stats.directasEnProceso}</span>
+            </div>
+            <div>
+              <span className="text-[10px] uppercase font-bold text-rose-500 block">Con Atrasos</span>
+              <span className="text-lg font-extrabold text-rose-600 tabular-nums">{stats.directasAtrasadas}</span>
+            </div>
+          </div>
+        </Card>
+
+        {/* Card Origen Casas de Paz */}
+        <Card className="border-emerald-500/20 bg-gradient-to-br from-emerald-500/5 via-card to-card p-5 rounded-2xl shadow-sm border">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 rounded-xl bg-emerald-500/15 text-emerald-600 font-bold">
+                <Home className="h-5 w-5" />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
+                  Origen: Casas de Paz (Grupos)
+                  <Badge variant="outline" className="bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/30 text-[10px]">
+                    {stats.totalGrupos} registradas
+                  </Badge>
+                </h3>
+                <p className="text-xs text-muted-foreground mt-0.5">Registradas en reportes de Casas de Paz / Células de grupos</p>
+              </div>
+            </div>
+          </div>
+          <div className="grid grid-cols-3 gap-3 mt-4 pt-3 border-t border-border/50 text-center">
+            <div>
+              <span className="text-[10px] uppercase font-bold text-muted-foreground block">Avance Prom.</span>
+              <span className="text-lg font-extrabold text-emerald-600 tabular-nums">{stats.gruposAvance}%</span>
+            </div>
+            <div>
+              <span className="text-[10px] uppercase font-bold text-muted-foreground block">En Proceso</span>
+              <span className="text-lg font-extrabold text-foreground tabular-nums">{stats.gruposEnProceso}</span>
+            </div>
+            <div>
+              <span className="text-[10px] uppercase font-bold text-rose-500 block">Con Atrasos</span>
+              <span className="text-lg font-extrabold text-rose-600 tabular-nums">{stats.gruposAtrasadas}</span>
+            </div>
+          </div>
+        </Card>
+      </div>
+
       {/* ── MAIN TABS SYSTEM ────────────────────────────────────────── */}
       <Tabs defaultValue="personas" className="w-full space-y-6">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-border/60 pb-3">
@@ -240,7 +319,24 @@ export default function AfirmacionPage() {
               />
             </div>
 
-            <div className="flex items-center gap-2 w-full sm:w-auto">
+            <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+              <Select value={filterOrigen} onValueChange={setFilterOrigen}>
+                <SelectTrigger className="h-10 rounded-xl bg-background border-border text-xs min-w-[170px]">
+                  <SelectValue placeholder="Origen de Persona" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todos" className="text-xs">
+                    Todos los orígenes ({personasRuta.length})
+                  </SelectItem>
+                  <SelectItem value="directo" className="text-xs">
+                    🎯 Directos (Personas) ({stats.totalDirectas})
+                  </SelectItem>
+                  <SelectItem value="grupo" className="text-xs">
+                    🏠 Casas de Paz (Grupos) ({stats.totalGrupos})
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+
               <Select value={filterEstado} onValueChange={setFilterEstado}>
                 <SelectTrigger className="h-10 rounded-xl bg-background border-border text-xs min-w-[160px]">
                   <SelectValue placeholder="Filtrar por estado" />
@@ -274,7 +370,7 @@ export default function AfirmacionPage() {
           ) : filteredPersonas.length === 0 ? (
             <div className="text-center py-12 border rounded-2xl bg-card text-muted-foreground">
               <p className="font-semibold text-base">No se encontraron personas con ese criterio.</p>
-              <p className="text-xs mt-1">Intenta ajustando la búsqueda o el filtro de estado.</p>
+              <p className="text-xs mt-1">Intenta ajustando la búsqueda o los filtros de origen y estado.</p>
             </div>
           ) : (
             <div className="rounded-2xl border border-border/70 bg-card shadow-sm overflow-hidden">
@@ -284,6 +380,9 @@ export default function AfirmacionPage() {
                     <tr className="bg-muted/60 border-b border-border/70">
                       <th className="sticky left-0 z-20 bg-muted/95 backdrop-blur px-3 py-3 text-left font-bold text-foreground whitespace-nowrap min-w-[180px]">
                         Nombre
+                      </th>
+                      <th className="px-2 py-3 text-left font-bold text-muted-foreground whitespace-nowrap min-w-[110px]">
+                        Origen
                       </th>
                       <th className="px-2 py-3 text-left font-bold text-muted-foreground whitespace-nowrap min-w-[80px]">
                         Teléfono
@@ -342,6 +441,19 @@ export default function AfirmacionPage() {
                               </div>
                               <span className="truncate max-w-[140px]">{p.nombreCompleto}</span>
                             </div>
+                          </td>
+
+                          {/* Origen (Directo vs Grupo) */}
+                          <td className="px-2 py-2.5 text-muted-foreground whitespace-nowrap text-[10px]">
+                            {p.origen === "Directo" ? (
+                              <Badge variant="outline" className="bg-sky-500/10 text-sky-700 dark:text-sky-300 border-sky-500/20 text-[10px] whitespace-nowrap font-semibold">
+                                🎯 Directo
+                              </Badge>
+                            ) : (
+                              <Badge variant="outline" className="bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/20 text-[10px] whitespace-nowrap font-semibold" title={p.grupoNombre || "Casa de Paz"}>
+                                🏠 {p.grupoNombre !== "Sin grupo" ? p.grupoNombre : "Casa de Paz"}
+                              </Badge>
+                            )}
                           </td>
 
                           {/* Teléfono */}

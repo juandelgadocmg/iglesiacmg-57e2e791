@@ -71,6 +71,10 @@ export interface PersonaAfirmacionRuta {
   diasDesdeIngreso: number;
   consolidadorNombre: string;
   redNombre: string;
+  origen: "Directo" | "Grupo"; // "Directo" (Módulo Personas / Afirmación) vs "Grupo" (Casas de Paz)
+  origenLabel: string;
+  grupoId: string | null;
+  grupoNombre: string | null;
   hitos: PersonaHitoEstado[];
   hitosCompletados: number;
   totalHitos: 16;
@@ -320,6 +324,22 @@ export function useAfirmacionRuta() {
             ? "En curso"
             : "Pendiente";
 
+        const isGrupoOrigin = Boolean(
+          p.grupo_id ||
+          p.grupos?.id ||
+          p.tipo_persona === "CDP" ||
+          (Array.isArray(p.tipos_persona) && p.tipos_persona.includes("CDP")) ||
+          String(p.vinculacion || "").toLowerCase().includes("casa") ||
+          String(p.vinculacion || "").toLowerCase().includes("grupo")
+        );
+
+        const origen: "Directo" | "Grupo" = isGrupoOrigin ? "Grupo" : "Directo";
+        const grupoId = p.grupo_id || p.grupos?.id || null;
+        const grupoNombre = p.grupos?.nombre || (p.grupo_id ? "Casa de Paz" : "Sin grupo");
+        const origenLabel = isGrupoOrigin
+          ? `🏠 Casa de Paz (${grupoNombre})`
+          : "🎯 Afirmación / Directo";
+
         return {
           id: p.id,
           nombres: p.nombres || "",
@@ -332,6 +352,10 @@ export function useAfirmacionRuta() {
           diasDesdeIngreso,
           consolidadorNombre,
           redNombre,
+          origen,
+          origenLabel,
+          grupoId,
+          grupoNombre,
           hitos: hitosEstados,
           hitosCompletados: hitosCompletadosCount,
           totalHitos: 16,
@@ -467,6 +491,22 @@ export function useAfirmacionRuta() {
       0
     );
 
+    // Breakdown by Origin (Directo vs Grupo)
+    const directas = personasRuta.filter((p) => p.origen === "Directo");
+    const deGrupos = personasRuta.filter((p) => p.origen === "Grupo");
+
+    const directasHitos = directas.reduce((acc, p) => acc + p.hitosCompletados, 0);
+    const directasPosibles = directas.length * 16;
+    const directasAvance = directasPosibles > 0 ? Math.round((directasHitos / directasPosibles) * 100) : 0;
+    const directasAtrasadas = directas.filter((p) => p.tieneAtrasos).length;
+    const directasEnProceso = directas.filter((p) => p.porcentajeCompletado > 0 && p.porcentajeCompletado < 100).length;
+
+    const gruposHitos = deGrupos.reduce((acc, p) => acc + p.hitosCompletados, 0);
+    const gruposPosibles = deGrupos.length * 16;
+    const gruposAvance = gruposPosibles > 0 ? Math.round((gruposHitos / gruposPosibles) * 100) : 0;
+    const gruposAtrasadas = deGrupos.filter((p) => p.tieneAtrasos).length;
+    const gruposEnProceso = deGrupos.filter((p) => p.porcentajeCompletado > 0 && p.porcentajeCompletado < 100).length;
+
     return {
       totalPersonasEnAfirmacion,
       personasEnProceso,
@@ -475,6 +515,15 @@ export function useAfirmacionRuta() {
       seguimientosPendientes,
       seguimientosAtrasados,
       porcentajeAvanceGeneral,
+      // Origin statistics
+      totalDirectas: directas.length,
+      directasAvance,
+      directasAtrasadas,
+      directasEnProceso,
+      totalGrupos: deGrupos.length,
+      gruposAvance,
+      gruposAtrasadas,
+      gruposEnProceso,
     };
   }, [personasRuta]);
 
