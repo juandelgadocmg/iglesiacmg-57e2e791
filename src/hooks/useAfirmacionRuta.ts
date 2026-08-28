@@ -134,7 +134,33 @@ export function useAfirmacionRuta() {
         .select("id, nombre, orden")
         .order("orden", { ascending: true });
       if (error) throw error;
-      return data || [];
+      let list = data || [];
+
+      // Auto-insert any missing 16 hitos into procesos_crecimiento in Supabase
+      const missingHitos = HITOS_AFIRMACION_16.filter(
+        (hDef) => !list.some((dbP) => matchHitoWithProceso(hDef, dbP.nombre))
+      );
+
+      if (missingHitos.length > 0) {
+        try {
+          const toInsert = missingHitos.map((hDef) => ({
+            nombre: hDef.nombre,
+            orden: hDef.index,
+          }));
+          const { data: inserted } = await supabase
+            .from("procesos_crecimiento")
+            .insert(toInsert)
+            .select("id, nombre, orden");
+
+          if (inserted && inserted.length > 0) {
+            list = [...list, ...inserted];
+          }
+        } catch (e) {
+          console.warn("Auto-insert missing hitos error:", e);
+        }
+      }
+
+      return list;
     },
   });
 
@@ -203,7 +229,6 @@ export function useAfirmacionRuta() {
       });
 
       console.log(`[Afirmacion] Total personas BD: ${personasData.length}, Ingresaron por Personas: ${personasIngresoPersonas.length}`);
-      console.log(`[Afirmacion] Procesos en BD:`, procesosDB.map(p => `"${p.nombre}"`));
 
       // Build map of procesosDB for easy lookup (by name AND by id)
       const procMapByNormName = new Map<string, any>();
@@ -240,17 +265,20 @@ export function useAfirmacionRuta() {
 
         let hitosCompletadosCount = 0;
         let primerHitoPendienteIndex = -1;
+        let primerIncompletoEncontrado = false;
         let tieneAtrasos = false;
 
         const hitosEstados: PersonaHitoEstado[] = HITOS_AFIRMACION_16.map((hitoDef) => {
-          // Find matching process: look up proceso name from procesosDB by proceso_id
+          const procMatch = procMapByNormName.get(norm(hitoDef.nombre));
+
+          // Find matching process: check proceso_id equality or normalized name match
           const userPP = pPpList.find((pp: any) => {
+            if (procMatch?.id && pp.proceso_id === procMatch.id) return true;
             const proc = procMapById.get(pp.proceso_id);
-            const procName = proc?.nombre || "";
+            const procName = proc?.nombre || pp.proceso_nombre || pp.nombre || "";
             return matchHitoWithProceso(hitoDef, procName);
           });
 
-          const procMatch = procMapByNormName.get(norm(hitoDef.nombre));
           const procId = userPP?.proceso_id || procMatch?.id;
 
           // Scheduled Date = Fecha Ingreso + offsetDias
@@ -296,13 +324,22 @@ export function useAfirmacionRuta() {
           }
 
           const isPastDueDate = progDate.getTime() < todayTime;
-          const atrasado = isPastDueDate && estado !== "Finalizado";
-          if (atrasado) tieneAtrasos = true;
+          let atrasado = false;
 
           if (estado === "Finalizado") {
             hitosCompletadosCount++;
-          } else if (primerHitoPendienteIndex === -1) {
-            primerHitoPendienteIndex = hitoDef.index;
+          } else {
+            if (primerHitoPendienteIndex === -1) {
+              primerHitoPendienteIndex = hitoDef.index;
+            }
+            // Flag atrasado ONLY for the current active pending milestone
+            if (!primerIncompletoEncontrado) {
+              primerIncompletoEncontrado = true;
+              if (isPastDueDate) {
+                atrasado = true;
+                tieneAtrasos = true;
+              }
+            }
           }
 
           return {
