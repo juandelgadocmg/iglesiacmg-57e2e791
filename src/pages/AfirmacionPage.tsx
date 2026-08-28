@@ -29,8 +29,9 @@ import { es } from "date-fns/locale";
 import { ConsolidacionDashboardTab } from "@/components/persona/ConsolidacionDashboardTab";
 import { RegistrarLlamadaConsolidacionDialog } from "@/components/persona/RegistrarLlamadaConsolidacionDialog";
 import ExportPersonasDialog from "@/components/forms/ExportPersonasDialog";
-import { useAfirmacionRuta, PersonaAfirmacionRuta, HITOS_AFIRMACION_16 } from "@/hooks/useAfirmacionRuta";
+import { useAfirmacionRuta, PersonaAfirmacionRuta, HITOS_AFIRMACION_16, PersonaHitoEstado } from "@/hooks/useAfirmacionRuta";
 import { AfirmacionTimelineModal } from "@/components/afirmacion/AfirmacionTimelineModal";
+import { HitoEditDialog } from "@/components/afirmacion/HitoEditDialog";
 
 // Short labels for table column headers
 const HITO_SHORT_LABELS = [
@@ -49,10 +50,15 @@ export default function AfirmacionPage() {
   const [filterConsolidador, setFilterConsolidador] = useState<string>("todos");
   const [filterEstado, setFilterEstado] = useState<string>("todos");
 
-  // Selected persona for Timeline modal
+  // Selected persona for Timeline modal & HitoEditDialog
   const [selectedPersona, setSelectedPersona] = useState<PersonaAfirmacionRuta | null>(null);
   const [openTimelineModal, setOpenTimelineModal] = useState(false);
   const [openRegistrarLlamadaDialog, setOpenRegistrarLlamadaDialog] = useState(false);
+  const [editingCell, setEditingCell] = useState<{
+    personaId: string;
+    personaNombre: string;
+    hito: PersonaHitoEstado;
+  } | null>(null);
 
   const consolidadoresOptions = useMemo(() => {
     const set = new Set<string>();
@@ -511,23 +517,30 @@ export default function AfirmacionPage() {
                             return (
                               <td
                                 key={hi}
-                                className="px-1 py-2.5 text-center"
-                                title={`${h.hitoDef.nombre}: ${h.estado}${h.fechaRealizada ? ` (${h.fechaRealizada})` : ""}${h.resultadoLlamada ? ` — ${h.resultadoLlamada}` : ""}`}
+                                onClick={() =>
+                                  setEditingCell({
+                                    personaId: p.id,
+                                    personaNombre: p.nombreCompleto,
+                                    hito: h,
+                                  })
+                                }
+                                className="px-1 py-2.5 text-center cursor-pointer hover:bg-primary/10 transition-colors rounded-md group"
+                                title={`Clic para editar / actualizar ${h.hitoDef.nombre}: ${h.estado}${h.fechaRealizada ? ` (${h.fechaRealizada})` : ""}${h.resultadoLlamada ? ` — ${h.resultadoLlamada}` : ""}`}
                               >
                                 {done ? (
-                                  <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-emerald-500/15 text-emerald-600">
+                                  <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-emerald-500/15 text-emerald-600 group-hover:scale-110 transition-transform">
                                     <CheckCircle2 className="h-3.5 w-3.5" />
                                   </span>
                                 ) : inProgress ? (
-                                  <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-sky-500/15 text-sky-600">
+                                  <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-sky-500/15 text-sky-600 group-hover:scale-110 transition-transform">
                                     <span className="block w-2 h-2 rounded-full bg-sky-500 animate-pulse" />
                                   </span>
                                 ) : overdue ? (
-                                  <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-rose-500/10 text-rose-500">
+                                  <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-rose-500/10 text-rose-500 group-hover:scale-110 transition-transform">
                                     <AlertTriangle className="h-3 w-3" />
                                   </span>
                                 ) : (
-                                  <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-muted/60 text-muted-foreground/30">
+                                  <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-muted/60 text-muted-foreground/30 group-hover:scale-110 transition-transform">
                                     <span className="block w-1.5 h-1.5 rounded-full bg-current" />
                                   </span>
                                 )}
@@ -608,6 +621,21 @@ export default function AfirmacionPage() {
       <RegistrarLlamadaConsolidacionDialog
         open={openRegistrarLlamadaDialog}
         onOpenChange={setOpenRegistrarLlamadaDialog}
+      />
+
+      {/* Hito Direct Edit Dialog */}
+      <HitoEditDialog
+        open={!!editingCell}
+        onOpenChange={(open) => {
+          if (!open) setEditingCell(null);
+        }}
+        personaId={editingCell?.personaId || ""}
+        personaNombre={editingCell?.personaNombre || ""}
+        hito={editingCell?.hito || null}
+        onSave={async (payload) => {
+          await updateHito(payload);
+          setEditingCell(null);
+        }}
       />
     </div>
   );
