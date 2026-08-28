@@ -192,7 +192,17 @@ export function useAfirmacionRuta() {
         personasData = fallback || [];
       }
 
-      console.log(`[Afirmacion] Personas cargadas: ${personasData.length}`);
+      // 2. Filter ONLY personas that entered through Personas (module Personas / General church intake)
+      const personasIngresoPersonas = personasData.filter((p: any) => {
+        const esCreadoEnGrupo =
+          p.tipo_persona === "CDP" ||
+          (Array.isArray(p.tipos_persona) && p.tipos_persona.includes("CDP")) ||
+          String(p.vinculacion || "").toLowerCase() === "casas de paz";
+
+        return !esCreadoEnGrupo;
+      });
+
+      console.log(`[Afirmacion] Total personas BD: ${personasData.length}, Ingresaron por Personas: ${personasIngresoPersonas.length}`);
       console.log(`[Afirmacion] Procesos en BD:`, procesosDB.map(p => `"${p.nombre}"`));
 
       // Build map of procesosDB for easy lookup (by name AND by id)
@@ -206,7 +216,7 @@ export function useAfirmacionRuta() {
       const todayStr = new Date().toISOString().slice(0, 10);
       const todayTime = new Date(todayStr).getTime();
 
-      const list: PersonaAfirmacionRuta[] = personasData.map((p: any) => {
+      const list: PersonaAfirmacionRuta[] = personasIngresoPersonas.map((p: any) => {
         const nombreCompleto = `${p.nombres || ""} ${p.apellidos || ""}`.trim() || "Sin Nombre";
         const rawIngreso = p.fecha_ingreso || p.ingreso_proceso || p.created_at || todayStr;
         const entryDateObj = new Date(rawIngreso);

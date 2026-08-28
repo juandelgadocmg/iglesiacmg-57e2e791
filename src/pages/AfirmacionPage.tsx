@@ -43,14 +43,13 @@ export default function AfirmacionPage() {
   // Filters
   const [search, setSearch] = useState("");
   const [filterEstado, setFilterEstado] = useState<string>("todos");
-  const [filterOrigen, setFilterOrigen] = useState<string>("todos");
 
   // Selected persona for Timeline modal
   const [selectedPersona, setSelectedPersona] = useState<PersonaAfirmacionRuta | null>(null);
   const [openTimelineModal, setOpenTimelineModal] = useState(false);
   const [openRegistrarLlamadaDialog, setOpenRegistrarLlamadaDialog] = useState(false);
 
-  // Filtered personas list
+  // Filtered personas list (All personas returned here entered through Personas module)
   const filteredPersonas = useMemo(() => {
     const s = search.toLowerCase().trim();
     return personasRuta.filter((p) => {
@@ -62,10 +61,6 @@ export default function AfirmacionPage() {
 
       if (!matchSearch) return false;
 
-      // Filter by origin
-      if (filterOrigen === "directo" && p.origen !== "Directo") return false;
-      if (filterOrigen === "grupo" && p.origen !== "Grupo") return false;
-
       // Filter by status
       if (filterEstado === "en_curso") return p.estadoGeneral === "En curso";
       if (filterEstado === "finalizado") return p.estadoGeneral === "Finalizado";
@@ -74,7 +69,7 @@ export default function AfirmacionPage() {
 
       return true;
     });
-  }, [personasRuta, search, filterEstado, filterOrigen]);
+  }, [personasRuta, search, filterEstado]);
 
   const handleOpenTimeline = (p: PersonaAfirmacionRuta) => {
     setSelectedPersona(p);
@@ -97,7 +92,7 @@ export default function AfirmacionPage() {
               Afirmación del Creyente
             </h1>
             <p className="text-sm sm:text-base text-primary-foreground/80 leading-relaxed font-sans">
-              Sistema de seguimiento individual basado en la ruta oficial de 16 hitos, calculada de forma independiente desde la fecha de ingreso real de cada persona.
+              Sistema de seguimiento individual basado en la ruta oficial de 16 hitos, exclusivo para las personas que ingresaron a través del módulo Personas.
             </p>
           </div>
 
@@ -122,7 +117,7 @@ export default function AfirmacionPage() {
         </div>
       </div>
 
-      {/* ── REAL KPI METRICS SUMMARY ────────────────────────────────────── */}
+      {/* ── REAL KPI METRICS SUMMARY (PERSONAS INTAKE ONLY) ────────────────────────────────────── */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3.5">
         <Card className="border-border/60 bg-card/80 backdrop-blur-md shadow-sm rounded-2xl p-4">
           <div className="flex items-center justify-between">
@@ -136,7 +131,7 @@ export default function AfirmacionPage() {
           <div className="text-2xl font-extrabold mt-2 tabular-nums">
             {stats.totalPersonasEnAfirmacion}
           </div>
-          <div className="text-[10px] text-muted-foreground mt-0.5">Personas registradas</div>
+          <div className="text-[10px] text-muted-foreground mt-0.5">Ingresadas por Personas</div>
         </Card>
 
         <Card className="border-border/60 bg-card/80 backdrop-blur-md shadow-sm rounded-2xl p-4">
@@ -215,77 +210,6 @@ export default function AfirmacionPage() {
         </Card>
       </div>
 
-      {/* ── CONTROL Y ESTADÍSTICAS POR ORIGEN ────────────────────────────── */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {/* Card Origen Directo */}
-        <Card className="border-sky-500/20 bg-gradient-to-br from-sky-500/5 via-card to-card p-5 rounded-2xl shadow-sm border">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="p-2.5 rounded-xl bg-sky-500/15 text-sky-600 font-bold">
-                <Target className="h-5 w-5" />
-              </div>
-              <div>
-                <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
-                  Origen: Módulo Personas (Directo)
-                  <Badge variant="outline" className="bg-sky-500/10 text-sky-700 dark:text-sky-300 border-sky-500/30 text-[10px]">
-                    {stats.totalDirectas} registradas
-                  </Badge>
-                </h3>
-                <p className="text-xs text-muted-foreground mt-0.5">Ingresadas directamente desde la iglesia central / Afirmación</p>
-              </div>
-            </div>
-          </div>
-          <div className="grid grid-cols-3 gap-3 mt-4 pt-3 border-t border-border/50 text-center">
-            <div>
-              <span className="text-[10px] uppercase font-bold text-muted-foreground block">Avance Prom.</span>
-              <span className="text-lg font-extrabold text-sky-600 tabular-nums">{stats.directasAvance}%</span>
-            </div>
-            <div>
-              <span className="text-[10px] uppercase font-bold text-muted-foreground block">En Proceso</span>
-              <span className="text-lg font-extrabold text-foreground tabular-nums">{stats.directasEnProceso}</span>
-            </div>
-            <div>
-              <span className="text-[10px] uppercase font-bold text-rose-500 block">Con Atrasos</span>
-              <span className="text-lg font-extrabold text-rose-600 tabular-nums">{stats.directasAtrasadas}</span>
-            </div>
-          </div>
-        </Card>
-
-        {/* Card Origen Casas de Paz */}
-        <Card className="border-emerald-500/20 bg-gradient-to-br from-emerald-500/5 via-card to-card p-5 rounded-2xl shadow-sm border">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="p-2.5 rounded-xl bg-emerald-500/15 text-emerald-600 font-bold">
-                <Home className="h-5 w-5" />
-              </div>
-              <div>
-                <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
-                  Origen: Casas de Paz (Grupos)
-                  <Badge variant="outline" className="bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/30 text-[10px]">
-                    {stats.totalGrupos} registradas
-                  </Badge>
-                </h3>
-                <p className="text-xs text-muted-foreground mt-0.5">Registradas en reportes de Casas de Paz / Células de grupos</p>
-              </div>
-            </div>
-          </div>
-          <div className="grid grid-cols-3 gap-3 mt-4 pt-3 border-t border-border/50 text-center">
-            <div>
-              <span className="text-[10px] uppercase font-bold text-muted-foreground block">Avance Prom.</span>
-              <span className="text-lg font-extrabold text-emerald-600 tabular-nums">{stats.gruposAvance}%</span>
-            </div>
-            <div>
-              <span className="text-[10px] uppercase font-bold text-muted-foreground block">En Proceso</span>
-              <span className="text-lg font-extrabold text-foreground tabular-nums">{stats.gruposEnProceso}</span>
-            </div>
-            <div>
-              <span className="text-[10px] uppercase font-bold text-rose-500 block">Con Atrasos</span>
-              <span className="text-lg font-extrabold text-rose-600 tabular-nums">{stats.gruposAtrasadas}</span>
-            </div>
-          </div>
-        </Card>
-      </div>
-
       {/* ── MAIN TABS SYSTEM ────────────────────────────────────────── */}
       <Tabs defaultValue="personas" className="w-full space-y-6">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-border/60 pb-3">
@@ -319,24 +243,7 @@ export default function AfirmacionPage() {
               />
             </div>
 
-            <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
-              <Select value={filterOrigen} onValueChange={setFilterOrigen}>
-                <SelectTrigger className="h-10 rounded-xl bg-background border-border text-xs min-w-[170px]">
-                  <SelectValue placeholder="Origen de Persona" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="todos" className="text-xs">
-                    Todos los orígenes ({personasRuta.length})
-                  </SelectItem>
-                  <SelectItem value="directo" className="text-xs">
-                    🎯 Directos (Personas) ({stats.totalDirectas})
-                  </SelectItem>
-                  <SelectItem value="grupo" className="text-xs">
-                    🏠 Casas de Paz (Grupos) ({stats.totalGrupos})
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-
+            <div className="flex items-center gap-2 w-full sm:w-auto">
               <Select value={filterEstado} onValueChange={setFilterEstado}>
                 <SelectTrigger className="h-10 rounded-xl bg-background border-border text-xs min-w-[160px]">
                   <SelectValue placeholder="Filtrar por estado" />
