@@ -111,7 +111,36 @@ export function HitoEditDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4 pt-3">
+        {/* Personas Information Banner */}
+        <div className="p-3 rounded-xl bg-muted/60 border border-border/70 space-y-2 text-xs mt-2">
+          <div className="flex items-center justify-between">
+            <span className="font-bold text-foreground text-[11px]">Información Registrada en Personas</span>
+            <Badge
+              className={`text-[10px] font-bold ${
+                hito.estado === "Finalizado"
+                  ? "bg-emerald-500 text-white"
+                  : hito.estado === "En curso"
+                  ? "bg-sky-500 text-white"
+                  : "bg-slate-600 text-white"
+              }`}
+            >
+              {hito.estado === "Finalizado" ? "✅ Realizado" : hito.estado === "En curso" ? "🔵 En curso" : "⚪ Pendiente"}
+            </Badge>
+          </div>
+          <div className="grid grid-cols-2 gap-x-2 gap-y-1 text-[11px] text-muted-foreground">
+            <div><strong>📅 Programado:</strong> {hito.fechaProgramada ? format(parseISO(hito.fechaProgramada), "dd/MM/yyyy") : "—"}</div>
+            <div><strong>🗓️ Realizado:</strong> {hito.fechaRealizada ? format(parseISO(hito.fechaRealizada), "dd/MM/yyyy") : "—"}</div>
+            {hito.responsableNombre && <div className="col-span-2"><strong>👨‍💼 Consolidador:</strong> {hito.responsableNombre}</div>}
+            {hito.resultadoLlamada && <div className="col-span-2 text-sky-700 dark:text-sky-300"><strong>📞 Llamada:</strong> {hito.resultadoLlamada}</div>}
+          </div>
+          {hito.observacion && (
+            <div className="text-[11px] bg-background p-2 rounded-lg border border-border/50 text-foreground italic">
+              "{hito.observacion}"
+            </div>
+          )}
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-4 pt-2">
           {/* Estado Selector */}
           <div className="space-y-1.5">
             <Label className="text-xs font-bold text-foreground">Estado del Hito</Label>

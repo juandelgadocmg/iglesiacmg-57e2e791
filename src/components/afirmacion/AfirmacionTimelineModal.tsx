@@ -252,11 +252,19 @@ export function AfirmacionTimelineModal({
                               <h4 className="font-bold text-sm text-foreground truncate">
                                 {hito.hitoDef.nombre}
                               </h4>
-                              {hito.atrasado && (
-                                <Badge variant="destructive" className="text-[10px] py-0 font-semibold">
-                                  Atrasado
+                              {isDone ? (
+                                <Badge className="bg-emerald-500 text-white text-[10px] py-0.5 font-bold gap-1 shadow-sm">
+                                  <CheckCircle2 className="h-3 w-3" /> ✅ REALIZADO
                                 </Badge>
-                              )}
+                              ) : isDoing ? (
+                                <Badge className="bg-sky-500 text-white text-[10px] py-0.5 font-bold gap-1">
+                                  🔵 EN CURSO
+                                </Badge>
+                              ) : hito.atrasado ? (
+                                <Badge variant="destructive" className="text-[10px] py-0.5 font-bold">
+                                  🔴 ATRASADO
+                                </Badge>
+                              ) : null}
                             </div>
 
                             <div className="flex items-center gap-3 text-xs text-muted-foreground flex-wrap pt-0.5">

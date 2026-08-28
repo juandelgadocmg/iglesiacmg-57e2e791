@@ -6,6 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   Search,
   Users,
@@ -379,174 +380,217 @@ export default function AfirmacionPage() {
             </div>
           ) : (
             <div className="rounded-2xl border border-border/70 bg-card shadow-sm overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="w-full text-xs">
-                  <thead>
-                    <tr className="bg-muted/60 border-b border-border/70">
-                      <th className="sticky left-0 z-20 bg-muted/95 backdrop-blur px-3 py-3 text-left font-bold text-foreground whitespace-nowrap min-w-[180px]">
-                        Nombre
-                      </th>
-                      <th className="px-2 py-3 text-left font-bold text-muted-foreground whitespace-nowrap min-w-[110px]">
-                        Origen
-                      </th>
-                      <th className="px-2 py-3 text-left font-bold text-muted-foreground whitespace-nowrap min-w-[80px]">
-                        Teléfono
-                      </th>
-                      <th className="px-2 py-3 text-left font-bold text-muted-foreground whitespace-nowrap min-w-[85px]">
-                        Ingreso
-                      </th>
-                      <th className="px-2 py-3 text-center font-bold text-muted-foreground whitespace-nowrap min-w-[50px]">
-                        Días
-                      </th>
-                      <th className="px-2 py-3 text-left font-bold text-muted-foreground whitespace-nowrap min-w-[110px]">
-                        Consolidador
-                      </th>
-                      <th className="px-2 py-3 text-left font-bold text-muted-foreground whitespace-nowrap min-w-[80px]">
-                        Red
-                      </th>
-                      {/* 16 Hitos columns */}
-                      {HITO_SHORT_LABELS.map((label, i) => (
-                        <th
-                          key={i}
-                          className="px-1 py-3 text-center font-bold text-muted-foreground whitespace-nowrap min-w-[52px]"
-                          title={HITOS_AFIRMACION_16[i]?.nombre}
-                        >
-                          <span className="block text-[9px] leading-tight">{label}</span>
+              <TooltipProvider delayDuration={100}>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-xs">
+                    <thead>
+                      <tr className="bg-muted/60 border-b border-border/70">
+                        <th className="sticky left-0 z-20 bg-muted/95 backdrop-blur px-3 py-3 text-left font-bold text-foreground whitespace-nowrap min-w-[180px]">
+                          Nombre
                         </th>
-                      ))}
-                      <th className="px-2 py-3 text-center font-bold text-muted-foreground whitespace-nowrap min-w-[55px]">
-                        Avance
-                      </th>
-                      <th className="px-2 py-3 text-center font-bold text-muted-foreground whitespace-nowrap min-w-[70px]">
-                        Estado
-                      </th>
-                      <th className="px-2 py-3 text-center font-bold text-muted-foreground whitespace-nowrap min-w-[50px]">
-                        Acción
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredPersonas.map((p, rowIdx) => {
-                      const isDone = p.estadoGeneral === "Finalizado";
-                      const isDoing = p.estadoGeneral === "En curso";
-                      const cleanPhone = p.whatsapp || p.telefono ? (p.whatsapp || p.telefono)!.replace(/\D/g, "") : "";
+                        <th className="px-2 py-3 text-left font-bold text-muted-foreground whitespace-nowrap min-w-[110px]">
+                          Origen
+                        </th>
+                        <th className="px-2 py-3 text-left font-bold text-muted-foreground whitespace-nowrap min-w-[80px]">
+                          Teléfono
+                        </th>
+                        <th className="px-2 py-3 text-left font-bold text-muted-foreground whitespace-nowrap min-w-[85px]">
+                          Ingreso
+                        </th>
+                        <th className="px-2 py-3 text-center font-bold text-muted-foreground whitespace-nowrap min-w-[50px]">
+                          Días
+                        </th>
+                        <th className="px-2 py-3 text-left font-bold text-muted-foreground whitespace-nowrap min-w-[110px]">
+                          Consolidador
+                        </th>
+                        <th className="px-2 py-3 text-left font-bold text-muted-foreground whitespace-nowrap min-w-[80px]">
+                          Red
+                        </th>
+                        {/* 16 Hitos columns */}
+                        {HITO_SHORT_LABELS.map((label, i) => (
+                          <th
+                            key={i}
+                            className="px-1 py-3 text-center font-bold text-muted-foreground whitespace-nowrap min-w-[52px]"
+                            title={HITOS_AFIRMACION_16[i]?.nombre}
+                          >
+                            <span className="block text-[9px] leading-tight">{label}</span>
+                          </th>
+                        ))}
+                        <th className="px-2 py-3 text-center font-bold text-muted-foreground whitespace-nowrap min-w-[55px]">
+                          Avance
+                        </th>
+                        <th className="px-2 py-3 text-center font-bold text-muted-foreground whitespace-nowrap min-w-[70px]">
+                          Estado
+                        </th>
+                        <th className="px-2 py-3 text-center font-bold text-muted-foreground whitespace-nowrap min-w-[50px]">
+                          Acción
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredPersonas.map((p, rowIdx) => {
+                        const isDone = p.estadoGeneral === "Finalizado";
+                        const isDoing = p.estadoGeneral === "En curso";
+                        const cleanPhone = p.whatsapp || p.telefono ? (p.whatsapp || p.telefono)!.replace(/\D/g, "") : "";
 
-                      return (
-                        <tr
-                          key={p.id}
-                          className={`border-b border-border/40 hover:bg-muted/30 transition-colors ${
-                            rowIdx % 2 === 0 ? "bg-card" : "bg-muted/10"
-                          }`}
-                        >
-                          {/* Nombre (sticky) */}
-                          <td className="sticky left-0 z-10 bg-inherit px-3 py-2.5 font-semibold text-foreground whitespace-nowrap">
-                            <div className="flex items-center gap-2">
-                              <div className="h-7 w-7 rounded-full bg-primary/10 text-primary flex items-center justify-center text-[10px] font-bold shrink-0">
-                                {p.nombreCompleto.slice(0, 2).toUpperCase()}
+                        return (
+                          <tr
+                            key={p.id}
+                            className={`border-b border-border/40 hover:bg-muted/30 transition-colors ${
+                              rowIdx % 2 === 0 ? "bg-card" : "bg-muted/10"
+                            }`}
+                          >
+                            {/* Nombre (sticky) */}
+                            <td className="sticky left-0 z-10 bg-inherit px-3 py-2.5 font-semibold text-foreground whitespace-nowrap">
+                              <div className="flex items-center gap-2">
+                                <div className="h-7 w-7 rounded-full bg-primary/10 text-primary flex items-center justify-center text-[10px] font-bold shrink-0">
+                                  {p.nombreCompleto.slice(0, 2).toUpperCase()}
+                                </div>
+                                <span className="truncate max-w-[140px]">{p.nombreCompleto}</span>
                               </div>
-                              <span className="truncate max-w-[140px]">{p.nombreCompleto}</span>
-                            </div>
-                          </td>
+                            </td>
 
-                          {/* Origen (Directo vs Grupo) */}
-                          <td className="px-2 py-2.5 text-muted-foreground whitespace-nowrap text-[10px]">
-                            {p.origen === "Directo" ? (
-                              <Badge variant="outline" className="bg-sky-500/10 text-sky-700 dark:text-sky-300 border-sky-500/20 text-[10px] whitespace-nowrap font-semibold">
-                                🎯 Directo
-                              </Badge>
-                            ) : (
-                              <Badge variant="outline" className="bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/20 text-[10px] whitespace-nowrap font-semibold" title={p.grupoNombre || "Casa de Paz"}>
-                                🏠 {p.grupoNombre !== "Sin grupo" ? p.grupoNombre : "Casa de Paz"}
-                              </Badge>
-                            )}
-                          </td>
-
-                          {/* Teléfono */}
-                          <td className="px-2 py-2.5 text-muted-foreground whitespace-nowrap">
-                            <div className="flex items-center gap-1">
-                              {p.telefono ? (
-                                <>
-                                  <a href={`tel:${p.telefono}`} className="hover:text-primary transition-colors" title="Llamar">
-                                    <Phone className="h-3 w-3" />
-                                  </a>
-                                  <span className="text-[10px]">{p.telefono}</span>
-                                  {cleanPhone.length >= 7 && (
-                                    <a
-                                      href={`https://wa.me/${cleanPhone.length === 10 ? '57' + cleanPhone : cleanPhone}`}
-                                      target="_blank"
-                                      rel="noreferrer"
-                                      className="text-emerald-600 hover:text-emerald-500 transition-colors"
-                                      title="WhatsApp"
-                                    >
-                                      <MessageSquare className="h-3 w-3" />
-                                    </a>
-                                  )}
-                                </>
+                            {/* Origen (Directo vs Grupo) */}
+                            <td className="px-2 py-2.5 text-muted-foreground whitespace-nowrap text-[10px]">
+                              {p.origen === "Directo" ? (
+                                <Badge variant="outline" className="bg-sky-500/10 text-sky-700 dark:text-sky-300 border-sky-500/20 text-[10px] whitespace-nowrap font-semibold">
+                                  🎯 Directo
+                                </Badge>
                               ) : (
-                                <span className="text-[10px] text-muted-foreground/50">—</span>
+                                <Badge variant="outline" className="bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/20 text-[10px] whitespace-nowrap font-semibold" title={p.grupoNombre || "Casa de Paz"}>
+                                  🏠 {p.grupoNombre !== "Sin grupo" ? p.grupoNombre : "Casa de Paz"}
+                                </Badge>
                               )}
-                            </div>
-                          </td>
+                            </td>
 
-                          {/* Fecha Ingreso */}
-                          <td className="px-2 py-2.5 text-muted-foreground whitespace-nowrap text-[10px]">
-                            {p.fechaIngreso ? format(parseISO(p.fechaIngreso), "dd/MM/yyyy") : "—"}
-                          </td>
-
-                          {/* Días */}
-                          <td className="px-2 py-2.5 text-center font-semibold text-primary whitespace-nowrap tabular-nums">
-                            {p.diasDesdeIngreso}
-                          </td>
-
-                          {/* Consolidador */}
-                          <td className="px-2 py-2.5 text-muted-foreground whitespace-nowrap truncate max-w-[110px] text-[10px]">
-                            {p.consolidadorNombre}
-                          </td>
-
-                          {/* Red */}
-                          <td className="px-2 py-2.5 text-muted-foreground whitespace-nowrap truncate max-w-[80px] text-[10px]">
-                            {p.redNombre}
-                          </td>
-
-                          {/* 16 Hitos cells */}
-                          {p.hitos.map((h, hi) => {
-                            const done = h.estado === "Finalizado";
-                            const inProgress = h.estado === "En curso";
-                            const overdue = h.atrasado;
-
-                            return (
-                              <td
-                                key={hi}
-                                onClick={() =>
-                                  setEditingCell({
-                                    personaId: p.id,
-                                    personaNombre: p.nombreCompleto,
-                                    hito: h,
-                                  })
-                                }
-                                className="px-1 py-2.5 text-center cursor-pointer hover:bg-primary/10 transition-colors rounded-md group"
-                                title={`Clic para editar / actualizar ${h.hitoDef.nombre}: ${h.estado}${h.fechaRealizada ? ` (${h.fechaRealizada})` : ""}${h.resultadoLlamada ? ` — ${h.resultadoLlamada}` : ""}`}
-                              >
-                                {done ? (
-                                  <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-emerald-500/15 text-emerald-600 group-hover:scale-110 transition-transform">
-                                    <CheckCircle2 className="h-3.5 w-3.5" />
-                                  </span>
-                                ) : inProgress ? (
-                                  <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-sky-500/15 text-sky-600 group-hover:scale-110 transition-transform">
-                                    <span className="block w-2 h-2 rounded-full bg-sky-500 animate-pulse" />
-                                  </span>
-                                ) : overdue ? (
-                                  <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-rose-500/10 text-rose-500 group-hover:scale-110 transition-transform">
-                                    <AlertTriangle className="h-3 w-3" />
-                                  </span>
+                            {/* Teléfono */}
+                            <td className="px-2 py-2.5 text-muted-foreground whitespace-nowrap">
+                              <div className="flex items-center gap-1">
+                                {p.telefono ? (
+                                  <>
+                                    <a href={`tel:${p.telefono}`} className="hover:text-primary transition-colors" title="Llamar">
+                                      <Phone className="h-3 w-3" />
+                                    </a>
+                                    <span className="text-[10px]">{p.telefono}</span>
+                                    {cleanPhone.length >= 7 && (
+                                      <a
+                                        href={`https://wa.me/${cleanPhone.length === 10 ? '57' + cleanPhone : cleanPhone}`}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        className="text-emerald-600 hover:text-emerald-500 transition-colors"
+                                        title="WhatsApp"
+                                      >
+                                        <MessageSquare className="h-3 w-3" />
+                                      </a>
+                                    )}
+                                  </>
                                 ) : (
-                                  <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-muted/60 text-muted-foreground/30 group-hover:scale-110 transition-transform">
-                                    <span className="block w-1.5 h-1.5 rounded-full bg-current" />
-                                  </span>
+                                  <span className="text-[10px] text-muted-foreground/50">—</span>
                                 )}
-                              </td>
-                            );
-                          })}
+                              </div>
+                            </td>
+
+                            {/* Fecha Ingreso */}
+                            <td className="px-2 py-2.5 text-muted-foreground whitespace-nowrap text-[10px]">
+                              {p.fechaIngreso ? format(parseISO(p.fechaIngreso), "dd/MM/yyyy") : "—"}
+                            </td>
+
+                            {/* Días */}
+                            <td className="px-2 py-2.5 text-center font-semibold text-primary whitespace-nowrap tabular-nums">
+                              {p.diasDesdeIngreso}
+                            </td>
+
+                            {/* Consolidador */}
+                            <td className="px-2 py-2.5 text-muted-foreground whitespace-nowrap truncate max-w-[110px] text-[10px]">
+                              {p.consolidadorNombre}
+                            </td>
+
+                            {/* Red */}
+                            <td className="px-2 py-2.5 text-muted-foreground whitespace-nowrap truncate max-w-[80px] text-[10px]">
+                              {p.redNombre}
+                            </td>
+
+                            {/* 16 Hitos cells with Rich Tooltips */}
+                            {p.hitos.map((h, hi) => {
+                              const done = h.estado === "Finalizado";
+                              const inProgress = h.estado === "En curso";
+                              const overdue = h.atrasado;
+
+                              return (
+                                <td key={hi} className="px-1 py-2 text-center align-middle">
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <button
+                                        type="button"
+                                        onClick={() =>
+                                          setEditingCell({
+                                            personaId: p.id,
+                                            personaNombre: p.nombreCompleto,
+                                            hito: h,
+                                          })
+                                        }
+                                        className="p-1 rounded-full hover:scale-110 transition-transform focus:outline-none"
+                                      >
+                                        {done ? (
+                                          <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-emerald-500 text-white shadow-md ring-2 ring-emerald-400/40 font-bold">
+                                            <CheckCircle2 className="h-3.5 w-3.5 stroke-[2.5]" />
+                                          </span>
+                                        ) : inProgress ? (
+                                          <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-sky-500 text-white shadow-md ring-2 ring-sky-400/40">
+                                            <span className="block w-2 h-2 rounded-full bg-white animate-pulse" />
+                                          </span>
+                                        ) : overdue ? (
+                                          <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-rose-500 text-white shadow-md ring-2 ring-rose-400/40">
+                                            <AlertTriangle className="h-3.5 w-3.5" />
+                                          </span>
+                                        ) : (
+                                          <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-muted/60 text-muted-foreground/30 hover:bg-muted">
+                                            <span className="block w-1.5 h-1.5 rounded-full bg-current" />
+                                          </span>
+                                        )}
+                                      </button>
+                                    </TooltipTrigger>
+                                    <TooltipContent side="top" className="bg-slate-950 text-white p-3 rounded-xl max-w-xs shadow-2xl border border-slate-800 space-y-1.5">
+                                      <div className="flex items-center justify-between gap-2 border-b border-slate-800 pb-1">
+                                        <span className="font-bold text-xs text-emerald-400">
+                                          #{h.hitoDef.index} {h.hitoDef.nombre}
+                                        </span>
+                                        <Badge
+                                          className={`text-[9px] font-bold px-1.5 py-0.2 ${
+                                            done
+                                              ? "bg-emerald-500 text-white"
+                                              : inProgress
+                                              ? "bg-sky-500 text-white"
+                                              : overdue
+                                              ? "bg-rose-500 text-white"
+                                              : "bg-slate-800 text-slate-300"
+                                          }`}
+                                        >
+                                          {done ? "✅ REALIZADO" : inProgress ? "🔵 EN CURSO" : overdue ? "🔴 ATRASADO" : "⚪ PENDIENTE"}
+                                        </Badge>
+                                      </div>
+                                      <p className="text-[11px] text-slate-200 font-semibold">{p.nombreCompleto}</p>
+                                      <div className="text-[10px] space-y-0.5 text-slate-300">
+                                        <p>📅 Programado: {h.fechaProgramada ? format(parseISO(h.fechaProgramada), "dd/MM/yyyy") : "—"}</p>
+                                        {h.fechaRealizada && (
+                                          <p className="text-emerald-400 font-semibold">🗓️ Realizado el: {format(parseISO(h.fechaRealizada), "dd/MM/yyyy")}</p>
+                                        )}
+                                        {h.responsableNombre && <p>👨‍💼 Consolidador: {h.responsableNombre}</p>}
+                                        {h.resultadoLlamada && <p className="text-sky-300">📞 Llamada: {h.resultadoLlamada}</p>}
+                                        {h.observacion && (
+                                          <p className="italic text-slate-200 bg-slate-900 p-1.5 rounded border border-slate-800 mt-1">
+                                            "{h.observacion}"
+                                          </p>
+                                        )}
+                                      </div>
+                                      <p className="text-[9px] text-slate-400 pt-1 border-t border-slate-900 italic">
+                                        Haz clic en la celda para editar o cambiar estado
+                                      </p>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </td>
+                              );
+                            })}
 
                           {/* Avance % */}
                           <td className="px-2 py-2.5 text-center whitespace-nowrap">
@@ -594,7 +638,8 @@ export default function AfirmacionPage() {
                   </tbody>
                 </table>
               </div>
-              {/* Footer count */}
+            </TooltipProvider>
+            {/* Footer count */}
               <div className="px-4 py-2.5 bg-muted/40 border-t border-border/50 text-[11px] text-muted-foreground font-medium flex items-center justify-between">
                 <span>Mostrando {filteredPersonas.length} de {personasRuta.length} personas</span>
                 <span className="text-primary font-bold">{stats.hitosCompletadosTotales} hitos completados en total</span>
