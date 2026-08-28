@@ -7,27 +7,48 @@ export function usePersonas() {
   return useQuery({
     queryKey: ["personas"],
     queryFn: async () => {
-      try {
-        const { data, error } = await supabase
-          .from("personas")
-          .select("*, grupos(id, nombre), persona_procesos(proceso_id, estado, fecha_completado, observacion)")
-          .order("created_at", { ascending: false });
+      let all: any[] = [];
+      let pageFrom = 0;
+      const CHUNK_SIZE = 1000;
+      let hasMorePages = true;
 
-        if (error) {
-          console.warn("Retrying fallback query for personas:", error);
-          const { data: simpleData, error: simpleErr } = await supabase
+      while (hasMorePages) {
+        try {
+          const { data, error } = await supabase
             .from("personas")
-            .select("*")
-            .order("created_at", { ascending: false });
-          if (simpleErr) throw simpleErr;
-          return simpleData || [];
+            .select("*, grupos(id, nombre), persona_procesos(proceso_id, estado, fecha_completado, observacion)")
+            .order("created_at", { ascending: false })
+            .range(pageFrom, pageFrom + CHUNK_SIZE - 1);
+
+          if (error) {
+            console.warn("Retrying fallback range query for personas:", error.message);
+            const { data: simpleData } = await supabase
+              .from("personas")
+              .select("*")
+              .order("created_at", { ascending: false })
+              .range(pageFrom, pageFrom + CHUNK_SIZE - 1);
+
+            if (simpleData && simpleData.length > 0) {
+              all = all.concat(simpleData);
+            }
+            if (!simpleData || simpleData.length < CHUNK_SIZE) {
+              hasMorePages = false;
+            }
+          } else {
+            if (data && data.length > 0) {
+              all = all.concat(data);
+            }
+            if (!data || data.length < CHUNK_SIZE) {
+              hasMorePages = false;
+            }
+          }
+        } catch (err) {
+          console.error("usePersonas query exception:", err);
+          hasMorePages = false;
         }
-        return data || [];
-      } catch (err) {
-        console.error("usePersonas query exception:", err);
-        const { data: fallbackData } = await supabase.from("personas").select("*");
-        return fallbackData || [];
+        pageFrom += CHUNK_SIZE;
       }
+      return all;
     },
     staleTime: 1000 * 60 * 5,
     retry: 2,

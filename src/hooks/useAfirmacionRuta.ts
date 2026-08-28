@@ -214,28 +214,47 @@ export function useAfirmacionRuta() {
   const { data: personasRuta = [], isLoading, refetch } = useQuery({
     queryKey: ["afirmacion_personas_ruta", procesosDB.length, llamadasAudit.length],
     queryFn: async () => {
-      // Use EXACTLY the same query as usePersonas() — proven to work
+      // Fetch ALL rows from Supabase using chunked range pagination (overcoming default 1000 row PostgREST limit)
       let personasData: any[] = [];
-      try {
-        const { data, error } = await supabase
-          .from("personas")
-          .select("*, grupos(id, nombre), persona_procesos(proceso_id, estado, fecha_completado, observacion)")
-          .order("created_at", { ascending: false });
+      let pageFrom = 0;
+      const CHUNK_SIZE = 1000;
+      let hasMorePages = true;
 
-        if (error) {
-          console.warn("[Afirmacion] primary query failed, fallback:", error.message);
-          const { data: simple } = await supabase
+      while (hasMorePages) {
+        try {
+          const { data, error } = await supabase
             .from("personas")
-            .select("*")
-            .order("created_at", { ascending: false });
-          personasData = simple || [];
-        } else {
-          personasData = data || [];
+            .select("*, grupos(id, nombre), persona_procesos(proceso_id, estado, fecha_completado, observacion)")
+            .order("created_at", { ascending: false })
+            .range(pageFrom, pageFrom + CHUNK_SIZE - 1);
+
+          if (error) {
+            console.warn("[Afirmacion] primary query page error, fallback simple range:", error.message);
+            const { data: simple } = await supabase
+              .from("personas")
+              .select("*")
+              .order("created_at", { ascending: false })
+              .range(pageFrom, pageFrom + CHUNK_SIZE - 1);
+
+            if (simple && simple.length > 0) {
+              personasData = personasData.concat(simple);
+            }
+            if (!simple || simple.length < CHUNK_SIZE) {
+              hasMorePages = false;
+            }
+          } else {
+            if (data && data.length > 0) {
+              personasData = personasData.concat(data);
+            }
+            if (!data || data.length < CHUNK_SIZE) {
+              hasMorePages = false;
+            }
+          }
+        } catch (e) {
+          console.error("[Afirmacion] chunk exception:", e);
+          hasMorePages = false;
         }
-      } catch (e) {
-        console.error("[Afirmacion] exception:", e);
-        const { data: fallback } = await supabase.from("personas").select("*");
-        personasData = fallback || [];
+        pageFrom += CHUNK_SIZE;
       }
 
       // 2. Filter ONLY personas that entered through Personas (module Personas / General church intake)
