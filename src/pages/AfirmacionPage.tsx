@@ -21,7 +21,9 @@ import {
   ChevronRight,
   Target,
   Home,
+  RotateCw,
 } from "lucide-react";
+import { toast } from "sonner";
 import { format, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
 import { ConsolidacionDashboardTab } from "@/components/persona/ConsolidacionDashboardTab";
@@ -99,7 +101,7 @@ export default function AfirmacionPage() {
           <div className="flex flex-wrap items-center gap-3">
             <Button
               onClick={() => setOpenRegistrarLlamadaDialog(true)}
-              className="bg-emerald-500 text-slate-950 hover:bg-emerald-400 font-bold shadow-lg rounded-xl px-4 gap-2"
+              className="bg-emerald-500 text-slate-950 hover:bg-emerald-400 font-bold shadow-lg rounded-xl px-4 gap-2 text-xs"
             >
               <PhoneCall className="h-4 w-4" /> Registrar Llamada
             </Button>
@@ -107,12 +109,27 @@ export default function AfirmacionPage() {
               trigger={
                 <Button
                   variant="outline"
-                  className="bg-white/10 text-white border-white/20 hover:bg-white/20 backdrop-blur rounded-xl px-4 gap-2 font-semibold"
+                  className="bg-white/10 text-white border-white/20 hover:bg-white/20 backdrop-blur rounded-xl px-4 gap-2 font-semibold text-xs"
                 >
                   <Download className="h-4 w-4" /> Informe de Afirmación
                 </Button>
               }
             />
+            <Button
+              variant="outline"
+              onClick={async () => {
+                toast.info("Limpiando caché y actualizando datos...");
+                if (typeof window !== "undefined" && (window as any).__clearDoxaCaches) {
+                  await (window as any).__clearDoxaCaches();
+                }
+                await refetch();
+                window.location.reload();
+              }}
+              className="bg-white/10 text-white border-white/20 hover:bg-white/20 backdrop-blur rounded-xl px-3 gap-2 font-semibold text-xs"
+              title="Limpiar caché y recargar versión más reciente"
+            >
+              <RotateCw className="h-3.5 w-3.5" /> Recargar
+            </Button>
           </div>
         </div>
       </div>
