@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { INITIAL_DISCIPULOS } from "@/data/discipulandoInitialData";
 
 export interface HitoAfirmacionDef {
   index: number; // 1 to 16
@@ -89,6 +90,36 @@ const norm = (s: any) =>
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "");
 
+function matchHitoWithProceso(hitoDef: HitoAfirmacionDef, procNombre: string): boolean {
+  const pNorm = norm(procNombre);
+  const hNorm = norm(hitoDef.nombre);
+
+  if (!pNorm) return false;
+  if (pNorm.includes(hNorm) || hNorm.includes(pNorm)) return true;
+
+  if (hitoDef.key === "llamada_1" && (pNorm.includes("llamada 1") || pNorm.includes("consolidacion 1"))) return true;
+  if (hitoDef.key === "llamada_2" && (pNorm.includes("llamada 2") || pNorm.includes("consolidacion 2"))) return true;
+  if (hitoDef.key === "llamada_3" && (pNorm.includes("llamada 3") || pNorm.includes("consolidacion 3"))) return true;
+
+  if (hitoDef.key === "mensaje_1" && pNorm.includes("mensaje 1")) return true;
+  if (hitoDef.key === "mensaje_2" && pNorm.includes("mensaje 2")) return true;
+  if (hitoDef.key === "mensaje_3" && pNorm.includes("mensaje 3")) return true;
+  if (hitoDef.key === "mensaje_4" && pNorm.includes("mensaje 4")) return true;
+  if (hitoDef.key === "mensaje_5" && pNorm.includes("mensaje 5")) return true;
+  if (hitoDef.key === "mensaje_6" && pNorm.includes("mensaje 6")) return true;
+
+  if (hitoDef.key === "visita" && pNorm.includes("visita")) return true;
+  if (hitoDef.key === "consejeria" && (pNorm.includes("consejeria") || pNorm.includes("consejería"))) return true;
+  if (hitoDef.key === "fiesta_bienvenida" && (pNorm.includes("bienvenida") || pNorm.includes("fiesta"))) return true;
+  if (hitoDef.key === "naci_triunfar_1" && (pNorm.includes("triunfar") || pNorm.includes("npt"))) return true;
+
+  if (hitoDef.key === "semana_poder_1" && (pNorm.includes("semana de poder 1") || pNorm.includes("semana poder 1") || pNorm.includes("tsdp"))) return true;
+  if (hitoDef.key === "semana_poder_2" && (pNorm.includes("semana de poder 2") || pNorm.includes("semana poder 2"))) return true;
+  if (hitoDef.key === "semana_poder_3" && (pNorm.includes("semana de poder 3") || pNorm.includes("semana poder 3"))) return true;
+
+  return false;
+}
+
 export function useAfirmacionRuta() {
   const queryClient = useQueryClient();
 
@@ -132,32 +163,84 @@ export function useAfirmacionRuta() {
   });
 
   const { data: personasRuta = [], isLoading, refetch } = useQuery({
-    queryKey: ["afirmacion_personas_ruta", procesosDB, llamadasAudit],
+    queryKey: ["afirmacion_personas_ruta", procesosDB.length, llamadasAudit.length],
     queryFn: async () => {
-      let personasData: any[] = [];
-      try {
-        const { data, error } = await supabase
-          .from("personas")
-          .select(
-            "*, grupos(id, nombre, red), persona_procesos(id, proceso_id, estado, fecha_completado, observacion, responsable_id, created_at)"
-          )
-          .order("created_at", { ascending: false });
+      // 1. Fetch real personas from Supabase personas table
+      const { data: dbPersonas } = await supabase
+        .from("personas")
+        .select("*, grupos(id, nombre, red)")
+        .order("created_at", { ascending: false });
 
-        if (error) {
-          console.warn("Retrying simple query in useAfirmacionRuta:", error);
-          const { data: simpleData } = await supabase
-            .from("personas")
-            .select("*, persona_procesos(id, proceso_id, estado, fecha_completado, observacion, responsable_id, created_at)")
-            .order("created_at", { ascending: false });
-          personasData = simpleData || [];
-        } else {
-          personasData = data || [];
+      // 2. Fetch discipulos table if exists
+      const { data: dbDiscipulos } = await supabase
+        .from("discipulos" as any)
+        .select("*");
+
+      // 3. Fetch ALL persona_procesos with joined procesos_crecimiento
+      const { data: dbPersonaProcesos } = await supabase
+        .from("persona_procesos")
+        .select("*, procesos_crecimiento(id, nombre, orden)");
+
+      // Map persona_procesos by persona_id
+      const ppByPersonaMap = new Map<string, any[]>();
+      (dbPersonaProcesos || []).forEach((pp: any) => {
+        if (pp.persona_id) {
+          const arr = ppByPersonaMap.get(pp.persona_id) || [];
+          arr.push(pp);
+          ppByPersonaMap.set(pp.persona_id, arr);
         }
-      } catch (e) {
-        console.error("useAfirmacionRuta exception:", e);
-        const { data: fallbackData } = await supabase.from("personas").select("*");
-        personasData = fallbackData || [];
-      }
+      });
+
+      // 4. Combine all unique people
+      const combinedPeopleMap = new Map<string, any>();
+
+      // INITIAL_DISCIPULOS
+      INITIAL_DISCIPULOS.forEach((d) => {
+        if (d.full_name) {
+          combinedPeopleMap.set(norm(d.full_name), {
+            id: d.id || `init_${norm(d.full_name)}`,
+            nombres: d.full_name,
+            apellidos: "",
+            fecha_ingreso: d.created_at || d.ingreso_proceso,
+            created_at: d.created_at,
+            telefono: d.phone || d.whatsapp,
+            seguimiento_por: d.lider_responsable,
+            red: d.red_nombre,
+          });
+        }
+      });
+
+      // DB Discipulos
+      (dbDiscipulos || []).forEach((d: any) => {
+        const name = d.full_name || `${d.nombres || ""} ${d.apellidos || ""}`.trim();
+        if (name) {
+          combinedPeopleMap.set(norm(name), {
+            id: d.id,
+            nombres: name,
+            apellidos: "",
+            fecha_ingreso: d.fecha_ingreso || d.created_at,
+            created_at: d.created_at,
+            telefono: d.telefono || d.whatsapp,
+            seguimiento_por: d.lider_responsable,
+          });
+        }
+      });
+
+      // DB Personas
+      (dbPersonas || []).forEach((p: any) => {
+        const name = `${p.nombres || ""} ${p.apellidos || ""}`.trim();
+        if (name) {
+          combinedPeopleMap.set(norm(name), {
+            ...p,
+            id: p.id,
+            nombres: p.nombres,
+            apellidos: p.apellidos,
+            fecha_ingreso: p.fecha_ingreso || p.ingreso_proceso || p.created_at,
+          });
+        }
+      });
+
+      const personasData = Array.from(combinedPeopleMap.values());
 
       // Build map of procesosDB for easy lookup
       const procMapByNormName = new Map<string, any>();
@@ -182,13 +265,10 @@ export function useAfirmacionRuta() {
 
         const consolidadorNombre =
           p.seguimiento_por || p.lider_responsable || "Sin asignación";
-        const redNombre = p.grupos?.red || p.grupos?.nombre || "Red General";
+        const redNombre = p.grupos?.red || p.grupos?.nombre || p.red || "Red General";
 
-        // Map persona_procesos
-        const ppMap = new Map<string, any>();
-        (p.persona_procesos || []).forEach((pp: any) => {
-          if (pp.proceso_id) ppMap.set(pp.proceso_id, pp);
-        });
+        // Processes registered for this persona
+        const pPpList = ppByPersonaMap.get(p.id) || [];
 
         // Calls logged for this persona
         const pLlamadas = llamadasAudit.filter((l: any) => l.persona_id === p.id);
@@ -198,9 +278,14 @@ export function useAfirmacionRuta() {
         let tieneAtrasos = false;
 
         const hitosEstados: PersonaHitoEstado[] = HITOS_AFIRMACION_16.map((hitoDef) => {
+          // Find matching process in dbPersonaProcesos for this persona
+          const userPP = pPpList.find((pp: any) => {
+            const procName = pp.procesos_crecimiento?.nombre || pp.proceso_nombre || pp.nombre || "";
+            return matchHitoWithProceso(hitoDef, procName);
+          });
+
           const procMatch = procMapByNormName.get(norm(hitoDef.nombre));
-          const procId = procMatch?.id;
-          const pp = procId ? ppMap.get(procId) : null;
+          const procId = userPP?.proceso_id || procMatch?.id;
 
           // Scheduled Date = Fecha Ingreso + offsetDias
           const progDate = new Date(entryTime + hitoDef.offsetDias * 86400000);
@@ -213,16 +298,16 @@ export function useAfirmacionRuta() {
           let resultadoLlamada: string | null = null;
           let realizada = false;
 
-          if (pp) {
-            const rawEst = String(pp.estado || "").toLowerCase().trim();
+          if (userPP) {
+            const rawEst = String(userPP.estado || "").toLowerCase().trim();
             if (rawEst === "completado" || rawEst === "realizado" || rawEst === "finalizado") {
               estado = "Finalizado";
               realizada = true;
             } else if (rawEst === "en curso" || rawEst === "en proceso") {
               estado = "En curso";
             }
-            fechaRealizada = pp.fecha_completado || null;
-            observacion = pp.observacion || null;
+            fechaRealizada = userPP.fecha_completado || null;
+            observacion = userPP.observacion || null;
           }
 
           // If it's a call milestone, check logged calls history
