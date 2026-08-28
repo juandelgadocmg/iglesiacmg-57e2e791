@@ -189,6 +189,8 @@ export function useAfirmacionRuta() {
       }
 
       console.log(`[Afirmacion] Personas cargadas: ${personasData.length}`);
+      console.log(`[Afirmacion] Procesos en BD:`, procesosDB.map(p => `"${p.nombre}" (orden:${p.orden})`));
+      console.log(`[Afirmacion] Total procesos_crecimiento: ${procesosDB.length}`);
 
       // 2. Fetch persona_procesos (simple query, no join to avoid timeout)
       let ppList: any[] = [];
@@ -214,6 +216,8 @@ export function useAfirmacionRuta() {
           ppByPersonaMap.set(pp.persona_id, arr);
         }
       });
+
+      console.log(`[Afirmacion] persona_procesos total: ${ppList.length}, personas con procesos: ${ppByPersonaMap.size}`);
 
       // Build map of procesosDB for easy lookup (by name AND by id)
       const procMapByNormName = new Map<string, any>();
