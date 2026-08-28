@@ -164,53 +164,45 @@ export function useAfirmacionRuta() {
   const { data: personasRuta = [], isLoading, refetch } = useQuery({
     queryKey: ["afirmacion_personas_ruta", procesosDB.length, llamadasAudit.length],
     queryFn: async () => {
-      // 1. Fetch ONLY real personas from Supabase personas table (with robust fallback)
+      // 1. Fetch ONLY real personas from Supabase (with FK hint for grupos)
       let personasData: any[] = [];
       try {
         const { data, error } = await supabase
           .from("personas")
-          .select("*, grupos(id, nombre), persona_procesos(proceso_id, estado, fecha_completado, observacion)")
+          .select("*, grupos!fk_personas_grupo(id, nombre)")
           .order("created_at", { ascending: false });
 
         if (error) {
-          console.warn("Afirmacion: primary query failed, trying fallback:", error.message);
-          const { data: simple, error: simpleErr } = await supabase
+          console.warn("[Afirmacion] primary query failed, fallback:", error.message);
+          const { data: simple } = await supabase
             .from("personas")
             .select("*")
             .order("created_at", { ascending: false });
-          if (simpleErr) {
-            console.error("Afirmacion: fallback query also failed:", simpleErr.message);
-          }
           personasData = simple || [];
         } else {
           personasData = data || [];
         }
       } catch (e) {
-        console.error("Afirmacion: exception fetching personas:", e);
+        console.error("[Afirmacion] exception:", e);
         const { data: fallback } = await supabase.from("personas").select("*");
         personasData = fallback || [];
       }
 
       console.log(`[Afirmacion] Personas cargadas: ${personasData.length}`);
 
-      // 2. Fetch ALL persona_procesos with joined procesos_crecimiento
+      // 2. Fetch persona_procesos (simple query, no join to avoid timeout)
       let ppList: any[] = [];
       try {
-        const { data: dbPersonaProcesos, error: ppErr } = await supabase
+        const { data: ppData, error: ppErr } = await supabase
           .from("persona_procesos")
-          .select("*, procesos_crecimiento(id, nombre, orden)");
-        if (ppErr) {
-          console.warn("Afirmacion: persona_procesos query failed:", ppErr.message);
-          // Try without join
-          const { data: ppSimple } = await supabase
-            .from("persona_procesos")
-            .select("*");
-          ppList = ppSimple || [];
+          .select("persona_id, proceso_id, estado, fecha_completado, observacion");
+        if (!ppErr && ppData) {
+          ppList = ppData;
         } else {
-          ppList = dbPersonaProcesos || [];
+          console.warn("[Afirmacion] persona_procesos failed:", ppErr?.message);
         }
       } catch (e) {
-        console.warn("Afirmacion: persona_procesos exception:", e);
+        console.warn("[Afirmacion] persona_procesos exception:", e);
       }
 
       // Map persona_procesos by persona_id
@@ -223,10 +215,12 @@ export function useAfirmacionRuta() {
         }
       });
 
-      // Build map of procesosDB for easy lookup
+      // Build map of procesosDB for easy lookup (by name AND by id)
       const procMapByNormName = new Map<string, any>();
+      const procMapById = new Map<string, any>();
       procesosDB.forEach((p) => {
         procMapByNormName.set(norm(p.nombre), p);
+        procMapById.set(p.id, p);
       });
 
       const todayStr = new Date().toISOString().slice(0, 10);
@@ -248,11 +242,8 @@ export function useAfirmacionRuta() {
           p.seguimiento_por || p.lider_responsable || "Sin asignación";
         const redNombre = p.red || p.grupos?.nombre || "Red General";
 
-        // Processes registered for this persona (from separate query + embedded)
-        const embeddedPP = Array.isArray(p.persona_procesos) ? p.persona_procesos : [];
-        const separatePP = ppByPersonaMap.get(p.id) || [];
-        // Merge both sources, preferring separate (has procesos_crecimiento join)
-        const pPpList = separatePP.length > 0 ? separatePP : embeddedPP;
+        // Processes registered for this persona
+        const pPpList = ppByPersonaMap.get(p.id) || [];
 
         // Calls logged for this persona
         const pLlamadas = llamadasAudit.filter((l: any) => l.persona_id === p.id);
@@ -262,9 +253,10 @@ export function useAfirmacionRuta() {
         let tieneAtrasos = false;
 
         const hitosEstados: PersonaHitoEstado[] = HITOS_AFIRMACION_16.map((hitoDef) => {
-          // Find matching process in dbPersonaProcesos for this persona
+          // Find matching process: look up proceso name from procesosDB by proceso_id
           const userPP = pPpList.find((pp: any) => {
-            const procName = pp.procesos_crecimiento?.nombre || pp.proceso_nombre || pp.nombre || "";
+            const proc = procMapById.get(pp.proceso_id);
+            const procName = proc?.nombre || "";
             return matchHitoWithProceso(hitoDef, procName);
           });
 
