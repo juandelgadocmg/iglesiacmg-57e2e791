@@ -164,12 +164,12 @@ export function useAfirmacionRuta() {
   const { data: personasRuta = [], isLoading, refetch } = useQuery({
     queryKey: ["afirmacion_personas_ruta", procesosDB.length, llamadasAudit.length],
     queryFn: async () => {
-      // 1. Fetch ONLY real personas from Supabase (with FK hint for grupos)
+      // Use EXACTLY the same query as usePersonas() — proven to work
       let personasData: any[] = [];
       try {
         const { data, error } = await supabase
           .from("personas")
-          .select("*, grupos!fk_personas_grupo(id, nombre)")
+          .select("*, grupos(id, nombre), persona_procesos(proceso_id, estado, fecha_completado, observacion)")
           .order("created_at", { ascending: false });
 
         if (error) {
@@ -189,35 +189,7 @@ export function useAfirmacionRuta() {
       }
 
       console.log(`[Afirmacion] Personas cargadas: ${personasData.length}`);
-      console.log(`[Afirmacion] Procesos en BD:`, procesosDB.map(p => `"${p.nombre}" (orden:${p.orden})`));
-      console.log(`[Afirmacion] Total procesos_crecimiento: ${procesosDB.length}`);
-
-      // 2. Fetch persona_procesos (simple query, no join to avoid timeout)
-      let ppList: any[] = [];
-      try {
-        const { data: ppData, error: ppErr } = await supabase
-          .from("persona_procesos")
-          .select("persona_id, proceso_id, estado, fecha_completado, observacion");
-        if (!ppErr && ppData) {
-          ppList = ppData;
-        } else {
-          console.warn("[Afirmacion] persona_procesos failed:", ppErr?.message);
-        }
-      } catch (e) {
-        console.warn("[Afirmacion] persona_procesos exception:", e);
-      }
-
-      // Map persona_procesos by persona_id
-      const ppByPersonaMap = new Map<string, any[]>();
-      ppList.forEach((pp: any) => {
-        if (pp.persona_id) {
-          const arr = ppByPersonaMap.get(pp.persona_id) || [];
-          arr.push(pp);
-          ppByPersonaMap.set(pp.persona_id, arr);
-        }
-      });
-
-      console.log(`[Afirmacion] persona_procesos total: ${ppList.length}, personas con procesos: ${ppByPersonaMap.size}`);
+      console.log(`[Afirmacion] Procesos en BD:`, procesosDB.map(p => `"${p.nombre}"`));
 
       // Build map of procesosDB for easy lookup (by name AND by id)
       const procMapByNormName = new Map<string, any>();
@@ -246,8 +218,8 @@ export function useAfirmacionRuta() {
           p.seguimiento_por || p.lider_responsable || "Sin asignación";
         const redNombre = p.red || p.grupos?.nombre || "Red General";
 
-        // Processes registered for this persona
-        const pPpList = ppByPersonaMap.get(p.id) || [];
+        // Processes registered for this persona (from embedded join)
+        const pPpList = Array.isArray(p.persona_procesos) ? p.persona_procesos : [];
 
         // Calls logged for this persona
         const pLlamadas = llamadasAudit.filter((l: any) => l.persona_id === p.id);
