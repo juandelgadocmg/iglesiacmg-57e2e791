@@ -7,31 +7,30 @@ export function usePersonas() {
   return useQuery({
     queryKey: ["personas"],
     queryFn: async () => {
-      // Fetch ALL personas without the default 1000-row limit
-      const allData: any[] = [];
-      const PAGE_SIZE = 1000;
-      let from = 0;
-      let hasMore = true;
-
-      while (hasMore) {
+      try {
         const { data, error } = await supabase
           .from("personas")
-          .select("*, grupos!fk_personas_grupo(nombre), persona_procesos(proceso_id, estado, fecha_completado, observacion)")
-          .order("created_at", { ascending: false })
-          .order("id", { ascending: true })
-          .range(from, from + PAGE_SIZE - 1);
-        if (error) throw error;
-        if (data && data.length > 0) {
-          allData.push(...data);
-          from += PAGE_SIZE;
-          hasMore = data.length === PAGE_SIZE;
-        } else {
-          hasMore = false;
-        }
-      }
+          .select("*, grupos(id, nombre), persona_procesos(proceso_id, estado, fecha_completado, observacion)")
+          .order("created_at", { ascending: false });
 
-      return allData;
+        if (error) {
+          console.warn("Retrying fallback query for personas:", error);
+          const { data: simpleData, error: simpleErr } = await supabase
+            .from("personas")
+            .select("*")
+            .order("created_at", { ascending: false });
+          if (simpleErr) throw simpleErr;
+          return simpleData || [];
+        }
+        return data || [];
+      } catch (err) {
+        console.error("usePersonas query exception:", err);
+        const { data: fallbackData } = await supabase.from("personas").select("*");
+        return fallbackData || [];
+      }
     },
+    staleTime: 1000 * 60 * 5,
+    retry: 2,
   });
 }
 

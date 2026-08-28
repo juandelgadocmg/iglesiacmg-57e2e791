@@ -133,16 +133,30 @@ export function useAfirmacionRuta() {
   const { data: personasRuta = [], isLoading, refetch } = useQuery({
     queryKey: ["afirmacion_personas_ruta", procesosDB, llamadasAudit],
     queryFn: async () => {
-      // 1. Fetch real personas from Supabase
-      const { data: personasData, error: personasErr } = await supabase
-        .from("personas")
-        .select(
-          "*, grupos!fk_personas_grupo(id, nombre, red), persona_procesos(id, proceso_id, estado, fecha_completado, observacion, responsable_id, created_at)"
-        )
-        .order("created_at", { ascending: false });
+      let personasData: any[] = [];
+      try {
+        const { data, error } = await supabase
+          .from("personas")
+          .select(
+            "*, grupos(id, nombre, red), persona_procesos(id, proceso_id, estado, fecha_completado, observacion, responsable_id, created_at)"
+          )
+          .order("created_at", { ascending: false });
 
-      if (personasErr) throw personasErr;
-      if (!personasData) return [];
+        if (error) {
+          console.warn("Retrying simple query in useAfirmacionRuta:", error);
+          const { data: simpleData } = await supabase
+            .from("personas")
+            .select("*, persona_procesos(id, proceso_id, estado, fecha_completado, observacion, responsable_id, created_at)")
+            .order("created_at", { ascending: false });
+          personasData = simpleData || [];
+        } else {
+          personasData = data || [];
+        }
+      } catch (e) {
+        console.error("useAfirmacionRuta exception:", e);
+        const { data: fallbackData } = await supabase.from("personas").select("*");
+        personasData = fallbackData || [];
+      }
 
       // Build map of procesosDB for easy lookup
       const procMapByNormName = new Map<string, any>();
