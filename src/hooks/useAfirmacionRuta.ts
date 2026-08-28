@@ -164,29 +164,64 @@ export function useAfirmacionRuta() {
   const { data: personasRuta = [], isLoading, refetch } = useQuery({
     queryKey: ["afirmacion_personas_ruta", procesosDB.length, llamadasAudit.length],
     queryFn: async () => {
-      // 1. Fetch ONLY real personas from Supabase personas table
-      const { data: dbPersonas } = await supabase
-        .from("personas")
-        .select("*, grupos(id, nombre, red)")
-        .order("created_at", { ascending: false });
+      // 1. Fetch ONLY real personas from Supabase personas table (with robust fallback)
+      let personasData: any[] = [];
+      try {
+        const { data, error } = await supabase
+          .from("personas")
+          .select("*, grupos(id, nombre), persona_procesos(proceso_id, estado, fecha_completado, observacion)")
+          .order("created_at", { ascending: false });
+
+        if (error) {
+          console.warn("Afirmacion: primary query failed, trying fallback:", error.message);
+          const { data: simple, error: simpleErr } = await supabase
+            .from("personas")
+            .select("*")
+            .order("created_at", { ascending: false });
+          if (simpleErr) {
+            console.error("Afirmacion: fallback query also failed:", simpleErr.message);
+          }
+          personasData = simple || [];
+        } else {
+          personasData = data || [];
+        }
+      } catch (e) {
+        console.error("Afirmacion: exception fetching personas:", e);
+        const { data: fallback } = await supabase.from("personas").select("*");
+        personasData = fallback || [];
+      }
+
+      console.log(`[Afirmacion] Personas cargadas: ${personasData.length}`);
 
       // 2. Fetch ALL persona_procesos with joined procesos_crecimiento
-      const { data: dbPersonaProcesos } = await supabase
-        .from("persona_procesos")
-        .select("*, procesos_crecimiento(id, nombre, orden)");
+      let ppList: any[] = [];
+      try {
+        const { data: dbPersonaProcesos, error: ppErr } = await supabase
+          .from("persona_procesos")
+          .select("*, procesos_crecimiento(id, nombre, orden)");
+        if (ppErr) {
+          console.warn("Afirmacion: persona_procesos query failed:", ppErr.message);
+          // Try without join
+          const { data: ppSimple } = await supabase
+            .from("persona_procesos")
+            .select("*");
+          ppList = ppSimple || [];
+        } else {
+          ppList = dbPersonaProcesos || [];
+        }
+      } catch (e) {
+        console.warn("Afirmacion: persona_procesos exception:", e);
+      }
 
       // Map persona_procesos by persona_id
       const ppByPersonaMap = new Map<string, any[]>();
-      (dbPersonaProcesos || []).forEach((pp: any) => {
+      ppList.forEach((pp: any) => {
         if (pp.persona_id) {
           const arr = ppByPersonaMap.get(pp.persona_id) || [];
           arr.push(pp);
           ppByPersonaMap.set(pp.persona_id, arr);
         }
       });
-
-      // Use ONLY real DB personas
-      const personasData = dbPersonas || [];
 
       // Build map of procesosDB for easy lookup
       const procMapByNormName = new Map<string, any>();
@@ -211,10 +246,13 @@ export function useAfirmacionRuta() {
 
         const consolidadorNombre =
           p.seguimiento_por || p.lider_responsable || "Sin asignación";
-        const redNombre = p.grupos?.red || p.grupos?.nombre || p.red || "Red General";
+        const redNombre = p.red || p.grupos?.nombre || "Red General";
 
-        // Processes registered for this persona
-        const pPpList = ppByPersonaMap.get(p.id) || [];
+        // Processes registered for this persona (from separate query + embedded)
+        const embeddedPP = Array.isArray(p.persona_procesos) ? p.persona_procesos : [];
+        const separatePP = ppByPersonaMap.get(p.id) || [];
+        // Merge both sources, preferring separate (has procesos_crecimiento join)
+        const pPpList = separatePP.length > 0 ? separatePP : embeddedPP;
 
         // Calls logged for this persona
         const pLlamadas = llamadasAudit.filter((l: any) => l.persona_id === p.id);
