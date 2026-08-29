@@ -38,60 +38,47 @@ if (typeof window !== "undefined") {
   (window as any).__clearDoxaCaches = unregisterAppSW;
 }
 
-export async function registerPWA() {
+export function registerPWA() {
   if (typeof window === "undefined" || !("serviceWorker" in navigator)) return;
 
-  const inIframe = window.self !== window.top;
-  const params = new URLSearchParams(window.location.search);
-  const killSwitch = params.get("sw") === "off";
-  const host = window.location.hostname;
+  const run = async () => {
+    const inIframe = window.self !== window.top;
+    const params = new URLSearchParams(window.location.search);
+    const killSwitch = params.get("sw") === "off";
+    const host = window.location.hostname;
 
-  if (!import.meta.env.PROD || inIframe || killSwitch || isPreviewHost(host)) {
-    await unregisterAppSW();
-    return;
-  }
+    if (!import.meta.env.PROD || inIframe || killSwitch || isPreviewHost(host)) {
+      await unregisterAppSW();
+      return;
+    }
 
-  try {
-    const { Workbox } = await import("workbox-window");
-    const wb = new Workbox("/sw.js");
+    try {
+      const { Workbox } = await import("workbox-window");
+      const wb = new Workbox("/sw.js");
 
-    const notifyUpdate = () => {
-      window.dispatchEvent(
-        new CustomEvent("doxa:pwa-update", {
-          detail: {
-            reload: () => {
-              wb.addEventListener("controlling", () => window.location.reload());
-              wb.messageSkipWaiting();
+      wb.addEventListener("waiting", () => {
+        window.dispatchEvent(
+          new CustomEvent("doxa:pwa-update", {
+            detail: {
+              reload: () => {
+                wb.messageSkipWaiting();
+                window.location.reload();
+              },
             },
-          },
-        })
-      );
-    };
+          })
+        );
+      });
 
-    wb.addEventListener("waiting", () => {
-      wb.messageSkipWaiting();
-      notifyUpdate();
-    });
+      await wb.register();
+    } catch {
+      /* ignore */
+    }
+  };
 
-    wb.addEventListener("externalwaiting" as any, () => {
-      wb.messageSkipWaiting();
-      notifyUpdate();
-    });
-
-    wb.addEventListener("controlling", () => {
-      window.location.reload();
-    });
-
-    await wb.register();
-
-    // Comprobar actualizaciones automáticamente al enfocar la pestaña o cada 60s
-    window.addEventListener("focus", () => {
-      wb.update().catch(() => {});
-    });
-    setInterval(() => {
-      wb.update().catch(() => {});
-    }, 60 * 1000);
-  } catch {
-    /* ignore */
+  // Run deferred so initial script loading and React mount are never interrupted
+  if (document.readyState === "complete") {
+    setTimeout(run, 2000);
+  } else {
+    window.addEventListener("load", () => setTimeout(run, 2000));
   }
 }
