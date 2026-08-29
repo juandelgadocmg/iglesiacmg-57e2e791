@@ -10,6 +10,7 @@ const PREVIEW_HOSTS = [
   "lovableproject.com",
   "lovableproject-dev.com",
   "beta.lovable.dev",
+  "lovable.app",
 ];
 
 function isPreviewHost(hostname: string): boolean {

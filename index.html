@@ -31,6 +31,19 @@
   <meta name="twitter:title" content="DOXA Admin - Centro Mundial de Gloria">
   <meta property="og:description" content="Sistema de administración integral del Centro Mundial de Gloria">
   <meta name="twitter:description" content="Sistema de administración integral del Centro Mundial de Gloria">
+  <script>
+    window.addEventListener('error', function (e) {
+      if (e && (e.target && e.target.tagName === 'SCRIPT' || (e.message && e.message.includes('Loading chunk')))) {
+        console.warn('[DOXA] Stale asset or script load error. Clearing caches...');
+        if ('caches' in window) {
+          caches.keys().then(function(names) { names.forEach(function(n) { caches.delete(n); }); });
+        }
+        if ('serviceWorker' in navigator) {
+          navigator.serviceWorker.getRegistrations().then(function(regs) { regs.forEach(function(r) { r.unregister(); }); });
+        }
+      }
+    }, true);
+  </script>
 </head>
 
   <body>
