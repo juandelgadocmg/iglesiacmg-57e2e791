@@ -53,6 +53,7 @@ import { useUrlParam } from "@/hooks/useUrlParam";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { QRCodeSVG } from "qrcode.react";
 import { TallerNeumatologiaAulaTab } from "@/components/seminario/TallerNeumatologiaAulaTab";
+import { useMisOfertas } from "@/hooks/useSeminarioStudent";
 
 const tipoColor: Record<string, string> = {
   Miembro: "bg-primary/15 text-primary border-primary/30",
@@ -75,6 +76,34 @@ export default function PersonaPerfilPage() {
   const { data: peticionesP } = usePersonaPeticiones(id);
   const { data: consejeriasP } = usePersonaConsejerias(id);
   const { data: todasPersonas } = usePersonas();
+  const { data: misOfertas = [] } = useMisOfertas(id);
+
+  // Check if this persona is enrolled in Seminario and taking Neumatología (NEU-101)
+  const estaViendoNeumatologia = useMemo(() => {
+    if (!persona) return false;
+
+    // 1. Check if persona has an active enrollment in Neumatología in sem_inscripcion_materias
+    const tieneMateriaNeumatologia = misOfertas.some((o: any) => {
+      const matNombre = String(o.sem_materias?.nombre || "").toLowerCase();
+      const matCodigo = String(o.sem_materias?.codigo || "").toLowerCase();
+      return matNombre.includes("neumatolog") || matCodigo.includes("neu-101") || matCodigo.includes("neu");
+    });
+
+    if (tieneMateriaNeumatologia) return true;
+
+    // 2. Check if persona processes or roles explicitly mention Neumatología
+    const tipos = [persona.tipo_persona, ...(Array.isArray(persona.tipos_persona) ? persona.tipos_persona : [])].filter(Boolean);
+    const esEstudianteSeminario = tipos.some(t => String(t).toLowerCase().includes("estudiante seminario") || String(t).toLowerCase().includes("seminario"));
+
+    const tieneProcesoNeumatologia = Array.isArray(personaProcesos) && personaProcesos.some((pp: any) => {
+      const procName = String(pp.procesos_crecimiento?.nombre || pp.proceso_nombre || (pp as any).nombre || "").toLowerCase();
+      return procName.includes("neumatolog");
+    });
+
+    if (esEstudianteSeminario && tieneProcesoNeumatologia) return true;
+
+    return false;
+  }, [persona, misOfertas, personaProcesos]);
   const createRelacion = useCreateRelacion();
   const deleteRelacion = useDeleteRelacion();
   const updateProceso = useUpdateProceso();
@@ -527,7 +556,7 @@ export default function PersonaPerfilPage() {
           <TabsList className="h-auto p-0 bg-transparent gap-1 overflow-x-auto flex-nowrap w-full justify-start rounded-none">
             {[
               { v: "resumen", label: "Indicadores", icon: User },
-              { v: "seminario", label: "Seminario & Talleres", icon: GraduationCap },
+              ...(estaViendoNeumatologia ? [{ v: "seminario", label: "Seminario & Talleres", icon: GraduationCap }] : []),
               { v: "actividad", label: "Timeline", icon: Activity },
               { v: "seguimiento", label: "Seguimiento", icon: Target },
               { v: "discipulado", label: "Discipulado", icon: Route },
@@ -553,10 +582,12 @@ export default function PersonaPerfilPage() {
           </TabsList>
         </div>
 
-        {/* TAB · SEMINARIO Y TALLERES */}
-        <TabsContent value="seminario" className="mt-0 space-y-4">
-          <TallerNeumatologiaAulaTab materiaNombre="Neumatología" materiaCodigo="NEU-101" embeddedInCourse={false} />
-        </TabsContent>
+        {/* TAB · SEMINARIO Y TALLERES (Solo visible para estudiantes de Neumatología) */}
+        {estaViendoNeumatologia && (
+          <TabsContent value="seminario" className="mt-0 space-y-4">
+            <TallerNeumatologiaAulaTab materiaNombre="Neumatología" materiaCodigo="NEU-101" embeddedInCourse={false} />
+          </TabsContent>
+        )}
 
         {/* ======================================================
              TAB · RESUMEN — Dashboard ejecutivo (bento + sidebar)
