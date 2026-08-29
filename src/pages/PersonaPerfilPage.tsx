@@ -1015,10 +1015,10 @@ export default function PersonaPerfilPage() {
             </div>
 
             {/* Observaciones / Información */}
-            <div className="space-y-1.5">
-              <div className="flex items-center justify-between">
-                <label className="text-xs font-semibold text-foreground flex items-center gap-1">
-                  <MessageSquare className="h-3.5 w-3.5 text-primary" /> Información y notas ingresadas
+            <div className="space-y-2">
+              <div className="flex items-center justify-between gap-2 flex-wrap">
+                <label className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                  <MessageSquare className="h-4 w-4 text-primary" /> Información y notas ingresadas
                 </label>
                 <VoiceDictationButton
                   onTranscript={(text) =>
@@ -1027,12 +1027,15 @@ export default function PersonaPerfilPage() {
                 />
               </div>
               <Textarea
-                placeholder="Escribe aquí la información o pulsa el botón de micrófono para dictar por voz..."
+                placeholder="Escribe aquí la información o pulsa 'Dictar por voz' para grabar con tu micrófono..."
                 value={procesoObservacion}
                 onChange={(e) => setProcesoObservacion(e.target.value)}
                 rows={5}
-                className="resize-none"
+                className="resize-none rounded-xl"
               />
+              <div className="p-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-[11px] text-emerald-800 dark:text-emerald-300 flex items-center justify-between">
+                <span>🎙️ <strong>Dictado por voz disponible:</strong> Haz clic en el botón superior para grabar tus notas.</span>
+              </div>
             </div>
           </div>
 
