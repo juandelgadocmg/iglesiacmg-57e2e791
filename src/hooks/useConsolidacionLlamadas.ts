@@ -171,6 +171,27 @@ export function useConsolidacionLlamadas(personaId?: string) {
         console.warn("Could not write security_audit_log for call:", err);
       }
 
+      // 1b. Sync call step to persona_procesos for cross-device realtime synchronization
+      try {
+        const { data: procs } = await supabase
+          .from("procesos_crecimiento")
+          .select("id, nombre")
+          .ilike("nombre", "%llamada%");
+
+        if (procs && procs.length > 0) {
+          const targetProc = procs[0];
+          await supabase.from("persona_procesos").upsert({
+            persona_id: input.persona_id,
+            proceso_id: targetProc.id,
+            estado: input.codificacion === "Contestó y atendió" ? "Realizado" : "En curso",
+            fecha_completado: fechaFinal.slice(0, 10),
+            observacion: `${input.codificacion}${input.observacion ? ` - ${input.observacion}` : ""}`,
+          } as any);
+        }
+      } catch (procErr) {
+        console.warn("Could not sync persona_procesos for call:", procErr);
+      }
+
       // 2. Save locally for guaranteed instant offline/online UI persistence
       const currentLocals = getLocalLlamadas();
       saveLocalLlamadas([newRecord, ...currentLocals]);

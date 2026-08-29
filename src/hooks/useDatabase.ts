@@ -59,10 +59,27 @@ export function useCreatePersona() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (persona: TablesInsert<"personas">) => {
+      // 1. Try direct Supabase table insert first
+      const { data: directData, error: directErr } = await supabase
+        .from("personas")
+        .insert(persona)
+        .select()
+        .single();
+
+      if (!directErr && directData) {
+        return directData;
+      }
+
+      console.warn("Direct insert into personas failed, attempting RPC fallback:", directErr?.message);
+
+      // 2. Try RPC fallback if direct insert fails
       const { data, error } = await (supabase.rpc as any)("create_persona_with_permission", {
         _payload: persona,
       });
-      if (error) throw error;
+
+      if (error) {
+        throw directErr || error;
+      }
       return Array.isArray(data) ? data[0] : data;
     },
     onSuccess: () => {
@@ -72,6 +89,7 @@ export function useCreatePersona() {
       qc.invalidateQueries({ queryKey: ["grupo_miembros_detail"] });
       qc.invalidateQueries({ queryKey: ["grupo_miembros_perfil"] });
       qc.invalidateQueries({ queryKey: ["grupos"] });
+      qc.invalidateQueries({ queryKey: ["afirmacion_personas_ruta"] });
     },
   });
 }

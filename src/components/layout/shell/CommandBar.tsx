@@ -23,6 +23,8 @@ type NavCmd = { label: string; to: string; icon: any; hint?: string };
 const NAV_COMMANDS: NavCmd[] = [
   { label: "Hoy", to: "/hoy", icon: Home, hint: "g h" },
   { label: "Personas", to: "/personas", icon: Users, hint: "g p" },
+  { label: "Afirmación", to: "/afirmacion", icon: CheckCircle2 },
+  { label: "Discipulado", icon: Route, to: "/discipulado" },
   { label: "Grupos", to: "/grupos", icon: UsersRound, hint: "g g" },
   { label: "Reuniones", to: "/servicios", icon: Church, hint: "g r" },
   { label: "Eventos", to: "/eventos", icon: CalendarDays },

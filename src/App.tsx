@@ -104,8 +104,8 @@ const App = () => (
               <Route path="/academia" element={<RoleGuard><AcademiaPage /></RoleGuard>} />
               <Route path="/afirmacion" element={<RoleGuard><AfirmacionPage /></RoleGuard>} />
               <Route path="/afirmacion/*" element={<RoleGuard><AfirmacionPage /></RoleGuard>} />
-              <Route path="/discipulado" element={<RoleGuard><AfirmacionPage /></RoleGuard>} />
-              <Route path="/discipulado/*" element={<RoleGuard><AfirmacionPage /></RoleGuard>} />
+              <Route path="/discipulado" element={<RoleGuard><DiscipuladoPage /></RoleGuard>} />
+              <Route path="/discipulado/*" element={<RoleGuard><DiscipuladoPage /></RoleGuard>} />
               <Route path="/consolidacion" element={<RoleGuard><AfirmacionPage /></RoleGuard>} />
               <Route path="/consolidacion/*" element={<RoleGuard><AfirmacionPage /></RoleGuard>} />
               <Route path="/seminario" element={<RoleGuard><SeminarioPage /></RoleGuard>} />

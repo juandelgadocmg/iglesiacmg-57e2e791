@@ -118,11 +118,8 @@ export default function LoginPage() {
           <h1 className="text-4xl font-bold text-sidebar-primary-foreground mb-3 tracking-tight">
             CMG Admin
           </h1>
-          <p className="text-sidebar-foreground/60 text-sm max-w-xs leading-relaxed">
-            '''Do not make any visual modifications. The phrases I write are commands to understand what I want, not to be written down. Understand their content well, then execute what is required.'''
-            
-            
-            I have approved the plan
+          <p className="text-sidebar-foreground/70 text-sm max-w-xs leading-relaxed">
+            Plataforma integral de gestión pastoral, afirmación y consolidación de la Iglesia Cristiana CMG.
           </p>
           <div className="mt-10 flex items-center gap-3 justify-center text-sidebar-foreground/40 text-xs">
             <span className="w-8 h-px bg-sidebar-foreground/20" />

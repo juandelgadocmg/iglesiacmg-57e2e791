@@ -16,9 +16,20 @@ export default function PersonaQuickView({ persona, onEdit }: { persona: any; on
   const nav = useNavigate();
   const { toggle, isPinned } = useUserPins();
   const dock = useContextDock();
+  if (!persona) return <div className="p-4 text-sm text-muted-foreground">Cargando datos...</div>;
+
   const p = persona;
   const tipos: string[] = [p.tipo_persona, ...(Array.isArray(p.tipos_persona) ? p.tipos_persona : [])].filter(Boolean);
   const pinned = isPinned(`persona:${p.id}`);
+
+  const formatDateSafe = (dStr: string) => {
+    if (!dStr) return "";
+    try {
+      return format(parseISO(dStr), "dd MMM yyyy", { locale: es });
+    } catch {
+      return dStr;
+    }
+  };
 
   return (
     <div className="space-y-5">
@@ -43,17 +54,17 @@ export default function PersonaQuickView({ persona, onEdit }: { persona: any; on
 
       <div className="grid grid-cols-2 gap-2">
         <Button size="sm" className="w-full" onClick={() => { dock.close(); nav(`/personas/${p.id}`); }}>
-          <Icon icon={ExternalLink} size="xs" className="mr-2" /> Perfil completo
+          <ExternalLink className="h-3.5 w-3.5 mr-2" /> Perfil completo
         </Button>
         <Button size="sm" variant="outline" onClick={() => onEdit?.(p)}>
-          <Icon icon={Pencil} size="xs" className="mr-2" /> Editar
+          <Pencil className="h-3.5 w-3.5 mr-2" /> Editar
         </Button>
         <Button
           size="sm"
           variant="outline"
           onClick={() => toggle({ id: `persona:${p.id}`, kind: "persona", label: `${p.nombres} ${p.apellidos}`, to: `/personas/${p.id}` })}
         >
-          <Icon icon={Star} size="xs" className={`mr-2 ${pinned ? "fill-amber-400 text-amber-500" : ""}`} />
+          <Star className={`h-3.5 w-3.5 mr-2 ${pinned ? "fill-amber-400 text-amber-500" : ""}`} />
           {pinned ? "Anclado" : "Anclar"}
         </Button>
         {p.telefono && (
@@ -62,7 +73,7 @@ export default function PersonaQuickView({ persona, onEdit }: { persona: any; on
               href={`https://web.whatsapp.com/send?phone=${(p.telefono || "").replace(/\D/g, "")}`}
               target="_blank" rel="noopener noreferrer"
             >
-              <Icon icon={MessageSquare} size="xs" className="mr-2 text-emerald-600" /> WhatsApp
+              <MessageSquare className="h-3.5 w-3.5 mr-2 text-emerald-600" /> WhatsApp
             </a>
           </Button>
         )}
@@ -76,7 +87,7 @@ export default function PersonaQuickView({ persona, onEdit }: { persona: any; on
         {p.direccion && <InfoRow icon={MapPin} label="Dirección" value={p.direccion} />}
         {(p as any).grupos?.nombre && <InfoRow icon={Users} label="Grupo" value={(p as any).grupos.nombre} />}
         {p.fecha_nacimiento && (
-          <InfoRow icon={Calendar} label="Nacimiento" value={format(parseISO(p.fecha_nacimiento), "dd MMM yyyy", { locale: es })} />
+          <InfoRow icon={Calendar} label="Nacimiento" value={formatDateSafe(p.fecha_nacimiento)} />
         )}
         {p.ministerio && <InfoRow icon={Users} label="Ministerio" value={p.ministerio} />}
         {p.ocupacion && <InfoRow icon={Users} label="Ocupación" value={p.ocupacion} />}

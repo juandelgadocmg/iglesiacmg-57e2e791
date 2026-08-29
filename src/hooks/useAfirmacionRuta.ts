@@ -393,21 +393,20 @@ export function useAfirmacionRuta() {
             if (primerHitoPendienteIndex === -1) {
               primerHitoPendienteIndex = hitoDef.index;
             }
-            // Active incomplete milestone in the pipeline -> "En curso"
             if (!primerIncompletoEncontrado) {
               primerIncompletoEncontrado = true;
               if (estado !== "Finalizado") {
                 estado = "En curso";
               }
-              if (isPastDueDate) {
-                atrasado = true;
-                tieneAtrasos = true;
-              }
             } else {
-              // Future incomplete milestones -> "Pendiente"
               if (estado !== "Finalizado") {
                 estado = "Pendiente";
               }
+            }
+            // Count any incomplete milestone past its scheduled date as overdue
+            if (isPastDueDate) {
+              atrasado = true;
+              tieneAtrasos = true;
             }
           }
 
