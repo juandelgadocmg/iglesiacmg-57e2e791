@@ -22,6 +22,7 @@ import {
   PersonaHitoEstado,
   RESULTADOS_LLAMADA_OPCIONES,
 } from "@/hooks/useAfirmacionRuta";
+import { VoiceDictationButton } from "@/components/shared/VoiceDictationButton";
 
 interface Props {
   open: boolean;
@@ -229,11 +230,18 @@ export function HitoEditDialog({
 
           {/* Observación / Notas */}
           <div className="space-y-1.5">
-            <Label className="text-xs font-bold text-foreground">Observaciones y Notas</Label>
+            <div className="flex items-center justify-between">
+              <Label className="text-xs font-bold text-foreground">Observaciones y Notas</Label>
+              <VoiceDictationButton
+                onTranscript={(text) =>
+                  setObservacion((prev) => (prev ? prev + " " + text : text))
+                }
+              />
+            </div>
             <Textarea
               value={observacion}
               onChange={(e) => setObservacion(e.target.value)}
-              placeholder="Notas sobre el resultado del hito, compromisos o detalles..."
+              placeholder="Notas sobre el resultado del hito, compromisos o pulsa en dictar por voz..."
               className="rounded-xl bg-background border-border text-xs min-h-[80px]"
             />
           </div>

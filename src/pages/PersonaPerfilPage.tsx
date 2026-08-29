@@ -54,6 +54,7 @@ import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { QRCodeSVG } from "qrcode.react";
 import { TallerNeumatologiaAulaTab } from "@/components/seminario/TallerNeumatologiaAulaTab";
 import { useMisOfertas } from "@/hooks/useSeminarioStudent";
+import { VoiceDictationButton } from "@/components/shared/VoiceDictationButton";
 
 const tipoColor: Record<string, string> = {
   Miembro: "bg-primary/15 text-primary border-primary/30",
@@ -1015,11 +1016,18 @@ export default function PersonaPerfilPage() {
 
             {/* Observaciones / Información */}
             <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-foreground flex items-center gap-1">
-                <MessageSquare className="h-3.5 w-3.5 text-primary" /> Información y notas ingresadas
-              </label>
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-semibold text-foreground flex items-center gap-1">
+                  <MessageSquare className="h-3.5 w-3.5 text-primary" /> Información y notas ingresadas
+                </label>
+                <VoiceDictationButton
+                  onTranscript={(text) =>
+                    setProcesoObservacion((prev) => (prev ? prev + " " + text : text))
+                  }
+                />
+              </div>
               <Textarea
-                placeholder="Escribe aquí la información, observaciones o datos correspondientes a este paso..."
+                placeholder="Escribe aquí la información o pulsa el botón de micrófono para dictar por voz..."
                 value={procesoObservacion}
                 onChange={(e) => setProcesoObservacion(e.target.value)}
                 rows={5}

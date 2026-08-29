@@ -22,6 +22,7 @@ import {
 } from "@/hooks/useConsolidacionLlamadas";
 import { supabase } from "@/integrations/supabase/client";
 import { INITIAL_DISCIPULOS } from "@/data/discipulandoInitialData";
+import { VoiceDictationButton } from "@/components/shared/VoiceDictationButton";
 
 interface Props {
   open: boolean;
@@ -244,12 +245,17 @@ export function RegistrarLlamadaConsolidacionDialog({
               <Label className="text-xs font-semibold">
                 Observación {codificacion === "Otro" && <span className="text-destructive">* (Obligatorio)</span>}
               </Label>
+              <VoiceDictationButton
+                onTranscript={(text) =>
+                  setObservacion((prev) => (prev ? prev + " " + text : text))
+                }
+              />
             </div>
             <Textarea
               placeholder={
                 codificacion === "Otro"
-                  ? "Describe los detalles obligatorios de la llamada..."
-                  : "Notas adicionales del seguimiento realizado..."
+                  ? "Describe los detalles obligatorios de la llamada o pulsa en dictar por voz..."
+                  : "Notas adicionales del seguimiento realizado o pulsa en dictar por voz..."
               }
               value={observacion}
               onChange={(e) => setObservacion(e.target.value)}
