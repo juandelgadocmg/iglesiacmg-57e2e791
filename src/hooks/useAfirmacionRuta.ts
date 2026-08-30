@@ -395,13 +395,14 @@ export function useAfirmacionRuta() {
             }
             if (!primerIncompletoEncontrado) {
               primerIncompletoEncontrado = true;
-              if (estado !== "Finalizado") {
+              if ((estado as string) !== "Finalizado") {
                 estado = "En curso";
               }
             } else {
-              if (estado !== "Finalizado") {
+              if ((estado as string) !== "Finalizado") {
                 estado = "Pendiente";
               }
+
             }
             // Count any incomplete milestone past its scheduled date as overdue
             if (isPastDueDate) {
