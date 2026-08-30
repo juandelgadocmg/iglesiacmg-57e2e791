@@ -659,7 +659,9 @@ export default function AfirmacionPage() {
         open={openTimelineModal}
         onOpenChange={setOpenTimelineModal}
         persona={selectedPersona}
-        onSaveHito={updateHito}
+        onSaveHito={async (payload) => {
+          await updateHito(payload);
+        }}
       />
 
       {/* Registrar Llamada Dialog */}
