@@ -7,7 +7,7 @@ import {
 import {
   Home, Users, UsersRound, Church, CalendarDays, GraduationCap, BookMarked,
   Award, DollarSign, BarChart3, HandHeart, LifeBuoy, Mail, Settings,
-  UserCog, ShieldCheck, Plus, QrCode, Search, ArrowRight, Clock, Star,
+  UserCog, ShieldCheck, Plus, QrCode, Search, ArrowRight, Clock, Star, CheckCircle2,
 } from "lucide-react";
 import { useUserRoles } from "@/hooks/useUserRoles";
 import { useActiveRole } from "@/hooks/useActiveRole";
