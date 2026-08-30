@@ -17,7 +17,7 @@ import {
   LayoutDashboard, Users, UsersRound, Church,
   DollarSign, CalendarDays, GraduationCap, BookMarked,
   Award, BarChart3, Settings, UserCog, ChevronLeft, ChevronRight,
-  LogOut, HandHeart, LifeBuoy, Mail, ShieldCheck, Cake, Bell, Activity, UserCheck
+  LogOut, HandHeart, LifeBuoy, Mail, ShieldCheck, Cake, Bell, Activity, UserCheck, CheckCircle2
 } from "lucide-react";
 
 type MenuItem = { label: string; icon: any; path: string; section: string };
