@@ -42,7 +42,7 @@ const HITO_SHORT_LABELS = [
 ];
 
 export default function AfirmacionPage() {
-  const { personasRuta, isLoading, stats, updateHito } = useAfirmacionRuta();
+  const { personasRuta, isLoading, stats, updateHito, refetch } = useAfirmacionRuta();
 
   // Filters
   const [search, setSearch] = useState("");
@@ -659,7 +659,9 @@ export default function AfirmacionPage() {
         open={openTimelineModal}
         onOpenChange={setOpenTimelineModal}
         persona={selectedPersona}
-        onSaveHito={updateHito}
+        onSaveHito={async (payload) => {
+          await updateHito(payload);
+        }}
       />
 
       {/* Registrar Llamada Dialog */}

@@ -76,6 +76,7 @@ export default function PersonasPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const { data: personas, isLoading } = usePersonas();
+  const dock = useContextDock();
   const deletePersona = useDeletePersona();
   const [editing, setEditing] = useState<any>(null);
   const { activeRole } = useActiveRole();

@@ -53,7 +53,7 @@ export function ActiveRoleProvider({ children }: { children: ReactNode }) {
     );
     // Restore from localStorage if still valid
     const saved = localStorage.getItem("cmg_active_role");
-    if (saved && safeRoles.includes(saved)) {
+    if (saved && safeRoles.includes(saved as AppRole)) {
       setActiveRoleState(saved as AppRole);
     } else {
       setActiveRoleState(sorted[0]);
