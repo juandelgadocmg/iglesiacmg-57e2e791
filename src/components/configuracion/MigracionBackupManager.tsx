@@ -41,10 +41,37 @@ async function generateBackupClientFallback(): Promise<string> {
   out.push("");
   out.push("SET client_min_messages TO WARNING;");
   out.push("BEGIN;");
+  out.push("CREATE SCHEMA IF NOT EXISTS auth;");
+  out.push("");
+  out.push("CREATE TABLE IF NOT EXISTS \"auth\".\"users\" (");
+  out.push("  \"id\" UUID NOT NULL PRIMARY KEY,");
+  out.push("  \"email\" TEXT,");
+  out.push("  \"created_at\" TIMESTAMP WITH TIME ZONE");
+  out.push(");");
+  out.push("");
   out.push("SET session_replication_role = 'replica';");
   out.push("");
 
   let totalRows = 0;
+
+  // Intentar crear auth.users desde profiles
+  try {
+    const { data: profs } = await supabase.from("profiles").select("id, email, created_at");
+    if (profs && profs.length > 0) {
+      const userInserts = profs.map(p => {
+        const idVal = `'${p.id}'`;
+        const emailVal = p.email ? `'${p.email.replace(/'/g, "''")}'` : "NULL";
+        const createdVal = p.created_at ? `'${p.created_at}'` : "NOW()";
+        return `(${idVal}, ${emailVal}, ${createdVal})`;
+      });
+      out.push(`INSERT INTO "auth"."users" ("id", "email", "created_at") VALUES`);
+      out.push(userInserts.join(",\n") + ";");
+      out.push("");
+      totalRows += profs.length;
+    }
+  } catch {
+    // Ignorar si no se puede leer profiles
+  }
 
   for (const tableName of tables) {
     try {

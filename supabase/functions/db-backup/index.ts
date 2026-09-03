@@ -1,8 +1,8 @@
 // supabase/functions/db-backup/index.ts
 //
 // Genera un único script SQL con:
-//   1) CREATE TABLE IF NOT EXISTS para todas las tablas del esquema `public`
-//      (tipos de datos reales tomados de information_schema, con sus PRIMARY KEY).
+//   1) CREATE SCHEMA IF NOT EXISTS auth; y CREATE TABLE IF NOT EXISTS para todas las
+//      tablas de los esquemas `public` y `auth` (users, identities, etc.).
 //   2) INSERT INTO con todos los registros actuales de cada tabla, con
 //      escape de comillas, casting explícito de JSON/JSONB y arreglos, y
 //      valores NULL / numéricos / booleanos sin comillas.
@@ -25,7 +25,13 @@ const corsHeaders = {
 const BATCH_SIZE = 2000; // filas leídas por página desde la base de datos
 const ROWS_PER_INSERT = 500; // filas agrupadas por sentencia INSERT
 
+interface TableInfo {
+  table_schema: string;
+  table_name: string;
+}
+
 interface ColumnInfo {
+  table_schema: string;
   table_name: string;
   column_name: string;
   ordinal_position: number;
@@ -46,6 +52,10 @@ function jsonResponse(body: unknown, status: number) {
 
 function escapeIdent(name: string): string {
   return `"${name.replace(/"/g, '""')}"`;
+}
+
+function escapeTableIdent(schema: string, name: string): string {
+  return `"${schema.replace(/"/g, '""')}"."${name.replace(/"/g, '""')}"`;
 }
 
 function escapeStringLiteral(value: string): string {
@@ -267,59 +277,73 @@ Deno.serve(async (req: Request) => {
   const sql = postgres(dbUrl, { prepare: false });
 
   try {
-    const tables = await sql<{ table_name: string }[]>`
-      select table_name
+    const tables = await sql<TableInfo[]>`
+      select table_schema, table_name
       from information_schema.tables
-      where table_schema = 'public' and table_type = 'BASE TABLE'
-      order by table_name
+      where (
+        table_schema = 'public' 
+        or (table_schema = 'auth' and table_name in ('users', 'identities', 'mfa_factors', 'mfa_challenges', 'mfa_amr_claims', 'sessions', 'refresh_tokens', 'sso_providers', 'sso_domains', 'saml_providers', 'saml_relay_states', 'flow_state', 'one_time_tokens'))
+      ) and table_type = 'BASE TABLE'
+      order by case when table_schema = 'auth' then 0 else 1 end, table_name
     `;
 
     if (tables.length === 0) {
       return jsonResponse(
-        { error: "No se encontraron tablas en el esquema public." },
+        { error: "No se encontraron tablas para exportar." },
         404,
       );
     }
 
     const columns = await sql<ColumnInfo[]>`
-      select table_name, column_name, ordinal_position, data_type, udt_name,
+      select table_schema, table_name, column_name, ordinal_position, data_type, udt_name,
              is_nullable, character_maximum_length, numeric_precision, numeric_scale
       from information_schema.columns
-      where table_schema = 'public'
-      order by table_name, ordinal_position
+      where (
+        table_schema = 'public' 
+        or (table_schema = 'auth' and table_name in ('users', 'identities', 'mfa_factors', 'mfa_challenges', 'mfa_amr_claims', 'sessions', 'refresh_tokens', 'sso_providers', 'sso_domains', 'saml_providers', 'saml_relay_states', 'flow_state', 'one_time_tokens'))
+      )
+      order by table_schema, table_name, ordinal_position
     `;
 
-    const pkRows = await sql<{ table_name: string; column_name: string }[]>`
-      select tc.table_name, kcu.column_name
+    const pkRows = await sql<{ table_schema: string; table_name: string; column_name: string }[]>`
+      select tc.table_schema, tc.table_name, kcu.column_name
       from information_schema.table_constraints tc
       join information_schema.key_column_usage kcu
         on tc.constraint_name = kcu.constraint_name
        and tc.table_schema = kcu.table_schema
-      where tc.constraint_type = 'PRIMARY KEY' and tc.table_schema = 'public'
-      order by tc.table_name, kcu.ordinal_position
+      where tc.constraint_type = 'PRIMARY KEY' 
+        and (
+          tc.table_schema = 'public' 
+          or (tc.table_schema = 'auth' and tc.table_name in ('users', 'identities', 'mfa_factors', 'mfa_challenges', 'mfa_amr_claims', 'sessions', 'refresh_tokens', 'sso_providers', 'sso_domains', 'saml_providers', 'saml_relay_states', 'flow_state', 'one_time_tokens'))
+        )
+      order by tc.table_schema, tc.table_name, kcu.ordinal_position
     `;
 
     const columnsByTable = new Map<string, ColumnInfo[]>();
     for (const c of columns) {
-      if (!columnsByTable.has(c.table_name)) columnsByTable.set(c.table_name, []);
-      columnsByTable.get(c.table_name)!.push(c);
+      const key = `${c.table_schema}.${c.table_name}`;
+      if (!columnsByTable.has(key)) columnsByTable.set(key, []);
+      columnsByTable.get(key)!.push(c);
     }
+
     const pksByTable = new Map<string, string[]>();
     for (const p of pkRows) {
-      if (!pksByTable.has(p.table_name)) pksByTable.set(p.table_name, []);
-      pksByTable.get(p.table_name)!.push(p.column_name);
+      const key = `${p.table_schema}.${p.table_name}`;
+      if (!pksByTable.has(key)) pksByTable.set(key, []);
+      pksByTable.get(key)!.push(p.column_name);
     }
 
     const out: string[] = [];
     out.push("-- ============================================================");
-    out.push("-- MIGRACIÓN COMPLETA DE BASE DE DATOS");
+    out.push("-- MIGRACIÓN COMPLETA DE BASE DE DATOS (Incluye Usuarios Auth)");
     out.push(`-- Generado automáticamente el ${new Date().toISOString()}`);
     out.push("-- Compatible con PostgreSQL. Incluye estructura (CREATE TABLE)");
-    out.push("-- y datos (INSERT INTO) de todas las tablas del esquema public.");
+    out.push("-- y datos (INSERT INTO) de los esquemas auth y public.");
     out.push("-- ============================================================");
     out.push("");
     out.push("SET client_min_messages TO WARNING;");
     out.push("BEGIN;");
+    out.push("CREATE SCHEMA IF NOT EXISTS auth;");
     out.push("");
     out.push("-- ------------------------------------------------------------");
     out.push("-- 1. ESTRUCTURA");
@@ -327,9 +351,10 @@ Deno.serve(async (req: Request) => {
     out.push("");
 
     for (const t of tables) {
-      const cols = columnsByTable.get(t.table_name) || [];
+      const key = `${t.table_schema}.${t.table_name}`;
+      const cols = columnsByTable.get(key) || [];
       if (cols.length === 0) continue;
-      const pk = pksByTable.get(t.table_name) || [];
+      const pk = pksByTable.get(key) || [];
 
       const colDefs = cols.map((c) => {
         const type = columnSqlType(c);
@@ -340,7 +365,7 @@ Deno.serve(async (req: Request) => {
         colDefs.push(`  PRIMARY KEY (${pk.map(escapeIdent).join(", ")})`);
       }
 
-      out.push(`CREATE TABLE IF NOT EXISTS ${escapeIdent(t.table_name)} (`);
+      out.push(`CREATE TABLE IF NOT EXISTS ${escapeTableIdent(t.table_schema, t.table_name)} (`);
       out.push(colDefs.join(",\n"));
       out.push(");");
       out.push("");
@@ -358,12 +383,13 @@ Deno.serve(async (req: Request) => {
     let totalRows = 0;
 
     for (const t of tables) {
-      const cols = columnsByTable.get(t.table_name) || [];
+      const key = `${t.table_schema}.${t.table_name}`;
+      const cols = columnsByTable.get(key) || [];
       if (cols.length === 0) continue;
 
       const colNames = cols.map((c) => c.column_name);
       const identCols = colNames.map(escapeIdent).join(", ");
-      const tableIdent = escapeIdent(t.table_name);
+      const tableIdent = escapeTableIdent(t.table_schema, t.table_name);
 
       let offset = 0;
       let tableRowCount = 0;
@@ -397,7 +423,7 @@ Deno.serve(async (req: Request) => {
 
       flushPending();
       totalRows += tableRowCount;
-      out.push(`-- ${t.table_name}: ${tableRowCount} fila(s)`);
+      out.push(`-- ${t.table_schema}.${t.table_name}: ${tableRowCount} fila(s)`);
       out.push("");
     }
 
