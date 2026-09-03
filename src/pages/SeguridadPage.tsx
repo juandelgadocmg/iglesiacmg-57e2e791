@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { format } from "date-fns";
 import { useCan } from "@/hooks/useCan";
 import { exportToPDF } from "@/lib/exportUtils";
+import MigracionBackupManager from "@/components/configuracion/MigracionBackupManager";
 
 interface AuditRow {
   id: string;
@@ -403,6 +404,11 @@ export default function SeguridadPage() {
           </div>
         )}
       </div>
+
+      <div className="mt-8">
+        <MigracionBackupManager />
+      </div>
     </div>
   );
 }
+
