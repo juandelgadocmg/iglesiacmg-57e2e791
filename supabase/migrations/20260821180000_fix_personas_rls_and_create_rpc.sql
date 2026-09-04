@@ -114,8 +114,7 @@ BEGIN
     vinculacion,
     ministerio,
     foto_url,
-    clasificacion_cdp,
-    red
+    clasificacion_cdp
   ) VALUES (
     NULLIF(BTRIM(_payload->>'nombres'), ''),
     NULLIF(BTRIM(_payload->>'apellidos'), ''),
@@ -141,8 +140,7 @@ BEGIN
     NULLIF(BTRIM(_payload->>'vinculacion'), ''),
     NULLIF(BTRIM(_payload->>'ministerio'), ''),
     NULLIF(BTRIM(_payload->>'foto_url'), ''),
-    NULLIF(BTRIM(_payload->>'clasificacion_cdp'), ''),
-    NULLIF(BTRIM(_payload->>'red'), '')
+    NULLIF(BTRIM(_payload->>'clasificacion_cdp'), '')
   )
   RETURNING * INTO v_persona;
 

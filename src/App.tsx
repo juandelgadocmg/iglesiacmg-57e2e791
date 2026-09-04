@@ -86,8 +86,8 @@ const App = () => (
             <Route path="/lideres" element={<Navigate to="/personas" replace />} />
             <Route path="/lideres/*" element={<Navigate to="/personas" replace />} />
             <Route path="/lider/:id" element={<Navigate to="/personas" replace />} />
-            <Route path="/discipulos" element={<Navigate to="/afirmacion" replace />} />
-            <Route path="/discipulos/*" element={<Navigate to="/afirmacion" replace />} />
+            <Route path="/discipulos" element={<Navigate to="/discipulado" replace />} />
+            <Route path="/discipulos/*" element={<Navigate to="/discipulado" replace />} />
             <Route path="/metas" element={<Navigate to="/afirmacion" replace />} />
             <Route path="/export-lideres" element={<Navigate to="/afirmacion" replace />} />
             <Route path="/setup" element={<Navigate to="/dashboard" replace />} />

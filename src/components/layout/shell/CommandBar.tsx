@@ -70,8 +70,8 @@ export default function CommandBar({ open, onOpenChange }: Props) {
     const t = setTimeout(async () => {
       const { data } = await supabase
         .from("personas")
-        .select("id,nombres,apellidos,documento_numero,telefono")
-        .or(`nombres.ilike.%${query}%,apellidos.ilike.%${query}%,documento_numero.ilike.%${query}%,telefono.ilike.%${query}%`)
+        .select("id,nombres,apellidos,documento,telefono")
+        .or(`nombres.ilike.%${query}%,apellidos.ilike.%${query}%,documento.ilike.%${query}%,telefono.ilike.%${query}%`)
         .limit(6);
       setPersonas(data || []);
     }, 200);
@@ -98,7 +98,7 @@ export default function CommandBar({ open, onOpenChange }: Props) {
                   onSelect={() => go(`/personas/${p.id}`)}>
                   <Users className="h-4 w-4 mr-2 text-muted-foreground" />
                   <span className="flex-1">{p.nombres} {p.apellidos}</span>
-                  <span className="text-xs text-muted-foreground">{p.documento_numero || p.telefono}</span>
+                  <span className="text-xs text-muted-foreground">{p.documento || p.telefono}</span>
                 </CommandItem>
               ))}
             </CommandGroup>

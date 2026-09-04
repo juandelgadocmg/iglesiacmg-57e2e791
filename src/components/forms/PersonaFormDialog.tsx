@@ -122,10 +122,6 @@ export default function PersonaFormDialog({ initialData, onClose, open: openProp
           setSelectedRed(groupObj.red);
         }
       }
-    } else {
-      setTiposSeleccionados([]);
-      setSelectedRed("none");
-      setSelectedGrupoId("none");
     }
   }, [initialData, grupos]);
 

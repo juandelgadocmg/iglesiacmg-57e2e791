@@ -17,7 +17,7 @@ import {
   LayoutDashboard, Users, UsersRound, Church,
   DollarSign, CalendarDays, GraduationCap, BookMarked,
   Award, BarChart3, Settings, UserCog, ChevronLeft, ChevronRight,
-  LogOut, HandHeart, LifeBuoy, Mail, ShieldCheck, Cake, Bell, Activity, UserCheck, CheckCircle2
+  LogOut, HandHeart, LifeBuoy, Mail, ShieldCheck, Cake, Bell, Activity, UserCheck, CheckCircle2, Route
 } from "lucide-react";
 
 type MenuItem = { label: string; icon: any; path: string; section: string };
@@ -31,6 +31,7 @@ const menuItems: MenuItem[] = [
   { label: "Grupos", icon: UsersRound, path: "/grupos", section: "Comunidad" },
   { label: "Reuniones", icon: Church, path: "/servicios", section: "Comunidad" },
   { label: "Afirmación", icon: CheckCircle2, path: "/afirmacion", section: "Formación" },
+  { label: "Discipulado", icon: Route, path: "/discipulado", section: "Formación" },
   { label: "Academia", icon: GraduationCap, path: "/academia", section: "Formación" },
   { label: "Seminario", icon: BookMarked, path: "/seminario", section: "Formación" },
   { label: "Certificados", icon: Award, path: "/certificados", section: "Formación" },
