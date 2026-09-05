@@ -14,7 +14,7 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import {
-  LayoutDashboard, Users, UsersRound, Church,
+  LayoutDashboard, Users, UsersRound, Church, Home,
   DollarSign, CalendarDays, GraduationCap, BookMarked,
   Award, BarChart3, Settings, UserCog, ChevronLeft, ChevronRight,
   LogOut, HandHeart, LifeBuoy, Mail, ShieldCheck, Cake, Bell, Activity, UserCheck, CheckCircle2, Route
@@ -27,6 +27,7 @@ const menuItems: MenuItem[] = [
   { label: "Alertas", icon: Bell, path: "/alertas", section: "Principal" },
   { label: "Actividad", icon: Activity, path: "/actividad", section: "Principal" },
   { label: "Personas", icon: Users, path: "/personas", section: "Comunidad" },
+  { label: "Casas de Paz", icon: Home, path: "/casas-de-paz", section: "Comunidad" },
   { label: "Cumpleaños", icon: Cake, path: "/cumpleanos", section: "Comunidad" },
   { label: "Grupos", icon: UsersRound, path: "/grupos", section: "Comunidad" },
   { label: "Reuniones", icon: Church, path: "/servicios", section: "Comunidad" },

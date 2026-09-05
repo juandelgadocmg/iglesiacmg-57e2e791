@@ -16,6 +16,7 @@ import Dashboard from "@/pages/Dashboard";
 import PersonasPage from "@/pages/PersonasPage";
 import PersonaPerfilPage from "@/pages/PersonaPerfilPage";
 import GruposPage from "@/pages/GruposPage";
+import CasasDePazPage from "@/pages/CasasDePazPage";
 import ServiciosPage from "@/pages/ServiciosPage";
 import FinanzasPage from "@/pages/FinanzasPage";
 import EventosPage from "@/pages/EventosPage";
@@ -98,6 +99,7 @@ const App = () => (
               <Route path="/personas" element={<RoleGuard><PersonasPage /></RoleGuard>} />
               <Route path="/personas/:id" element={<RoleGuard><PersonaPerfilPage /></RoleGuard>} />
               <Route path="/grupos" element={<RoleGuard><GruposPage /></RoleGuard>} />
+              <Route path="/casas-de-paz" element={<RoleGuard><CasasDePazPage /></RoleGuard>} />
               <Route path="/servicios" element={<RoleGuard><ServiciosPage /></RoleGuard>} />
               <Route path="/finanzas" element={<RoleGuard><FinanzasPage /></RoleGuard>} />
               <Route path="/eventos" element={<RoleGuard><EventosPage /></RoleGuard>} />
