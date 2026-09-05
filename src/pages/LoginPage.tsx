@@ -42,9 +42,13 @@ export default function LoginPage() {
         redirectTo: `${window.location.origin}/reset-password`,
       });
       if (error) {
-        toast.error(error.message);
+        if (/rate limit|too many/i.test(error.message)) {
+          toast.error("Límite de solicitudes por hora alcanzado. Si no recibes el correo, solicita a un administrador que restablezca tu contraseña.");
+        } else {
+          toast.error(error.message);
+        }
       } else {
-        toast.success("Se envió un enlace de recuperación a su correo.");
+        toast.success("Se envió el enlace de recuperación a su correo. Por favor revise su bandeja de entrada y Spam.");
       }
       setLoading(false);
       return;

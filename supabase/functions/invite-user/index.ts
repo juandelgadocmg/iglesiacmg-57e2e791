@@ -3,7 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 
 type InviteBody = {
-  action?: "delete_user" | "reset_password";
+  action?: "delete_user" | "reset_password" | "send_test_email";
   user_id?: string;
   email?: string;
   password?: string;
@@ -19,6 +19,28 @@ const jsonResponse = (body: Record<string, unknown>, status = 200) =>
   });
 
 const normalizeEmail = (email: string) => email.trim().toLowerCase();
+
+async function sendTransactionalEmail(
+  supabaseAdmin: ReturnType<typeof createClient>,
+  to: string,
+  subject: string,
+  html: string,
+  label: string = "transactional"
+) {
+  try {
+    const { error } = await supabaseAdmin.rpc("send_transactional_email", {
+      p_to: to,
+      p_subject: subject,
+      p_html: html,
+      p_label: label,
+    });
+    if (error) {
+      console.error("rpc send_transactional_email error:", error);
+    }
+  } catch (err) {
+    console.error("Exception in sendTransactionalEmail:", err);
+  }
+}
 
 async function findUserByEmail(supabaseAdmin: ReturnType<typeof createClient>, email: string) {
   const target = normalizeEmail(email);
@@ -111,11 +133,41 @@ serve(async (req) => {
       (r: any) => r.role === "admin" || r.role === "super_admin"
     );
     if (!isAdmin) {
-      return jsonResponse({ error: "Solo administradores pueden crear usuarios" }, 403);
+      return jsonResponse({ error: "Solo administradores pueden realizar esta acción" }, 403);
     }
 
     const body = await req.json() as InviteBody;
     const { action } = body;
+
+    // ── Send Test Email action ──
+    if (action === "send_test_email") {
+      const { email } = body;
+      if (!email?.trim()) {
+        return jsonResponse({ error: "Email es requerido para prueba" }, 400);
+      }
+      const targetEmail = normalizeEmail(email);
+      const testHtml = `
+        <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 8px;">
+          <h2 style="color: #4f46e5;">Prueba de Envío de Correo — Iglesia CMG</h2>
+          <p>Hola,</p>
+          <p>Este es un correo de prueba enviado desde el sistema de administración de la iglesia para verificar la entrega de mensajes por correo electrónico.</p>
+          <p style="font-size: 12px; color: #64748b; margin-top: 24px; border-top: 1px solid #f1f5f9; padding-top: 12px;">
+            Fecha y Hora de solicitud: ${new Date().toLocaleString("es-CO")}
+          </p>
+        </div>
+      `;
+      await sendTransactionalEmail(
+        supabaseAdmin,
+        targetEmail,
+        "Prueba de envío de correo — Iglesia CMG",
+        testHtml,
+        "test_email"
+      );
+      return jsonResponse({
+        success: true,
+        message: `Correo de prueba encolado exitosamente para ${targetEmail}`,
+      });
+    }
 
     // ── Delete user action ──
     if (action === "delete_user") {
@@ -141,11 +193,35 @@ serve(async (req) => {
       if (!user_id || !password) {
         return jsonResponse({ error: "user_id y password son requeridos" }, 400);
       }
-      const { error: updateErr } = await supabaseAdmin.auth.admin.updateUserById(user_id, { password });
+      const { data: updatedUserData, error: updateErr } = await supabaseAdmin.auth.admin.updateUserById(user_id, { password });
       if (updateErr) {
         return jsonResponse({ error: updateErr.message }, 400);
       }
-      return jsonResponse({ success: true });
+
+      const targetEmail = updatedUserData?.user?.email;
+      if (targetEmail) {
+        const resetHtml = `
+          <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 8px;">
+            <h2 style="color: #4f46e5;">Actualización de Contraseña — Iglesia CMG</h2>
+            <p>Hola,</p>
+            <p>Un administrador ha actualizado la contraseña de tu cuenta de usuario.</p>
+            <p><strong>Tu nueva contraseña:</strong> <code style="background: #f1f5f9; padding: 4px 8px; border-radius: 4px;">${password}</code></p>
+            <p>Te sugerimos iniciar sesión y cambiar tu clave por seguridad.</p>
+          </div>
+        `;
+        await sendTransactionalEmail(
+          supabaseAdmin,
+          targetEmail,
+          "Tu contraseña ha sido actualizada — Iglesia CMG",
+          resetHtml,
+          "password_reset"
+        );
+      }
+
+      return jsonResponse({
+        success: true,
+        message: "Contraseña actualizada correctamente y notificación de correo encolada.",
+      });
     }
 
     // ── Create user action (default) ──
@@ -204,7 +280,34 @@ serve(async (req) => {
 
     await syncUserAccess(supabaseAdmin, newUser.user.id, safeDisplayName, roles, safeGrupoId);
 
-    return jsonResponse({ success: true, user_id: newUser.user.id });
+    // Enqueue welcome email notification
+    const welcomeHtml = `
+      <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 8px;">
+        <h2 style="color: #4f46e5;">¡Bienvenido(a) a Iglesia CMG!</h2>
+        <p>Hola <strong>${safeDisplayName}</strong>,</p>
+        <p>Se ha creado tu cuenta para acceder a la plataforma de la iglesia.</p>
+        <p><strong>Tus datos de acceso:</strong></p>
+        <ul>
+          <li><strong>Correo:</strong> ${normalizedEmail}</li>
+          <li><strong>Contraseña inicial:</strong> <code style="background: #f1f5f9; padding: 4px 8px; border-radius: 4px;">${password}</code></li>
+        </ul>
+        <p>Por favor ingresa al sistema y cambia tu contraseña cuando lo desees.</p>
+      </div>
+    `;
+
+    await sendTransactionalEmail(
+      supabaseAdmin,
+      normalizedEmail,
+      "Bienvenido(a) a Iglesia CMG — Credenciales de acceso",
+      welcomeHtml,
+      "user_invite"
+    );
+
+    return jsonResponse({
+      success: true,
+      user_id: newUser.user.id,
+      message: "Usuario creado exitosamente y correo de bienvenida enviado.",
+    });
   } catch (err) {
     console.error("Error in invite-user:", err);
     const message = err instanceof Error ? err.message : "Error interno del servidor";

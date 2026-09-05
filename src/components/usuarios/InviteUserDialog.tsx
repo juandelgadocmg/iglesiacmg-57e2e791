@@ -181,6 +181,9 @@ export default function InviteUserDialog({ onSuccess }: InviteUserDialogProps) {
               value={email}
               onChange={e => setEmail(e.target.value)}
             />
+            <p className="text-[11px] text-muted-foreground">
+              Se enviará automáticamente una notificación por correo electrónico con las credenciales y el enlace de acceso.
+            </p>
           </div>
 
           <div className="space-y-2">

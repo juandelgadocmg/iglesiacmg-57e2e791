@@ -12,6 +12,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { CheckCircle2, XCircle, Send } from "lucide-react";
 import MensajesToastPrefsCard from "@/components/configuracion/MensajesToastPrefsCard";
+import EmailQueueManagerCard from "@/components/configuracion/EmailQueueManagerCard";
 
 const ROLES = ["admin", "super_admin", "pastor", "lider_red", "maestro", "tesoreria", "seminario_admin", "seminario_docente"];
 
@@ -102,6 +103,7 @@ export default function NotificacionesPreferencias() {
 
   return (
     <div className="space-y-6">
+      <EmailQueueManagerCard />
       <MensajesToastPrefsCard />
       <Card>
         <CardHeader>
