@@ -279,7 +279,6 @@ export function useAfirmacionRuta() {
           const { data, error } = await supabase
             .from("personas")
             .select("*, grupos(id, nombre), persona_procesos(proceso_id, estado, fecha_completado, observacion)")
-            .neq("tipo_persona", "CDP")
             .order("created_at", { ascending: false })
             .range(pageFrom, pageFrom + CHUNK_SIZE - 1);
 
@@ -288,7 +287,6 @@ export function useAfirmacionRuta() {
             const { data: simple } = await supabase
               .from("personas")
               .select("*")
-              .neq("tipo_persona", "CDP")
               .order("created_at", { ascending: false })
               .range(pageFrom, pageFrom + CHUNK_SIZE - 1);
 
@@ -313,21 +311,9 @@ export function useAfirmacionRuta() {
         pageFrom += CHUNK_SIZE;
       }
 
-      // 2. Red de seguridad en el cliente: excluye cualquier persona creada por Casas de Paz
-      // que el filtro de la base de datos no haya podido capturar (p. ej. tipos_persona[]
-      // contiene "CDP" sin que tipo_persona lo refleje, o vinculación = "Casas de Paz").
-      // Solo las personas que pasan este filtro (visitantes/directos del módulo Personas)
-      // entran a la ruta de 16 hitos de Afirmación.
-      const personasVisitantesAfirmacion = personasData.filter((p: any) => {
-        const esCreadoEnGrupo =
-          p.tipo_persona === "CDP" ||
-          (Array.isArray(p.tipos_persona) && p.tipos_persona.includes("CDP")) ||
-          String(p.vinculacion || "").toLowerCase().trim() === "casas de paz";
+      const personasVisitantesAfirmacion = personasData;
 
-        return !esCreadoEnGrupo;
-      });
-
-      console.log(`[Afirmacion] Personas cargadas (ya sin CDP por consulta a BD): ${personasData.length}, Visitantes válidos para Afirmación: ${personasVisitantesAfirmacion.length}`);
+      console.log(`[Afirmacion] Total personas cargadas para Afirmación: ${personasVisitantesAfirmacion.length}`);
 
       // Build map of procesosDB for easy lookup (by name AND by id, including hardcoded UUIDs)
       const procMapByNormName = new Map<string, any>();
@@ -507,14 +493,14 @@ export function useAfirmacionRuta() {
             ? "En curso"
             : "Pendiente";
 
-        // Todas las personas que llegan a este punto ya pasaron el filtro de exclusión de
-        // Casas de Paz, así que "origen" siempre es Directo/Visitante. grupoId/grupoNombre
-        // se conservan solo como referencia informativa de "CDP asignada" (a qué Casa de Paz
-        // fue remitido este visitante para su seguimiento), no como criterio de inclusión.
-        const origen: "Directo" | "Grupo" = "Directo";
+        const esCdp =
+          p.tipo_persona === "CDP" ||
+          (Array.isArray(p.tipos_persona) && p.tipos_persona.includes("CDP")) ||
+          String(p.vinculacion || "").toLowerCase().trim() === "casas de paz";
         const grupoId = p.grupo_id || p.grupos?.id || null;
         const grupoNombre = p.grupos?.nombre || null;
-        const origenLabel = "🎯 Visitante / Afirmación";
+        const origen: "Directo" | "Grupo" = esCdp || grupoId ? "Grupo" : "Directo";
+        const origenLabel = esCdp ? "🏠 Casa de Paz" : "🎯 Visitante / Afirmación";
 
         return {
           id: p.id,
