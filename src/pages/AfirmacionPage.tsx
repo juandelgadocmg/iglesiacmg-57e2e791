@@ -113,6 +113,14 @@ export default function AfirmacionPage() {
             return false;
           }
         }
+        if (filterFecha === "mes_anterior") {
+          const ingDate = new Date(p.fechaIngreso);
+          const prevMonth = now.getMonth() === 0 ? 11 : now.getMonth() - 1;
+          const prevYear = now.getMonth() === 0 ? now.getFullYear() - 1 : now.getFullYear();
+          if (ingDate.getMonth() !== prevMonth || ingDate.getFullYear() !== prevYear) {
+            return false;
+          }
+        }
         if (filterFecha === "este_anio") {
           const ingDate = new Date(p.fechaIngreso);
           if (ingDate.getFullYear() !== now.getFullYear()) return false;
@@ -351,7 +359,8 @@ export default function AfirmacionPage() {
                   <SelectItem value="15dias" className="text-xs">📅 Últimos 15 Días (por defecto)</SelectItem>
                   <SelectItem value="7dias" className="text-xs">Últimos 7 Días</SelectItem>
                   <SelectItem value="30dias" className="text-xs">Últimos 30 Días</SelectItem>
-                  <SelectItem value="este_mes" className="text-xs">Este Mes</SelectItem>
+                  <SelectItem value="este_mes" className="text-xs">Este Mes (Septiembre)</SelectItem>
+                  <SelectItem value="mes_anterior" className="text-xs">📅 Mes Anterior (Agosto)</SelectItem>
                   <SelectItem value="este_anio" className="text-xs">Este Año</SelectItem>
                   <SelectItem value="todas" className="text-xs">Todas las Fechas</SelectItem>
                 </SelectContent>
