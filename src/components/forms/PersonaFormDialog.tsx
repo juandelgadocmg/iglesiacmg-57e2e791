@@ -21,7 +21,7 @@ interface Props {
 
 const TIPOS_PETICION = ["Financiera", "Familiar", "Sanidad", "Emocional", "Espiritual", "Otros"];
 
-const TIPOS_DOCUMENTO = [
+export const TIPOS_DOCUMENTO = [
   "Registro Civil",
   "Tarjeta de identidad",
   "Cédula de ciudadanía",

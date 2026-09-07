@@ -2550,6 +2550,7 @@ export type Database = {
       personas: {
         Row: {
           apellidos: string
+          barrio: string | null
           created_at: string
           direccion: string | null
           documento: string | null
@@ -2583,6 +2584,7 @@ export type Database = {
         }
         Insert: {
           apellidos: string
+          barrio?: string | null
           created_at?: string
           direccion?: string | null
           documento?: string | null
@@ -2616,6 +2618,7 @@ export type Database = {
         }
         Update: {
           apellidos?: string
+          barrio?: string | null
           created_at?: string
           direccion?: string | null
           documento?: string | null

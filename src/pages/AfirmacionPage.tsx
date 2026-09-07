@@ -23,13 +23,15 @@ import {
   Target,
   Home,
   RotateCw,
+  UserPlus,
 } from "lucide-react";
 import { toast } from "sonner";
 import { format, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
 import { ConsolidacionDashboardTab } from "@/components/persona/ConsolidacionDashboardTab";
 import { RegistrarLlamadaConsolidacionDialog } from "@/components/persona/RegistrarLlamadaConsolidacionDialog";
-import ExportPersonasDialog from "@/components/forms/ExportPersonasDialog";
+import AfirmacionExportDialog from "@/components/afirmacion/AfirmacionExportDialog";
+import { AfirmacionRegistroVisitanteDialog } from "@/components/afirmacion/AfirmacionRegistroVisitanteDialog";
 import { useAfirmacionRuta, PersonaAfirmacionRuta, HITOS_AFIRMACION_16, PersonaHitoEstado } from "@/hooks/useAfirmacionRuta";
 import { AfirmacionTimelineModal } from "@/components/afirmacion/AfirmacionTimelineModal";
 import { HitoEditDialog } from "@/components/afirmacion/HitoEditDialog";
@@ -46,10 +48,13 @@ export default function AfirmacionPage() {
 
   // Filters
   const [search, setSearch] = useState("");
-  const [filterOrigen, setFilterOrigen] = useState<string>("todos");
+  const [filterCdp, setFilterCdp] = useState<string>("todos");
   const [filterFecha, setFilterFecha] = useState<string>("todas");
   const [filterConsolidador, setFilterConsolidador] = useState<string>("todos");
   const [filterEstado, setFilterEstado] = useState<string>("todos");
+
+  // Registro rápido de visitantes desde el celular
+  const [openRegistroVisitante, setOpenRegistroVisitante] = useState(false);
 
   // Selected persona for Timeline modal & HitoEditDialog
   const [selectedPersona, setSelectedPersona] = useState<PersonaAfirmacionRuta | null>(null);
@@ -87,9 +92,9 @@ export default function AfirmacionPage() {
 
       if (!matchSearch) return false;
 
-      // 2. Origen filter
-      if (filterOrigen === "directo" && p.origen !== "Directo") return false;
-      if (filterOrigen === "grupo" && p.origen !== "Grupo") return false;
+      // 2. CDP asignada filter (referencia de seguimiento, no afecta inclusión)
+      if (filterCdp === "con_cdp" && !p.grupoId) return false;
+      if (filterCdp === "sin_cdp" && p.grupoId) return false;
 
       // 3. Consolidador filter
       if (filterConsolidador !== "todos" && p.consolidadorNombre !== filterConsolidador) {
@@ -123,7 +128,7 @@ export default function AfirmacionPage() {
 
       return true;
     });
-  }, [personasRuta, search, filterOrigen, filterFecha, filterConsolidador, filterEstado]);
+  }, [personasRuta, search, filterCdp, filterFecha, filterConsolidador, filterEstado]);
 
   const handleOpenTimeline = (p: PersonaAfirmacionRuta) => {
     setSelectedPersona(p);
@@ -146,24 +151,31 @@ export default function AfirmacionPage() {
               Afirmación del Creyente
             </h1>
             <p className="text-sm sm:text-base text-primary-foreground/80 leading-relaxed font-sans">
-              Sistema de seguimiento individual basado en la ruta oficial de 16 hitos, exclusivo para las personas que ingresaron a través del módulo Personas.
+              Sistema de seguimiento individual basado en la ruta oficial de 16 hitos, exclusivo para visitantes (no incluye personas registradas por Casas de Paz).
             </p>
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
+            <Button
+              onClick={() => setOpenRegistroVisitante(true)}
+              className="bg-white text-primary hover:bg-white/90 font-bold shadow-lg rounded-xl px-4 gap-2 text-xs"
+            >
+              <UserPlus className="h-4 w-4" /> Registrar Visitante
+            </Button>
             <Button
               onClick={() => setOpenRegistrarLlamadaDialog(true)}
               className="bg-emerald-500 text-slate-950 hover:bg-emerald-400 font-bold shadow-lg rounded-xl px-4 gap-2 text-xs"
             >
               <PhoneCall className="h-4 w-4" /> Registrar Llamada
             </Button>
-            <ExportPersonasDialog
+            <AfirmacionExportDialog
+              personas={personasRuta}
               trigger={
                 <Button
                   variant="outline"
                   className="bg-white/10 text-white border-white/20 hover:bg-white/20 backdrop-blur rounded-xl px-4 gap-2 font-semibold text-xs"
                 >
-                  <Download className="h-4 w-4" /> Informe de Afirmación
+                  <Download className="h-4 w-4" /> Exportar Afirmación
                 </Button>
               }
             />
@@ -185,6 +197,8 @@ export default function AfirmacionPage() {
           </div>
         </div>
       </div>
+
+      <AfirmacionRegistroVisitanteDialog open={openRegistroVisitante} onOpenChange={setOpenRegistroVisitante} />
 
       {/* ── REAL KPI METRICS SUMMARY (PERSONAS INTAKE ONLY) ────────────────────────────────────── */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3.5">
@@ -313,15 +327,15 @@ export default function AfirmacionPage() {
             </div>
 
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 w-full">
-              {/* Filtro de Origen */}
-              <Select value={filterOrigen} onValueChange={setFilterOrigen}>
+              {/* Filtro de CDP Asignada (referencia de seguimiento) */}
+              <Select value={filterCdp} onValueChange={setFilterCdp}>
                 <SelectTrigger className="h-9 rounded-xl bg-background border-border text-xs">
-                  <SelectValue placeholder="Origen" />
+                  <SelectValue placeholder="CDP Asignada" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="todos" className="text-xs">Todos los Orígenes</SelectItem>
-                  <SelectItem value="directo" className="text-xs">🎯 Directos (Personas)</SelectItem>
-                  <SelectItem value="grupo" className="text-xs">🏠 Casas de Paz (Grupos)</SelectItem>
+                  <SelectItem value="todos" className="text-xs">Todas (con/sin CDP)</SelectItem>
+                  <SelectItem value="con_cdp" className="text-xs">🏠 Con CDP asignada</SelectItem>
+                  <SelectItem value="sin_cdp" className="text-xs">Sin CDP asignada</SelectItem>
                 </SelectContent>
               </Select>
 
@@ -389,7 +403,7 @@ export default function AfirmacionPage() {
                           Nombre
                         </th>
                         <th className="px-2 py-3 text-left font-bold text-muted-foreground whitespace-nowrap min-w-[110px]">
-                          Origen
+                          CDP Asignada
                         </th>
                         <th className="px-2 py-3 text-left font-bold text-muted-foreground whitespace-nowrap min-w-[80px]">
                           Teléfono
@@ -450,15 +464,15 @@ export default function AfirmacionPage() {
                               </div>
                             </td>
 
-                            {/* Origen (Directo vs Grupo) */}
+                            {/* CDP Asignada (referencia de seguimiento, informativa) */}
                             <td className="px-2 py-2.5 text-muted-foreground whitespace-nowrap text-[10px]">
-                              {p.origen === "Directo" ? (
-                                <Badge variant="outline" className="bg-sky-500/10 text-sky-700 dark:text-sky-300 border-sky-500/20 text-[10px] whitespace-nowrap font-semibold">
-                                  🎯 Directo
+                              {p.grupoId && p.grupoNombre ? (
+                                <Badge variant="outline" className="bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/20 text-[10px] whitespace-nowrap font-semibold" title={p.grupoNombre}>
+                                  🏠 {p.grupoNombre}
                                 </Badge>
                               ) : (
-                                <Badge variant="outline" className="bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/20 text-[10px] whitespace-nowrap font-semibold" title={p.grupoNombre || "Casa de Paz"}>
-                                  🏠 {p.grupoNombre !== "Sin grupo" ? p.grupoNombre : "Casa de Paz"}
+                                <Badge variant="outline" className="bg-muted text-muted-foreground border-border text-[10px] whitespace-nowrap">
+                                  Sin asignar
                                 </Badge>
                               )}
                             </td>

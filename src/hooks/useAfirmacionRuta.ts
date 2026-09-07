@@ -71,10 +71,15 @@ export interface PersonaAfirmacionRuta {
   diasDesdeIngreso: number;
   consolidadorNombre: string;
   redNombre: string;
-  origen: "Directo" | "Grupo"; // "Directo" (Módulo Personas / Afirmación) vs "Grupo" (Casas de Paz)
+  origen: "Directo" | "Grupo"; // Siempre "Directo": las personas de Casas de Paz se excluyen antes de llegar aquí
   origenLabel: string;
   grupoId: string | null;
-  grupoNombre: string | null;
+  grupoNombre: string | null; // CDP asignada como referencia de seguimiento (no determina inclusión)
+  barrio: string | null;
+  direccion: string | null;
+  email: string | null;
+  documento: string | null;
+  invitadoPor: string | null;
   hitos: PersonaHitoEstado[];
   hitosCompletados: number;
   totalHitos: 16;
@@ -220,11 +225,15 @@ export function useAfirmacionRuta() {
       const CHUNK_SIZE = 1000;
       let hasMorePages = true;
 
+      // IMPORTANTE: se filtra "tipo_persona" DIRECTAMENTE en la base de datos (no en el
+      // cliente) para no descargar ni procesar los miles de registros creados por Casas de
+      // Paz que este módulo nunca muestra. Esto es lo que hace que el módulo cargue rápido.
       while (hasMorePages) {
         try {
           const { data, error } = await supabase
             .from("personas")
             .select("*, grupos(id, nombre), persona_procesos(proceso_id, estado, fecha_completado, observacion)")
+            .neq("tipo_persona", "CDP")
             .order("created_at", { ascending: false })
             .range(pageFrom, pageFrom + CHUNK_SIZE - 1);
 
@@ -233,6 +242,7 @@ export function useAfirmacionRuta() {
             const { data: simple } = await supabase
               .from("personas")
               .select("*")
+              .neq("tipo_persona", "CDP")
               .order("created_at", { ascending: false })
               .range(pageFrom, pageFrom + CHUNK_SIZE - 1);
 
@@ -257,17 +267,21 @@ export function useAfirmacionRuta() {
         pageFrom += CHUNK_SIZE;
       }
 
-      // 2. Filter ONLY personas that entered through Personas (module Personas / General church intake)
-      const personasIngresoPersonas = personasData.filter((p: any) => {
+      // 2. Red de seguridad en el cliente: excluye cualquier persona creada por Casas de Paz
+      // que el filtro de la base de datos no haya podido capturar (p. ej. tipos_persona[]
+      // contiene "CDP" sin que tipo_persona lo refleje, o vinculación = "Casas de Paz").
+      // Solo las personas que pasan este filtro (visitantes/directos del módulo Personas)
+      // entran a la ruta de 16 hitos de Afirmación.
+      const personasVisitantesAfirmacion = personasData.filter((p: any) => {
         const esCreadoEnGrupo =
           p.tipo_persona === "CDP" ||
           (Array.isArray(p.tipos_persona) && p.tipos_persona.includes("CDP")) ||
-          String(p.vinculacion || "").toLowerCase() === "casas de paz";
+          String(p.vinculacion || "").toLowerCase().trim() === "casas de paz";
 
         return !esCreadoEnGrupo;
       });
 
-      console.log(`[Afirmacion] Total personas BD: ${personasData.length}, Ingresaron por Personas: ${personasIngresoPersonas.length}`);
+      console.log(`[Afirmacion] Personas cargadas (ya sin CDP por consulta a BD): ${personasData.length}, Visitantes válidos para Afirmación: ${personasVisitantesAfirmacion.length}`);
 
       // Build map of procesosDB for easy lookup (by name AND by id, including hardcoded UUIDs)
       const procMapByNormName = new Map<string, any>();
@@ -289,7 +303,7 @@ export function useAfirmacionRuta() {
       const todayStr = new Date().toISOString().slice(0, 10);
       const todayTime = new Date(todayStr).getTime();
 
-      const list: PersonaAfirmacionRuta[] = personasData.map((p: any) => {
+      const list: PersonaAfirmacionRuta[] = personasVisitantesAfirmacion.map((p: any) => {
         const nombreCompleto = `${p.nombres || ""} ${p.apellidos || ""}`.trim() || "Sin Nombre";
         const rawIngreso = p.fecha_ingreso || p.ingreso_proceso || p.created_at || todayStr;
         const entryDateObj = new Date(rawIngreso);
@@ -402,7 +416,6 @@ export function useAfirmacionRuta() {
               if ((estado as string) !== "Finalizado") {
                 estado = "Pendiente";
               }
-
             }
             // Count any incomplete milestone past its scheduled date as overdue
             if (isPastDueDate) {
@@ -440,21 +453,14 @@ export function useAfirmacionRuta() {
             ? "En curso"
             : "Pendiente";
 
-        const isGrupoOrigin = Boolean(
-          p.grupo_id ||
-          p.grupos?.id ||
-          p.tipo_persona === "CDP" ||
-          (Array.isArray(p.tipos_persona) && p.tipos_persona.includes("CDP")) ||
-          String(p.vinculacion || "").toLowerCase().includes("casa") ||
-          String(p.vinculacion || "").toLowerCase().includes("grupo")
-        );
-
-        const origen: "Directo" | "Grupo" = isGrupoOrigin ? "Grupo" : "Directo";
+        // Todas las personas que llegan a este punto ya pasaron el filtro de exclusión de
+        // Casas de Paz, así que "origen" siempre es Directo/Visitante. grupoId/grupoNombre
+        // se conservan solo como referencia informativa de "CDP asignada" (a qué Casa de Paz
+        // fue remitido este visitante para su seguimiento), no como criterio de inclusión.
+        const origen: "Directo" | "Grupo" = "Directo";
         const grupoId = p.grupo_id || p.grupos?.id || null;
-        const grupoNombre = p.grupos?.nombre || (p.grupo_id ? "Casa de Paz" : "Sin grupo");
-        const origenLabel = isGrupoOrigin
-          ? `🏠 Casa de Paz (${grupoNombre})`
-          : "🎯 Afirmación / Directo";
+        const grupoNombre = p.grupos?.nombre || null;
+        const origenLabel = "🎯 Visitante / Afirmación";
 
         return {
           id: p.id,
@@ -472,6 +478,11 @@ export function useAfirmacionRuta() {
           origenLabel,
           grupoId,
           grupoNombre,
+          barrio: p.barrio || null,
+          direccion: p.direccion || null,
+          email: p.email || null,
+          documento: p.documento || null,
+          invitadoPor: p.invitado_por || null,
           hitos: hitosEstados,
           hitosCompletados: hitosCompletadosCount,
           totalHitos: 16,
@@ -607,21 +618,7 @@ export function useAfirmacionRuta() {
       0
     );
 
-    // Breakdown by Origin (Directo vs Grupo)
-    const directas = personasRuta.filter((p) => p.origen === "Directo");
-    const deGrupos = personasRuta.filter((p) => p.origen === "Grupo");
-
-    const directasHitos = directas.reduce((acc, p) => acc + p.hitosCompletados, 0);
-    const directasPosibles = directas.length * 16;
-    const directasAvance = directasPosibles > 0 ? Math.round((directasHitos / directasPosibles) * 100) : 0;
-    const directasAtrasadas = directas.filter((p) => p.tieneAtrasos).length;
-    const directasEnProceso = directas.filter((p) => p.porcentajeCompletado > 0 && p.porcentajeCompletado < 100).length;
-
-    const gruposHitos = deGrupos.reduce((acc, p) => acc + p.hitosCompletados, 0);
-    const gruposPosibles = deGrupos.length * 16;
-    const gruposAvance = gruposPosibles > 0 ? Math.round((gruposHitos / gruposPosibles) * 100) : 0;
-    const gruposAtrasadas = deGrupos.filter((p) => p.tieneAtrasos).length;
-    const gruposEnProceso = deGrupos.filter((p) => p.porcentajeCompletado > 0 && p.porcentajeCompletado < 100).length;
+    const conCdpAsignada = personasRuta.filter((p) => !!p.grupoId).length;
 
     return {
       totalPersonasEnAfirmacion,
@@ -631,15 +628,8 @@ export function useAfirmacionRuta() {
       seguimientosPendientes,
       seguimientosAtrasados,
       porcentajeAvanceGeneral,
-      // Origin statistics
-      totalDirectas: directas.length,
-      directasAvance,
-      directasAtrasadas,
-      directasEnProceso,
-      totalGrupos: deGrupos.length,
-      gruposAvance,
-      gruposAtrasadas,
-      gruposEnProceso,
+      conCdpAsignada,
+      sinCdpAsignada: totalPersonasEnAfirmacion - conCdpAsignada,
     };
   }, [personasRuta]);
 
