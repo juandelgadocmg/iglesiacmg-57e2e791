@@ -197,7 +197,8 @@ export function useAfirmacionRuta() {
           .from("security_audit_log")
           .select("id, created_at, actor_email, changed")
           .eq("table_name", "registro_llamadas_consolidacion")
-          .order("created_at", { ascending: false });
+          .order("created_at", { ascending: false })
+          .limit(500);
 
         if (!error && data) {
           return data.map((item: any) => ({
