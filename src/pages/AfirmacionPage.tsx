@@ -47,7 +47,7 @@ export default function AfirmacionPage() {
   // Filters
   const [search, setSearch] = useState("");
   const [filterCdp, setFilterCdp] = useState<string>("todos");
-  const [filterFecha, setFilterFecha] = useState<string>("15dias");
+  const [filterFecha, setFilterFecha] = useState<string>("todas");
   const [filterConsolidador, setFilterConsolidador] = useState<string>("todos");
   const [filterEstado, setFilterEstado] = useState<string>("todos");
 
@@ -356,13 +356,13 @@ export default function AfirmacionPage() {
                   <SelectValue placeholder="Fecha Ingreso" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="15dias" className="text-xs">📅 Últimos 15 Días (por defecto)</SelectItem>
+                  <SelectItem value="todas" className="text-xs">📅 Todas las Fechas (por defecto)</SelectItem>
+                  <SelectItem value="15dias" className="text-xs">Últimos 15 Días</SelectItem>
                   <SelectItem value="7dias" className="text-xs">Últimos 7 Días</SelectItem>
                   <SelectItem value="30dias" className="text-xs">Últimos 30 Días</SelectItem>
-                  <SelectItem value="este_mes" className="text-xs">Este Mes (Septiembre)</SelectItem>
-                  <SelectItem value="mes_anterior" className="text-xs">📅 Mes Anterior (Agosto)</SelectItem>
+                  <SelectItem value="este_mes" className="text-xs">Este Mes</SelectItem>
+                  <SelectItem value="mes_anterior" className="text-xs">Mes Anterior</SelectItem>
                   <SelectItem value="este_anio" className="text-xs">Este Año</SelectItem>
-                  <SelectItem value="todas" className="text-xs">Todas las Fechas</SelectItem>
                 </SelectContent>
               </Select>
 
