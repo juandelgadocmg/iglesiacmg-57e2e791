@@ -47,7 +47,7 @@ export default function AfirmacionPage() {
   // Filters
   const [search, setSearch] = useState("");
   const [filterCdp, setFilterCdp] = useState<string>("todos");
-  const [filterFecha, setFilterFecha] = useState<string>("todas");
+  const [filterFecha, setFilterFecha] = useState<string>("15dias");
   const [filterConsolidador, setFilterConsolidador] = useState<string>("todos");
   const [filterEstado, setFilterEstado] = useState<string>("todos");
 
@@ -105,6 +105,7 @@ export default function AfirmacionPage() {
         const diffDays = (todayTime - ingTime) / (1000 * 60 * 60 * 24);
 
         if (filterFecha === "7dias" && diffDays > 7) return false;
+        if (filterFecha === "15dias" && diffDays > 15) return false;
         if (filterFecha === "30dias" && diffDays > 30) return false;
         if (filterFecha === "este_mes") {
           const ingDate = new Date(p.fechaIngreso);
@@ -347,11 +348,12 @@ export default function AfirmacionPage() {
                   <SelectValue placeholder="Fecha Ingreso" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="todas" className="text-xs">Todas las Fechas</SelectItem>
+                  <SelectItem value="15dias" className="text-xs">📅 Últimos 15 Días (por defecto)</SelectItem>
                   <SelectItem value="7dias" className="text-xs">Últimos 7 Días</SelectItem>
                   <SelectItem value="30dias" className="text-xs">Últimos 30 Días</SelectItem>
                   <SelectItem value="este_mes" className="text-xs">Este Mes</SelectItem>
                   <SelectItem value="este_anio" className="text-xs">Este Año</SelectItem>
+                  <SelectItem value="todas" className="text-xs">Todas las Fechas</SelectItem>
                 </SelectContent>
               </Select>
 
