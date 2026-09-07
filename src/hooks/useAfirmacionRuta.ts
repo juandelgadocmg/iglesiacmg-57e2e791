@@ -150,25 +150,25 @@ function matchHitoWithProceso(hitoDef: HitoAfirmacionDef, procNombre: string): b
   if (!pNorm) return false;
   if (pNorm.includes(hNorm) || hNorm.includes(pNorm)) return true;
 
-  if (hitoDef.key === "llamada_1" && (pNorm.includes("llamada 1") || pNorm.includes("consolidacion 1"))) return true;
-  if (hitoDef.key === "llamada_2" && (pNorm.includes("llamada 2") || pNorm.includes("consolidacion 2"))) return true;
-  if (hitoDef.key === "llamada_3" && (pNorm.includes("llamada 3") || pNorm.includes("consolidacion 3"))) return true;
+  if (hitoDef.key === "llamada_1" && (pNorm.includes("llamada 1") || pNorm.includes("consolidacion 1") || pNorm.includes("1ra llamada") || pNorm.includes("primer llamada"))) return true;
+  if (hitoDef.key === "llamada_2" && (pNorm.includes("llamada 2") || pNorm.includes("consolidacion 2") || pNorm.includes("2da llamada") || pNorm.includes("segunda llamada"))) return true;
+  if (hitoDef.key === "llamada_3" && (pNorm.includes("llamada 3") || pNorm.includes("consolidacion 3") || pNorm.includes("3ra llamada") || pNorm.includes("tercer llamada"))) return true;
 
-  if (hitoDef.key === "mensaje_1" && pNorm.includes("mensaje 1")) return true;
-  if (hitoDef.key === "mensaje_2" && pNorm.includes("mensaje 2")) return true;
-  if (hitoDef.key === "mensaje_3" && pNorm.includes("mensaje 3")) return true;
-  if (hitoDef.key === "mensaje_4" && pNorm.includes("mensaje 4")) return true;
-  if (hitoDef.key === "mensaje_5" && pNorm.includes("mensaje 5")) return true;
-  if (hitoDef.key === "mensaje_6" && pNorm.includes("mensaje 6")) return true;
+  if (hitoDef.key === "mensaje_1" && (pNorm.includes("mensaje 1") || pNorm.includes("1er mensaje") || pNorm.includes("primer mensaje"))) return true;
+  if (hitoDef.key === "mensaje_2" && (pNorm.includes("mensaje 2") || pNorm.includes("2do mensaje") || pNorm.includes("segundo mensaje"))) return true;
+  if (hitoDef.key === "mensaje_3" && (pNorm.includes("mensaje 3") || pNorm.includes("3er mensaje") || pNorm.includes("tercer mensaje"))) return true;
+  if (hitoDef.key === "mensaje_4" && (pNorm.includes("mensaje 4") || pNorm.includes("4to mensaje"))) return true;
+  if (hitoDef.key === "mensaje_5" && (pNorm.includes("mensaje 5") || pNorm.includes("5to mensaje"))) return true;
+  if (hitoDef.key === "mensaje_6" && (pNorm.includes("mensaje 6") || pNorm.includes("6to mensaje"))) return true;
 
   if (hitoDef.key === "visita" && pNorm.includes("visita")) return true;
   if (hitoDef.key === "consejeria" && (pNorm.includes("consejeria") || pNorm.includes("consejería"))) return true;
   if (hitoDef.key === "fiesta_bienvenida" && (pNorm.includes("bienvenida") || pNorm.includes("fiesta"))) return true;
   if (hitoDef.key === "naci_triunfar_1" && (pNorm.includes("triunfar") || pNorm.includes("npt"))) return true;
 
-  if (hitoDef.key === "semana_poder_1" && (pNorm.includes("semana de poder 1") || pNorm.includes("semana poder 1") || pNorm.includes("tsdp"))) return true;
-  if (hitoDef.key === "semana_poder_2" && (pNorm.includes("semana de poder 2") || pNorm.includes("semana poder 2"))) return true;
-  if (hitoDef.key === "semana_poder_3" && (pNorm.includes("semana de poder 3") || pNorm.includes("semana poder 3"))) return true;
+  if (hitoDef.key === "semana_poder_1" && (pNorm.includes("semana de poder 1") || pNorm.includes("semana poder 1") || pNorm.includes("sdp 1") || pNorm.includes("sdp1") || pNorm.includes("tsdp"))) return true;
+  if (hitoDef.key === "semana_poder_2" && (pNorm.includes("semana de poder 2") || pNorm.includes("semana poder 2") || pNorm.includes("sdp 2") || pNorm.includes("sdp2"))) return true;
+  if (hitoDef.key === "semana_poder_3" && (pNorm.includes("semana de poder 3") || pNorm.includes("semana poder 3") || pNorm.includes("sdp 3") || pNorm.includes("sdp3"))) return true;
 
   return false;
 }
@@ -428,12 +428,10 @@ export function useAfirmacionRuta() {
 
             if (callEntry) {
               resultadoLlamada = callEntry.codificacion;
-              if (callEntry.codificacion === "Contestó y atendió") {
+              if (estado === "Finalizado" || callEntry.codificacion || callEntry.fecha_llamada) {
                 estado = "Finalizado";
                 realizada = true;
                 if (!fechaRealizada) fechaRealizada = callEntry.fecha_llamada?.slice(0, 10) || null;
-              } else if (estado !== "Finalizado") {
-                estado = "En curso";
               }
             }
           }
