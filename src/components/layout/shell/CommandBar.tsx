@@ -66,12 +66,13 @@ export default function CommandBar({ open, onOpenChange }: Props) {
 
   // Búsqueda en personas
   useEffect(() => {
-    if (!open || query.length < 2) { setPersonas([]); return; }
+    if (!open || query.trim().length < 2) { setPersonas([]); return; }
     const t = setTimeout(async () => {
+      const clean = query.trim().replace(/,/g, " ");
       const { data } = await supabase
         .from("personas")
         .select("id,nombres,apellidos,documento,telefono")
-        .or(`nombres.ilike.%${query}%,apellidos.ilike.%${query}%,documento.ilike.%${query}%,telefono.ilike.%${query}%`)
+        .or(`nombres.ilike."%${clean}%",apellidos.ilike."%${clean}%",documento.ilike."%${clean}%",telefono.ilike."%${clean}%"`)
         .limit(6);
       setPersonas(data || []);
     }, 200);

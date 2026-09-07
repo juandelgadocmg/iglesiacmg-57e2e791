@@ -31,26 +31,42 @@ export default function EmailQueueManagerCard() {
   const { data: logs, isLoading, isRefetching, refetch } = useQuery({
     queryKey: ["email-send-logs"],
     queryFn: async () => {
-      // Intento 1: Usar la RPC get_email_send_logs
+      let list: EmailLogItem[] = [];
       const { data, error } = await supabase.rpc("get_email_send_logs" as any, { p_limit: 100 });
       if (!error && data) {
-        return data as EmailLogItem[];
+        list = data as EmailLogItem[];
+      } else {
+        const { data: directData } = await (supabase as any)
+          .from("email_send_log")
+          .select("*")
+          .order("created_at", { ascending: false })
+          .limit(100);
+        list = (directData || []) as EmailLogItem[];
       }
 
-      // Intento 2: Consulta directa a la tabla email_send_log
-      const { data: directData, error: directErr } = await (supabase as any)
-        .from("email_send_log")
-        .select("*")
-        .order("created_at", { ascending: false })
-        .limit(100);
+      // Deduplicar registros con el mismo message_id prefiriendo el estado más reciente (evita mostrar 'pending' cuando ya fue 'sent')
+      const map = new Map<string, EmailLogItem>();
+      const unkeyed: EmailLogItem[] = [];
 
-      if (directErr) {
-        console.warn("Could not fetch email send log:", directErr.message);
-        return [] as EmailLogItem[];
+      for (const item of list) {
+        if (!item.message_id) {
+          unkeyed.push(item);
+          continue;
+        }
+        const existing = map.get(item.message_id);
+        if (!existing) {
+          map.set(item.message_id, item);
+        } else if (existing.status === "pending" && item.status !== "pending") {
+          map.set(item.message_id, item);
+        }
       }
-      return (directData || []) as EmailLogItem[];
+
+      const deduplicated = Array.from(map.values()).concat(unkeyed);
+      return deduplicated.sort(
+        (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      );
     },
-    refetchInterval: 15000, // Refrescar automáticamente cada 15s
+    refetchInterval: 15000,
   });
 
   const handleSendTestEmail = async () => {

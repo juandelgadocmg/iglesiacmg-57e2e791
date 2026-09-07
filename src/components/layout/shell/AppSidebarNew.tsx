@@ -253,21 +253,19 @@ function Content({ onNav }: { onNav?: () => void }) {
       {/* Footer */}
       <div className="border-t border-sidebar-border p-2 space-y-0.5">
         <button
-          onClick={() => { openDiscipulando(); onNav?.(); }}
-          title={showCollapsed ? "Discipulando Naciones" : undefined}
+          onClick={() => { nav("/discipulado"); onNav?.(); }}
+          title={showCollapsed ? "Módulo de Discipulado" : undefined}
           className={cn(
             "group w-full flex items-center gap-2.5 h-8 rounded-md text-[12.5px] font-medium",
             "text-muted-foreground hover:text-foreground",
             "hover:bg-gradient-to-r hover:from-primary/10 hover:to-transparent",
-            showCollapsed ? "justify-center px-0" : "px-2.5"
+            showCollapsed ? "justify-center px-0" : "px-2.5",
+            pathname.startsWith("/discipulado") && activeCls
           )}
         >
-          <BookOpenText className="h-4 w-4 text-primary shrink-0" />
+          <Route className="h-4 w-4 text-primary shrink-0" />
           {!showCollapsed && (
-            <>
-              <span className="flex-1 truncate text-left">Discipulando</span>
-              <ExternalLink className="h-3 w-3 opacity-0 group-hover:opacity-60 transition-opacity" />
-            </>
+            <span className="flex-1 truncate text-left">Ficha Discipulado</span>
           )}
         </button>
         {!isMobile && (
