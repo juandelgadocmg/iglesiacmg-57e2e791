@@ -101,29 +101,33 @@ export default function AfirmacionPage() {
       }
 
       if (filterFecha !== "todas" && p.fechaIngreso) {
-        const ingTime = new Date(p.fechaIngreso).getTime();
-        const diffDays = (todayTime - ingTime) / (1000 * 60 * 60 * 24);
+        const parts = p.fechaIngreso.split("-");
+        const ingYear = Number(parts[0]);
+        const ingMonth = Number(parts[1]) - 1; // 0-indexed (0=Jan, 7=Aug, etc)
+        const ingDay = Number(parts[2] || 1);
+        const ingDate = new Date(ingYear, ingMonth, ingDay);
 
-        if (filterFecha === "7dias" && diffDays > 7) return false;
-        if (filterFecha === "15dias" && diffDays > 15) return false;
-        if (filterFecha === "30dias" && diffDays > 30) return false;
+        const todayZero = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const diffTime = todayZero.getTime() - ingDate.getTime();
+        const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+
+        if (filterFecha === "7dias" && (diffDays < 0 || diffDays > 7)) return false;
+        if (filterFecha === "15dias" && (diffDays < 0 || diffDays > 15)) return false;
+        if (filterFecha === "30dias" && (diffDays < 0 || diffDays > 30)) return false;
         if (filterFecha === "este_mes") {
-          const ingDate = new Date(p.fechaIngreso);
-          if (ingDate.getMonth() !== now.getMonth() || ingDate.getFullYear() !== now.getFullYear()) {
+          if (ingMonth !== now.getMonth() || ingYear !== now.getFullYear()) {
             return false;
           }
         }
         if (filterFecha === "mes_anterior") {
-          const ingDate = new Date(p.fechaIngreso);
           const prevMonth = now.getMonth() === 0 ? 11 : now.getMonth() - 1;
           const prevYear = now.getMonth() === 0 ? now.getFullYear() - 1 : now.getFullYear();
-          if (ingDate.getMonth() !== prevMonth || ingDate.getFullYear() !== prevYear) {
+          if (ingMonth !== prevMonth || ingYear !== prevYear) {
             return false;
           }
         }
         if (filterFecha === "este_anio") {
-          const ingDate = new Date(p.fechaIngreso);
-          if (ingDate.getFullYear() !== now.getFullYear()) return false;
+          if (ingYear !== now.getFullYear()) return false;
         }
       }
 
