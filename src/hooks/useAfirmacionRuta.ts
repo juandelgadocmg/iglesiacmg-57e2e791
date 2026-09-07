@@ -98,6 +98,51 @@ const norm = (s: any) =>
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "");
 
+function parseAnyDateToISO(rawDateStr: any, fallbackStr?: any): string {
+  const tryParse = (strVal: any): string | null => {
+    if (!strVal) return null;
+    const str = String(strVal).trim();
+    if (!str) return null;
+
+    // Match YYYY-MM-DD or YYYY/MM/DD
+    const isoMatch = str.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})/);
+    if (isoMatch) {
+      const y = isoMatch[1];
+      const m = isoMatch[2].padStart(2, "0");
+      const d = isoMatch[3].padStart(2, "0");
+      return `${y}-${m}-${d}`;
+    }
+
+    // Match DD/MM/YYYY or DD-MM-YYYY
+    const latMatch = str.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})/);
+    if (latMatch) {
+      const d = latMatch[1].padStart(2, "0");
+      const m = latMatch[2].padStart(2, "0");
+      const y = latMatch[3];
+      return `${y}-${m}-${d}`;
+    }
+
+    // Standard JS Date parse fallback
+    const dObj = new Date(str);
+    if (!isNaN(dObj.getTime())) {
+      const y = dObj.getFullYear();
+      const m = String(dObj.getMonth() + 1).padStart(2, "0");
+      const d = String(dObj.getDate()).padStart(2, "0");
+      return `${y}-${m}-${d}`;
+    }
+
+    return null;
+  };
+
+  const parsedPrimary = tryParse(rawDateStr);
+  if (parsedPrimary) return parsedPrimary;
+
+  const parsedFallback = tryParse(fallbackStr);
+  if (parsedFallback) return parsedFallback;
+
+  return new Date().toISOString().slice(0, 10);
+}
+
 function matchHitoWithProceso(hitoDef: HitoAfirmacionDef, procNombre: string): boolean {
   const pNorm = norm(procNombre);
   const hNorm = norm(hitoDef.nombre);
@@ -306,14 +351,22 @@ export function useAfirmacionRuta() {
 
       const list: PersonaAfirmacionRuta[] = personasVisitantesAfirmacion.map((p: any) => {
         const nombreCompleto = `${p.nombres || ""} ${p.apellidos || ""}`.trim() || "Sin Nombre";
-        const rawIngreso = p.fecha_ingreso || p.ingreso_proceso || p.created_at || todayStr;
-        const entryDateObj = new Date(rawIngreso);
-        const entryTime = isNaN(entryDateObj.getTime()) ? todayTime : entryDateObj.getTime();
-        const fechaIngresoStr = new Date(entryTime).toISOString().slice(0, 10);
+        const fechaIngresoStr = parseAnyDateToISO(
+          p.fecha_ingreso || p.ingreso_proceso,
+          p.created_at
+        );
+
+        const parts = fechaIngresoStr.split("-");
+        const entryYear = Number(parts[0]);
+        const entryMonth = Number(parts[1]) - 1;
+        const entryDay = Number(parts[2] || 1);
+        const entryTime = new Date(entryYear, entryMonth, entryDay).getTime();
+        const nowObj = new Date();
+        const todayZeroTime = new Date(nowObj.getFullYear(), nowObj.getMonth(), nowObj.getDate()).getTime();
 
         const diasDesdeIngreso = Math.max(
           0,
-          Math.floor((todayTime - entryTime) / (1000 * 60 * 60 * 24))
+          Math.floor((todayZeroTime - entryTime) / (1000 * 60 * 60 * 24))
         );
 
         const consolidadorNombre =
