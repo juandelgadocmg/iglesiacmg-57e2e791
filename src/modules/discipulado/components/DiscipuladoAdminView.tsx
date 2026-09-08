@@ -14,11 +14,8 @@ import {
   UserCheck,
   Building,
   RotateCw,
-  Folder,
-  MapPin,
-  Shield,
-  ChevronRight,
-  FolderOpen
+  FolderOpen,
+  UserPlus
 } from "lucide-react";
 import {
   Accordion,
@@ -26,11 +23,13 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import { AgregarDiscipuloModal } from "@/modules/discipulado/components/AgregarDiscipuloModal";
 
 export function DiscipuladoAdminView() {
   const { loadData, loading, discipulos, lideres, redes, casasDePaz, visitas, progreso } = useDiscipuladoAdmin();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedDiscipulo, setSelectedDiscipulo] = useState<any | null>(null);
+  const [agregarDiscipuloCasa, setAgregarDiscipuloCasa] = useState<{casa_id: string, lider_id: string | null} | null>(null);
 
   useEffect(() => {
     loadData();
@@ -75,8 +74,15 @@ export function DiscipuladoAdminView() {
           return { ...l, discipulos: lDiscs };
         }).filter(l => l.discipulos.length > 0 || (!term && l.id !== 'no-lider') || (term && l.full_name?.toLowerCase().includes(term)));
         
-        return { ...casa, lideres: casaLideres };
-      }).filter(c => c.lideres.length > 0 || (!term && c.id !== 'no-casa') || (term && c.name?.toLowerCase().includes(term)));
+        const allCasaDiscipulos = casaLideres.flatMap(l => l.discipulos);
+        
+        return { 
+          ...casa, 
+          lider_name: casaLideres.length > 0 && casaLideres[0].id !== 'no-lider' ? casaLideres.map(l => l.full_name).join(', ') : 'Sin Líder Asignado',
+          lider_id: casaLideres.length > 0 && casaLideres[0].id !== 'no-lider' ? casaLideres[0].id : null,
+          discipulos: allCasaDiscipulos 
+        };
+      }).filter(c => c.discipulos.length > 0 || (!term && c.id !== 'no-casa') || (term && c.name?.toLowerCase().includes(term)));
       
       if (parsedCasas.length > 0) {
         // If it's "no-red" and there's absolutely no data inside that matched, don't show it unless we have raw empty categories (only on no-search).
@@ -191,65 +197,83 @@ export function DiscipuladoAdminView() {
                             </AccordionTrigger>
                             <AccordionContent className="pt-0 pb-3 px-4">
                               
-                              <Accordion type="multiple" className="space-y-2 mt-2 pl-4 border-l border-slate-100 ml-1">
-                                {casa.lideres.map((lider: any) => (
-                                  <AccordionItem value={lider.id} key={lider.id} className="border border-slate-100 bg-slate-50/30 rounded-md overflow-hidden">
-                                    <AccordionTrigger className="px-3 py-2 hover:no-underline hover:bg-slate-50">
+                              <Accordion type="single" collapsible className="space-y-2 mt-2 pl-4 border-l border-slate-100 ml-1">
+                                <AccordionItem value={casa.id} className="border border-slate-100 bg-slate-50/30 rounded-md overflow-hidden">
+                                  <AccordionTrigger className="px-3 py-2 hover:no-underline hover:bg-slate-50">
+                                    <div className="flex items-center justify-between w-full pr-4">
                                       <div className="flex items-center gap-2">
-                                        <Shield className="w-3.5 h-3.5 text-slate-400" />
-                                        <span className="font-semibold text-slate-600 text-sm">{lider.full_name}</span>
-                                        <Badge variant="outline" className="ml-2 text-[10px] bg-white">{lider.discipulos.length} Discípulos</Badge>
+                                        <Users className="w-3.5 h-3.5 text-slate-400" />
+                                        <span className="font-semibold text-slate-600 text-sm">Directorio de Discípulos</span>
+                                        <Badge variant="outline" className="ml-2 text-[10px] bg-white">{casa.discipulos.length} Registrados</Badge>
                                       </div>
-                                    </AccordionTrigger>
-                                    <AccordionContent className="p-0">
-                                      {lider.discipulos.length === 0 ? (
-                                        <div className="p-3 text-xs text-slate-400 text-center bg-white border-t border-slate-100">Sin discípulos asignados</div>
-                                      ) : (
-                                        <div className="overflow-x-auto bg-white border-t border-slate-100">
-                                          <table className="w-full text-xs text-left">
-                                            <thead className="bg-slate-50 text-slate-500 font-bold uppercase text-[9px] tracking-wider">
-                                              <tr>
-                                                <th className="px-3 py-2">Discípulo</th>
-                                                <th className="px-3 py-2">Estado</th>
-                                                <th className="px-3 py-2">Última Visita</th>
-                                                <th className="px-3 py-2 text-right">Acciones</th>
-                                              </tr>
-                                            </thead>
-                                            <tbody className="divide-y divide-slate-50">
-                                              {lider.discipulos.map((d: any) => {
-                                                const vDisc = visitas.filter(v => v.discipulo_id === d.id);
-                                                const ultima = vDisc.length > 0 ? vDisc[0] : null;
-                                                return (
-                                                  <tr key={d.id} className="hover:bg-slate-50 transition-colors">
-                                                    <td className="px-3 py-2 font-medium text-slate-800">{d.full_name}</td>
-                                                    <td className="px-3 py-2">
-                                                      <Badge variant="outline" className={`text-[9px] px-1 py-0 ${d.status === 'Activo' ? 'bg-green-50 text-green-700 border-green-200' : ''}`}>
-                                                        {d.status}
-                                                      </Badge>
-                                                    </td>
-                                                    <td className="px-3 py-2 text-slate-500">
-                                                      {ultima ? new Date(ultima.fecha).toLocaleDateString() : 'N/A'}
-                                                    </td>
-                                                    <td className="px-3 py-2 text-right">
-                                                      <Button 
-                                                        variant="ghost" 
-                                                        size="sm" 
-                                                        className="h-6 text-[10px] text-red-600 hover:text-red-700 hover:bg-red-50 font-bold px-2"
-                                                        onClick={() => setSelectedDiscipulo(d)}
-                                                      >
-                                                        Ver Proceso
-                                                      </Button>
-                                                    </td>
-                                                  </tr>
-                                                );
-                                              })}
-                                            </tbody>
-                                          </table>
-                                        </div>
-                                      )}
-                                    </AccordionContent>
-                                  </AccordionItem>
-                                ))}
+                                    </div>
+                                  </AccordionTrigger>
+                                  <AccordionContent className="p-0">
+                                    <div className="p-3 bg-white border-t border-slate-100 flex justify-between items-center">
+                                      <p className="text-xs text-slate-500">
+                                        Líder(es) a cargo: <span className="font-bold text-slate-700">{casa.lider_name}</span>
+                                      </p>
+                                      <Button 
+                                        size="sm" 
+                                        className="h-7 text-xs gap-1 bg-red-600 hover:bg-red-700 text-white"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          setAgregarDiscipuloCasa({ casa_id: casa.id, lider_id: casa.lider_id });
+                                        }}
+                                      >
+                                        <UserPlus className="w-3.5 h-3.5" /> Agregar Discípulo
+                                      </Button>
+                                    </div>
+                                    
+                                    {casa.discipulos.length === 0 ? (
+                                      <div className="p-6 text-sm text-slate-400 text-center bg-white border-t border-slate-100">
+                                        No hay discípulos registrados en esta Casa de Paz.
+                                      </div>
+                                    ) : (
+                                      <div className="overflow-x-auto bg-white border-t border-slate-100">
+                                        <table className="w-full text-xs text-left">
+                                          <thead className="bg-slate-50 text-slate-500 font-bold uppercase text-[9px] tracking-wider">
+                                            <tr>
+                                              <th className="px-3 py-2">Discípulo</th>
+                                              <th className="px-3 py-2">Estado</th>
+                                              <th className="px-3 py-2">Última Visita</th>
+                                              <th className="px-3 py-2 text-right">Acciones</th>
+                                            </tr>
+                                          </thead>
+                                          <tbody className="divide-y divide-slate-50">
+                                            {casa.discipulos.map((d: any) => {
+                                              const vDisc = visitas.filter(v => v.discipulo_id === d.id);
+                                              const ultima = vDisc.length > 0 ? vDisc[0] : null;
+                                              return (
+                                                <tr key={d.id} className="hover:bg-slate-50 transition-colors">
+                                                  <td className="px-3 py-2 font-medium text-slate-800">{d.full_name}</td>
+                                                  <td className="px-3 py-2">
+                                                    <Badge variant="outline" className={`text-[9px] px-1 py-0 ${d.status === 'Activo' ? 'bg-green-50 text-green-700 border-green-200' : ''}`}>
+                                                      {d.status}
+                                                    </Badge>
+                                                  </td>
+                                                  <td className="px-3 py-2 text-slate-500">
+                                                    {ultima ? new Date(ultima.fecha).toLocaleDateString() : 'N/A'}
+                                                  </td>
+                                                  <td className="px-3 py-2 text-right">
+                                                    <Button 
+                                                      variant="ghost" 
+                                                      size="sm" 
+                                                      className="h-6 text-[10px] text-red-600 hover:text-red-700 hover:bg-red-50 font-bold px-2"
+                                                      onClick={() => setSelectedDiscipulo(d)}
+                                                    >
+                                                      Ver Proceso
+                                                    </Button>
+                                                  </td>
+                                                </tr>
+                                              );
+                                            })}
+                                          </tbody>
+                                        </table>
+                                      </div>
+                                    )}
+                                  </AccordionContent>
+                                </AccordionItem>
                               </Accordion>
 
                             </AccordionContent>
@@ -271,6 +295,16 @@ export function DiscipuladoAdminView() {
         onOpenChange={(open) => !open && setSelectedDiscipulo(null)}
         discipulo={selectedDiscipulo}
       />
+      
+      {agregarDiscipuloCasa && (
+        <AgregarDiscipuloModal
+          isOpen={!!agregarDiscipuloCasa}
+          onClose={() => setAgregarDiscipuloCasa(null)}
+          liderId={agregarDiscipuloCasa.lider_id || ''}
+          casaDePazId={agregarDiscipuloCasa.casa_id}
+          onSuccess={loadData}
+        />
+      )}
     </div>
   );
 }
