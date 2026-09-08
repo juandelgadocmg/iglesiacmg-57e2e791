@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { RegistrarVisitaModal } from "@/modules/discipulado/components/RegistrarVisitaModal";
 import { DiscipuloProcesoModal } from "@/modules/discipulado/components/DiscipuloProcesoModal";
 import { DiscipuladoAdminView } from "@/modules/discipulado/components/DiscipuladoAdminView";
+import { ImportarDiscipulosModal } from "@/modules/discipulado/components/ImportarDiscipulosModal";
 import { useVisitas } from "@/modules/discipulado/hooks/useVisitas";
 import { useActiveRole } from "@/hooks/useActiveRole";
 import {
@@ -19,7 +20,9 @@ import {
   AlertTriangle,
   History,
   PhoneCall,
-  UserCheck
+  UserCheck,
+  UploadCloud,
+  Trophy
 } from "lucide-react";
 
 export default function DiscipuladoPage() {
@@ -35,6 +38,7 @@ export default function DiscipuladoPage() {
 
   // Modals state
   const [isRegistrarVisitaOpen, setIsRegistrarVisitaOpen] = useState(false);
+  const [isImportarOpen, setIsImportarOpen] = useState(false);
   const [selectedDiscipuloProceso, setSelectedDiscipuloProceso] = useState<any | null>(null);
 
   const loadData = async () => {
@@ -136,7 +140,7 @@ export default function DiscipuladoPage() {
       asignados: discipulos.length,
       visitados: new Set(visitas.map(v => v.discipulo_id)).size,
       ensenados: visitas.filter(v => v.enseno).length,
-      orados: visitas.filter(v => v.oro).length,
+      npt: progreso.filter(p => p.etapa_code === 'NPT' && p.completed).length,
       tresSemanas: progreso.filter(p => p.etapa_code === 'TSDP' && p.completed).length,
       retiro: progreso.filter(p => p.etapa_code === 'RSI' && p.completed).length,
       recuperados: discipulos.filter(d => d.status === 'Activo' && d.notes?.includes('Recuperado')).length, // Aproximación
@@ -207,13 +211,23 @@ export default function DiscipuladoPage() {
       {/* Header Sticky con la acción principal */}
       <div className="sticky top-0 z-10 bg-white/80 backdrop-blur-md border-b shadow-sm px-4 py-4 flex items-center justify-between">
         <h1 className="text-2xl font-black text-slate-900 uppercase tracking-tighter">Mi Discipulado</h1>
-        <Button 
-          onClick={() => setIsRegistrarVisitaOpen(true)}
-          className="bg-red-600 hover:bg-red-700 text-white font-bold shadow-md shadow-red-200"
-        >
-          <Home className="w-4 h-4 mr-2" />
-          Registrar Visita
-        </Button>
+        <div className="flex gap-2">
+          <Button 
+            variant="outline"
+            onClick={() => setIsImportarOpen(true)}
+            className="hidden sm:flex border-slate-300 text-slate-700 font-medium"
+          >
+            <UploadCloud className="w-4 h-4 mr-2" />
+            Importar
+          </Button>
+          <Button 
+            onClick={() => setIsRegistrarVisitaOpen(true)}
+            className="bg-red-600 hover:bg-red-700 text-white font-bold shadow-md shadow-red-200"
+          >
+            <Home className="w-4 h-4 mr-2" />
+            Registrar Visita
+          </Button>
+        </div>
       </div>
 
       <div className="p-4 max-w-3xl mx-auto space-y-8 mt-2">
@@ -245,9 +259,9 @@ export default function DiscipuladoPage() {
             </Card>
             <Card className="bg-white border-0 shadow-sm">
               <CardContent className="p-4 flex flex-col items-center justify-center text-center">
-                <Sparkles className="w-5 h-5 text-red-500 mb-1" />
-                <span className="text-3xl font-black text-slate-800">{stats.orados}</span>
-                <span className="text-[10px] font-bold text-slate-400 uppercase">Orados</span>
+                <Trophy className="w-5 h-5 text-red-500 mb-1" />
+                <span className="text-3xl font-black text-slate-800">{stats.npt}</span>
+                <span className="text-[10px] font-bold text-slate-400 uppercase leading-tight">Nací Para Triunfar</span>
               </CardContent>
             </Card>
             
@@ -411,6 +425,16 @@ export default function DiscipuladoPage() {
         liderId={lider.id}
         onSuccess={loadData}
       />
+      
+      {lider && (
+        <ImportarDiscipulosModal
+          isOpen={isImportarOpen}
+          onClose={() => setIsImportarOpen(false)}
+          liderId={lider.id}
+          casaDePazId={lider.casa_de_paz_id}
+          onSuccess={loadData}
+        />
+      )}
       
       <DiscipuloProcesoModal
         open={!!selectedDiscipuloProceso}
