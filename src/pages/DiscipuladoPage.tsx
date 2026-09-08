@@ -132,7 +132,7 @@ export default function DiscipuladoPage() {
 
   useEffect(() => {
     loadData();
-  }, [session]);
+  }, [session, activeRole]);
 
   // Derived Stats
   const stats = useMemo(() => {
