@@ -86,7 +86,7 @@ export function DiscipuladoAdminView() {
       
       if (parsedCasas.length > 0) {
         // If it's "no-red" and there's absolutely no data inside that matched, don't show it unless we have raw empty categories (only on no-search).
-        if (red.id === 'no-red' && parsedCasas.length === 1 && parsedCasas[0].id === 'no-casa' && parsedCasas[0].lideres.length === 1 && parsedCasas[0].lideres[0].id === 'no-lider' && parsedCasas[0].lideres[0].discipulos.length === 0) {
+        if (red.id === 'no-red' && parsedCasas.length === 1 && parsedCasas[0].id === 'no-casa' && parsedCasas[0].discipulos.length === 0) {
            return;
         }
         tree.push({ ...red, casas: parsedCasas });
@@ -192,7 +192,7 @@ export function DiscipuladoAdminView() {
                               <div className="flex items-center gap-3">
                                 <MapPin className="w-4 h-4 text-slate-500" />
                                 <span className="font-bold text-slate-700">{casa.name}</span>
-                                <Badge variant="secondary" className="ml-2 text-[10px]">{casa.lideres.length} Líderes</Badge>
+                                <Badge variant="secondary" className="ml-2 text-[10px] bg-slate-100 text-slate-700 border-0">{casa.lider_name}</Badge>
                               </div>
                             </AccordionTrigger>
                             <AccordionContent className="pt-0 pb-3 px-4">
