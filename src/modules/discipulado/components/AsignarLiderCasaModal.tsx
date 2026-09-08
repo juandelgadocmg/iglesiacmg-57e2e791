@@ -33,17 +33,18 @@ export function AsignarLiderCasaModal({
 
   useEffect(() => {
     const search = async () => {
-      if (searchTerm.trim().length < 2) {
-        setSearchResults([]);
-        return;
+      let query = supabase
+        .from('personas')
+        .select('id, nombres, apellidos, email, telefono');
+
+      if (searchTerm.trim().length >= 2) {
+        query = query.or(`nombres.ilike.%${searchTerm}%,apellidos.ilike.%${searchTerm}%`).limit(20);
+      } else {
+        // Si no ha escrito nada, cargar todos los que tengan tipo_persona = 'Líder' por defecto
+        query = query.eq('tipo_persona', 'Líder').limit(100);
       }
       
-      // Buscar en personas por si el líder aún no está en la tabla leaders
-      const { data } = await supabase
-        .from('personas')
-        .select('id, nombres, apellidos, email, telefono')
-        .or(`nombres.ilike.%${searchTerm}%,apellidos.ilike.%${searchTerm}%`)
-        .limit(10);
+      const { data } = await query;
         
       if (data) {
         const mapped = data.map(p => ({
@@ -216,7 +217,9 @@ export function AsignarLiderCasaModal({
               
               {combinedLideres.length === 0 && (
                 <div className="text-center p-8 text-slate-500 text-sm">
-                  {searchTerm.length < 2 ? "Escribe al menos 2 letras para buscar en toda la base de datos." : "No se encontraron personas que coincidan con la búsqueda."}
+                  {searchTerm.length < 2 
+                    ? "Busca a cualquier persona por nombre para asignarla como líder." 
+                    : "No se encontraron personas que coincidan con la búsqueda."}
                 </div>
               )}
             </div>
