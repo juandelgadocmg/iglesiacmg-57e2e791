@@ -7,6 +7,8 @@ export function useDiscipuladoAdmin() {
 
   const [discipulos, setDiscipulos] = useState<any[]>([]);
   const [lideres, setLideres] = useState<any[]>([]);
+  const [redes, setRedes] = useState<any[]>([]);
+  const [casasDePaz, setCasasDePaz] = useState<any[]>([]);
   const [visitas, setVisitas] = useState<any[]>([]);
   const [progreso, setProgreso] = useState<any[]>([]);
 
@@ -14,7 +16,23 @@ export function useDiscipuladoAdmin() {
     setLoading(true);
     setError(null);
     try {
-      // 1. Get all Leaders
+      // 1. Get all Redes
+      const { data: redesData, error: rError } = await supabase
+        .from('redes')
+        .select('*')
+        .order('name');
+      if (rError) throw rError;
+      setRedes(redesData || []);
+
+      // 2. Get all Casas de Paz
+      const { data: casasData, error: cError } = await supabase
+        .from('casas_de_paz')
+        .select('*')
+        .order('name');
+      if (cError) throw cError;
+      setCasasDePaz(casasData || []);
+
+      // 3. Get all Leaders
       const { data: lideresData, error: lError } = await supabase
         .from('leaders')
         .select('*')
@@ -62,6 +80,8 @@ export function useDiscipuladoAdmin() {
     error,
     discipulos,
     lideres,
+    redes,
+    casasDePaz,
     visitas,
     progreso,
     loadData
