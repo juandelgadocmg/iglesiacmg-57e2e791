@@ -8,6 +8,7 @@ import { RegistrarVisitaModal } from "@/modules/discipulado/components/Registrar
 import { DiscipuloProcesoModal } from "@/modules/discipulado/components/DiscipuloProcesoModal";
 import { DiscipuladoAdminView } from "@/modules/discipulado/components/DiscipuladoAdminView";
 import { ImportarDiscipulosModal } from "@/modules/discipulado/components/ImportarDiscipulosModal";
+import { AgregarDiscipuloModal } from "@/modules/discipulado/components/AgregarDiscipuloModal";
 import { useVisitas } from "@/modules/discipulado/hooks/useVisitas";
 import { useActiveRole } from "@/hooks/useActiveRole";
 import {
@@ -22,7 +23,8 @@ import {
   PhoneCall,
   UserCheck,
   UploadCloud,
-  Trophy
+  Trophy,
+  UserPlus
 } from "lucide-react";
 
 export default function DiscipuladoPage() {
@@ -39,6 +41,7 @@ export default function DiscipuladoPage() {
   // Modals state
   const [isRegistrarVisitaOpen, setIsRegistrarVisitaOpen] = useState(false);
   const [isImportarOpen, setIsImportarOpen] = useState(false);
+  const [isAgregarOpen, setIsAgregarOpen] = useState(false);
   const [selectedDiscipuloProceso, setSelectedDiscipuloProceso] = useState<any | null>(null);
 
   const loadData = async () => {
@@ -220,6 +223,14 @@ export default function DiscipuladoPage() {
           >
             <UploadCloud className="w-4 h-4 mr-2" />
             Importar
+          </Button>
+          <Button 
+            variant="outline"
+            onClick={() => setIsAgregarOpen(true)}
+            className="border-slate-300 text-slate-700 font-medium bg-white"
+          >
+            <UserPlus className="w-4 h-4 sm:mr-2" />
+            <span className="hidden sm:inline">Agregar</span>
           </Button>
           <Button 
             onClick={() => setIsRegistrarVisitaOpen(true)}
@@ -431,6 +442,16 @@ export default function DiscipuladoPage() {
         <ImportarDiscipulosModal
           isOpen={isImportarOpen}
           onClose={() => setIsImportarOpen(false)}
+          liderId={lider.id}
+          casaDePazId={lider.casa_de_paz_id}
+          onSuccess={loadData}
+        />
+      )}
+
+      {lider && (
+        <AgregarDiscipuloModal
+          isOpen={isAgregarOpen}
+          onClose={() => setIsAgregarOpen(false)}
           liderId={lider.id}
           casaDePazId={lider.casa_de_paz_id}
           onSuccess={loadData}
