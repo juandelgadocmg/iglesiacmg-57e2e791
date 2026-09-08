@@ -73,30 +73,13 @@ export default function DiscipuladoPage() {
       }
     }
       
-    // 3. Auto-create if not found but user is logged in
+    // 3. Fallback in memory if no leader record exists but user is logged in
     if (!liderData && session.user.id) {
-      try {
-        const { data: newLider } = await supabase
-          .from('leaders')
-          .insert({
-            id: session.user.id,
-            full_name: session.user.user_metadata?.full_name || session.user.email?.split('@')[0] || 'Líder (Auto-generado)',
-            email: session.user.email,
-          })
-          .select('*')
-          .single();
-          
-        if (newLider) {
-          liderData = newLider;
-        }
-      } catch (err) {
-        console.error("No se pudo auto-crear el registro de líder", err);
-        liderData = {
-          id: session.user.id,
-          full_name: session.user.user_metadata?.full_name || session.user.email?.split('@')[0] || 'Líder',
-          email: session.user.email
-        };
-      }
+      liderData = {
+        id: session.user.id,
+        full_name: session.user.user_metadata?.full_name || session.user.email?.split('@')[0] || 'Líder',
+        email: session.user.email
+      };
     }
       
     // 4. Si aún no hay liderData y tiene un rol de liderazgo, forzar en memoria

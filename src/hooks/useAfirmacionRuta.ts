@@ -428,7 +428,7 @@ export function useAfirmacionRuta() {
 
             if (callEntry) {
               resultadoLlamada = callEntry.codificacion;
-              if (estado === "Finalizado" || callEntry.codificacion || callEntry.fecha_llamada) {
+              if (estado === "Finalizado" || callEntry.codificacion === "Contestó y atendió") {
                 estado = "Finalizado";
                 realizada = true;
                 if (!fechaRealizada) fechaRealizada = callEntry.fecha_llamada?.slice(0, 10) || null;

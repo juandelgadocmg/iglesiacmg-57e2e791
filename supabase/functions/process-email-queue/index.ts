@@ -49,7 +49,6 @@ function parseJwtClaims(token: string): Record<string, unknown> | null {
   }
 }
 
-// Update existing log entry if exists, or insert new if not found
 async function updateLogStatus(
   supabase: ReturnType<typeof createClient>,
   payload: Record<string, any>,
@@ -57,26 +56,13 @@ async function updateLogStatus(
   errorMessage?: string | null
 ): Promise<void> {
   const messageId = payload?.message_id
-  if (messageId && typeof messageId === 'string') {
-    const { data } = await supabase
-      .from('email_send_log')
-      .update({
-        status,
-        error_message: errorMessage ?? null,
-        created_at: new Date().toISOString(),
-      })
-      .eq('message_id', messageId)
-      .select('id')
-
-    if (data && data.length > 0) return
-  }
-
-  await supabase.from('email_send_log').insert({
-    message_id: messageId ?? null,
-    template_name: (payload?.label || 'transactional') as string,
-    recipient_email: (payload?.to || '') as string,
-    status,
-    error_message: errorMessage ?? null,
+  
+  await supabase.rpc('update_email_send_log_status', {
+    p_message_id: messageId && typeof messageId === 'string' ? messageId : null,
+    p_template_name: (payload?.label || 'transactional') as string,
+    p_recipient_email: (payload?.to || '') as string,
+    p_status: status,
+    p_error_message: errorMessage ?? null
   })
 }
 
