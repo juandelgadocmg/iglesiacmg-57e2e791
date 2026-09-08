@@ -40,8 +40,8 @@ export function AsignarLiderCasaModal({
       if (searchTerm.trim().length >= 2) {
         query = query.or(`nombres.ilike.%${searchTerm}%,apellidos.ilike.%${searchTerm}%`).limit(20);
       } else {
-        // Si no ha escrito nada, cargar todos los que tengan tipo_persona = 'Líder' por defecto
-        query = query.eq('tipo_persona', 'Líder').limit(100);
+        // Si no ha escrito nada, cargar una lista grande por defecto
+        query = query.limit(50);
       }
       
       const { data } = await query;
