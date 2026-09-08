@@ -172,21 +172,7 @@ export default function DiscipuladoPage() {
         }
       }
     });
-    // Add generic pending for active disciples with no visits in last 30 days
-    discipulos.forEach(d => {
-      const lastVisit = visitas.find(v => v.discipulo_id === d.id);
-      if (!lastVisit || (new Date().getTime() - new Date(lastVisit.fecha).getTime()) > 30 * 24 * 60 * 60 * 1000) {
-        if (!list.find(l => l.discipulo.id === d.id)) {
-           list.push({
-              id: `pend-stale-${d.id}`,
-              discipulo: d,
-              fecha: new Date().toISOString(),
-              tarea: 'Hace más de 30 días sin visita',
-              prioridad: 'Alta'
-           });
-        }
-      }
-    });
+
 
     return list.sort((a,b) => new Date(a.fecha).getTime() - new Date(b.fecha).getTime()).slice(0, 5);
   }, [visitas, discipulos]);
