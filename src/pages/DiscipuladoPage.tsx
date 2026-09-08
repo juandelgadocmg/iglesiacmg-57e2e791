@@ -41,12 +41,25 @@ export default function DiscipuladoPage() {
     if (!session?.user?.id) return;
     setLoading(true);
     
-    // 1. Get Lider record
-    const { data: liderData } = await supabase
+    // 1. Get Lider record by ID
+    let { data: liderData } = await supabase
       .from('leaders')
       .select('*')
       .eq('id', session.user.id)
-      .single();
+      .maybeSingle();
+
+    // 2. If not found by ID, try by email
+    if (!liderData && session.user.email) {
+      const { data: liderDataByEmail } = await supabase
+        .from('leaders')
+        .select('*')
+        .eq('email', session.user.email)
+        .maybeSingle();
+        
+      if (liderDataByEmail) {
+        liderData = liderDataByEmail;
+      }
+    }
       
     if (liderData) {
       setLider(liderData);
