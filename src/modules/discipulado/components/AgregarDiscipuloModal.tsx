@@ -42,8 +42,8 @@ export function AgregarDiscipuloModal({ isOpen, onClose, liderId, casaDePazId, o
     try {
       const { data, error } = await supabase
         .from('personas')
-        .select('id, nombre_completo, telefono')
-        .ilike('nombre_completo', `%${term}%`)
+        .select('id, nombres, apellidos, telefono')
+        .or(`nombres.ilike.%${term}%,apellidos.ilike.%${term}%`)
         .limit(10);
         
       if (error) throw error;
@@ -155,26 +155,29 @@ export function AgregarDiscipuloModal({ isOpen, onClose, liderId, casaDePazId, o
                   No se encontraron resultados. Intenta buscar de otra manera o usa la opción "Crear Manual".
                 </div>
               ) : (
-                searchResults.map(persona => (
-                  <div key={persona.id} className="p-3 flex justify-between items-center hover:bg-slate-50 transition-colors">
-                    <div>
-                      <p className="font-medium text-sm">{persona.nombre_completo}</p>
-                      {persona.telefono && <p className="text-xs text-slate-500">{persona.telefono}</p>}
+                searchResults.map(persona => {
+                  const nombreCompleto = `${persona.nombres} ${persona.apellidos}`.trim();
+                  return (
+                    <div key={persona.id} className="p-3 flex justify-between items-center hover:bg-slate-50 transition-colors">
+                      <div>
+                        <p className="font-medium text-sm">{nombreCompleto}</p>
+                        {persona.telefono && <p className="text-xs text-slate-500">{persona.telefono}</p>}
+                      </div>
+                      <Button 
+                        size="sm" 
+                        variant="outline"
+                        className="border-red-200 text-red-700 hover:bg-red-50"
+                        disabled={loading}
+                        onClick={() => saveDiscipulo({
+                          full_name: nombreCompleto,
+                          telefono: persona.telefono
+                        })}
+                      >
+                        Seleccionar
+                      </Button>
                     </div>
-                    <Button 
-                      size="sm" 
-                      variant="outline"
-                      className="border-red-200 text-red-700 hover:bg-red-50"
-                      disabled={loading}
-                      onClick={() => saveDiscipulo({
-                        full_name: persona.nombre_completo,
-                        telefono: persona.telefono
-                      })}
-                    >
-                      Seleccionar
-                    </Button>
-                  </div>
-                ))
+                  );
+                })
               )}
             </div>
           </TabsContent>
