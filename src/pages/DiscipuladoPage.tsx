@@ -6,7 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { RegistrarVisitaModal } from "@/modules/discipulado/components/RegistrarVisitaModal";
 import { DiscipuloProcesoModal } from "@/modules/discipulado/components/DiscipuloProcesoModal";
+import { DiscipuladoAdminView } from "@/modules/discipulado/components/DiscipuladoAdminView";
 import { useVisitas } from "@/modules/discipulado/hooks/useVisitas";
+import { useActiveRole } from "@/hooks/useActiveRole";
 import {
   Users,
   Home,
@@ -22,6 +24,7 @@ import {
 
 export default function DiscipuladoPage() {
   const { session } = useAuth();
+  const { activeRole } = useActiveRole();
   const { obtenerVisitasLider } = useVisitas();
 
   const [lider, setLider] = useState<any>(null);
@@ -134,6 +137,11 @@ export default function DiscipuladoPage() {
 
   if (loading) {
     return <div className="p-8 text-center text-slate-500 font-bold">Cargando Mi Discipulado...</div>;
+  }
+
+  // Si es admin o super_admin, mostrar la vista global
+  if (activeRole === 'admin' || activeRole === 'super_admin') {
+    return <DiscipuladoAdminView />;
   }
 
   if (!lider) {
