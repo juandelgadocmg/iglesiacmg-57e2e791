@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -28,25 +28,87 @@ export function AsignarLiderCasaModal({
   onSuccess
 }: AsignarLiderCasaModalProps) {
   const [searchTerm, setSearchTerm] = useState("");
+  const [searchResults, setSearchResults] = useState<any[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const filteredLideres = useMemo(() => {
-    return lideresDisponibles
-      .filter((l) => l.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) || l.email?.toLowerCase().includes(searchTerm.toLowerCase()))
-      .sort((a, b) => (a.full_name || '').localeCompare(b.full_name || ''));
-  }, [lideresDisponibles, searchTerm]);
+  useEffect(() => {
+    const search = async () => {
+      if (searchTerm.trim().length < 2) {
+        setSearchResults([]);
+        return;
+      }
+      
+      // Buscar en personas por si el líder aún no está en la tabla leaders
+      const { data } = await supabase
+        .from('personas')
+        .select('id, nombres, apellidos, email, telefono')
+        .or(`nombres.ilike.%${searchTerm}%,apellidos.ilike.%${searchTerm}%`)
+        .limit(10);
+        
+      if (data) {
+        const mapped = data.map(p => ({
+          id: p.id,
+          full_name: `${p.nombres} ${p.apellidos}`.trim(),
+          email: p.email,
+          phone: p.telefono,
+          casa_de_paz_id: null,
+          is_from_personas: true
+        }));
+        setSearchResults(mapped);
+      }
+    };
+    
+    const debounce = setTimeout(search, 300);
+    return () => clearTimeout(debounce);
+  }, [searchTerm]);
 
-  const handleAssign = async (liderId: string) => {
+  const combinedLideres = useMemo(() => {
+    // 1. Filtrar líderes existentes en el módulo
+    const existing = lideresDisponibles.filter((l) => 
+      l.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) || 
+      l.email?.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+    
+    // 2. Agregar resultados de personas (evitando duplicados por nombre)
+    const existingNames = new Set(existing.map(e => e.full_name?.toLowerCase()));
+    const newFromPersonas = searchResults.filter(r => !existingNames.has(r.full_name?.toLowerCase()));
+    
+    return [...existing, ...newFromPersonas].sort((a, b) => (a.full_name || '').localeCompare(b.full_name || ''));
+  }, [lideresDisponibles, searchTerm, searchResults]);
+
+  const handleAssign = async (lider: any) => {
     if (!casaId || casaId === 'no-casa') return;
     
     setIsSubmitting(true);
     try {
-      const { error } = await supabase
-        .from('leaders')
-        .update({ casa_de_paz_id: casaId })
-        .eq('id', liderId);
-
-      if (error) throw error;
+      if (lider.is_from_personas) {
+        // Upsert a la tabla leaders usando el ID de la persona
+        const { error: upsertError } = await supabase
+          .from('leaders')
+          .upsert({
+            id: lider.id,
+            full_name: lider.full_name,
+            email: lider.email,
+            phone: lider.phone,
+            casa_de_paz_id: casaId
+          }, { onConflict: 'id' });
+          
+        if (upsertError) throw upsertError;
+      } else {
+        // Actualizar el líder existente
+        const { error } = await supabase
+          .from('leaders')
+          .update({ casa_de_paz_id: casaId })
+          .eq('id', lider.id);
+          
+        if (error) throw error;
+      }
+      
+      // Actualizar también la tabla grupos (Casa de Paz) para mantener la sincronización
+      await supabase
+        .from('grupos')
+        .update({ lider_id: lider.id })
+        .eq('id', casaId);
       
       toast.success("Líder asignado exitosamente");
       onSuccess();
@@ -69,6 +131,12 @@ export function AsignarLiderCasaModal({
 
       if (error) throw error;
       
+      // Remover de grupos también
+      await supabase
+        .from('grupos')
+        .update({ lider_id: null })
+        .eq('id', casaId);
+      
       toast.success("Líder removido de la Casa de Paz");
       onSuccess();
       onClose();
@@ -86,7 +154,7 @@ export function AsignarLiderCasaModal({
         <DialogHeader>
           <DialogTitle>Asignar Líder</DialogTitle>
           <DialogDescription>
-            Selecciona un líder para la Casa de Paz <strong>{casaName}</strong>.
+            Busca y selecciona un líder de la base de datos para la Casa de Paz <strong>{casaName}</strong>.
           </DialogDescription>
         </DialogHeader>
 
@@ -94,7 +162,7 @@ export function AsignarLiderCasaModal({
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
             <Input
-              placeholder="Buscar por nombre o correo..."
+              placeholder="Busca cualquier persona por nombre..."
               className="pl-9"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
@@ -103,7 +171,7 @@ export function AsignarLiderCasaModal({
 
           <ScrollArea className="h-[300px] border rounded-md p-2">
             <div className="space-y-1">
-              {filteredLideres.map((lider) => {
+              {combinedLideres.map((lider) => {
                 const isCurrent = lider.casa_de_paz_id === casaId;
                 
                 return (
@@ -112,6 +180,7 @@ export function AsignarLiderCasaModal({
                       <p className="font-bold text-slate-800 flex items-center gap-2">
                         {lider.full_name}
                         {isCurrent && <Badge variant="default" className="text-[10px] bg-blue-600">Actual</Badge>}
+                        {lider.is_from_personas && !isCurrent && <Badge variant="outline" className="text-[10px] bg-slate-100 text-slate-500">Nuevo en discipulado</Badge>}
                       </p>
                       <p className="text-xs text-slate-500">{lider.email || 'Sin correo'}</p>
                       {!isCurrent && lider.casa_de_paz_id && (
@@ -134,7 +203,7 @@ export function AsignarLiderCasaModal({
                         size="sm" 
                         variant="secondary"
                         disabled={isSubmitting}
-                        onClick={() => handleAssign(lider.id)}
+                        onClick={() => handleAssign(lider)}
                         className="bg-blue-100 text-blue-700 hover:bg-blue-200"
                       >
                         <UserCheck className="w-4 h-4 mr-2" />
@@ -145,9 +214,9 @@ export function AsignarLiderCasaModal({
                 );
               })}
               
-              {filteredLideres.length === 0 && (
+              {combinedLideres.length === 0 && (
                 <div className="text-center p-8 text-slate-500 text-sm">
-                  No se encontraron líderes que coincidan con la búsqueda.
+                  {searchTerm.length < 2 ? "Escribe al menos 2 letras para buscar en toda la base de datos." : "No se encontraron personas que coincidan con la búsqueda."}
                 </div>
               )}
             </div>
