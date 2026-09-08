@@ -15,7 +15,8 @@ import {
   Building,
   RotateCw,
   FolderOpen,
-  UserPlus
+  UserPlus,
+  MapPin
 } from "lucide-react";
 import {
   Accordion,
