@@ -140,6 +140,7 @@ export default function DiscipuladoPage() {
       asignados: discipulos.length,
       visitados: new Set(visitas.map(v => v.discipulo_id)).size,
       ensenados: visitas.filter(v => v.enseno).length,
+      orados: visitas.filter(v => v.oro).length,
       npt: progreso.filter(p => p.etapa_code === 'NPT' && p.completed).length,
       tresSemanas: progreso.filter(p => p.etapa_code === 'TSDP' && p.completed).length,
       retiro: progreso.filter(p => p.etapa_code === 'RSI' && p.completed).length,
@@ -259,35 +260,35 @@ export default function DiscipuladoPage() {
             </Card>
             <Card className="bg-white border-0 shadow-sm">
               <CardContent className="p-4 flex flex-col items-center justify-center text-center">
-                <Trophy className="w-5 h-5 text-red-500 mb-1" />
-                <span className="text-3xl font-black text-slate-800">{stats.npt}</span>
-                <span className="text-[10px] font-bold text-slate-400 uppercase leading-tight">Nací Para Triunfar</span>
+                <Sparkles className="w-5 h-5 text-red-500 mb-1" />
+                <span className="text-3xl font-black text-slate-800">{stats.orados}</span>
+                <span className="text-[10px] font-bold text-slate-400 uppercase leading-tight">Casa Ungida</span>
               </CardContent>
             </Card>
             
-            {/* Secundarios */}
-            <Card className="bg-slate-800 border-0 shadow-sm text-white col-span-1">
-              <CardContent className="p-3 flex flex-col items-center justify-center text-center">
-                <span className="text-xl font-black">{stats.tresSemanas}</span>
-                <span className="text-[10px] font-bold text-slate-300 uppercase leading-tight mt-1">3 Semanas<br/>de Poder</span>
+            {/* ROW 2 */}
+            <Card className="bg-slate-800 text-white border-0 shadow-sm">
+              <CardContent className="p-4 flex flex-col items-center justify-center text-center">
+                <span className="text-3xl font-black">{stats.npt}</span>
+                <span className="text-[10px] font-bold text-slate-300 uppercase leading-tight">Nací Para Triunfar</span>
               </CardContent>
             </Card>
-            <Card className="bg-slate-800 border-0 shadow-sm text-white col-span-1">
-              <CardContent className="p-3 flex flex-col items-center justify-center text-center">
-                <span className="text-xl font-black">{stats.retiro}</span>
-                <span className="text-[10px] font-bold text-slate-300 uppercase leading-tight mt-1">En Retiro</span>
+            <Card className="bg-slate-800 text-white border-0 shadow-sm">
+              <CardContent className="p-4 flex flex-col items-center justify-center text-center">
+                <span className="text-3xl font-black">{stats.tresSemanas}</span>
+                <span className="text-[10px] font-bold text-slate-300 uppercase text-center leading-tight">3 Semanas<br/>de Poder</span>
               </CardContent>
             </Card>
-            <Card className="bg-slate-800 border-0 shadow-sm text-white col-span-1">
-              <CardContent className="p-3 flex flex-col items-center justify-center text-center">
-                <span className="text-xl font-black">{stats.recuperados}</span>
-                <span className="text-[10px] font-bold text-slate-300 uppercase leading-tight mt-1">Recuperados</span>
+            <Card className="bg-slate-800 text-white border-0 shadow-sm">
+              <CardContent className="p-4 flex flex-col items-center justify-center text-center">
+                <span className="text-3xl font-black">{stats.retiro}</span>
+                <span className="text-[10px] font-bold text-slate-300 uppercase leading-tight">Retiro</span>
               </CardContent>
             </Card>
-            <Card className="bg-red-600 border-0 shadow-sm text-white col-span-1">
-              <CardContent className="p-3 flex flex-col items-center justify-center text-center">
-                <span className="text-xl font-black">{stats.consolidados}</span>
-                <span className="text-[10px] font-bold text-red-200 uppercase leading-tight mt-1">Consolidados</span>
+            <Card className="bg-red-600 text-white border-0 shadow-sm">
+              <CardContent className="p-4 flex flex-col items-center justify-center text-center">
+                <span className="text-3xl font-black">{stats.consolidados}</span>
+                <span className="text-[10px] font-bold text-red-200 uppercase leading-tight">Consolidado</span>
               </CardContent>
             </Card>
           </div>
