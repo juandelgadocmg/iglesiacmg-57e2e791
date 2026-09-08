@@ -5,10 +5,12 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { RegistrarVisitaModal } from "@/modules/discipulado/components/RegistrarVisitaModal";
+import { RegistrarLlamadaModal } from "@/modules/discipulado/components/RegistrarLlamadaModal";
 import { DiscipuloProcesoModal } from "@/modules/discipulado/components/DiscipuloProcesoModal";
 import { DiscipuladoAdminView } from "@/modules/discipulado/components/DiscipuladoAdminView";
 import { ImportarDiscipulosModal } from "@/modules/discipulado/components/ImportarDiscipulosModal";
 import { AgregarDiscipuloModal } from "@/modules/discipulado/components/AgregarDiscipuloModal";
+import { ListaDiscipulosModal } from "@/modules/discipulado/components/ListaDiscipulosModal";
 import { useVisitas } from "@/modules/discipulado/hooks/useVisitas";
 import { useActiveRole } from "@/hooks/useActiveRole";
 import {
@@ -30,19 +32,22 @@ import {
 export default function DiscipuladoPage() {
   const { session } = useAuth();
   const { activeRole } = useActiveRole();
-  const { obtenerVisitasLider } = useVisitas();
+  const { obtenerVisitasLider, obtenerLlamadasLider } = useVisitas();
 
   const [lider, setLider] = useState<any>(null);
   const [discipulos, setDiscipulos] = useState<any[]>([]);
   const [visitas, setVisitas] = useState<any[]>([]);
+  const [llamadas, setLlamadas] = useState<any[]>([]);
   const [progreso, setProgreso] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Modals state
   const [isRegistrarVisitaOpen, setIsRegistrarVisitaOpen] = useState(false);
+  const [isRegistrarLlamadaOpen, setIsRegistrarLlamadaOpen] = useState(false);
   const [isImportarOpen, setIsImportarOpen] = useState(false);
   const [isAgregarOpen, setIsAgregarOpen] = useState(false);
   const [selectedDiscipuloProceso, setSelectedDiscipuloProceso] = useState<any | null>(null);
+  const [activeStatList, setActiveStatList] = useState<{title: string, list: any[]} | null>(null);
 
   const loadData = async () => {
     if (!session?.user?.id) return;
@@ -115,9 +120,12 @@ export default function DiscipuladoPage() {
         
       if (dData) setDiscipulos(dData);
       
-      // 3. Get Visitas for this leader
+      // 3. Get Visitas & Llamadas for this leader
       const vData = await obtenerVisitasLider(liderData.id);
       setVisitas(vData);
+
+      const llData = await obtenerLlamadasLider(liderData.id);
+      setLlamadas(llData);
       
       // 4. Get all progress for these discipulos to calculate "Consolidados", "Retiro", etc.
       if (dData && dData.length > 0) {
@@ -140,18 +148,46 @@ export default function DiscipuladoPage() {
   // Derived Stats
   const stats = useMemo(() => {
     const s = {
-      asignados: discipulos.length,
-      visitados: new Set(visitas.map(v => v.discipulo_id)).size,
-      ensenados: visitas.filter(v => v.enseno).length,
-      orados: visitas.filter(v => v.oro).length,
-      npt: progreso.filter(p => p.etapa_code === 'NPT' && p.completed).length,
-      tresSemanas: progreso.filter(p => p.etapa_code === 'TSDP' && p.completed).length,
-      retiro: progreso.filter(p => p.etapa_code === 'RSI' && p.completed).length,
-      recuperados: discipulos.filter(d => d.status === 'Activo' && d.notes?.includes('Recuperado')).length, // Aproximación
-      consolidados: discipulos.filter(d => d.status === 'Completado').length,
+      asignados: { count: discipulos.length, list: discipulos },
+      visitados: { 
+        count: new Set(visitas.map(v => v.discipulo_id)).size, 
+        list: discipulos.filter(d => visitas.some(v => v.discipulo_id === d.id)) 
+      },
+      llamados: {
+        count: new Set(llamadas.map(v => v.discipulo_id)).size, 
+        list: discipulos.filter(d => llamadas.some(v => v.discipulo_id === d.id))
+      },
+      ensenados: {
+        count: visitas.filter(v => v.enseno).length,
+        list: discipulos.filter(d => visitas.some(v => v.discipulo_id === d.id && v.enseno))
+      },
+      orados: {
+        count: visitas.filter(v => v.oro).length,
+        list: discipulos.filter(d => visitas.some(v => v.discipulo_id === d.id && v.oro))
+      },
+      npt: {
+        count: progreso.filter(p => p.etapa_code === 'NPT' && p.completed).length,
+        list: discipulos.filter(d => progreso.some(p => p.discipulo_id === d.id && p.etapa_code === 'NPT' && p.completed))
+      },
+      tresSemanas: {
+        count: progreso.filter(p => p.etapa_code === 'TSDP' && p.completed).length,
+        list: discipulos.filter(d => progreso.some(p => p.discipulo_id === d.id && p.etapa_code === 'TSDP' && p.completed))
+      },
+      retiro: {
+        count: progreso.filter(p => p.etapa_code === 'RSI' && p.completed).length,
+        list: discipulos.filter(d => progreso.some(p => p.discipulo_id === d.id && p.etapa_code === 'RSI' && p.completed))
+      },
+      recuperados: {
+        count: discipulos.filter(d => d.status === 'Activo' && d.notes?.includes('Recuperado')).length,
+        list: discipulos.filter(d => d.status === 'Activo' && d.notes?.includes('Recuperado'))
+      },
+      consolidados: {
+        count: discipulos.filter(d => d.status === 'Completado').length,
+        list: discipulos.filter(d => d.status === 'Completado')
+      },
     };
     return s;
-  }, [discipulos, visitas, progreso]);
+  }, [discipulos, visitas, llamadas, progreso]);
 
   // Pendientes
   const pendientes = useMemo(() => {
@@ -219,11 +255,18 @@ export default function DiscipuladoPage() {
             <span className="hidden sm:inline">Agregar</span>
           </Button>
           <Button 
+            onClick={() => setIsRegistrarLlamadaOpen(true)}
+            className="bg-blue-600 hover:bg-blue-700 text-white font-bold shadow-md shadow-blue-200"
+          >
+            <PhoneCall className="w-4 h-4 sm:mr-2" />
+            <span className="hidden sm:inline">Llamada</span>
+          </Button>
+          <Button 
             onClick={() => setIsRegistrarVisitaOpen(true)}
             className="bg-red-600 hover:bg-red-700 text-white font-bold shadow-md shadow-red-200"
           >
-            <Home className="w-4 h-4 mr-2" />
-            Registrar Visita
+            <Home className="w-4 h-4 sm:mr-2" />
+            <span className="hidden sm:inline">Visita</span>
           </Button>
         </div>
       </div>
@@ -233,58 +276,66 @@ export default function DiscipuladoPage() {
         {/* MI COSECHA */}
         <section>
           <h2 className="text-sm font-bold text-slate-500 uppercase tracking-widest mb-3">Mi Cosecha</h2>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <Card className="bg-white border-0 shadow-sm">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+            {/* ROW 1 */}
+            <Card className="bg-white border-0 shadow-sm cursor-pointer hover:shadow-md transition-all active:scale-95" onClick={() => setActiveStatList({ title: 'Discípulos', list: stats.asignados.list })}>
               <CardContent className="p-4 flex flex-col items-center justify-center text-center">
                 <Users className="w-5 h-5 text-red-500 mb-1" />
-                <span className="text-3xl font-black text-slate-800">{stats.asignados}</span>
+                <span className="text-3xl font-black text-slate-800">{stats.asignados.count}</span>
                 <span className="text-[10px] font-bold text-slate-400 uppercase">Discípulos</span>
               </CardContent>
             </Card>
-            <Card className="bg-white border-0 shadow-sm">
+            <Card className="bg-white border-0 shadow-sm cursor-pointer hover:shadow-md transition-all active:scale-95" onClick={() => setActiveStatList({ title: 'Visitados', list: stats.visitados.list })}>
               <CardContent className="p-4 flex flex-col items-center justify-center text-center">
                 <Home className="w-5 h-5 text-red-500 mb-1" />
-                <span className="text-3xl font-black text-slate-800">{stats.visitados}</span>
+                <span className="text-3xl font-black text-slate-800">{stats.visitados.count}</span>
                 <span className="text-[10px] font-bold text-slate-400 uppercase">Visitados</span>
               </CardContent>
             </Card>
-            <Card className="bg-white border-0 shadow-sm">
+            <Card className="bg-white border-0 shadow-sm cursor-pointer hover:shadow-md transition-all active:scale-95" onClick={() => setActiveStatList({ title: 'Llamados', list: stats.llamados.list })}>
+              <CardContent className="p-4 flex flex-col items-center justify-center text-center">
+                <PhoneCall className="w-5 h-5 text-blue-500 mb-1" />
+                <span className="text-3xl font-black text-slate-800">{stats.llamados.count}</span>
+                <span className="text-[10px] font-bold text-slate-400 uppercase">Llamados</span>
+              </CardContent>
+            </Card>
+            <Card className="bg-white border-0 shadow-sm cursor-pointer hover:shadow-md transition-all active:scale-95" onClick={() => setActiveStatList({ title: 'Enseñados', list: stats.ensenados.list })}>
               <CardContent className="p-4 flex flex-col items-center justify-center text-center">
                 <BookOpen className="w-5 h-5 text-red-500 mb-1" />
-                <span className="text-3xl font-black text-slate-800">{stats.ensenados}</span>
+                <span className="text-3xl font-black text-slate-800">{stats.ensenados.count}</span>
                 <span className="text-[10px] font-bold text-slate-400 uppercase">Enseñados</span>
               </CardContent>
             </Card>
-            <Card className="bg-white border-0 shadow-sm">
+            <Card className="bg-white border-0 shadow-sm cursor-pointer hover:shadow-md transition-all active:scale-95" onClick={() => setActiveStatList({ title: 'Casa Ungida', list: stats.orados.list })}>
               <CardContent className="p-4 flex flex-col items-center justify-center text-center">
                 <Sparkles className="w-5 h-5 text-red-500 mb-1" />
-                <span className="text-3xl font-black text-slate-800">{stats.orados}</span>
+                <span className="text-3xl font-black text-slate-800">{stats.orados.count}</span>
                 <span className="text-[10px] font-bold text-slate-400 uppercase leading-tight">Casa Ungida</span>
               </CardContent>
             </Card>
             
             {/* ROW 2 */}
-            <Card className="bg-slate-800 text-white border-0 shadow-sm">
+            <Card className="bg-slate-800 text-white border-0 shadow-sm cursor-pointer hover:bg-slate-700 transition-all active:scale-95" onClick={() => setActiveStatList({ title: 'Nací para Triunfar', list: stats.npt.list })}>
               <CardContent className="p-4 flex flex-col items-center justify-center text-center">
-                <span className="text-3xl font-black">{stats.npt}</span>
+                <span className="text-3xl font-black">{stats.npt.count}</span>
                 <span className="text-[10px] font-bold text-slate-300 uppercase leading-tight">Nací Para Triunfar</span>
               </CardContent>
             </Card>
-            <Card className="bg-slate-800 text-white border-0 shadow-sm">
+            <Card className="bg-slate-800 text-white border-0 shadow-sm cursor-pointer hover:bg-slate-700 transition-all active:scale-95" onClick={() => setActiveStatList({ title: '3 Semanas de Poder', list: stats.tresSemanas.list })}>
               <CardContent className="p-4 flex flex-col items-center justify-center text-center">
-                <span className="text-3xl font-black">{stats.tresSemanas}</span>
+                <span className="text-3xl font-black">{stats.tresSemanas.count}</span>
                 <span className="text-[10px] font-bold text-slate-300 uppercase text-center leading-tight">3 Semanas<br/>de Poder</span>
               </CardContent>
             </Card>
-            <Card className="bg-slate-800 text-white border-0 shadow-sm">
+            <Card className="bg-slate-800 text-white border-0 shadow-sm cursor-pointer hover:bg-slate-700 transition-all active:scale-95" onClick={() => setActiveStatList({ title: 'Retiro', list: stats.retiro.list })}>
               <CardContent className="p-4 flex flex-col items-center justify-center text-center">
-                <span className="text-3xl font-black">{stats.retiro}</span>
+                <span className="text-3xl font-black">{stats.retiro.count}</span>
                 <span className="text-[10px] font-bold text-slate-300 uppercase leading-tight">Retiro</span>
               </CardContent>
             </Card>
-            <Card className="bg-red-600 text-white border-0 shadow-sm">
+            <Card className="bg-red-600 text-white border-0 shadow-sm cursor-pointer hover:bg-red-500 transition-all active:scale-95" onClick={() => setActiveStatList({ title: 'Consolidado', list: stats.consolidados.list })}>
               <CardContent className="p-4 flex flex-col items-center justify-center text-center">
-                <span className="text-3xl font-black">{stats.consolidados}</span>
+                <span className="text-3xl font-black">{stats.consolidados.count}</span>
                 <span className="text-[10px] font-bold text-red-200 uppercase leading-tight">Consolidado</span>
               </CardContent>
             </Card>
@@ -420,9 +471,19 @@ export default function DiscipuladoPage() {
         open={isRegistrarVisitaOpen}
         onOpenChange={setIsRegistrarVisitaOpen}
         discipulos={discipulos}
-        liderId={lider.id}
+        liderId={lider?.id}
         onSuccess={loadData}
       />
+      
+      {lider && (
+        <RegistrarLlamadaModal
+          open={isRegistrarLlamadaOpen}
+          onOpenChange={setIsRegistrarLlamadaOpen}
+          discipulos={discipulos}
+          liderId={lider.id}
+          onSuccess={loadData}
+        />
+      )}
       
       {lider && (
         <ImportarDiscipulosModal
@@ -448,6 +509,13 @@ export default function DiscipuladoPage() {
         open={!!selectedDiscipuloProceso}
         onOpenChange={(open) => !open && setSelectedDiscipuloProceso(null)}
         discipulo={selectedDiscipuloProceso}
+      />
+      
+      <ListaDiscipulosModal
+        isOpen={!!activeStatList}
+        onClose={() => setActiveStatList(null)}
+        title={activeStatList?.title || ''}
+        discipulos={activeStatList?.list || []}
       />
 
     </div>

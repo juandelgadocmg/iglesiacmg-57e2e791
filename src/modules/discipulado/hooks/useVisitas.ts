@@ -29,6 +29,40 @@ export function useVisitas() {
     }
   };
 
+  const registrarLlamada = async (
+    discipulo_id: string,
+    lider_id: string,
+    fecha: string,
+    hora: string,
+    descripcion: string
+  ) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const { data, error: err } = await supabase
+        .from('discipulo_actividades')
+        .insert({
+          discipulo_id,
+          lider_id,
+          tipo_actividad: 'Llamada',
+          fecha,
+          hora: hora || null,
+          descripcion
+        })
+        .select()
+        .single();
+        
+      if (err) throw err;
+      return data;
+    } catch (err: any) {
+      console.error('Error registrando llamada:', err);
+      setError(err.message);
+      return null;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const obtenerVisitasLider = async (liderId: string) => {
     setLoading(true);
     try {
@@ -42,6 +76,26 @@ export function useVisitas() {
       return data as DiscipuloVisita[];
     } catch (err: any) {
       console.error('Error obteniendo visitas:', err);
+      return [];
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const obtenerLlamadasLider = async (liderId: string) => {
+    setLoading(true);
+    try {
+      const { data, error: err } = await supabase
+        .from('discipulo_actividades')
+        .select('*')
+        .eq('lider_id', liderId)
+        .eq('tipo_actividad', 'Llamada')
+        .order('fecha', { ascending: false });
+        
+      if (err) throw err;
+      return data as DiscipuloActividad[];
+    } catch (err: any) {
+      console.error('Error obteniendo llamadas:', err);
       return [];
     } finally {
       setLoading(false);
@@ -89,7 +143,9 @@ export function useVisitas() {
 
   return {
     registrarVisita,
+    registrarLlamada,
     obtenerVisitasLider,
+    obtenerLlamadasLider,
     obtenerVisitasDiscipulo,
     obtenerActividadesDiscipulo,
     loading,
