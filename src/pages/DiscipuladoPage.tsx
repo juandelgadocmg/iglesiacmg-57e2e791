@@ -40,6 +40,7 @@ export default function DiscipuladoPage() {
   const [llamadas, setLlamadas] = useState<any[]>([]);
   const [progreso, setProgreso] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [casaDePazInfo, setCasaDePazInfo] = useState<{nombre: string, red: string} | null>(null);
 
   // Modals state
   const [isRegistrarVisitaOpen, setIsRegistrarVisitaOpen] = useState(false);
@@ -93,6 +94,19 @@ export default function DiscipuladoPage() {
       
     if (liderData) {
       setLider(liderData);
+      
+      // Fetch Casa de Paz info
+      if (liderData.casa_de_paz_id) {
+        const { data: casaData } = await supabase
+          .from('grupos')
+          .select('nombre, red')
+          .eq('id', liderData.casa_de_paz_id)
+          .maybeSingle();
+          
+        if (casaData) {
+          setCasaDePazInfo({ nombre: casaData.nombre, red: casaData.red });
+        }
+      }
       
       // 2. Get Discipulos for this leader
       const { data: dData } = await supabase
@@ -218,8 +232,22 @@ export default function DiscipuladoPage() {
   return (
     <div className="bg-slate-50 min-h-screen pb-20">
       {/* Header Sticky con la acción principal */}
-      <div className="sticky top-0 z-10 bg-white/80 backdrop-blur-md border-b shadow-sm px-4 py-4 flex items-center justify-between">
-        <h1 className="text-2xl font-black text-slate-900 uppercase tracking-tighter">Mi Discipulado</h1>
+      <div className="sticky top-0 z-10 bg-white/80 backdrop-blur-md border-b shadow-sm px-4 py-4 flex items-center justify-between flex-wrap gap-2">
+        <div>
+          <h1 className="text-2xl font-black text-slate-900 uppercase tracking-tighter">Mi Discipulado</h1>
+          {casaDePazInfo && (
+            <div className="flex items-center gap-2 mt-1">
+              <Badge variant="secondary" className="bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-100 text-[10px]">
+                🏡 {casaDePazInfo.nombre}
+              </Badge>
+              {casaDePazInfo.red && (
+                <Badge variant="outline" className="text-slate-600 border-slate-200 bg-white text-[10px]">
+                  Red {casaDePazInfo.red}
+                </Badge>
+              )}
+            </div>
+          )}
+        </div>
         <div className="flex gap-2">
           <Button 
             variant="outline"

@@ -25,12 +25,14 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { AgregarDiscipuloModal } from "@/modules/discipulado/components/AgregarDiscipuloModal";
+import { AsignarLiderCasaModal } from "@/modules/discipulado/components/AsignarLiderCasaModal";
 
 export function DiscipuladoAdminView() {
   const { loadData, loading, discipulos, lideres, redes, casasDePaz, visitas, progreso } = useDiscipuladoAdmin();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedDiscipulo, setSelectedDiscipulo] = useState<any | null>(null);
   const [agregarDiscipuloCasa, setAgregarDiscipuloCasa] = useState<{casa_id: string, lider_id: string | null} | null>(null);
+  const [asignarLiderCasa, setAsignarLiderCasa] = useState<{casa_id: string, casa_name: string, current_lider_id?: string | null} | null>(null);
 
   useEffect(() => {
     loadData();
@@ -211,9 +213,22 @@ export function DiscipuladoAdminView() {
                                   </AccordionTrigger>
                                   <AccordionContent className="p-0">
                                     <div className="p-3 bg-white border-t border-slate-100 flex justify-between items-center">
-                                      <p className="text-xs text-slate-500">
-                                        Líder(es) a cargo: <span className="font-bold text-slate-700">{casa.lider_name}</span>
-                                      </p>
+                                      <div className="flex items-center gap-2">
+                                        <p className="text-xs text-slate-500">
+                                          Líder a cargo: <span className="font-bold text-slate-700">{casa.lider_name}</span>
+                                        </p>
+                                        <Button 
+                                          variant="ghost" 
+                                          size="sm" 
+                                          className="h-6 px-2 text-[10px] bg-slate-100 hover:bg-slate-200 text-slate-600"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            setAsignarLiderCasa({ casa_id: casa.id, casa_name: casa.name, current_lider_id: casa.lider_id });
+                                          }}
+                                        >
+                                          Cambiar/Asignar
+                                        </Button>
+                                      </div>
                                       <Button 
                                         size="sm" 
                                         className="h-7 text-xs gap-1 bg-red-600 hover:bg-red-700 text-white"
@@ -299,11 +314,23 @@ export function DiscipuladoAdminView() {
       
       {agregarDiscipuloCasa && (
         <AgregarDiscipuloModal
-          isOpen={!!agregarDiscipuloCasa}
+          isOpen={true}
           onClose={() => setAgregarDiscipuloCasa(null)}
           liderId={agregarDiscipuloCasa.lider_id || ''}
           casaDePazId={agregarDiscipuloCasa.casa_id}
           onSuccess={loadData}
+        />
+      )}
+
+      {asignarLiderCasa && (
+        <AsignarLiderCasaModal
+          isOpen={true}
+          onClose={() => setAsignarLiderCasa(null)}
+          onSuccess={loadData}
+          casaId={asignarLiderCasa.casa_id}
+          casaName={asignarLiderCasa.casa_name}
+          currentLiderId={asignarLiderCasa.current_lider_id}
+          lideresDisponibles={lideres}
         />
       )}
     </div>
