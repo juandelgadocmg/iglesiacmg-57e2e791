@@ -79,7 +79,21 @@ export default function DiscipuladoPage() {
         }
       } catch (err) {
         console.error("No se pudo auto-crear el registro de líder", err);
+        liderData = {
+          id: session.user.id,
+          full_name: session.user.user_metadata?.full_name || session.user.email?.split('@')[0] || 'Líder',
+          email: session.user.email
+        };
       }
+    }
+      
+    // 4. Si aún no hay liderData y tiene un rol de liderazgo, forzar en memoria
+    if (!liderData && ['lider_casa_paz', 'lider', 'pastor'].includes(activeRole || '')) {
+      liderData = {
+        id: session.user.id,
+        full_name: 'Líder',
+        email: session.user.email
+      };
     }
       
     if (liderData) {
