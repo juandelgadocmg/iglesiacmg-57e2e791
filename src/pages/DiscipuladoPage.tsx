@@ -403,9 +403,24 @@ export default function DiscipuladoPage() {
                             {d.status}
                           </Badge>
                           {d.telefono && (
-                            <Badge variant="secondary" className="flex items-center gap-1 text-slate-600 bg-slate-100">
-                              <PhoneCall className="w-3 h-3" /> {d.telefono}
-                            </Badge>
+                            <div className="flex items-center gap-1.5">
+                              <a 
+                                href={`tel:${d.telefono.replace(/\D/g, '')}`} 
+                                className="inline-flex items-center gap-1 text-slate-600 bg-slate-100 hover:bg-slate-200 hover:text-slate-900 transition-colors px-2 py-0.5 rounded-full text-xs font-semibold"
+                                title="Llamar (Integra con Zadarma u otros softphones)"
+                              >
+                                <PhoneCall className="w-3 h-3" /> {d.telefono}
+                              </a>
+                              <a 
+                                href={`https://wa.me/${d.telefono.replace(/\D/g, '')}`} 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-green-50 text-green-600 hover:bg-green-500 hover:text-white transition-colors border border-green-200 hover:border-green-500 shadow-sm"
+                                title="Escribir por WhatsApp"
+                              >
+                                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M3 21l1.65-3.8a9 9 0 1 1 3.4 2.9L3 21" /><path d="M9 10a.5.5 0 0 0 1 0V9a.5.5 0 0 0-1 0v1a5 5 0 0 0 5 5h1a.5.5 0 0 0 0-1h-1a.5.5 0 0 0 0 1" /></svg>
+                              </a>
+                            </div>
                           )}
                         </div>
                         

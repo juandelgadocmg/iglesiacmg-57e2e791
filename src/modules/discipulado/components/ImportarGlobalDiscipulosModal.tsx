@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { UploadCloud, FileSpreadsheet, Loader2, AlertCircle } from 'lucide-react';
+import { UploadCloud, FileSpreadsheet, Loader2, AlertCircle, DownloadCloud } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -159,6 +159,25 @@ export function ImportarGlobalDiscipulosModal({ isOpen, onClose, onSuccess }: Im
     }
   };
 
+  const handleDownloadTemplate = () => {
+    const ws = XLSX.utils.json_to_sheet([{
+      ITEM: 1,
+      NOMBRE: 'Ejemplo Nombre',
+      APELLIDO: 'Ejemplo Apellido',
+      ID: 'CEDULA',
+      '# ID': '12345678',
+      SEXO: 'MASCULINO',
+      CELULAR: '3001234567',
+      EDAD: 30,
+      RED: 'ELOHIM',
+      CDP: 'NOMBRE_CDP'
+    }]);
+    
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Plantilla");
+    XLSX.writeFile(wb, "Plantilla_Importacion_Discipulos.xlsx");
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="sm:max-w-md">
@@ -207,18 +226,25 @@ export function ImportarGlobalDiscipulosModal({ isOpen, onClose, onSuccess }: Im
           </div>
         </div>
 
-        <div className="flex justify-end gap-2 mt-2">
-          <Button variant="outline" onClick={onClose} disabled={loading}>
-            Cancelar
+        <div className="flex justify-between items-center mt-4">
+          <Button variant="outline" size="sm" onClick={handleDownloadTemplate} className="text-indigo-600 border-indigo-200 hover:bg-indigo-50">
+            <DownloadCloud className="w-4 h-4 mr-2" />
+            Descargar Plantilla
           </Button>
-          <Button 
-            onClick={handleImport} 
-            disabled={!file || parsedData.length === 0 || loading}
-            className="bg-indigo-600 hover:bg-indigo-700 text-white"
-          >
-            {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <UploadCloud className="w-4 h-4 mr-2" />}
-            Importar
-          </Button>
+          
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={onClose} disabled={loading}>
+              Cancelar
+            </Button>
+            <Button 
+              onClick={handleImport} 
+              disabled={!file || parsedData.length === 0 || loading}
+              className="bg-indigo-600 hover:bg-indigo-700 text-white"
+            >
+              {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <UploadCloud className="w-4 h-4 mr-2" />}
+              Importar
+            </Button>
+          </div>
         </div>
       </DialogContent>
     </Dialog>
