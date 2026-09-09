@@ -1,5 +1,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import { Loader2 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -49,6 +51,7 @@ export default function DiscipuladoPage() {
   const [isAgregarOpen, setIsAgregarOpen] = useState(false);
   const [selectedDiscipuloProceso, setSelectedDiscipuloProceso] = useState<any | null>(null);
   const [activeStatList, setActiveStatList] = useState<{title: string, list: any[]} | null>(null);
+  const [callingId, setCallingId] = useState<string | null>(null);
 
   const loadData = async () => {
     if (!session?.user?.id) return;
@@ -141,6 +144,28 @@ export default function DiscipuladoPage() {
   useEffect(() => {
     loadData();
   }, [session, activeRole]);
+
+  const handleZadarmaCall = async (discipuloId: string, telefono: string) => {
+    try {
+      setCallingId(discipuloId);
+      const { data, error } = await supabase.functions.invoke('zadarma-callback', {
+        body: { to: telefono }
+      });
+      
+      if (error) throw error;
+      
+      if (data?.success) {
+        toast.success("Zadarma te está llamando, contesta para conectar con el discípulo.");
+      } else {
+        toast.error(data?.error || "Error al iniciar la llamada");
+      }
+    } catch (err: any) {
+      console.error("Zadarma call error:", err);
+      toast.error("Error de conexión con Zadarma");
+    } finally {
+      setCallingId(null);
+    }
+  };
 
   // Derived Stats
   const stats = useMemo(() => {
@@ -404,13 +429,15 @@ export default function DiscipuladoPage() {
                           </Badge>
                           {d.telefono && (
                             <div className="flex items-center gap-1.5">
-                              <a 
-                                href={`tel:${d.telefono.replace(/\D/g, '')}`} 
-                                className="inline-flex items-center gap-1 text-slate-600 bg-slate-100 hover:bg-slate-200 hover:text-slate-900 transition-colors px-2 py-0.5 rounded-full text-xs font-semibold"
-                                title="Llamar (Integra con Zadarma u otros softphones)"
+                              <button 
+                                onClick={() => handleZadarmaCall(d.id, d.telefono)}
+                                disabled={callingId === d.id}
+                                className="inline-flex items-center gap-1 text-slate-600 bg-slate-100 hover:bg-slate-200 hover:text-slate-900 transition-colors px-2 py-0.5 rounded-full text-xs font-semibold disabled:opacity-50"
+                                title="Llamar usando Zadarma (te llamará a ti primero)"
                               >
-                                <PhoneCall className="w-3 h-3" /> {d.telefono}
-                              </a>
+                                {callingId === d.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <PhoneCall className="w-3 h-3" />}
+                                {d.telefono}
+                              </button>
                               <a 
                                 href={`https://wa.me/${d.telefono.replace(/\D/g, '')}`} 
                                 target="_blank" 
