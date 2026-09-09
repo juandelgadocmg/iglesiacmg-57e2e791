@@ -26,6 +26,8 @@ import {
 } from "@/components/ui/accordion";
 import { AgregarDiscipuloModal } from "@/modules/discipulado/components/AgregarDiscipuloModal";
 import { AsignarLiderCasaModal } from "@/modules/discipulado/components/AsignarLiderCasaModal";
+import { ImportarGlobalDiscipulosModal } from "@/modules/discipulado/components/ImportarGlobalDiscipulosModal";
+import { UploadCloud } from "lucide-react";
 
 export function DiscipuladoAdminView() {
   const { loadData, loading, discipulos, lideres, redes, casasDePaz, visitas, progreso } = useDiscipuladoAdmin();
@@ -33,6 +35,7 @@ export function DiscipuladoAdminView() {
   const [selectedDiscipulo, setSelectedDiscipulo] = useState<any | null>(null);
   const [agregarDiscipuloCasa, setAgregarDiscipuloCasa] = useState<{casa_id: string, lider_id: string | null} | null>(null);
   const [asignarLiderCasa, setAsignarLiderCasa] = useState<{casa_id: string, casa_name: string, current_lider_id?: string | null} | null>(null);
+  const [importarModalOpen, setImportarModalOpen] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -159,14 +162,25 @@ export function DiscipuladoAdminView() {
             <h2 className="text-lg font-black text-slate-800 flex items-center gap-2">
               <Building className="w-5 h-5 text-slate-500" /> Directorio de Discipulado
             </h2>
-            <div className="relative w-full md:w-72">
-              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-              <Input
-                placeholder="Buscar discípulo o líder..."
-                className="pl-9 bg-slate-50"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
+            <div className="flex items-center gap-2 w-full md:w-auto">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => setImportarModalOpen(true)}
+                className="gap-2 text-indigo-700 border-indigo-200 hover:bg-indigo-50 bg-indigo-50/50"
+              >
+                <UploadCloud className="w-4 h-4" />
+                Importar
+              </Button>
+              <div className="relative w-full md:w-72">
+                <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                <Input
+                  placeholder="Buscar discípulo o líder..."
+                  className="pl-9 bg-slate-50"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+              </div>
             </div>
           </div>
 
@@ -331,6 +345,14 @@ export function DiscipuladoAdminView() {
           casaName={asignarLiderCasa.casa_name}
           currentLiderId={asignarLiderCasa.current_lider_id}
           lideresDisponibles={lideres}
+        />
+      )}
+
+      {importarModalOpen && (
+        <ImportarGlobalDiscipulosModal
+          isOpen={importarModalOpen}
+          onClose={() => setImportarModalOpen(false)}
+          onSuccess={loadData}
         />
       )}
     </div>
