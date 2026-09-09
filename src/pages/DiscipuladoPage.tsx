@@ -150,36 +150,16 @@ export default function DiscipuladoPage() {
     try {
       setCallingId(discipuloId);
       
-      const ZADARMA_KEY = "fb94530cb765f6d212e2";
-      const fromExt = "301311";
-      const toPhone = telefono.replace(/\D/g, '');
-      
-      const params: Record<string, string> = { from: fromExt, to: toPhone };
-      const sortedKeys = Object.keys(params).sort();
-      const queryParams = new URLSearchParams();
-      sortedKeys.forEach(k => queryParams.append(k, params[k]));
-      const queryStr = queryParams.toString().replace(/\+/g, '%20');
-      
-      // 1. Calcular firma de Zadarma localmente con CryptoJS
-      const method = "/v1/request/callback/";
-      const md5Hex = CryptoJS.MD5(queryStr).toString(CryptoJS.enc.Hex);
-      const dataToSign = method + queryStr + md5Hex;
-      const signature = CryptoJS.HmacSHA1(dataToSign, "20d18884fda09f1f8587").toString(CryptoJS.enc.Base64);
-
-      // 2. Llamar directamente a Zadarma (Soporta CORS)
-      const response = await fetch(`https://api.zadarma.com/v1/request/callback/?${queryStr}`, {
-        method: "GET",
-        headers: {
-          "Authorization": `${ZADARMA_KEY}:${signature}`
-        }
+      const { data, error: rpcError } = await supabase.rpc('call_zadarma', { 
+        p_to: telefono 
       });
       
-      const data = await response.json();
+      if (rpcError) throw rpcError;
       
-      if (response.ok && data.status === "success") {
+      if (data && data.status === "success") {
         toast.success("Zadarma te está llamando, contesta para conectar con el discípulo.");
       } else {
-        toast.error(data.message || "Error al iniciar la llamada");
+        toast.error(data?.message || "Error al iniciar la llamada");
       }
     } catch (err: any) {
       console.error("Zadarma call error:", err);
