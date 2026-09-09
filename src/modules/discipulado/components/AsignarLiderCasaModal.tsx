@@ -34,24 +34,25 @@ export function AsignarLiderCasaModal({
   useEffect(() => {
     const search = async () => {
       let query = supabase
-        .from('personas')
-        .select('id, nombres, apellidos, email, telefono');
+        .from('profiles')
+        .select('user_id, display_name');
 
       if (searchTerm.trim().length >= 2) {
-        query = query.or(`nombres.ilike.%${searchTerm}%,apellidos.ilike.%${searchTerm}%`).limit(20);
+        query = query.ilike('display_name', `%${searchTerm}%`).limit(20);
       } else {
         // Si no ha escrito nada, cargar una lista grande por defecto
         query = query.limit(50);
       }
       
-      const { data } = await query;
+      const { data, error } = await query;
+      if (error) console.error("Error fetching profiles:", error);
         
       if (data) {
         const mapped = data.map(p => ({
-          id: p.id,
-          full_name: `${p.nombres} ${p.apellidos}`.trim(),
-          email: p.email,
-          phone: p.telefono,
+          id: p.user_id,
+          full_name: p.display_name?.trim() || 'Usuario sin nombre',
+          email: '', // El email está en auth.users, por ahora lo dejamos vacío o usamos display_name si parece un email
+          phone: '',
           casa_de_paz_id: null,
           is_from_personas: true
         }));
