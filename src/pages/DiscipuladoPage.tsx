@@ -6,6 +6,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import CryptoJS from "crypto-js";
 import { RegistrarVisitaModal } from "@/modules/discipulado/components/RegistrarVisitaModal";
 import { RegistrarLlamadaModal } from "@/modules/discipulado/components/RegistrarLlamadaModal";
 import { DiscipuloProcesoModal } from "@/modules/discipulado/components/DiscipuloProcesoModal";
@@ -159,11 +160,11 @@ export default function DiscipuladoPage() {
       sortedKeys.forEach(k => queryParams.append(k, params[k]));
       const queryStr = queryParams.toString().replace(/\+/g, '%20');
       
-      // 1. Obtener la firma de Zadarma desde la base de datos (seguro)
-      const { data: signature, error: rpcError } = await supabase.rpc('get_zadarma_signature', { p_query_str: queryStr });
-      
-      if (rpcError) throw rpcError;
-      if (!signature) throw new Error("No se pudo generar la firma");
+      // 1. Calcular firma de Zadarma localmente con CryptoJS
+      const method = "/v1/request/callback/";
+      const md5Hex = CryptoJS.MD5(queryStr).toString(CryptoJS.enc.Hex);
+      const dataToSign = method + queryStr + md5Hex;
+      const signature = CryptoJS.HmacSHA1(dataToSign, "20d18884fda09f1f8587").toString(CryptoJS.enc.Base64);
 
       // 2. Llamar directamente a Zadarma (Soporta CORS)
       const response = await fetch(`https://api.zadarma.com/v1/request/callback/?${queryStr}`, {
