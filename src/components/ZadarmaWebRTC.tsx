@@ -62,7 +62,7 @@ export const ZadarmaWebRTC: React.FC<ZadarmaWebRTCProps> = ({ sipExtension }) =>
             'rounded', /* shape */
             'es', /* language */
             true, /* click-to-call */
-            {right:'10px', bottom:'5px'}
+            {right:'20px', bottom:'20px'}
           );
         } else {
           throw new Error("El script de Zadarma no cargó correctamente (zadarmaWidgetFn no existe)");
@@ -108,14 +108,64 @@ export const ZadarmaWebRTC: React.FC<ZadarmaWebRTCProps> = ({ sipExtension }) =>
   }
 
   return (
-    // Enlace oculto estático para que el script de Zadarma lo intercepte en el primer escaneo del DOM
-    <a 
-      id="zadarma-hidden-caller" 
-      href="tel:" 
-      style={{ display: 'none' }} 
-      className="zd-click-to-call"
-    >
-      hidden caller
-    </a>
+    <>
+      <style>
+        {`
+          /* Forzar visibilidad del botón de cancelar/colgar de Zadarma y evitar que se corte */
+          #zdrm-webphone {
+            z-index: 999999 !important;
+          }
+          .zdrm-webphone-cancel, .zdrm-webphone-hangup {
+            display: flex !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+          }
+          /* En caso de que el usuario quiera simplemente cerrar el teclado antes de llamar */
+          .zdrm-webphone-close-custom {
+            position: fixed;
+            bottom: 80px;
+            right: 20px;
+            background: #ef4444;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 9999px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            z-index: 999999;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+            transition: all 0.2s;
+          }
+          .zdrm-webphone-close-custom:hover {
+            background: #dc2626;
+            transform: translateY(-1px);
+          }
+        `}
+      </style>
+      <button 
+        className="zdrm-webphone-close-custom"
+        onClick={() => {
+          const w = window as any;
+          if (w.zdrmWebPhone && typeof w.zdrmWebPhone.cancel === 'function') {
+            w.zdrmWebPhone.cancel();
+          }
+          // Intento de forzar ocultamiento si Zadarma no responde
+          const widget = document.querySelector('.zdrm-webphone-media-box') as HTMLElement;
+          if (widget) widget.style.display = 'none';
+          const container = document.getElementById('zdrm-webphone') as HTMLElement;
+          if (container) container.style.display = 'none';
+        }}
+      >
+        Ocultar Teclado
+      </button>
+      <a 
+        id="zadarma-hidden-caller" 
+        href="tel:" 
+        style={{ display: 'none' }} 
+        className="zd-click-to-call"
+      >
+        hidden caller
+      </a>
+    </>
   );
 };
