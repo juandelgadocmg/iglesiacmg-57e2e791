@@ -188,13 +188,7 @@ export default function DiscipuladoPage() {
   }, [session, activeRole]);
 
   // Derived Stats
-  const handleCallClick = (e: React.MouseEvent<HTMLAnchorElement>, telefono: string) => {
-    if (zadarmaExtension && window.zadarmaWidgetFn) {
-      e.preventDefault();
-      const cleanPhone = telefono.replace(/\D/g, '');
-      window.zadarmaWidgetFn('call', cleanPhone);
-    }
-  };
+  // handleCallClick eliminado para evitar conflictos con click-to-call nativo de Zadarma
   const stats = useMemo(() => {
     const s = {
       asignados: { count: discipulos.length, list: discipulos },
@@ -474,7 +468,6 @@ export default function DiscipuladoPage() {
                             <div className="flex items-center gap-1.5">
                               <a 
                                 href={`tel:${d.telefono.replace(/\D/g, '')}`}
-                                onClick={(e) => handleCallClick(e, d.telefono)}
                                 className="inline-flex items-center gap-1 text-slate-600 bg-slate-100 hover:bg-slate-200 hover:text-slate-900 transition-colors px-2 py-0.5 rounded-full text-xs font-semibold"
                                 title="Llamar"
                               >
