@@ -188,7 +188,24 @@ export default function DiscipuladoPage() {
   }, [session, activeRole]);
 
   // Derived Stats
-  // handleCallClick eliminado para evitar conflictos con click-to-call nativo de Zadarma
+  // handleCallClick modificado para retransmitir el clic al enlace oculto de Zadarma
+  const handleCallClick = (e: React.MouseEvent<HTMLAnchorElement>, telefono: string) => {
+    e.preventDefault();
+    const cleanPhone = telefono.replace(/\D/g, '');
+    
+    // Intentar disparar el enlace oculto que Zadarma sí escaneó
+    const hiddenLink = document.getElementById('zadarma-hidden-caller') as HTMLAnchorElement;
+    if (hiddenLink) {
+      hiddenLink.href = `tel:${cleanPhone}`;
+      hiddenLink.click();
+    } else {
+      // Fallback si no encuentra el enlace, intentar API directa si existe
+      const w = window as any;
+      if (w.zdrmWPhI && w.zdrmWPhI.setCallingNumber) {
+        w.zdrmWPhI.setCallingNumber(cleanPhone);
+      }
+    }
+  };
   const stats = useMemo(() => {
     const s = {
       asignados: { count: discipulos.length, list: discipulos },
@@ -468,6 +485,7 @@ export default function DiscipuladoPage() {
                             <div className="flex items-center gap-1.5">
                               <a 
                                 href={`tel:${d.telefono.replace(/\D/g, '')}`}
+                                onClick={(e) => handleCallClick(e, d.telefono)}
                                 className="inline-flex items-center gap-1 text-slate-600 bg-slate-100 hover:bg-slate-200 hover:text-slate-900 transition-colors px-2 py-0.5 rounded-full text-xs font-semibold"
                                 title="Llamar"
                               >

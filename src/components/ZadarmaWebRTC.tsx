@@ -107,5 +107,15 @@ export const ZadarmaWebRTC: React.FC<ZadarmaWebRTCProps> = ({ sipExtension }) =>
     );
   }
 
-  return null; // The widget renders itself globally
+  return (
+    // Enlace oculto estático para que el script de Zadarma lo intercepte en el primer escaneo del DOM
+    <a 
+      id="zadarma-hidden-caller" 
+      href="tel:" 
+      style={{ display: 'none' }} 
+      className="zd-click-to-call"
+    >
+      hidden caller
+    </a>
+  );
 };
