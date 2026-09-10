@@ -160,16 +160,10 @@ export default function DiscipuladoPage() {
 
   // Derived Stats
   const handleCallClick = (e: React.MouseEvent<HTMLAnchorElement>, telefono: string) => {
-    if (zadarmaExtension && window.zadarmaWidgetInstance) {
+    if (zadarmaExtension && window.zadarmaWidgetFn) {
       e.preventDefault();
       const cleanPhone = telefono.replace(/\D/g, '');
-      if (typeof window.zadarmaWidgetFn === 'function') {
-        window.zadarmaWidgetFn('call', cleanPhone);
-      } else if (window.zadarmaWidgetInstance.call) {
-        window.zadarmaWidgetInstance.call(cleanPhone);
-      } else {
-        toast.info(`Copia este número y pégalo en el teclado del teléfono en pantalla: ${cleanPhone}`);
-      }
+      window.zadarmaWidgetFn('call', cleanPhone);
     }
   };
   const stats = useMemo(() => {

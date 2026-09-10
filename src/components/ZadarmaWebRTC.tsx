@@ -49,17 +49,23 @@ export const ZadarmaWebRTC: React.FC<ZadarmaWebRTCProps> = ({ sipExtension }) =>
           });
         };
 
-        await loadScript('https://my.zadarma.com/webphoneWebRTCWidget/v8/js/loader-phone-lib.js?v=23');
-        await loadScript('https://my.zadarma.com/webphoneWebRTCWidget/v8/js/loader-phone-fn.js');
+        await loadScript('https://my.zadarma.com/webphoneWebRTCWidget/v9/js/loader-phone-lib.js?sub_v=1');
+        await loadScript('https://my.zadarma.com/webphoneWebRTCWidget/v9/js/loader-phone-fn.js?sub_v=1');
 
         if (!mounted) return;
 
-        // 3. Initialize the Widget
-        if (window.ZadarmaWidget && !window.zadarmaWidgetInstance) {
-          window.zadarmaWidgetInstance = new window.ZadarmaWidget({
-            key: key,
-            sip: sipExtension
-          });
+        // 3. Initialize the Widget (v9 API from screenshot)
+        if (window.zadarmaWidgetFn) {
+          window.zadarmaWidgetFn(
+            key,
+            sipExtension,
+            'rounded', /* shape */
+            'es', /* language */
+            true, /* click-to-call */
+            {right:'10px', bottom:'5px'}
+          );
+        } else {
+          throw new Error("El script de Zadarma no cargó correctamente (zadarmaWidgetFn no existe)");
         }
         
         setIsLoading(false);
