@@ -14,6 +14,7 @@ import { DiscipuladoAdminView } from "@/modules/discipulado/components/Discipula
 import { ImportarDiscipulosModal } from "@/modules/discipulado/components/ImportarDiscipulosModal";
 import { AgregarDiscipuloModal } from "@/modules/discipulado/components/AgregarDiscipuloModal";
 import { ListaDiscipulosModal } from "@/modules/discipulado/components/ListaDiscipulosModal";
+import { ZadarmaWebRTC } from "@/components/ZadarmaWebRTC";
 import { useVisitas } from "@/modules/discipulado/hooks/useVisitas";
 import { useActiveRole } from "@/hooks/useActiveRole";
 import {
@@ -31,6 +32,13 @@ import {
   Trophy,
   UserPlus
 } from "lucide-react";
+
+declare global {
+  interface Window {
+    zadarmaWidgetInstance: any;
+    zadarmaWidgetFn: any;
+  }
+}
 
 export default function DiscipuladoPage() {
   const { session } = useAuth();
@@ -52,6 +60,11 @@ export default function DiscipuladoPage() {
   const [isAgregarOpen, setIsAgregarOpen] = useState(false);
   const [selectedDiscipuloProceso, setSelectedDiscipuloProceso] = useState<any | null>(null);
   const [activeStatList, setActiveStatList] = useState<{title: string, list: any[]} | null>(null);
+  
+  // Zadarma WebRTC configuration
+  const [zadarmaExtension, setZadarmaExtension] = useState(() => {
+    return localStorage.getItem('zadarmaExtension') || '';
+  });
 
   const loadData = async () => {
     if (!session?.user?.id) return;
@@ -146,6 +159,19 @@ export default function DiscipuladoPage() {
   }, [session, activeRole]);
 
   // Derived Stats
+  const handleCallClick = (e: React.MouseEvent<HTMLAnchorElement>, telefono: string) => {
+    if (zadarmaExtension && window.zadarmaWidgetInstance) {
+      e.preventDefault();
+      const cleanPhone = telefono.replace(/\D/g, '');
+      if (typeof window.zadarmaWidgetFn === 'function') {
+        window.zadarmaWidgetFn('call', cleanPhone);
+      } else if (window.zadarmaWidgetInstance.call) {
+        window.zadarmaWidgetInstance.call(cleanPhone);
+      } else {
+        toast.info(`Copia este número y pégalo en el teclado del teléfono en pantalla: ${cleanPhone}`);
+      }
+    }
+  };
   const stats = useMemo(() => {
     const s = {
       asignados: { count: discipulos.length, list: discipulos },
@@ -283,6 +309,27 @@ export default function DiscipuladoPage() {
             <span className="hidden sm:inline">Visita</span>
           </Button>
         </div>
+
+        {/* Zadarma Extension Config */}
+        {activeRole === 'lider' && (
+          <div className="bg-white p-3 rounded-lg border border-slate-200 shadow-sm flex items-center gap-3">
+            <PhoneCall className="w-4 h-4 text-slate-500" />
+            <div className="flex-1">
+              <label className="text-xs font-bold text-slate-700 block">Tu Extensión Zadarma (Para Teléfono Web)</label>
+              <input 
+                type="text" 
+                className="text-sm bg-transparent border-b border-slate-300 focus:border-blue-500 outline-none w-full pb-1 mt-1"
+                placeholder="Ej. 337021-103"
+                value={zadarmaExtension}
+                onChange={(e) => {
+                  setZadarmaExtension(e.target.value);
+                  localStorage.setItem('zadarmaExtension', e.target.value);
+                }}
+              />
+            </div>
+            {zadarmaExtension && <ZadarmaWebRTC sipExtension={zadarmaExtension} />}
+          </div>
+        )}
       </div>
 
       <div className="p-4 max-w-3xl mx-auto space-y-8 mt-2">
@@ -409,6 +456,7 @@ export default function DiscipuladoPage() {
                             <div className="flex items-center gap-1.5">
                               <a 
                                 href={`tel:${d.telefono.replace(/\D/g, '')}`}
+                                onClick={(e) => handleCallClick(e, d.telefono)}
                                 className="inline-flex items-center gap-1 text-slate-600 bg-slate-100 hover:bg-slate-200 hover:text-slate-900 transition-colors px-2 py-0.5 rounded-full text-xs font-semibold"
                                 title="Llamar"
                               >
