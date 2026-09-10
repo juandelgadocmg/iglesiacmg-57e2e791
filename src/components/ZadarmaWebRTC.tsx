@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
@@ -142,9 +143,10 @@ export const ZadarmaWebRTC: React.FC<ZadarmaWebRTCProps> = ({ sipExtension }) =>
           }
         `}
       </style>
-      <button 
-        className="zdrm-webphone-close-custom"
-        onClick={() => {
+      {typeof document !== 'undefined' && createPortal(
+        <button 
+          className="zdrm-webphone-close-custom"
+          onClick={() => {
           const w = window as any;
           if (w.zdrmWebPhone && typeof w.zdrmWebPhone.cancel === 'function') {
             w.zdrmWebPhone.cancel();
@@ -157,7 +159,9 @@ export const ZadarmaWebRTC: React.FC<ZadarmaWebRTCProps> = ({ sipExtension }) =>
         }}
       >
         Cerrar Teléfono
-      </button>
+        </button>,
+        document.body
+      )}
       <a 
         id="zadarma-hidden-caller" 
         href="tel:" 
