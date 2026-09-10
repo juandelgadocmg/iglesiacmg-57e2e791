@@ -702,3 +702,8 @@ body[data-presentation="true"] [data-radix-scroll-area-viewport] > div {
 body[data-presentation="true"] .presentation-hide {
   display: none !important;
 }
+
+/* Ocultar badge de Lovable */
+#lovable-badge {
+  display: none !important;
+}
