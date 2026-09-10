@@ -188,22 +188,28 @@ export default function DiscipuladoPage() {
   }, [session, activeRole]);
 
   // Derived Stats
-  // handleCallClick modificado para retransmitir el clic al enlace oculto de Zadarma
+  // handleCallClick modificado para usar la API real de Zadarma v9 (zdrmWebPhone)
   const handleCallClick = (e: React.MouseEvent<HTMLAnchorElement>, telefono: string) => {
     e.preventDefault();
     const cleanPhone = telefono.replace(/\D/g, '');
     
-    // Intentar disparar el enlace oculto que Zadarma sí escaneó
-    const hiddenLink = document.getElementById('zadarma-hidden-caller') as HTMLAnchorElement;
-    if (hiddenLink) {
-      hiddenLink.href = `tel:${cleanPhone}`;
-      hiddenLink.click();
-    } else {
-      // Fallback si no encuentra el enlace, intentar API directa si existe
-      const w = window as any;
-      if (w.zdrmWPhI && w.zdrmWPhI.setCallingNumber) {
-        w.zdrmWPhI.setCallingNumber(cleanPhone);
+    const w = window as any;
+    // API real de Zadarma v9
+    if (w.zdrmWebPhone) {
+      if (typeof w.zdrmWebPhone.call === 'function') {
+        w.zdrmWebPhone.call(cleanPhone);
+      } else if (typeof w.zdrmWebPhone.callTo === 'function') {
+        w.zdrmWebPhone.callTo(cleanPhone);
       }
+    } else if (w.zdrmWPhI && w.zdrmWPhI.setCallingNumber) {
+      // Fallback interno si el objeto de interfaz está disponible
+      w.zdrmWPhI.setCallingNumber(cleanPhone);
+      // Intentar abrir el widget simulando click
+      const widgetBtn = document.querySelector('.zdrm-webphone-button') as HTMLElement;
+      if (widgetBtn) widgetBtn.click();
+    } else {
+      console.error("No se encontró la API de Zadarma (zdrmWebPhone)");
+      alert("El teclado virtual aún no está listo. Por favor, asegúrate de que el widget verde telefónico haya cargado en la esquina inferior derecha.");
     }
   };
   const stats = useMemo(() => {
@@ -484,7 +490,7 @@ export default function DiscipuladoPage() {
                           {d.telefono && (
                             <div className="flex items-center gap-1.5">
                               <a 
-                                href={`tel:${d.telefono.replace(/\D/g, '')}`}
+                                href="#"
                                 onClick={(e) => handleCallClick(e, d.telefono)}
                                 className="inline-flex items-center gap-1 text-slate-600 bg-slate-100 hover:bg-slate-200 hover:text-slate-900 transition-colors px-2 py-0.5 rounded-full text-xs font-semibold"
                                 title="Llamar"
