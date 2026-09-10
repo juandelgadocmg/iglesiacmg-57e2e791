@@ -24,13 +24,15 @@ export const ZadarmaWebRTC: React.FC<ZadarmaWebRTCProps> = ({ sipExtension }) =>
     const initWebRTC = async () => {
       try {
         setIsLoading(true);
-        // 1. Fetch the secure temporary key from Supabase
-        const { data: key, error: rpcError } = await supabase.rpc('get_zadarma_webrtc_key', {
-          p_sip_extension: sipExtension
+        // 1. Fetch the secure temporary key from Supabase Edge Function
+        const { data, error: fnError } = await supabase.functions.invoke('zadarma-webrtc-key', {
+          body: { sip: sipExtension }
         });
 
-        if (rpcError) throw rpcError;
-        if (!key) throw new Error("No se pudo obtener la llave de WebRTC");
+        if (fnError) throw fnError;
+        if (!data || !data.success || !data.key) throw new Error(data?.error || "No se pudo obtener la llave de WebRTC");
+        
+        const key = data.key;
         if (!mounted) return;
 
         // 2. Load Zadarma Scripts dynamically
