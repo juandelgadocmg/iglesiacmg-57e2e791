@@ -3216,6 +3216,7 @@ export type Database = {
           red: string | null
           updated_at: string
           user_id: string
+          zadarma_extension: string | null
         }
         Insert: {
           avatar_url?: string | null
@@ -3227,6 +3228,7 @@ export type Database = {
           red?: string | null
           updated_at?: string
           user_id: string
+          zadarma_extension?: string | null
         }
         Update: {
           avatar_url?: string | null
@@ -3238,6 +3240,7 @@ export type Database = {
           red?: string | null
           updated_at?: string
           user_id?: string
+          zadarma_extension?: string | null
         }
         Relationships: [
           {

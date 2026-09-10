@@ -69,8 +69,19 @@ export default function DiscipuladoPage() {
   const loadData = async () => {
     if (!session?.user?.id) return;
     setLoading(true);
-    
-    // 1. Get Lider record by ID
+    // 1. Get Zadarma Extension from Profile
+    const { data: profileData } = await supabase
+      .from('profiles')
+      .select('zadarma_extension')
+      .eq('user_id', session.user.id)
+      .maybeSingle();
+      
+    if (profileData?.zadarma_extension) {
+      setZadarmaExtension(profileData.zadarma_extension);
+      localStorage.setItem('zadarmaExtension', profileData.zadarma_extension);
+    }
+
+    // 2. Get Lider record by ID
     let { data: liderData } = await supabase
       .from('leaders')
       .select('*')

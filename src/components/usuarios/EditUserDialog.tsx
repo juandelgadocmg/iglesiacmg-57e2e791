@@ -65,6 +65,7 @@ interface Profile {
   grupo_id?: string | null;
   red?: string | null;
   persona_id?: string | null;
+  zadarma_extension?: string | null;
 }
 
 const REDES = ["Nissi", "Rohi", "Jireh", "Adonai", "Shaddai", "Elohim"];
@@ -85,6 +86,7 @@ export default function EditUserDialog({ profile, userRoles, open, onOpenChange,
   const [grupoId, setGrupoId]           = useState(profile.grupo_id || "");
   const [red, setRed]                   = useState(profile.red || "");
   const [personaId, setPersonaId]       = useState(profile.persona_id || "");
+  const [zadarmaExtension, setZadarmaExtension] = useState(profile.zadarma_extension || "");
   const [grupos, setGrupos]             = useState<{ id: string; nombre: string; red: string | null; tipo: string }[]>([]);
   const [loading, setLoading]           = useState(false);
   const [section, setSection]           = useState<"info" | "roles" | "grupo" | "seminario">("info");
@@ -100,6 +102,7 @@ export default function EditUserDialog({ profile, userRoles, open, onOpenChange,
       setGrupoId(profile.grupo_id || "");
       setRed(profile.red || "");
       setPersonaId(profile.persona_id || "");
+      setZadarmaExtension(profile.zadarma_extension || "");
       setSection("info");
     }
   }, [open, profile, userRoles]);
@@ -128,10 +131,13 @@ export default function EditUserDialog({ profile, userRoles, open, onOpenChange,
   const handleSave = async () => {
     setLoading(true);
     try {
-      // 1. Update display_name in profile (always safe)
+      // 1. Update display_name and zadarma_extension in profile
       const { error: nameErr } = await supabase
         .from("profiles")
-        .update({ display_name: displayName.trim() || profile.display_name })
+        .update({ 
+          display_name: displayName.trim() || profile.display_name,
+          zadarma_extension: zadarmaExtension.trim() || null
+        })
         .eq("user_id", profile.user_id);
       if (nameErr) throw nameErr;
 
@@ -237,6 +243,16 @@ export default function EditUserDialog({ profile, userRoles, open, onOpenChange,
                   placeholder="Dejar vacío para no cambiar"
                 />
                 <p className="text-xs text-muted-foreground">Mínimo 6 caracteres. Solo escribe si deseas cambiarla.</p>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Extensión Zadarma (Opcional)</Label>
+                <Input
+                  value={zadarmaExtension}
+                  onChange={e => setZadarmaExtension(e.target.value)}
+                  placeholder="Ej. 337021-100"
+                />
+                <p className="text-xs text-muted-foreground">Extensión para el teléfono virtual en DOXA.</p>
               </div>
 
               <div className="rounded-lg bg-muted/40 p-3 text-xs text-muted-foreground space-y-1">
