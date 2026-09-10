@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { Loader2 } from 'lucide-react';
+import { Loader2, PhoneOff } from 'lucide-react';
 
 interface ZadarmaWebRTCProps {
   sipExtension: string;
@@ -128,18 +128,24 @@ export const ZadarmaWebRTC: React.FC<ZadarmaWebRTCProps> = ({ sipExtension }) =>
             right: 350px;
             background: #ef4444;
             color: white;
-            padding: 8px 16px;
+            width: 48px;
+            height: 48px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             border-radius: 9999px;
-            font-size: 14px;
-            font-weight: bold;
             cursor: pointer;
             z-index: 999999;
-            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+            box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4);
+            border: 2px solid white;
             transition: all 0.2s;
           }
           .zdrm-webphone-close-custom:hover {
             background: #dc2626;
-            transform: translateY(-1px);
+            transform: scale(1.05);
+          }
+          .zdrm-webphone-close-custom:active {
+            transform: scale(0.95);
           }
         `}
       </style>
@@ -157,8 +163,9 @@ export const ZadarmaWebRTC: React.FC<ZadarmaWebRTCProps> = ({ sipExtension }) =>
           const container = document.getElementById('zdrm-webphone') as HTMLElement;
           if (container) container.style.display = 'none';
         }}
-      >
-        Cerrar Teléfono
+          title="Cerrar Teléfono / Colgar"
+        >
+          <PhoneOff size={22} strokeWidth={2.5} />
         </button>,
         document.body
       )}
