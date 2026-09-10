@@ -123,8 +123,8 @@ export const ZadarmaWebRTC: React.FC<ZadarmaWebRTCProps> = ({ sipExtension }) =>
           /* En caso de que el usuario quiera simplemente cerrar el teclado antes de llamar */
           .zdrm-webphone-close-custom {
             position: fixed;
-            bottom: 80px;
-            right: 20px;
+            bottom: 20px;
+            right: 350px;
             background: #ef4444;
             color: white;
             padding: 8px 16px;
@@ -156,7 +156,7 @@ export const ZadarmaWebRTC: React.FC<ZadarmaWebRTCProps> = ({ sipExtension }) =>
           if (container) container.style.display = 'none';
         }}
       >
-        Ocultar Teclado
+        Cerrar Teléfono
       </button>
       <a 
         id="zadarma-hidden-caller" 
