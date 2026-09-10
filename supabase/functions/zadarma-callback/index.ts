@@ -19,8 +19,41 @@ serve(async (req) => {
 
   try {
     const body = await req.json();
-    const { to, from } = body;
+    const { to, from, action, sip } = body;
 
+    // --- WebRTC Key Generation ---
+    if (action === 'get_webrtc_key') {
+      if (!sip) throw new Error("Missing 'sip' parameter");
+      
+      const method = "/v1/webrtc/get_key/";
+      const params: Record<string, string> = { sip };
+
+      const sortedKeys = Object.keys(params).sort();
+      const queryParams = new URLSearchParams();
+      sortedKeys.forEach(k => queryParams.append(k, params[k]));
+      let queryStr = queryParams.toString().replace(/\+/g, '%20');
+
+      const md5 = crypto.createHash("md5").update(queryStr).digest("hex");
+      const dataToSign = method + queryStr + md5;
+      const signature = crypto.createHmac("sha1", ZADARMA_SECRET).update(dataToSign).digest("base64");
+
+      const response = await fetch(`https://api.zadarma.com${method}?${queryStr}`, {
+        method: "GET",
+        headers: { "Authorization": `${ZADARMA_KEY}:${signature}` }
+      });
+
+      const result = await response.json();
+      if (!response.ok || result.status !== "success") {
+        throw new Error(`Zadarma API Error: ${JSON.stringify(result)}`);
+      }
+
+      return new Response(
+        JSON.stringify({ success: true, key: result.key }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
+      );
+    }
+
+    // --- Standard Callback ---
     if (!to) {
       throw new Error("Missing 'to' parameter (destination phone number)");
     }
