@@ -30,7 +30,8 @@ import {
   UserCheck,
   UploadCloud,
   Trophy,
-  UserPlus
+  UserPlus,
+  Trash2
 } from "lucide-react";
 
 declare global {
@@ -210,6 +211,21 @@ export default function DiscipuladoPage() {
     } else {
       console.error("No se encontró la API de Zadarma (zdrmWebPhone)");
       alert("El teclado virtual aún no está listo. Por favor, asegúrate de que el widget verde telefónico haya cargado en la esquina inferior derecha.");
+      alert("El teclado virtual aún no está listo. Por favor, asegúrate de que el widget verde telefónico haya cargado en la esquina inferior derecha.");
+    }
+  };
+
+  const handleDeleteDiscipulo = async (id: string, name: string) => {
+    if (window.confirm(`¿Estás seguro de que deseas eliminar permanentemente a "${name}"? Esta acción no se puede deshacer.`)) {
+      try {
+        const { error: deleteError } = await supabase.from('discipulos').delete().eq('id', id);
+        if (deleteError) throw deleteError;
+        toast.success(`Discípulo "${name}" eliminado correctamente`);
+        loadData();
+      } catch (err: any) {
+        console.error("Error al eliminar discípulo:", err);
+        toast.error("Error al eliminar el discípulo");
+      }
     }
   };
   const stats = useMemo(() => {
@@ -521,14 +537,23 @@ export default function DiscipuladoPage() {
                         </div>
                       </div>
                     </div>
-                    <div className="bg-slate-50 p-2 border-t flex justify-end">
+                    <div className="bg-slate-50 p-2 border-t flex items-center gap-2">
                       <Button 
                         variant="ghost" 
                         size="sm" 
-                        className="text-red-600 font-bold hover:text-red-700 hover:bg-red-50 w-full justify-center"
+                        className="text-red-600 font-bold hover:text-red-700 hover:bg-red-50 flex-1 justify-center"
                         onClick={() => setSelectedDiscipuloProceso(d)}
                       >
                         Ver Proceso
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="text-slate-400 hover:text-red-600 hover:bg-red-50 shrink-0"
+                        title="Eliminar Discípulo"
+                        onClick={() => handleDeleteDiscipulo(d.id, d.full_name)}
+                      >
+                        <Trash2 className="w-4 h-4" />
                       </Button>
                     </div>
                   </CardContent>

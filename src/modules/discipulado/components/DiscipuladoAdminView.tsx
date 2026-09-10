@@ -1,4 +1,6 @@
 import { useEffect, useState, useMemo } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 import { useDiscipuladoAdmin } from "@/modules/discipulado/hooks/useDiscipuladoAdmin";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -16,7 +18,8 @@ import {
   RotateCw,
   FolderOpen,
   UserPlus,
-  MapPin
+  MapPin,
+  Trash2
 } from "lucide-react";
 import {
   Accordion,
@@ -40,6 +43,20 @@ export function DiscipuladoAdminView() {
   useEffect(() => {
     loadData();
   }, [loadData]);
+
+  const handleDeleteDiscipulo = async (id: string, name: string) => {
+    if (window.confirm(`¿Estás seguro de que deseas eliminar permanentemente a "${name}"? Esta acción no se puede deshacer.`)) {
+      try {
+        const { error: deleteError } = await supabase.from('discipulos').delete().eq('id', id);
+        if (deleteError) throw deleteError;
+        toast.success(`Discípulo "${name}" eliminado correctamente`);
+        loadData();
+      } catch (err: any) {
+        console.error("Error al eliminar discípulo:", err);
+        toast.error("Error al eliminar el discípulo");
+      }
+    }
+  };
 
   // Global Stats
   const stats = useMemo(() => {
@@ -286,14 +303,25 @@ export function DiscipuladoAdminView() {
                                                     {ultima ? new Date(ultima.fecha).toLocaleDateString() : 'N/A'}
                                                   </td>
                                                   <td className="px-3 py-2 text-right">
-                                                    <Button 
-                                                      variant="ghost" 
-                                                      size="sm" 
-                                                      className="h-6 text-[10px] text-red-600 hover:text-red-700 hover:bg-red-50 font-bold px-2"
-                                                      onClick={() => setSelectedDiscipulo(d)}
-                                                    >
-                                                      Ver Proceso
-                                                    </Button>
+                                                    <div className="flex items-center justify-end gap-1">
+                                                      <Button 
+                                                        variant="ghost" 
+                                                        size="sm" 
+                                                        className="h-6 text-[10px] text-red-600 hover:text-red-700 hover:bg-red-50 font-bold px-2"
+                                                        onClick={() => setSelectedDiscipulo(d)}
+                                                      >
+                                                        Ver Proceso
+                                                      </Button>
+                                                      <Button
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        className="h-6 w-6 text-slate-400 hover:text-red-600 hover:bg-red-50 shrink-0"
+                                                        title="Eliminar Discípulo"
+                                                        onClick={() => handleDeleteDiscipulo(d.id, d.full_name)}
+                                                      >
+                                                        <Trash2 className="w-3 h-3" />
+                                                      </Button>
+                                                    </div>
                                                   </td>
                                                 </tr>
                                               );
