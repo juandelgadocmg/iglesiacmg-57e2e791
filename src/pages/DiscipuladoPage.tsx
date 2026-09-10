@@ -62,23 +62,20 @@ export default function DiscipuladoPage() {
   const [activeStatList, setActiveStatList] = useState<{title: string, list: any[]} | null>(null);
   
   // Zadarma WebRTC configuration
-  const [zadarmaExtension, setZadarmaExtension] = useState(() => {
-    return localStorage.getItem('zadarmaExtension') || '';
-  });
+  const [zadarmaExtension, setZadarmaExtension] = useState<string>('');
 
   const loadData = async () => {
     if (!session?.user?.id) return;
     setLoading(true);
-    // 1. Get Zadarma Extension from Profile
-    const { data: profileData } = await supabase
-      .from('profiles')
-      .select('zadarma_extension')
-      .eq('user_id', session.user.id)
-      .maybeSingle();
+    // 1. Allocate a Zadarma Extension from the pool
+    const { data: allocatedExtension } = await supabase.rpc('allocate_zadarma_extension', {
+      p_user_id: session.user.id
+    });
       
-    if (profileData?.zadarma_extension) {
-      setZadarmaExtension(profileData.zadarma_extension);
-      localStorage.setItem('zadarmaExtension', profileData.zadarma_extension);
+    if (allocatedExtension) {
+      setZadarmaExtension(allocatedExtension as string);
+    } else {
+      console.warn("No available Zadarma extensions in the pool.");
     }
 
     // 2. Get Lider record by ID
@@ -167,6 +164,27 @@ export default function DiscipuladoPage() {
 
   useEffect(() => {
     loadData();
+    
+    // Heartbeat for Zadarma Pool
+    let interval: NodeJS.Timeout;
+    if (session?.user?.id) {
+      interval = setInterval(async () => {
+        await supabase.rpc('allocate_zadarma_extension', {
+          p_user_id: session.user.id
+        });
+      }, 60000); // every 1 minute
+    }
+
+    // Cleanup on unmount (release extension)
+    return () => {
+      if (interval) clearInterval(interval);
+      if (session?.user?.id) {
+        // We use a fire-and-forget call since we are unmounting
+        supabase.rpc('release_zadarma_extension', {
+          p_user_id: session.user.id
+        }).then();
+      }
+    };
   }, [session, activeRole]);
 
   // Derived Stats
@@ -315,22 +333,17 @@ export default function DiscipuladoPage() {
           </Button>
         </div>
 
-        {/* Zadarma Extension Config */}
+        {/* Zadarma Extension Config (Auto) */}
         {activeRole?.startsWith('lider') && (
           <div className="bg-white p-3 rounded-lg border border-slate-200 shadow-sm flex items-center gap-3">
             <PhoneCall className="w-4 h-4 text-slate-500" />
             <div className="flex-1">
-              <label className="text-xs font-bold text-slate-700 block">Tu Extensión Zadarma (Para Teléfono Web)</label>
-              <input 
-                type="text" 
-                className="text-sm bg-transparent border-b border-slate-300 focus:border-blue-500 outline-none w-full pb-1 mt-1"
-                placeholder="Ej. 337021-103"
-                value={zadarmaExtension}
-                onChange={(e) => {
-                  setZadarmaExtension(e.target.value);
-                  localStorage.setItem('zadarmaExtension', e.target.value);
-                }}
-              />
+              <label className="text-xs font-bold text-slate-700 block">Tu Extensión Zadarma (Asignada Automáticamente)</label>
+              {zadarmaExtension ? (
+                <p className="text-sm font-medium text-green-700">{zadarmaExtension}</p>
+              ) : (
+                <p className="text-sm text-red-500">Buscando extensión libre...</p>
+              )}
             </div>
             {zadarmaExtension && <ZadarmaWebRTC sipExtension={zadarmaExtension} />}
           </div>

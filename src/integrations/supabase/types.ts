@@ -6027,6 +6027,18 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      allocate_zadarma_extension: {
+        Args: {
+          p_user_id: string
+        }
+        Returns: string
+      }
+      release_zadarma_extension: {
+        Args: {
+          p_user_id: string
+        }
+        Returns: undefined
+      }
       can_create_personas: { Args: { _uid: string }; Returns: boolean }
       cdp_generate_deadline_alerts: { Args: never; Returns: number }
       checkin_qr: {
