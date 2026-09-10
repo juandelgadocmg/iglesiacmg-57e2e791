@@ -305,7 +305,7 @@ export default function DiscipuladoPage() {
         </div>
 
         {/* Zadarma Extension Config */}
-        {activeRole === 'lider' && (
+        {activeRole?.startsWith('lider') && (
           <div className="bg-white p-3 rounded-lg border border-slate-200 shadow-sm flex items-center gap-3">
             <PhoneCall className="w-4 h-4 text-slate-500" />
             <div className="flex-1">
