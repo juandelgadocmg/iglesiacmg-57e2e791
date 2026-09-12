@@ -101,11 +101,25 @@ export default function DiscipuladoPage() {
       
     // 3. Fallback in memory if no leader record exists but user is logged in
     if (!liderData && session.user.id) {
-      liderData = {
+      const newLeader = {
         id: session.user.id,
         full_name: session.user.user_metadata?.full_name || session.user.email?.split('@')[0] || 'Líder',
         email: session.user.email
       };
+
+      const { data: insertedLeader, error: insertError } = await supabase
+        .from('leaders')
+        .insert(newLeader)
+        .select()
+        .single();
+
+      if (insertError) {
+        console.error("Error creating leader record:", insertError);
+        toast.error(`Error de sistema: No se pudo crear tu perfil de líder (${insertError.message}).`);
+        liderData = newLeader;
+      } else if (insertedLeader) {
+        liderData = insertedLeader;
+      }
     }
       
     // 4. Si aún no hay liderData y tiene un rol de liderazgo, forzar en memoria
