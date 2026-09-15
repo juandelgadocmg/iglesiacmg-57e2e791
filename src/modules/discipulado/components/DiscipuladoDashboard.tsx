@@ -28,6 +28,7 @@ interface DiscipuladoDashboardProps {
   progreso: any[];
   casasDePaz: any[];
   lideres: any[];
+  redes: any[];
 }
 
 const STATUS_COLORS: Record<string, string> = {
@@ -43,7 +44,8 @@ export function DiscipuladoDashboard({
   llamadas,
   progreso,
   casasDePaz,
-  lideres
+  lideres,
+  redes
 }: DiscipuladoDashboardProps) {
 
   // 1. Chart Data: Activity over the last 30 days
@@ -86,18 +88,38 @@ export function DiscipuladoDashboard({
 
   // 3. Export to Excel function
   const exportToExcel = () => {
+    const redSummary: Record<string, any> = {};
+
     const exportData = discipulos.map(d => {
       // Find related entities
       const lider = lideres.find(l => l.id === d.lider_id);
       const casa = casasDePaz.find(c => c.id === d.casa_de_paz_id);
+      const red = casa ? redes.find(r => r.id === casa.red_id) : null;
       
       const dVisitas = visitas.filter(v => v.discipulo_id === d.id);
       const dLlamadas = llamadas.filter(l => l.discipulo_id === d.id);
       
       const lastVisita = dVisitas.length > 0 ? dVisitas[0].fecha : 'N/A';
       const lastLlamada = dLlamadas.length > 0 ? dLlamadas[0].fecha : 'N/A';
+      const redName = red ? red.name : 'Sin Red';
+
+      // Aggregating for Summary
+      if (!redSummary[redName]) {
+        redSummary[redName] = { 
+          'Red': redName, 
+          'Total Discípulos': 0, 
+          'Consolidados (Completados)': 0,
+          'Total Visitas': 0,
+          'Total Llamadas': 0
+        };
+      }
+      redSummary[redName]['Total Discípulos'] += 1;
+      if (d.status === 'Completado') redSummary[redName]['Consolidados (Completados)'] += 1;
+      redSummary[redName]['Total Visitas'] += dVisitas.length;
+      redSummary[redName]['Total Llamadas'] += dLlamadas.length;
 
       return {
+        'Red': redName,
         'Nombre del Discípulo': d.full_name,
         'Estado': d.status || 'Activo',
         'Líder Asignado': lider ? lider.full_name : 'Sin asignar',
@@ -110,9 +132,15 @@ export function DiscipuladoDashboard({
       };
     });
 
+    const summaryData = Object.values(redSummary);
+
     const worksheet = XLSX.utils.json_to_sheet(exportData);
+    const summarySheet = XLSX.utils.json_to_sheet(summaryData);
+    
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, "Discípulos");
+    XLSX.utils.book_append_sheet(workbook, summarySheet, "Resumen por Red");
+    
     XLSX.writeFile(workbook, `Reporte_Discipulado_${format(new Date(), 'yyyy-MM-dd')}.xlsx`);
   };
 

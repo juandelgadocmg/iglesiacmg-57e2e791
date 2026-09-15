@@ -191,6 +191,7 @@ export function DiscipuladoAdminView() {
               progreso={progreso}
               casasDePaz={casasDePaz}
               lideres={lideres}
+              redes={redes}
             />
           </TabsContent>
 
