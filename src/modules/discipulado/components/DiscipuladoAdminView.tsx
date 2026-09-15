@@ -31,6 +31,7 @@ import { AgregarDiscipuloModal } from "@/modules/discipulado/components/AgregarD
 import { AsignarLiderCasaModal } from "@/modules/discipulado/components/AsignarLiderCasaModal";
 import { ImportarGlobalDiscipulosModal } from "@/modules/discipulado/components/ImportarGlobalDiscipulosModal";
 import { DiscipuladoDashboard } from "@/modules/discipulado/components/DiscipuladoDashboard";
+import { KpiDetailsModal } from "@/modules/discipulado/components/KpiDetailsModal";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { UploadCloud, PieChart as PieChartIcon } from "lucide-react";
 
@@ -41,6 +42,17 @@ export function DiscipuladoAdminView() {
   const [agregarDiscipuloCasa, setAgregarDiscipuloCasa] = useState<{casa_id: string, lider_id: string | null} | null>(null);
   const [asignarLiderCasa, setAsignarLiderCasa] = useState<{casa_id: string, casa_name: string, current_lider_id?: string | null} | null>(null);
   const [importarModalOpen, setImportarModalOpen] = useState(false);
+  const [kpiModalState, setKpiModalState] = useState<{
+    isOpen: boolean;
+    title: string;
+    type: 'discipulos' | 'lideres' | 'visitas' | 'consolidados' | null;
+    data: any[];
+  }>({
+    isOpen: false,
+    title: '',
+    type: null,
+    data: []
+  });
 
   useEffect(() => {
     loadData();
@@ -70,6 +82,21 @@ export function DiscipuladoAdminView() {
       totalEnProceso: discipulos.filter(d => d.status === 'Activo').length,
     };
   }, [discipulos, visitas, progreso]);
+
+  // Dictionaries for rendering
+  const lideresDict = useMemo(() => {
+    return lideres.reduce((acc, l) => {
+      acc[l.id] = l.full_name;
+      return acc;
+    }, {} as Record<string, string>);
+  }, [lideres]);
+
+  const casasDict = useMemo(() => {
+    return casasDePaz.reduce((acc, c) => {
+      acc[c.id] = c.name;
+      return acc;
+    }, {} as Record<string, string>);
+  }, [casasDePaz]);
 
   // Filtered Hierarchy
   const hierarchy = useMemo(() => {
@@ -170,28 +197,44 @@ export function DiscipuladoAdminView() {
           <TabsContent value="directorio" className="space-y-8 mt-0">
             {/* KPI Cards */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <Card className="bg-white border-0 shadow-sm">
+          <Card 
+            className="bg-white border-0 shadow-sm cursor-pointer hover:shadow-md transition-shadow"
+            onClick={() => setKpiModalState({ isOpen: true, title: 'Discípulos Totales', type: 'discipulos', data: discipulos })}
+          >
             <CardContent className="p-4 flex flex-col items-center justify-center text-center">
               <Users className="w-6 h-6 text-red-500 mb-2" />
               <span className="text-4xl font-black text-slate-800">{stats.totalDiscipulos}</span>
               <span className="text-xs font-bold text-slate-400 uppercase tracking-wider mt-1">Discípulos Totales</span>
             </CardContent>
           </Card>
-          <Card className="bg-white border-0 shadow-sm">
+          <Card 
+            className="bg-white border-0 shadow-sm cursor-pointer hover:shadow-md transition-shadow"
+            onClick={() => {
+              const assignedLeadersIds = new Set(discipulos.map(d => d.lider_id).filter(Boolean));
+              const assignedLeaders = lideres.filter(l => assignedLeadersIds.has(l.id));
+              setKpiModalState({ isOpen: true, title: 'Líderes con Asignaciones', type: 'lideres', data: assignedLeaders });
+            }}
+          >
             <CardContent className="p-4 flex flex-col items-center justify-center text-center">
               <UserCheck className="w-6 h-6 text-red-500 mb-2" />
               <span className="text-4xl font-black text-slate-800">{stats.totalLideresActivos}</span>
               <span className="text-xs font-bold text-slate-400 uppercase tracking-wider mt-1">Líderes con Asignaciones</span>
             </CardContent>
           </Card>
-          <Card className="bg-white border-0 shadow-sm">
+          <Card 
+            className="bg-white border-0 shadow-sm cursor-pointer hover:shadow-md transition-shadow"
+            onClick={() => setKpiModalState({ isOpen: true, title: 'Visitas Registradas', type: 'visitas', data: visitas })}
+          >
             <CardContent className="p-4 flex flex-col items-center justify-center text-center">
               <History className="w-6 h-6 text-red-500 mb-2" />
               <span className="text-4xl font-black text-slate-800">{stats.totalVisitas}</span>
               <span className="text-xs font-bold text-slate-400 uppercase tracking-wider mt-1">Visitas Registradas</span>
             </CardContent>
           </Card>
-          <Card className="bg-red-600 border-0 shadow-sm text-white">
+          <Card 
+            className="bg-red-600 border-0 shadow-sm text-white cursor-pointer hover:bg-red-700 transition-colors"
+            onClick={() => setKpiModalState({ isOpen: true, title: 'Discípulos Consolidados', type: 'consolidados', data: discipulos.filter(d => d.status === 'Completado') })}
+          >
             <CardContent className="p-4 flex flex-col items-center justify-center text-center">
               <Activity className="w-6 h-6 text-red-200 mb-2" />
               <span className="text-4xl font-black text-white">{stats.totalCompletados}</span>
@@ -412,6 +455,16 @@ export function DiscipuladoAdminView() {
           }}
         />
       )}
+
+      <KpiDetailsModal 
+        isOpen={kpiModalState.isOpen}
+        onClose={() => setKpiModalState(prev => ({ ...prev, isOpen: false }))}
+        title={kpiModalState.title}
+        type={kpiModalState.type}
+        data={kpiModalState.data}
+        lideresDict={lideresDict}
+        casasDict={casasDict}
+      />
           </TabsContent>
         </Tabs>
       </div>
