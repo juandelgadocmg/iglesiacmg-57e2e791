@@ -30,10 +30,12 @@ import {
 import { AgregarDiscipuloModal } from "@/modules/discipulado/components/AgregarDiscipuloModal";
 import { AsignarLiderCasaModal } from "@/modules/discipulado/components/AsignarLiderCasaModal";
 import { ImportarGlobalDiscipulosModal } from "@/modules/discipulado/components/ImportarGlobalDiscipulosModal";
-import { UploadCloud } from "lucide-react";
+import { DiscipuladoDashboard } from "@/modules/discipulado/components/DiscipuladoDashboard";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { UploadCloud, PieChart as PieChartIcon } from "lucide-react";
 
 export function DiscipuladoAdminView() {
-  const { loadData, loading, discipulos, lideres, redes, casasDePaz, visitas, progreso } = useDiscipuladoAdmin();
+  const { loadData, loading, discipulos, lideres, redes, casasDePaz, visitas, llamadas, progreso } = useDiscipuladoAdmin();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedDiscipulo, setSelectedDiscipulo] = useState<any | null>(null);
   const [agregarDiscipuloCasa, setAgregarDiscipuloCasa] = useState<{casa_id: string, lider_id: string | null} | null>(null);
@@ -141,8 +143,33 @@ export function DiscipuladoAdminView() {
       </div>
 
       <div className="p-4 max-w-5xl mx-auto space-y-8 mt-4">
-        {/* KPI Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        
+        <Tabs defaultValue="directorio" className="w-full">
+          <TabsList className="grid w-full grid-cols-2 max-w-md mx-auto mb-8 bg-slate-200/50">
+            <TabsTrigger value="directorio" className="data-[state=active]:bg-white data-[state=active]:text-red-600 data-[state=active]:shadow-sm">
+              <Users className="w-4 h-4 mr-2" />
+              Directorio
+            </TabsTrigger>
+            <TabsTrigger value="dashboard" className="data-[state=active]:bg-white data-[state=active]:text-red-600 data-[state=active]:shadow-sm">
+              <PieChartIcon className="w-4 h-4 mr-2" />
+              Dashboard y Reportes
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="dashboard" className="mt-0">
+            <DiscipuladoDashboard
+              discipulos={discipulos}
+              visitas={visitas}
+              llamadas={llamadas}
+              progreso={progreso}
+              casasDePaz={casasDePaz}
+              lideres={lideres}
+            />
+          </TabsContent>
+
+          <TabsContent value="directorio" className="space-y-8 mt-0">
+            {/* KPI Cards */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <Card className="bg-white border-0 shadow-sm">
             <CardContent className="p-4 flex flex-col items-center justify-center text-center">
               <Users className="w-6 h-6 text-red-500 mb-2" />
@@ -380,9 +407,14 @@ export function DiscipuladoAdminView() {
         <ImportarGlobalDiscipulosModal
           isOpen={importarModalOpen}
           onClose={() => setImportarModalOpen(false)}
-          onSuccess={loadData}
+          onSuccess={() => {
+            loadData();
+          }}
         />
       )}
+          </TabsContent>
+        </Tabs>
+      </div>
     </div>
   );
 }

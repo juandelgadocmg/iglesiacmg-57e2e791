@@ -10,6 +10,7 @@ export function useDiscipuladoAdmin() {
   const [redes, setRedes] = useState<any[]>([]);
   const [casasDePaz, setCasasDePaz] = useState<any[]>([]);
   const [visitas, setVisitas] = useState<any[]>([]);
+  const [llamadas, setLlamadas] = useState<any[]>([]);
   const [progreso, setProgreso] = useState<any[]>([]);
 
   const loadData = useCallback(async () => {
@@ -66,7 +67,17 @@ export function useDiscipuladoAdmin() {
       if (vError) throw vError;
       setVisitas(visitasData || []);
 
-      // 4. Get all Progreso (Optional, for advanced stats)
+      // 4. Get all Llamadas
+      const { data: llamadasData, error: llError } = await supabase
+        .from('discipulo_actividades')
+        .select('*')
+        .eq('tipo_actividad', 'Llamada')
+        .order('fecha', { ascending: false });
+        
+      if (llError) throw llError;
+      setLlamadas(llamadasData || []);
+
+      // 5. Get all Progreso (Optional, for advanced stats)
       const { data: progresoData, error: pError } = await supabase
         .from('progreso_discipulo')
         .select('*');
@@ -90,6 +101,7 @@ export function useDiscipuladoAdmin() {
     redes,
     casasDePaz,
     visitas,
+    llamadas,
     progreso,
     loadData
   };
