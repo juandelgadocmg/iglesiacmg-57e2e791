@@ -116,7 +116,7 @@ export default function DiscipuladoPage() {
       if (insertError) {
         console.error("Error creating leader record:", insertError);
         toast.error(`Error de sistema: No se pudo crear tu perfil de líder (${insertError.message}).`);
-        liderData = newLeader;
+        liderData = newLeader as any;
       } else if (insertedLeader) {
         liderData = insertedLeader;
       }
@@ -128,7 +128,7 @@ export default function DiscipuladoPage() {
         id: session.user.id,
         full_name: 'Líder',
         email: session.user.email
-      };
+      } as any;
     }
       
     if (liderData) {

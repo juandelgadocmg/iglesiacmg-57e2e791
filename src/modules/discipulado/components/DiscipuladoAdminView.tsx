@@ -417,7 +417,7 @@ export function DiscipuladoAdminView() {
             )}
           </div>
         </section>
-      </div>
+
 
       <DiscipuloProcesoModal
         open={!!selectedDiscipulo}

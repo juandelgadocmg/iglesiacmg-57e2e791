@@ -50,8 +50,9 @@ async function generateBackupClientFallback(): Promise<{ sqlContent: string; tab
 
   // 1. Crear usuarios auth si existen en profiles
   try {
-    const { data: profs } = await supabase.from("profiles").select("id, email, created_at");
-    if (profs && profs.length > 0) {
+    const { data: profsRaw } = await (supabase as any).from("profiles").select("id, email, created_at");
+    const profs = (profsRaw ?? []) as Array<{ id: string; email?: string | null; created_at?: string | null }>;
+    if (profs.length > 0) {
       const userInserts = profs.map(p => {
         const idVal = `'${p.id}'`;
         const emailVal = p.email ? `'${p.email.replace(/'/g, "''")}'` : "NULL";
