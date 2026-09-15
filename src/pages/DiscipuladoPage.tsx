@@ -313,8 +313,8 @@ export default function DiscipuladoPage() {
     return <div className="p-8 text-center text-slate-500 font-bold">Cargando Mi Discipulado...</div>;
   }
 
-  // Si es admin o super_admin, mostrar la vista global
-  if (activeRole === 'admin' || activeRole === 'super_admin') {
+  // Si es admin, super_admin o pastor, mostrar la vista global
+  if (activeRole === 'admin' || activeRole === 'super_admin' || activeRole === 'pastor') {
     return <DiscipuladoAdminView />;
   }
 
