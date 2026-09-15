@@ -90,10 +90,16 @@ export function DiscipuladoDashboard({
   const exportToExcel = () => {
     const redSummary: Record<string, any> = {};
 
-    const exportData = discipulos.map(d => {
+    let exportData = discipulos.map(d => {
       // Find related entities
       const lider = lideres.find(l => l.id === d.lider_id);
-      const casa = casasDePaz.find(c => c.id === d.casa_de_paz_id);
+      
+      // Intentar obtener la casa del discípulo, sino fallback a la del líder
+      let casa = casasDePaz.find(c => c.id === d.casa_de_paz_id);
+      if (!casa && lider && lider.casa_de_paz_id) {
+         casa = casasDePaz.find(c => c.id === lider.casa_de_paz_id);
+      }
+      
       const red = casa ? redes.find(r => r.id === casa.red_id) : null;
       
       const dVisitas = visitas.filter(v => v.discipulo_id === d.id);
@@ -132,7 +138,14 @@ export function DiscipuladoDashboard({
       };
     });
 
-    const summaryData = Object.values(redSummary);
+    // Sort exportData by Red, then Casa de Paz, then Name
+    exportData.sort((a, b) => {
+      if (a.Red !== b.Red) return a.Red.localeCompare(b.Red);
+      if (a['Casa de Paz'] !== b['Casa de Paz']) return a['Casa de Paz'].localeCompare(b['Casa de Paz']);
+      return a['Nombre del Discípulo'].localeCompare(b['Nombre del Discípulo']);
+    });
+
+    const summaryData = Object.values(redSummary).sort((a: any, b: any) => a.Red.localeCompare(b.Red));
 
     const worksheet = XLSX.utils.json_to_sheet(exportData);
     const summarySheet = XLSX.utils.json_to_sheet(summaryData);

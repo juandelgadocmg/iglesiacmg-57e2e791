@@ -11,6 +11,7 @@ interface ListadoProcesosTableProps {
   casasDict: Record<string, string>;
   casasRaw: any[]; // to find red_id
   redesRaw: any[]; // to find red name
+  lideresRaw: any[];
   initialFilter?: string;
 }
 
@@ -32,6 +33,7 @@ export function ListadoProcesosTable({
   casasDict,
   casasRaw,
   redesRaw,
+  lideresRaw,
   initialFilter = 'Todos'
 }: ListadoProcesosTableProps) {
   const [searchTerm, setSearchTerm] = useState("");
@@ -70,8 +72,20 @@ export function ListadoProcesosTable({
         pMap[p.etapa_code] = p.completed;
       });
 
-      const casaName = casasDict[d.casa_de_paz_id] || 'Sin casa';
-      const redName = redByCasa[d.casa_de_paz_id] || 'Sin red';
+      let casaName = casasDict[d.casa_de_paz_id];
+      let redName = redByCasa[d.casa_de_paz_id];
+
+      // Fallback a la casa del líder si el discípulo no la tiene
+      if (!casaName && d.lider_id) {
+        const liderInfo = lideresRaw.find(l => l.id === d.lider_id);
+        if (liderInfo && liderInfo.casa_de_paz_id) {
+          casaName = casasDict[liderInfo.casa_de_paz_id];
+          redName = redByCasa[liderInfo.casa_de_paz_id];
+        }
+      }
+      
+      casaName = casaName || 'Sin casa';
+      redName = redName || 'Sin Red';
       
       return {
         ...d,
