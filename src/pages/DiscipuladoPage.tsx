@@ -128,7 +128,7 @@ export default function DiscipuladoPage() {
         id: session.user.id,
         full_name: 'Líder',
         email: session.user.email
-      };
+      } as any;
     }
       
     if (liderData) {
