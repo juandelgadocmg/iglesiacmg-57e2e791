@@ -2,7 +2,6 @@ import React, { useState, useMemo } from 'react';
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Search, CheckCircle2, Circle } from "lucide-react";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface ListadoProcesosTableProps {
@@ -37,6 +36,7 @@ export function ListadoProcesosTable({
 }: ListadoProcesosTableProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [filter, setFilter] = useState<string>(initialFilter);
+  const [redFilter, setRedFilter] = useState<string>("Todas");
 
   // Derive Red mapping
   const redByCasa = useMemo(() => {
@@ -51,6 +51,13 @@ export function ListadoProcesosTable({
     });
     return map;
   }, [casasRaw, redesRaw]);
+
+  // Unique Red names for the filter dropdown
+  const uniqueRedes = useMemo(() => {
+    const redes = Array.from(new Set(Object.values(redByCasa)));
+    // if 'Sin red' is there, keep it, but order alphabetically
+    return redes.sort();
+  }, [redByCasa]);
 
   // Combine Discipulos with their Progress
   const rows = useMemo(() => {
@@ -86,6 +93,11 @@ export function ListadoProcesosTable({
       result = result.filter(r => r.status === 'Completado');
     }
 
+    // Apply Red Filter
+    if (redFilter !== 'Todas') {
+      result = result.filter(r => r.redName === redFilter);
+    }
+
     // Apply Text Search
     if (searchTerm) {
       const lower = searchTerm.toLowerCase();
@@ -96,7 +108,7 @@ export function ListadoProcesosTable({
     }
 
     return result;
-  }, [rows, filter, searchTerm]);
+  }, [rows, filter, redFilter, searchTerm]);
 
   return (
     <div className="bg-white rounded-xl shadow-sm border overflow-hidden flex flex-col h-[75vh]">
@@ -105,8 +117,8 @@ export function ListadoProcesosTable({
           <h2 className="text-lg font-black text-slate-800">Listado Detallado de Procesos</h2>
           <p className="text-xs text-slate-500 font-medium">Total mostrados: {filteredRows.length}</p>
         </div>
-        <div className="flex items-center gap-3 w-full sm:w-auto">
-          <div className="relative flex-1 sm:w-64">
+        <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto">
+          <div className="relative flex-1 min-w-[200px]">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-slate-400" />
             <Input 
               type="text" 
@@ -116,8 +128,21 @@ export function ListadoProcesosTable({
               className="pl-9 bg-white"
             />
           </div>
+          
+          <Select value={redFilter} onValueChange={setRedFilter}>
+            <SelectTrigger className="w-[160px] bg-white">
+              <SelectValue placeholder="Red" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="Todas">Todas las Redes</SelectItem>
+              {uniqueRedes.map(r => (
+                <SelectItem key={r} value={r}>{r}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
           <Select value={filter} onValueChange={setFilter}>
-            <SelectTrigger className="w-[180px] bg-white">
+            <SelectTrigger className="w-[160px] bg-white">
               <SelectValue placeholder="Filtrar por estado" />
             </SelectTrigger>
             <SelectContent>
@@ -129,22 +154,21 @@ export function ListadoProcesosTable({
         </div>
       </div>
 
-      <ScrollArea className="flex-1 w-full">
-        <div className="min-w-[1000px]">
-          <table className="w-full text-sm text-left">
-            <thead className="text-xs text-slate-500 uppercase bg-white border-b sticky top-0 z-10">
-              <tr>
-                <th className="px-4 py-3 min-w-[200px]">Discípulo</th>
-                <th className="px-4 py-3 min-w-[150px]">Líder</th>
-                <th className="px-4 py-3 min-w-[150px]">Red / Casa</th>
-                <th className="px-4 py-3 min-w-[100px]">Estado</th>
-                {ETAPAS.map(etapa => (
-                  <th key={etapa.code} className="px-2 py-3 text-center whitespace-nowrap" title={etapa.label}>
-                    {etapa.code}
-                  </th>
-                ))}
-              </tr>
-            </thead>
+      <div className="flex-1 w-full overflow-auto relative">
+        <table className="w-full text-sm text-left min-w-[1000px]">
+          <thead className="text-xs text-slate-500 uppercase bg-white border-b sticky top-0 z-10 shadow-sm">
+            <tr>
+              <th className="px-4 py-3 min-w-[200px]">Discípulo</th>
+              <th className="px-4 py-3 min-w-[150px]">Líder</th>
+              <th className="px-4 py-3 min-w-[150px]">Red / Casa</th>
+              <th className="px-4 py-3 min-w-[100px]">Estado</th>
+              {ETAPAS.map(etapa => (
+                <th key={etapa.code} className="px-2 py-3 text-center whitespace-nowrap" title={etapa.label}>
+                  {etapa.code}
+                </th>
+              ))}
+            </tr>
+          </thead>
             <tbody className="divide-y">
               {filteredRows.length === 0 ? (
                 <tr>
@@ -183,7 +207,6 @@ export function ListadoProcesosTable({
             </tbody>
           </table>
         </div>
-      </ScrollArea>
     </div>
   );
 }
