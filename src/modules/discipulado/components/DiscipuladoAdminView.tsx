@@ -31,9 +31,9 @@ import { AgregarDiscipuloModal } from "@/modules/discipulado/components/AgregarD
 import { AsignarLiderCasaModal } from "@/modules/discipulado/components/AsignarLiderCasaModal";
 import { ImportarGlobalDiscipulosModal } from "@/modules/discipulado/components/ImportarGlobalDiscipulosModal";
 import { DiscipuladoDashboard } from "@/modules/discipulado/components/DiscipuladoDashboard";
-import { KpiDetailsModal } from "@/modules/discipulado/components/KpiDetailsModal";
+import { ListadoProcesosTable } from "@/modules/discipulado/components/ListadoProcesosTable";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { UploadCloud, PieChart as PieChartIcon } from "lucide-react";
+import { UploadCloud, PieChart as PieChartIcon, ClipboardList } from "lucide-react";
 
 export function DiscipuladoAdminView() {
   const { loadData, loading, discipulos, lideres, redes, casasDePaz, visitas, llamadas, progreso } = useDiscipuladoAdmin();
@@ -42,17 +42,8 @@ export function DiscipuladoAdminView() {
   const [agregarDiscipuloCasa, setAgregarDiscipuloCasa] = useState<{casa_id: string, lider_id: string | null} | null>(null);
   const [asignarLiderCasa, setAsignarLiderCasa] = useState<{casa_id: string, casa_name: string, current_lider_id?: string | null} | null>(null);
   const [importarModalOpen, setImportarModalOpen] = useState(false);
-  const [kpiModalState, setKpiModalState] = useState<{
-    isOpen: boolean;
-    title: string;
-    type: 'discipulos' | 'lideres' | 'visitas' | 'consolidados' | null;
-    data: any[];
-  }>({
-    isOpen: false,
-    title: '',
-    type: null,
-    data: []
-  });
+  const [activeTab, setActiveTab] = useState("directorio");
+  const [listFilter, setListFilter] = useState("Todos");
 
   useEffect(() => {
     loadData();
@@ -171,11 +162,15 @@ export function DiscipuladoAdminView() {
 
       <div className="p-4 max-w-5xl mx-auto space-y-8 mt-4">
         
-        <Tabs defaultValue="directorio" className="w-full">
-          <TabsList className="grid w-full grid-cols-2 max-w-md mx-auto mb-8 bg-slate-200/50">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="grid w-full grid-cols-3 max-w-2xl mx-auto mb-8 bg-slate-200/50">
             <TabsTrigger value="directorio" className="data-[state=active]:bg-white data-[state=active]:text-red-600 data-[state=active]:shadow-sm">
               <Users className="w-4 h-4 mr-2" />
               Directorio
+            </TabsTrigger>
+            <TabsTrigger value="listado" className="data-[state=active]:bg-white data-[state=active]:text-red-600 data-[state=active]:shadow-sm">
+              <ClipboardList className="w-4 h-4 mr-2" />
+              Listado Detallado
             </TabsTrigger>
             <TabsTrigger value="dashboard" className="data-[state=active]:bg-white data-[state=active]:text-red-600 data-[state=active]:shadow-sm">
               <PieChartIcon className="w-4 h-4 mr-2" />
@@ -200,7 +195,7 @@ export function DiscipuladoAdminView() {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <Card 
             className="bg-white border-0 shadow-sm cursor-pointer hover:shadow-md transition-shadow"
-            onClick={() => setKpiModalState({ isOpen: true, title: 'Discípulos Totales', type: 'discipulos', data: discipulos })}
+            onClick={() => { setActiveTab('listado'); setListFilter('Todos'); }}
           >
             <CardContent className="p-4 flex flex-col items-center justify-center text-center">
               <Users className="w-6 h-6 text-red-500 mb-2" />
@@ -210,11 +205,7 @@ export function DiscipuladoAdminView() {
           </Card>
           <Card 
             className="bg-white border-0 shadow-sm cursor-pointer hover:shadow-md transition-shadow"
-            onClick={() => {
-              const assignedLeadersIds = new Set(discipulos.map(d => d.lider_id).filter(Boolean));
-              const assignedLeaders = lideres.filter(l => assignedLeadersIds.has(l.id));
-              setKpiModalState({ isOpen: true, title: 'Líderes con Asignaciones', type: 'lideres', data: assignedLeaders });
-            }}
+            onClick={() => { setActiveTab('listado'); setListFilter('Todos'); }}
           >
             <CardContent className="p-4 flex flex-col items-center justify-center text-center">
               <UserCheck className="w-6 h-6 text-red-500 mb-2" />
@@ -224,7 +215,7 @@ export function DiscipuladoAdminView() {
           </Card>
           <Card 
             className="bg-white border-0 shadow-sm cursor-pointer hover:shadow-md transition-shadow"
-            onClick={() => setKpiModalState({ isOpen: true, title: 'Visitas Registradas', type: 'visitas', data: visitas })}
+            onClick={() => { setActiveTab('listado'); setListFilter('Todos'); }}
           >
             <CardContent className="p-4 flex flex-col items-center justify-center text-center">
               <History className="w-6 h-6 text-red-500 mb-2" />
@@ -234,7 +225,7 @@ export function DiscipuladoAdminView() {
           </Card>
           <Card 
             className="bg-red-600 border-0 shadow-sm text-white cursor-pointer hover:bg-red-700 transition-colors"
-            onClick={() => setKpiModalState({ isOpen: true, title: 'Discípulos Consolidados', type: 'consolidados', data: discipulos.filter(d => d.status === 'Completado') })}
+            onClick={() => { setActiveTab('listado'); setListFilter('Consolidados'); }}
           >
             <CardContent className="p-4 flex flex-col items-center justify-center text-center">
               <Activity className="w-6 h-6 text-red-200 mb-2" />
@@ -456,16 +447,18 @@ export function DiscipuladoAdminView() {
           }}
         />
       )}
+          </TabsContent>
 
-      <KpiDetailsModal 
-        isOpen={kpiModalState.isOpen}
-        onClose={() => setKpiModalState(prev => ({ ...prev, isOpen: false }))}
-        title={kpiModalState.title}
-        type={kpiModalState.type}
-        data={kpiModalState.data}
-        lideresDict={lideresDict}
-        casasDict={casasDict}
-      />
+          <TabsContent value="listado" className="mt-0">
+            <ListadoProcesosTable 
+              discipulos={discipulos}
+              progreso={progreso}
+              lideresDict={lideresDict}
+              casasDict={casasDict}
+              casasRaw={casasDePaz}
+              redesRaw={redes}
+              initialFilter={listFilter}
+            />
           </TabsContent>
         </Tabs>
       </div>
