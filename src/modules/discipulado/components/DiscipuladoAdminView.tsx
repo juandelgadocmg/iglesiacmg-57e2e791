@@ -32,8 +32,9 @@ import { AsignarLiderCasaModal } from "@/modules/discipulado/components/AsignarL
 import { ImportarGlobalDiscipulosModal } from "@/modules/discipulado/components/ImportarGlobalDiscipulosModal";
 import { DiscipuladoDashboard } from "@/modules/discipulado/components/DiscipuladoDashboard";
 import { ListadoProcesosTable } from "@/modules/discipulado/components/ListadoProcesosTable";
+import { ListadoInteraccionesTable } from "@/modules/discipulado/components/ListadoInteraccionesTable";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { UploadCloud, PieChart as PieChartIcon, ClipboardList } from "lucide-react";
+import { UploadCloud, PieChart as PieChartIcon, ClipboardList, PhoneCall } from "lucide-react";
 
 export function DiscipuladoAdminView() {
   const { loadData, loading, discipulos, lideres, redes, casasDePaz, visitas, llamadas, progreso } = useDiscipuladoAdmin();
@@ -163,18 +164,22 @@ export function DiscipuladoAdminView() {
       <div className="p-4 max-w-5xl mx-auto space-y-8 mt-4">
         
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-3 max-w-2xl mx-auto mb-8 bg-slate-200/50">
+          <TabsList className="grid w-full grid-cols-4 max-w-4xl mx-auto mb-8 bg-slate-200/50">
             <TabsTrigger value="directorio" className="data-[state=active]:bg-white data-[state=active]:text-red-600 data-[state=active]:shadow-sm">
-              <Users className="w-4 h-4 mr-2" />
+              <Users className="w-4 h-4 mr-2 hidden sm:inline" />
               Directorio
             </TabsTrigger>
             <TabsTrigger value="listado" className="data-[state=active]:bg-white data-[state=active]:text-red-600 data-[state=active]:shadow-sm">
-              <ClipboardList className="w-4 h-4 mr-2" />
-              Listado Detallado
+              <ClipboardList className="w-4 h-4 mr-2 hidden sm:inline" />
+              Procesos
+            </TabsTrigger>
+            <TabsTrigger value="interacciones" className="data-[state=active]:bg-white data-[state=active]:text-red-600 data-[state=active]:shadow-sm">
+              <PhoneCall className="w-4 h-4 mr-2 hidden sm:inline" />
+              Historial
             </TabsTrigger>
             <TabsTrigger value="dashboard" className="data-[state=active]:bg-white data-[state=active]:text-red-600 data-[state=active]:shadow-sm">
-              <PieChartIcon className="w-4 h-4 mr-2" />
-              Dashboard y Reportes
+              <PieChartIcon className="w-4 h-4 mr-2 hidden sm:inline" />
+              Reportes
             </TabsTrigger>
           </TabsList>
 
@@ -459,6 +464,18 @@ export function DiscipuladoAdminView() {
               redesRaw={redes}
               lideresRaw={lideres}
               initialFilter={listFilter}
+            />
+          </TabsContent>
+
+          <TabsContent value="interacciones" className="mt-0 w-full max-w-full overflow-x-auto">
+            <ListadoInteraccionesTable 
+              visitas={visitas}
+              llamadas={llamadas}
+              discipulosDict={discipulosDict}
+              lideresDict={lideresDict}
+              casasDict={casasDict}
+              redesRaw={redes}
+              casasRaw={casasDePaz}
             />
           </TabsContent>
         </Tabs>
