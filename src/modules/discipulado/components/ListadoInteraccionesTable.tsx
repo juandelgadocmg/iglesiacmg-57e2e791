@@ -16,6 +16,8 @@ interface ListadoInteraccionesTableProps {
   casasDict: Record<string, string>;
   redesRaw: any[];
   casasRaw: any[];
+  discipulosRaw: any[];
+  lideresRaw: any[];
 }
 
 export function ListadoInteraccionesTable({
@@ -25,7 +27,9 @@ export function ListadoInteraccionesTable({
   lideresDict,
   casasDict,
   redesRaw,
-  casasRaw
+  casasRaw,
+  discipulosRaw,
+  lideresRaw
 }: ListadoInteraccionesTableProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [tipoFilter, setTipoFilter] = useState<string>("Todos");
@@ -51,28 +55,43 @@ export function ListadoInteraccionesTable({
   }, [redByCasa]);
 
   const allInteractions = useMemo(() => {
-    const v = visitas.map(vi => ({
-      ...vi,
-      tipo: 'Visita',
-      icon: <Home className="w-4 h-4 text-emerald-600" />,
-      color: 'bg-emerald-100 text-emerald-800'
-    }));
+    const enrichInteraction = (i: any, type: string, icon: any, color: string) => {
+      const disc = discipulosRaw.find(d => d.id === i.discipulo_id);
+      let cId = disc?.casa_de_paz_id;
+      
+      if (!cId) {
+        const lid = lideresRaw.find(l => l.id === (i.lider_id || disc?.lider_id));
+        cId = lid?.casa_de_paz_id;
+      }
+      
+      const redName = cId ? (redByCasa[cId] || 'Sin Red') : 'Sin Red';
+      const casaName = cId ? (casasDict[cId] || 'Sin casa') : 'Sin casa';
+
+      return {
+        ...i,
+        tipo: type,
+        icon,
+        color,
+        redName,
+        casaName
+      };
+    };
     
-    const l = llamadas.map(ll => ({
-      ...ll,
-      tipo: 'Llamada',
-      icon: <PhoneCall className="w-4 h-4 text-blue-600" />,
-      color: 'bg-blue-100 text-blue-800'
-    }));
+    const v = visitas.map(vi => enrichInteraction(vi, 'Visita', <Home className="w-4 h-4 text-emerald-600" />, 'bg-emerald-100 text-emerald-800'));
+    const l = llamadas.map(ll => enrichInteraction(ll, 'Llamada', <PhoneCall className="w-4 h-4 text-blue-600" />, 'bg-blue-100 text-blue-800'));
 
     return [...v, ...l].sort((a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime());
-  }, [visitas, llamadas]);
+  }, [visitas, llamadas, discipulosRaw, lideresRaw, redByCasa, casasDict]);
 
   const filteredInteractions = useMemo(() => {
     let result = allInteractions;
 
     if (tipoFilter !== 'Todos') {
       result = result.filter(r => r.tipo === tipoFilter);
+    }
+
+    if (redFilter !== 'Todas') {
+      result = result.filter(r => r.redName === redFilter);
     }
 
     if (searchTerm) {
@@ -88,16 +107,16 @@ export function ListadoInteraccionesTable({
     }
 
     return result;
-  }, [allInteractions, tipoFilter, searchTerm, discipulosDict, lideresDict]);
+  }, [allInteractions, tipoFilter, redFilter, searchTerm, discipulosDict, lideresDict]);
 
   const exportToExcel = () => {
     const exportData = filteredInteractions.map(row => {
-      // Intentamos obtener red de algún lado si tuvieramos la casa del discípulo. 
-      // Por simplicidad en esta tabla, exportamos Discípulo y Líder.
       return {
         'Tipo': row.tipo,
         'Fecha': row.fecha,
         'Hora': row.hora || 'No especificada',
+        'Red': row.redName,
+        'Casa de Paz': row.casaName,
         'Discípulo': discipulosDict[row.discipulo_id] || 'Desconocido',
         'Líder que registró': lideresDict[row.lider_id] || 'Desconocido',
         'Detalles / Notas': row.descripcion || row.notas || 'Sin detalles'
@@ -140,6 +159,18 @@ export function ListadoInteraccionesTable({
             </SelectContent>
           </Select>
 
+          <Select value={redFilter} onValueChange={setRedFilter}>
+            <SelectTrigger className="w-[160px] bg-white">
+              <SelectValue placeholder="Red" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="Todas">Todas las Redes</SelectItem>
+              {uniqueRedes.map(r => (
+                <SelectItem key={r} value={r}>{r}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
           <Button 
             variant="outline" 
             size="sm" 
@@ -160,6 +191,7 @@ export function ListadoInteraccionesTable({
               <th className="px-4 py-3 min-w-[150px]">Fecha</th>
               <th className="px-4 py-3 min-w-[180px]">Discípulo</th>
               <th className="px-4 py-3 min-w-[180px]">Líder</th>
+              <th className="px-4 py-3 min-w-[150px]">Red / Casa</th>
               <th className="px-4 py-3 min-w-[300px]">Detalles</th>
             </tr>
           </thead>
@@ -191,6 +223,12 @@ export function ListadoInteraccionesTable({
                     </td>
                     <td className="px-4 py-3 text-slate-600">
                       {lideresDict[row.lider_id] || 'Desconocido'}
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex flex-col">
+                        <span className="font-semibold text-xs text-slate-700">{row.redName}</span>
+                        <span className="text-xs text-slate-500">{row.casaName}</span>
+                      </div>
                     </td>
                     <td className="px-4 py-3 text-slate-600 italic">
                       {row.descripcion || row.notas || '-'}
