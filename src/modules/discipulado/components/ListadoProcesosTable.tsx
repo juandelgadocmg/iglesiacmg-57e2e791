@@ -46,9 +46,9 @@ export function ListadoProcesosTable({
   // Derive Red mapping
   const redByCasa = useMemo(() => {
     const map: Record<string, string> = {};
-    casasRaw.forEach(c => {
+    casasRaw?.forEach(c => {
       if (c.red_id) {
-        const r = redesRaw.find(red => red.id === c.red_id);
+        const r = redesRaw?.find(red => red.id === c.red_id);
         map[c.id] = r ? r.name : 'Sin Red';
       } else {
         map[c.id] = 'Sin Red';
@@ -80,7 +80,7 @@ export function ListadoProcesosTable({
 
       // Fallback a la casa del líder si el discípulo no la tiene
       if (!casaName && d.lider_id) {
-        const liderInfo = lideresRaw.find(l => l.id === d.lider_id);
+        const liderInfo = lideresRaw?.find(l => l.id === d.lider_id);
         if (liderInfo && liderInfo.casa_de_paz_id) {
           casaName = casasDict[liderInfo.casa_de_paz_id];
           redName = redByCasa[liderInfo.casa_de_paz_id];

@@ -21,15 +21,15 @@ interface ListadoInteraccionesTableProps {
 }
 
 export function ListadoInteraccionesTable({
-  visitas,
-  llamadas,
-  discipulosDict,
-  lideresDict,
-  casasDict,
-  redesRaw,
-  casasRaw,
-  discipulosRaw,
-  lideresRaw
+  visitas = [],
+  llamadas = [],
+  discipulosDict = {},
+  lideresDict = {},
+  casasDict = {},
+  redesRaw = [],
+  casasRaw = [],
+  discipulosRaw = [],
+  lideresRaw = []
 }: ListadoInteraccionesTableProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [tipoFilter, setTipoFilter] = useState<string>("Todos");
@@ -38,9 +38,9 @@ export function ListadoInteraccionesTable({
   // Derive Red mapping
   const redByCasa = useMemo(() => {
     const map: Record<string, string> = {};
-    casasRaw.forEach(c => {
+    casasRaw?.forEach(c => {
       if (c.red_id) {
-        const r = redesRaw.find(red => red.id === c.red_id);
+        const r = redesRaw?.find(red => red.id === c.red_id);
         map[c.id] = r ? r.name : 'Sin Red';
       } else {
         map[c.id] = 'Sin Red';
@@ -56,11 +56,11 @@ export function ListadoInteraccionesTable({
 
   const allInteractions = useMemo(() => {
     const enrichInteraction = (i: any, type: string, icon: any, color: string) => {
-      const disc = discipulosRaw.find(d => d.id === i.discipulo_id);
+      const disc = discipulosRaw?.find(d => d.id === i.discipulo_id);
       let cId = disc?.casa_de_paz_id;
       
       if (!cId) {
-        const lid = lideresRaw.find(l => l.id === (i.lider_id || disc?.lider_id));
+        const lid = lideresRaw?.find(l => l.id === (i.lider_id || disc?.lider_id));
         cId = lid?.casa_de_paz_id;
       }
       
