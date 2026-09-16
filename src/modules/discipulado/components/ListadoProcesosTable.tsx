@@ -125,7 +125,7 @@ export function ListadoProcesosTable({
   }, [rows, filter, redFilter, searchTerm]);
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border overflow-hidden flex flex-col h-[75vh]">
+    <div className="bg-white rounded-xl shadow-sm border overflow-hidden flex flex-col h-[75vh] w-full max-w-full">
       <div className="p-4 border-b bg-slate-50 flex flex-col sm:flex-row gap-4 items-center justify-between">
         <div>
           <h2 className="text-lg font-black text-slate-800">Listado Detallado de Procesos</h2>
@@ -168,7 +168,7 @@ export function ListadoProcesosTable({
         </div>
       </div>
 
-      <div className="flex-1 w-full overflow-auto relative">
+      <div className="flex-1 w-full overflow-auto relative [&::-webkit-scrollbar]:h-3 [&::-webkit-scrollbar]:w-3 [&::-webkit-scrollbar-track]:bg-slate-100 [&::-webkit-scrollbar-thumb]:bg-slate-300 [&::-webkit-scrollbar-thumb]:rounded-full">
         <table className="w-full text-sm text-left min-w-[1000px]">
           <thead className="text-xs text-slate-500 uppercase bg-white border-b sticky top-0 z-10 shadow-sm">
             <tr>

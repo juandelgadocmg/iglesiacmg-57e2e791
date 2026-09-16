@@ -449,7 +449,7 @@ export function DiscipuladoAdminView() {
       )}
           </TabsContent>
 
-          <TabsContent value="listado" className="mt-0">
+          <TabsContent value="listado" className="mt-0 w-full max-w-full overflow-x-auto">
             <ListadoProcesosTable 
               discipulos={discipulos}
               progreso={progreso}
@@ -457,6 +457,7 @@ export function DiscipuladoAdminView() {
               casasDict={casasDict}
               casasRaw={casasDePaz}
               redesRaw={redes}
+              lideresRaw={lideres}
               initialFilter={listFilter}
             />
           </TabsContent>
