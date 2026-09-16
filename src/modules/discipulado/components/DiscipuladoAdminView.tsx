@@ -90,6 +90,13 @@ export function DiscipuladoAdminView() {
     }, {} as Record<string, string>);
   }, [casasDePaz]);
 
+  const discipulosDict = useMemo(() => {
+    return discipulos.reduce((acc, d) => {
+      acc[d.id] = d.full_name;
+      return acc;
+    }, {} as Record<string, string>);
+  }, [discipulos]);
+
   // Filtered Hierarchy
   const hierarchy = useMemo(() => {
     const term = searchTerm.toLowerCase();
