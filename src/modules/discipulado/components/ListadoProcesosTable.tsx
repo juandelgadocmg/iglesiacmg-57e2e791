@@ -1,8 +1,10 @@
 import React, { useState, useMemo } from 'react';
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Search, CheckCircle2, Circle } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Search, CheckCircle2, Circle, Download } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import * as XLSX from "xlsx";
 
 interface ListadoProcesosTableProps {
   discipulos: any[];
@@ -39,6 +41,7 @@ export function ListadoProcesosTable({
   const [searchTerm, setSearchTerm] = useState("");
   const [filter, setFilter] = useState<string>(initialFilter);
   const [redFilter, setRedFilter] = useState<string>("Todas");
+  const [etapaFilter, setEtapaFilter] = useState<string>("Todas");
 
   // Derive Red mapping
   const redByCasa = useMemo(() => {
@@ -112,6 +115,11 @@ export function ListadoProcesosTable({
       result = result.filter(r => r.redName === redFilter);
     }
 
+    // Apply Etapa Filter
+    if (etapaFilter !== 'Todas') {
+      result = result.filter(r => r.progressMap[etapaFilter] === true);
+    }
+
     // Apply Text Search
     if (searchTerm) {
       const lower = searchTerm.toLowerCase();
@@ -122,7 +130,30 @@ export function ListadoProcesosTable({
     }
 
     return result;
-  }, [rows, filter, redFilter, searchTerm]);
+  }, [rows, filter, redFilter, etapaFilter, searchTerm]);
+
+  const exportToExcel = () => {
+    const exportData = filteredRows.map(row => {
+      const data: any = {
+        'Red': row.redName,
+        'Casa de Paz': row.casaName,
+        'Discípulo': row.full_name,
+        'Líder': row.liderName,
+        'Estado': row.status || 'Activo',
+      };
+      
+      ETAPAS.forEach(etapa => {
+        data[etapa.code] = row.progressMap[etapa.code] ? 'Completado' : 'Pendiente';
+      });
+      
+      return data;
+    });
+
+    const worksheet = XLSX.utils.json_to_sheet(exportData);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Procesos");
+    XLSX.writeFile(workbook, `Listado_Procesos_${new Date().toISOString().split('T')[0]}.xlsx`);
+  };
 
   return (
     <div className="bg-white rounded-xl shadow-sm border overflow-hidden flex flex-col h-[75vh] w-full max-w-full">
@@ -165,6 +196,28 @@ export function ListadoProcesosTable({
               <SelectItem value="Consolidados">Consolidados</SelectItem>
             </SelectContent>
           </Select>
+
+          <Select value={etapaFilter} onValueChange={setEtapaFilter}>
+            <SelectTrigger className="w-[160px] bg-white">
+              <SelectValue placeholder="Etapa" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="Todas">Todas las Etapas</SelectItem>
+              {ETAPAS.map(e => (
+                <SelectItem key={e.code} value={e.code}>{e.label} ({e.code})</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={exportToExcel}
+            className="gap-2 text-green-700 border-green-200 hover:bg-green-50 bg-green-50/50"
+          >
+            <Download className="w-4 h-4" />
+            Exportar
+          </Button>
         </div>
       </div>
 
