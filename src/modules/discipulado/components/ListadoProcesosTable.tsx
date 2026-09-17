@@ -81,9 +81,15 @@ export function ListadoProcesosTable({
       // Fallback a la casa del líder si el discípulo no la tiene
       if (!casaName && d.lider_id) {
         const liderInfo = lideresRaw?.find(l => l.id === d.lider_id);
-        if (liderInfo && liderInfo.casa_de_paz_id) {
+        if (liderInfo && liderInfo.casa_de_paz_id && casasDict[liderInfo.casa_de_paz_id]) {
           casaName = casasDict[liderInfo.casa_de_paz_id];
           redName = redByCasa[liderInfo.casa_de_paz_id];
+        } else {
+          const casaLider = casasRaw?.find(c => c.lider_id === d.lider_id);
+          if (casaLider) {
+            casaName = casaLider.name;
+            redName = redByCasa[casaLider.id];
+          }
         }
       }
       

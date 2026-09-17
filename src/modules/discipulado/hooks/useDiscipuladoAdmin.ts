@@ -36,7 +36,8 @@ export function useDiscipuladoAdmin() {
       const parsedCasas = rawGrupos.map(g => ({
         id: g.id,
         name: g.nombre || 'Sin nombre',
-        red_id: g.red || null
+        red_id: g.red || null,
+        lider_id: g.lider_id || null
       }));
       setCasasDePaz(parsedCasas);
 

@@ -62,6 +62,11 @@ export function ListadoInteraccionesTable({
       if (!cId || !casasDict[cId]) {
         const lid = lideresRaw?.find(l => l.id === (i.lider_id || disc?.lider_id));
         cId = lid?.casa_de_paz_id;
+        
+        if (!cId || !casasDict[cId]) {
+          const casaLider = casasRaw?.find(c => c.lider_id === (i.lider_id || disc?.lider_id));
+          cId = casaLider?.id;
+        }
       }
       
       const redName = cId ? (redByCasa[cId] || 'Sin Red') : 'Sin Red';
