@@ -17,21 +17,28 @@ export function useDiscipuladoAdmin() {
     setLoading(true);
     setError(null);
     try {
-      // 1. Get all Redes
-      const { data: redesData, error: rError } = await supabase
-        .from('redes')
-        .select('*');
+      // 1. Get all Grupos (Casas de Paz y Redes)
+      const { data: gruposData, error: gError } = await supabase
+        .from('grupos')
+        .select('*')
+        .eq('estado', 'Activo');
       
-      if (rError) throw rError;
-      setRedes(redesData || []);
+      if (gError) throw gError;
+      
+      const rawGrupos = gruposData || [];
+      
+      // Extract unique Redes
+      const uniqueRedes = Array.from(new Set(rawGrupos.map(g => g.red).filter(Boolean)));
+      const parsedRedes = uniqueRedes.map(r => ({ id: r, name: `Red ${r}` }));
+      setRedes(parsedRedes);
 
-      // 1.1 Get all Casas de Paz
-      const { data: casasData, error: cError } = await supabase
-        .from('casas_de_paz')
-        .select('*');
-        
-      if (cError) throw cError;
-      setCasasDePaz(casasData || []);
+      // Extract Casas de Paz
+      const parsedCasas = rawGrupos.map(g => ({
+        id: g.id,
+        name: g.nombre || 'Sin nombre',
+        red_id: g.red || null
+      }));
+      setCasasDePaz(parsedCasas);
 
       // 3. Get all Leaders
       const { data: lideresData, error: lError } = await supabase
