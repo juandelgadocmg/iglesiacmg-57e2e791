@@ -59,7 +59,7 @@ export function ListadoInteraccionesTable({
       const disc = discipulosRaw?.find(d => d.id === i.discipulo_id);
       let cId = disc?.casa_de_paz_id;
       
-      if (!cId) {
+      if (!cId || !casasDict[cId]) {
         const lid = lideresRaw?.find(l => l.id === (i.lider_id || disc?.lider_id));
         cId = lid?.casa_de_paz_id;
       }
