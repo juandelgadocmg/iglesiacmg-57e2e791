@@ -27,6 +27,7 @@ export function DiscipuloProcesoModal({
   const [visitas, setVisitas] = useState<any[]>([]);
   const [actividades, setActividades] = useState<any[]>([]);
   const [progreso, setProgreso] = useState<any[]>([]);
+  const [etapas, setEtapas] = useState<any[]>([]);
   
   useEffect(() => {
     if (open && discipulo?.id) {
@@ -43,7 +44,14 @@ export function DiscipuloProcesoModal({
     setVisitas(v);
     setActividades(a);
 
-    // Load Progreso Etapas
+    // Load all Etapas
+    const { data: eData } = await supabase
+      .from('etapas_discipulado')
+      .select('*')
+      .order('order_num');
+    if (eData) setEtapas(eData);
+
+    // Load Progreso Etapas for this discipulo
     const { data: p } = await supabase
       .from('progreso_discipulo')
       .select('*, etapas_discipulado(*)')
@@ -63,6 +71,60 @@ export function DiscipuloProcesoModal({
     .sort((a, b) => new Date(a.proximo_seguimiento).getTime() - new Date(b.proximo_seguimiento).getTime());
   
   const proximoSeguimiento = futurosSeguimientos.length > 0 ? futurosSeguimientos[0] : null;
+
+  const toggleProgreso = async (etapaCode: string, existingProgreso: any) => {
+    try {
+      const newStatus = existingProgreso ? !existingProgreso.completed : true;
+      const timestamp = newStatus ? new Date().toISOString() : null;
+
+      if (existingProgreso?.id) {
+        // Update existing
+        const { error } = await supabase
+          .from('progreso_discipulo')
+          .update({
+            completed: newStatus,
+            completed_at: timestamp
+          })
+          .eq('id', existingProgreso.id);
+          
+        if (error) throw error;
+        
+        setProgreso(prev => prev.map(item => 
+          item.id === existingProgreso.id 
+            ? { ...item, completed: newStatus, completed_at: timestamp } 
+            : item
+        ));
+      } else {
+        // Insert new
+        const { data, error } = await supabase
+          .from('progreso_discipulo')
+          .insert({
+            discipulo_id: discipulo.id,
+            etapa_code: etapaCode,
+            completed: newStatus,
+            completed_at: timestamp
+          })
+          .select('*, etapas_discipulado(*)')
+          .single();
+
+        if (error) throw error;
+        if (data) {
+          setProgreso(prev => [...prev, data]);
+        }
+      }
+    } catch (err: any) {
+      console.error("Error updating progress:", err);
+    }
+  };
+
+  // Combine all stages with their current progress
+  const mergedProgreso = etapas.map(etapa => {
+    const p = progreso.find(p => p.etapa_code === etapa.code);
+    return {
+      etapa,
+      progreso: p
+    };
+  });
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -117,25 +179,32 @@ export function DiscipuloProcesoModal({
             <div className="bg-white border rounded-xl p-4 shadow-sm">
               <h3 className="font-bold text-lg text-slate-800 mb-4 border-b pb-2">Etapas de Consolidación</h3>
               <div className="space-y-3">
-                {progreso.length > 0 ? progreso.sort((a,b) => a.etapas_discipulado?.order_num - b.etapas_discipulado?.order_num).map((p: any) => (
-                  <div key={p.id} className="flex items-center justify-between p-2 rounded-lg hover:bg-slate-50">
-                    <div className="flex items-center gap-3">
-                      {p.completed ? (
-                        <CheckCircle2 className="w-5 h-5 text-green-500" />
-                      ) : (
-                        <div className="w-5 h-5 rounded-full border-2 border-slate-300" />
+                {mergedProgreso.length > 0 ? mergedProgreso.map(({ etapa, progreso: p }) => {
+                  const isCompleted = p?.completed || false;
+                  return (
+                    <div 
+                      key={etapa.code} 
+                      className="flex items-center justify-between p-2 rounded-lg hover:bg-slate-50 cursor-pointer transition-colors"
+                      onClick={() => toggleProgreso(etapa.code, p)}
+                    >
+                      <div className="flex items-center gap-3">
+                        {isCompleted ? (
+                          <CheckCircle2 className="w-5 h-5 text-green-500" />
+                        ) : (
+                          <div className="w-5 h-5 rounded-full border-2 border-slate-300" />
+                        )}
+                        <span className={`font-medium ${isCompleted ? 'text-slate-800' : 'text-slate-500'}`}>
+                          {etapa.label}
+                        </span>
+                      </div>
+                      {isCompleted && p?.completed_at && (
+                        <span className="text-xs text-slate-400">
+                          {new Date(p.completed_at).toLocaleDateString()}
+                        </span>
                       )}
-                      <span className={`font-medium ${p.completed ? 'text-slate-800' : 'text-slate-500'}`}>
-                        {p.etapas_discipulado?.label || p.etapa_code}
-                      </span>
                     </div>
-                    {p.completed && p.completed_at && (
-                      <span className="text-xs text-slate-400">
-                        {new Date(p.completed_at).toLocaleDateString()}
-                      </span>
-                    )}
-                  </div>
-                )) : (
+                  );
+                }) : (
                   <p className="text-slate-500 text-sm text-center py-4">No hay progreso registrado aún.</p>
                 )}
               </div>

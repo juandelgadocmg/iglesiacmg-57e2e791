@@ -5,6 +5,8 @@ import { useActiveRole, ROLE_LABELS } from "@/hooks/useActiveRole";
 import { useDashboardStats, usePersonas } from "@/hooks/useDatabase";
 import { useCursos, useAllMatriculas, useCertificados } from "@/hooks/useAcademia";
 import { usePeticiones } from "@/hooks/usePeticiones";
+import { useUserRoles } from "@/hooks/useUserRoles";
+import { canAccess } from "@/lib/permissions";
 import { useReportesGrupos } from "@/hooks/useReportesGrupos";
 import { useActiveBanners } from "@/hooks/useBanners";
 import { useActiveVideos } from "@/hooks/useVideosIglesia";
@@ -129,6 +131,8 @@ export default function Dashboard() {
   const greeting = hour < 12 ? "Buenos días" : hour < 18 ? "Buenas tardes" : "Buenas noches";
   const displayName = user?.user_metadata?.display_name || user?.email?.split("@")[0] || "Usuario";
   const { activeRole, roleLabel } = useActiveRole();
+  const { roles } = useUserRoles();
+  const effectiveRoles = activeRole ? [activeRole as any] : roles;
   const greetingRole = roleLabel || "Usuario";
 
   if (isLoading) {
@@ -195,34 +199,36 @@ export default function Dashboard() {
       </div>
 
       {/* Banner Directo Módulo de Afirmación */}
-      <Card
-        onClick={() => navigate("/afirmacion")}
-        className="p-4 sm:p-5 bg-gradient-to-r from-primary/10 via-card to-emerald-500/10 border border-primary/20 hover:border-primary/40 cursor-pointer transition-all shadow-sm rounded-2xl group"
-      >
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-3.5">
-            <div className="w-11 h-11 rounded-2xl bg-primary text-primary-foreground flex items-center justify-center font-bold shadow-md shrink-0">
-              <CheckCircle2 className="h-6 w-6" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h3 className="font-bold text-base text-foreground group-hover:text-primary transition-colors">
-                  Módulo de Afirmación del Creyente
-                </h3>
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-700">
-                  Nuevo
-                </span>
+      {canAccess(effectiveRoles, "/afirmacion") && (
+        <Card
+          onClick={() => navigate("/afirmacion")}
+          className="p-4 sm:p-5 bg-gradient-to-r from-primary/10 via-card to-emerald-500/10 border border-primary/20 hover:border-primary/40 cursor-pointer transition-all shadow-sm rounded-2xl group"
+        >
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-3.5">
+              <div className="w-11 h-11 rounded-2xl bg-primary text-primary-foreground flex items-center justify-center font-bold shadow-md shrink-0">
+                <CheckCircle2 className="h-6 w-6" />
               </div>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                Proceso estratégico de Consolidación (45 Días), llamadas estandarizadas y acompañamiento.
-              </p>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h3 className="font-bold text-base text-foreground group-hover:text-primary transition-colors">
+                    Módulo de Afirmación del Creyente
+                  </h3>
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-700">
+                    Nuevo
+                  </span>
+                </div>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Proceso estratégico de Consolidación (45 Días), llamadas estandarizadas y acompañamiento.
+                </p>
+              </div>
             </div>
+            <Button size="sm" className="gap-1.5 font-bold shrink-0 shadow-sm w-full sm:w-auto">
+              Ingresar a Afirmación <ArrowRight className="h-4 w-4" />
+            </Button>
           </div>
-          <Button size="sm" className="gap-1.5 font-bold shrink-0 shadow-sm w-full sm:w-auto">
-            Ingresar a Afirmación <ArrowRight className="h-4 w-4" />
-          </Button>
-        </div>
-      </Card>
+        </Card>
+      )}
 
       {/* Row 2: Calendar + Alert Cards + Tema */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
