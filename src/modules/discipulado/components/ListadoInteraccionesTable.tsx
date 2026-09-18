@@ -34,6 +34,7 @@ export function ListadoInteraccionesTable({
   const [searchTerm, setSearchTerm] = useState("");
   const [tipoFilter, setTipoFilter] = useState<string>("Todos");
   const [redFilter, setRedFilter] = useState<string>("Todas");
+  const [casaFilter, setCasaFilter] = useState<string>("Todas");
 
   // Derive Red mapping
   const redByCasa = useMemo(() => {
@@ -51,8 +52,17 @@ export function ListadoInteraccionesTable({
 
   const uniqueRedes = useMemo(() => {
     const redes = Array.from(new Set(Object.values(redByCasa)));
-    return redes.sort();
+    return redes.filter(r => r !== 'Sin Red').sort();
   }, [redByCasa]);
+
+  const uniqueCasas = useMemo(() => {
+    let casas = casasRaw;
+    if (redFilter !== 'Todas') {
+      casas = casas.filter(c => redByCasa[c.id] === redFilter);
+    }
+    const names = Array.from(new Set(casas.map(c => c.name)));
+    return names.filter(n => n && n !== 'Sin nombre').sort();
+  }, [casasRaw, redFilter, redByCasa]);
 
   const allInteractions = useMemo(() => {
     const enrichInteraction = (i: any, type: string, icon: any, color: string) => {
@@ -86,7 +96,7 @@ export function ListadoInteraccionesTable({
     const l = llamadas.map(ll => enrichInteraction(ll, 'Llamada', <PhoneCall className="w-4 h-4 text-blue-600" />, 'bg-blue-100 text-blue-800'));
 
     return [...v, ...l].sort((a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime());
-  }, [visitas, llamadas, discipulosRaw, lideresRaw, redByCasa, casasDict]);
+  }, [visitas, llamadas, discipulosRaw, lideresRaw, redByCasa, casasDict, casasRaw]);
 
   const filteredInteractions = useMemo(() => {
     let result = allInteractions;
@@ -97,6 +107,10 @@ export function ListadoInteraccionesTable({
 
     if (redFilter !== 'Todas') {
       result = result.filter(r => r.redName === redFilter);
+    }
+
+    if (casaFilter !== 'Todas') {
+      result = result.filter(r => r.casaName === casaFilter);
     }
 
     if (searchTerm) {
@@ -112,7 +126,7 @@ export function ListadoInteraccionesTable({
     }
 
     return result;
-  }, [allInteractions, tipoFilter, redFilter, searchTerm, discipulosDict, lideresDict]);
+  }, [allInteractions, tipoFilter, redFilter, casaFilter, searchTerm, discipulosDict, lideresDict]);
 
   const exportToExcel = () => {
     const exportData = filteredInteractions.map(row => {
@@ -154,7 +168,7 @@ export function ListadoInteraccionesTable({
           </div>
           
           <Select value={tipoFilter} onValueChange={setTipoFilter}>
-            <SelectTrigger className="w-[160px] bg-white">
+            <SelectTrigger className="w-[140px] bg-white">
               <SelectValue placeholder="Tipo" />
             </SelectTrigger>
             <SelectContent>
@@ -164,14 +178,28 @@ export function ListadoInteraccionesTable({
             </SelectContent>
           </Select>
 
-          <Select value={redFilter} onValueChange={setRedFilter}>
-            <SelectTrigger className="w-[160px] bg-white">
+          <Select value={redFilter} onValueChange={(val) => { setRedFilter(val); setCasaFilter('Todas'); }}>
+            <SelectTrigger className="w-[140px] bg-white">
               <SelectValue placeholder="Red" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="Todas">Todas las Redes</SelectItem>
+              <SelectItem value="Sin Red">Sin Red</SelectItem>
               {uniqueRedes.map(r => (
                 <SelectItem key={r} value={r}>{r}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select value={casaFilter} onValueChange={setCasaFilter}>
+            <SelectTrigger className="w-[160px] bg-white">
+              <SelectValue placeholder="Casa de Paz" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="Todas">Todas las Casas</SelectItem>
+              <SelectItem value="Sin casa">Sin casa</SelectItem>
+              {uniqueCasas.map(c => (
+                <SelectItem key={c} value={c}>{c}</SelectItem>
               ))}
             </SelectContent>
           </Select>

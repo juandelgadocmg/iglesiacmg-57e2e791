@@ -41,6 +41,7 @@ export function ListadoProcesosTable({
   const [searchTerm, setSearchTerm] = useState("");
   const [filter, setFilter] = useState<string>(initialFilter);
   const [redFilter, setRedFilter] = useState<string>("Todas");
+  const [casaFilter, setCasaFilter] = useState<string>("Todas");
   const [etapaFilter, setEtapaFilter] = useState<string>("Todas");
 
   // Derive Red mapping
@@ -60,23 +61,31 @@ export function ListadoProcesosTable({
   // Unique Red names for the filter dropdown
   const uniqueRedes = useMemo(() => {
     const redes = Array.from(new Set(Object.values(redByCasa)));
-    // if 'Sin red' is there, keep it, but order alphabetically
-    return redes.sort();
+    return redes.filter(r => r !== 'Sin Red').sort();
   }, [redByCasa]);
+
+  const uniqueCasas = useMemo(() => {
+    let casas = casasRaw || [];
+    if (redFilter !== 'Todas') {
+      casas = casas.filter(c => redByCasa[c.id] === redFilter);
+    }
+    const names = Array.from(new Set(casas.map(c => c.name)));
+    return names.filter(n => n && n !== 'Sin nombre').sort();
+  }, [casasRaw, redFilter, redByCasa]);
 
   // Combine Discipulos with their Progress
   const rows = useMemo(() => {
     return discipulos.map(d => {
-      // Find progress for this discipulo
-      const dProg = progreso.filter(p => p.discipulo_id === d.id);
-      
+      // Find progress
+      const dProgreso = progreso.filter(p => p.discipulo_id === d.id);
       const pMap: Record<string, boolean> = {};
-      dProg.forEach(p => {
-        pMap[p.etapa_code] = p.completed;
+      dProgreso.forEach(p => {
+        if (p.completed) pMap[p.etapa_code] = true;
       });
 
-      let casaName = casasDict[d.casa_de_paz_id];
-      let redName = redByCasa[d.casa_de_paz_id];
+      // Find Casa & Red
+      let casaName = d.casa_de_paz_id ? casasDict[d.casa_de_paz_id] : null;
+      let redName = d.casa_de_paz_id ? redByCasa[d.casa_de_paz_id] : null;
 
       // Fallback a la casa del líder si el discípulo no la tiene
       if (!casaName && d.lider_id) {
@@ -104,14 +113,17 @@ export function ListadoProcesosTable({
         progressMap: pMap
       };
     });
-  }, [discipulos, progreso, lideresDict, casasDict, redByCasa]);
+  }, [discipulos, progreso, lideresDict, casasDict, redByCasa, lideresRaw, casasRaw]);
 
   const filteredRows = useMemo(() => {
     let result = rows;
 
-    // Apply Status Filter
-    if (filter === 'Activos') {
-      result = result.filter(r => r.status !== 'Completado');
+    if (filter === 'NPT') {
+      result = result.filter(r => r.progressMap['NPT'] === true);
+    } else if (filter === 'TSDP') {
+      result = result.filter(r => r.progressMap['TSDP'] === true);
+    } else if (filter === 'RSI') {
+      result = result.filter(r => r.progressMap['RSI'] === true);
     } else if (filter === 'Consolidados') {
       result = result.filter(r => r.status === 'Completado');
     }
@@ -119,6 +131,10 @@ export function ListadoProcesosTable({
     // Apply Red Filter
     if (redFilter !== 'Todas') {
       result = result.filter(r => r.redName === redFilter);
+    }
+
+    if (casaFilter !== 'Todas') {
+      result = result.filter(r => r.casaName === casaFilter);
     }
 
     // Apply Etapa Filter
@@ -136,7 +152,7 @@ export function ListadoProcesosTable({
     }
 
     return result;
-  }, [rows, filter, redFilter, etapaFilter, searchTerm]);
+  }, [rows, filter, redFilter, casaFilter, etapaFilter, searchTerm]);
 
   const exportToExcel = () => {
     const exportData = filteredRows.map(row => {
@@ -165,7 +181,7 @@ export function ListadoProcesosTable({
     <div className="bg-white rounded-xl shadow-sm border overflow-hidden flex flex-col h-[75vh] w-full max-w-full">
       <div className="p-4 border-b bg-slate-50 flex flex-col sm:flex-row gap-4 items-center justify-between">
         <div>
-          <h2 className="text-lg font-black text-slate-800">Listado Detallado de Procesos</h2>
+          <h2 className="text-lg font-black text-slate-800">Listado General de Procesos</h2>
           <p className="text-xs text-slate-500 font-medium">Total mostrados: {filteredRows.length}</p>
         </div>
         <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto">
@@ -173,36 +189,50 @@ export function ListadoProcesosTable({
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-slate-400" />
             <Input 
               type="text" 
-              placeholder="Buscar discípulo o líder..." 
+              placeholder="Buscar por discípulo o líder..." 
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-9 bg-white"
             />
           </div>
           
-          <Select value={redFilter} onValueChange={setRedFilter}>
-            <SelectTrigger className="w-[160px] bg-white">
+          <Select value={filter} onValueChange={setFilter}>
+            <SelectTrigger className="w-[140px] bg-white">
+              <SelectValue placeholder="Estado" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="Todos">Todos</SelectItem>
+              <SelectItem value="NPT">NPT</SelectItem>
+              <SelectItem value="TSDP">Tres Semanas</SelectItem>
+              <SelectItem value="RSI">Retiro</SelectItem>
+              <SelectItem value="Consolidados">Consolidados</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <Select value={redFilter} onValueChange={(val) => { setRedFilter(val); setCasaFilter('Todas'); }}>
+            <SelectTrigger className="w-[140px] bg-white">
               <SelectValue placeholder="Red" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="Todas">Todas las Redes</SelectItem>
+              <SelectItem value="Sin Red">Sin Red</SelectItem>
               {uniqueRedes.map(r => (
                 <SelectItem key={r} value={r}>{r}</SelectItem>
               ))}
             </SelectContent>
           </Select>
-
-          <Select value={filter} onValueChange={setFilter}>
+          <Select value={casaFilter} onValueChange={setCasaFilter}>
             <SelectTrigger className="w-[160px] bg-white">
-              <SelectValue placeholder="Filtrar por estado" />
+              <SelectValue placeholder="Casa de Paz" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="Todos">Todos</SelectItem>
-              <SelectItem value="Activos">En Proceso</SelectItem>
-              <SelectItem value="Consolidados">Consolidados</SelectItem>
+              <SelectItem value="Todas">Todas las Casas</SelectItem>
+              <SelectItem value="Sin casa">Sin casa</SelectItem>
+              {uniqueCasas.map(c => (
+                <SelectItem key={c} value={c}>{c}</SelectItem>
+              ))}
             </SelectContent>
           </Select>
-
           <Select value={etapaFilter} onValueChange={setEtapaFilter}>
             <SelectTrigger className="w-[160px] bg-white">
               <SelectValue placeholder="Etapa" />
