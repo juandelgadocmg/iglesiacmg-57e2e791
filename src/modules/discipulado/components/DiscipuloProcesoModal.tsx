@@ -15,12 +15,14 @@ interface DiscipuloProcesoModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   discipulo: any;
+  onProgressUpdated?: () => void;
 }
 
 export function DiscipuloProcesoModal({
   open,
   onOpenChange,
   discipulo,
+  onProgressUpdated,
 }: DiscipuloProcesoModalProps) {
   const { obtenerVisitasDiscipulo, obtenerActividadesDiscipulo, loading } = useVisitas();
   
@@ -49,7 +51,17 @@ export function DiscipuloProcesoModal({
       .from('etapas_discipulado')
       .select('*')
       .order('order_num');
-    if (eData) setEtapas(eData);
+      
+    if (eData && eData.length > 0) {
+      setEtapas(eData);
+    } else {
+      // Fallback in case table is empty
+      setEtapas([
+        { code: 'NPT', label: 'Nací para Triunfar', order_num: 1 },
+        { code: 'TSDP', label: 'Tres Semanas de Poder', order_num: 2 },
+        { code: 'RSI', label: 'Retiro Sanidad Interior', order_num: 3 }
+      ]);
+    }
 
     // Load Progreso Etapas for this discipulo
     const { data: p } = await supabase
@@ -111,6 +123,10 @@ export function DiscipuloProcesoModal({
         if (data) {
           setProgreso(prev => [...prev, data]);
         }
+      }
+      
+      if (onProgressUpdated) {
+        onProgressUpdated();
       }
     } catch (err: any) {
       console.error("Error updating progress:", err);
