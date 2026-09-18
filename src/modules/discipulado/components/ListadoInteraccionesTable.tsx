@@ -70,12 +70,16 @@ export function ListadoInteraccionesTable({
       let cId = disc?.casa_de_paz_id;
       
       if (!cId || !casasDict[cId]) {
-        const lid = lideresRaw?.find(l => l.id === (i.lider_id || disc?.lider_id));
-        cId = lid?.casa_de_paz_id;
-        
-        if (!cId || !casasDict[cId]) {
-          const casaLider = casasRaw?.find(c => c.lider_id === (i.lider_id || disc?.lider_id));
-          cId = casaLider?.id;
+        // Fallback 1: Casa del líder asignado al discípulo
+        if (disc?.lider_id) {
+          const discLid = lideresRaw?.find(l => l.id === disc.lider_id);
+          cId = discLid?.casa_de_paz_id;
+        }
+
+        // Fallback 2: Casa del usuario/líder que registró la interacción
+        if ((!cId || !casasDict[cId]) && i.lider_id) {
+          const intLid = lideresRaw?.find(l => l.id === i.lider_id);
+          cId = intLid?.casa_de_paz_id;
         }
       }
       
