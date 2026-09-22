@@ -48,6 +48,67 @@ export function DiscipuladoDashboard({
   redes
 }: DiscipuladoDashboardProps) {
 
+  const [redFilter, setRedFilter] = React.useState<string>('Todas');
+  const [casaFilter, setCasaFilter] = React.useState<string>('Todas');
+
+  // Derive Red mapping
+  const redByCasa = useMemo(() => {
+    const map: Record<string, string> = {};
+    casasDePaz?.forEach(c => {
+      if (c.red_id) {
+        const r = redes?.find(red => red.id === c.red_id);
+        map[c.id] = r ? r.name : 'Sin Red';
+      } else {
+        map[c.id] = 'Sin Red';
+      }
+    });
+    return map;
+  }, [casasDePaz, redes]);
+
+  const uniqueRedes = useMemo(() => {
+    const rNames = Array.from(new Set(Object.values(redByCasa)));
+    return rNames.filter(r => r !== 'Sin Red').sort();
+  }, [redByCasa]);
+
+  const uniqueCasas = useMemo(() => {
+    let casas = casasDePaz || [];
+    if (redFilter !== 'Todas') {
+      casas = casas.filter(c => redByCasa[c.id] === redFilter);
+    }
+    const names = Array.from(new Set(casas.map(c => c.name)));
+    return names.filter(n => n && n !== 'Sin nombre').sort();
+  }, [casasDePaz, redFilter, redByCasa]);
+
+  // Filter Discipulos
+  const filteredDiscipulos = useMemo(() => {
+    return discipulos.filter(d => {
+      let cId = d.casa_de_paz_id;
+      if (!cId && d.lider_id) {
+        const lid = lideres.find(l => l.id === d.lider_id);
+        cId = lid?.casa_de_paz_id;
+      }
+      if (!cId) {
+        const casaLider = casasDePaz.find(c => c.lider_id === d.lider_id);
+        cId = casaLider?.id;
+      }
+      
+      const rName = cId ? (redByCasa[cId] || 'Sin Red') : 'Sin Red';
+      const cObj = cId ? casasDePaz.find(c => c.id === cId) : null;
+      const cName = cObj ? cObj.name : 'Sin casa';
+
+      if (redFilter !== 'Todas' && rName !== redFilter) return false;
+      if (casaFilter !== 'Todas' && cName !== casaFilter) return false;
+      
+      return true;
+    });
+  }, [discipulos, redFilter, casaFilter, lideres, casasDePaz, redByCasa]);
+
+  // Filter Visitas y Llamadas basadas en discipulos filtrados
+  const filteredDiscipulosIds = useMemo(() => new Set(filteredDiscipulos.map(d => d.id)), [filteredDiscipulos]);
+  
+  const filteredVisitas = useMemo(() => visitas.filter(v => filteredDiscipulosIds.has(v.discipulo_id)), [visitas, filteredDiscipulosIds]);
+  const filteredLlamadas = useMemo(() => llamadas.filter(l => filteredDiscipulosIds.has(l.discipulo_id)), [llamadas, filteredDiscipulosIds]);
+
   // 1. Chart Data: Activity over the last 30 days
   const activityData = useMemo(() => {
     const data: any[] = [];
@@ -58,8 +119,8 @@ export function DiscipuladoDashboard({
       const date = subDays(today, i);
       const dateStr = format(date, 'yyyy-MM-dd');
       
-      const dayVisitas = visitas.filter(v => v.fecha === dateStr).length;
-      const dayLlamadas = llamadas.filter(l => l.fecha === dateStr).length;
+      const dayVisitas = filteredVisitas.filter(v => v.fecha === dateStr).length;
+      const dayLlamadas = filteredLlamadas.filter(l => l.fecha === dateStr).length;
       
       data.push({
         name: format(date, 'd MMM', { locale: es }),
@@ -69,11 +130,11 @@ export function DiscipuladoDashboard({
       });
     }
     return data;
-  }, [visitas, llamadas]);
+  }, [filteredVisitas, filteredLlamadas]);
 
   // 2. Chart Data: Discipulos Status
   const statusData = useMemo(() => {
-    const counts = discipulos.reduce((acc, d) => {
+    const counts = filteredDiscipulos.reduce((acc, d) => {
       const status = d.status || 'Activo';
       acc[status] = (acc[status] || 0) + 1;
       return acc;
@@ -84,13 +145,13 @@ export function DiscipuladoDashboard({
       value: counts[key],
       color: STATUS_COLORS[key] || STATUS_COLORS['default']
     }));
-  }, [discipulos]);
+  }, [filteredDiscipulos]);
 
   // 3. Export to Excel function
   const exportToExcel = () => {
     const redSummary: Record<string, any> = {};
 
-    let exportData = discipulos.map(d => {
+    let exportData = filteredDiscipulos.map(d => {
       // Find related entities
       const lider = lideres.find(l => l.id === d.lider_id);
       
@@ -159,17 +220,46 @@ export function DiscipuladoDashboard({
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center bg-white p-4 rounded-xl shadow-sm border">
+      <div className="flex flex-col md:flex-row gap-4 justify-between items-start md:items-center bg-white p-4 rounded-xl shadow-sm border">
         <div>
           <h2 className="text-lg font-black text-slate-800">Panel de Rendimiento</h2>
           <p className="text-xs text-slate-500 font-medium">Analiza la actividad de discipulado de tu iglesia.</p>
         </div>
-        <Button 
-          onClick={exportToExcel}
-          className="gap-2 bg-emerald-600 hover:bg-emerald-700 text-white"
-        >
-          <DownloadCloud className="w-4 h-4" /> Exportar Excel
-        </Button>
+        <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto">
+          <select 
+            className="h-10 px-3 py-2 rounded-md border border-slate-200 bg-white text-sm"
+            value={redFilter}
+            onChange={(e) => {
+              setRedFilter(e.target.value);
+              setCasaFilter('Todas');
+            }}
+          >
+            <option value="Todas">Todas las Redes</option>
+            <option value="Sin Red">Sin Red</option>
+            {uniqueRedes.map(r => (
+              <option key={r} value={r}>{r}</option>
+            ))}
+          </select>
+          
+          <select 
+            className="h-10 px-3 py-2 rounded-md border border-slate-200 bg-white text-sm"
+            value={casaFilter}
+            onChange={(e) => setCasaFilter(e.target.value)}
+          >
+            <option value="Todas">Todas las Casas</option>
+            <option value="Sin casa">Sin casa</option>
+            {uniqueCasas.map(c => (
+              <option key={c} value={c}>{c}</option>
+            ))}
+          </select>
+
+          <Button 
+            onClick={exportToExcel}
+            className="gap-2 bg-emerald-600 hover:bg-emerald-700 text-white"
+          >
+            <DownloadCloud className="w-4 h-4" /> Exportar Excel
+          </Button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
