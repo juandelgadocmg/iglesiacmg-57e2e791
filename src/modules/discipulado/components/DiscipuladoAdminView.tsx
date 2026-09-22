@@ -426,6 +426,7 @@ export function DiscipuladoAdminView() {
         open={!!selectedDiscipulo}
         onOpenChange={(open) => !open && setSelectedDiscipulo(null)}
         discipulo={selectedDiscipulo}
+        onProgressUpdated={loadData}
       />
       
       {agregarDiscipuloCasa && (
@@ -483,6 +484,8 @@ export function DiscipuladoAdminView() {
               casasDict={casasDict}
               redesRaw={redes}
               casasRaw={casasDePaz}
+              discipulosRaw={discipulos}
+              lideresRaw={lideres}
             />
           </TabsContent>
         </Tabs>
