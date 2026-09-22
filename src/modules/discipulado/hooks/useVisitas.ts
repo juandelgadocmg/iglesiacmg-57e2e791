@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { DiscipuloVisita, DiscipuloActividad } from '../types';
+import { toast } from 'sonner';
 
 export function useVisitas() {
   const [loading, setLoading] = useState(false);
@@ -23,6 +24,7 @@ export function useVisitas() {
     } catch (err: any) {
       console.error('Error registrando visita:', err);
       setError(err.message);
+      toast.error(err.message || 'Error registrando visita');
       return null;
     } finally {
       setLoading(false);
@@ -57,6 +59,7 @@ export function useVisitas() {
     } catch (err: any) {
       console.error('Error registrando llamada:', err);
       setError(err.message);
+      toast.error(err.message || 'Error registrando llamada');
       return null;
     } finally {
       setLoading(false);
