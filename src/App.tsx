@@ -53,6 +53,7 @@ import MapaGruposPage from "@/pages/MapaGruposPage";
 import ReportesGruposPage from "@/pages/ReportesGruposPage";
 import SenalEnVivoPage from "@/pages/SenalEnVivoPage";
 import VideosPage from "@/pages/VideosPage";
+import InfantilPage from "@/pages/InfantilPage";
 import PWAUpdatePrompt from "@/components/pwa/PWAUpdatePrompt";
 import { installOfflineQueueAutoFlush } from "@/lib/qrOfflineQueue";
 
@@ -133,6 +134,7 @@ const App = () => (
               <Route path="/senal-en-vivo" element={<RoleGuard><SenalEnVivoPage /></RoleGuard>} />
               <Route path="/videos" element={<RoleGuard><VideosPage /></RoleGuard>} />
               <Route path="/verificar-academico/:id" element={<VerificarAcademicoPage />} />
+              <Route path="/infantil/*" element={<RoleGuard><InfantilPage /></RoleGuard>} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>

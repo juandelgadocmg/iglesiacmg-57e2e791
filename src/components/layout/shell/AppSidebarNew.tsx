@@ -30,6 +30,7 @@ const ZONES: { label: string; items: Item[] }[] = [
       { label: "Grupos", icon: UsersRound, to: "/grupos" },
       { label: "Reuniones", icon: Church, to: "/servicios" },
       { label: "Eventos", icon: CalendarDays, to: "/eventos" },
+      { label: "Iglesia Infantil", icon: Sparkles, to: "/infantil" },
     ],
   },
   {
