@@ -119,3 +119,53 @@ export function useInfantilAsistencias(fecha: string) {
     },
   });
 }
+
+export function useInfantilAcudientes() {
+  return useQuery({
+    queryKey: ["infantil_acudientes"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("infantil_acudientes")
+        .select("*, nino:nino_id(id, nombres, apellidos, documento_identidad), acudiente:acudiente_id(id, nombres, apellidos, telefono, email, documento_identidad)")
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data;
+    },
+  });
+}
+
+export function useCreateInfantilAcudiente() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (payload: any) => {
+      const { data, error } = await supabase.from("infantil_acudientes").insert(payload).select().single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["infantil_acudientes"] }),
+  });
+}
+
+export function useUpdateInfantilAcudiente() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, ...updates }: any) => {
+      const { data, error } = await supabase.from("infantil_acudientes").update(updates).eq("id", id).select().single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["infantil_acudientes"] }),
+  });
+}
+
+export function useDeleteInfantilAcudiente() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("infantil_acudientes").delete().eq("id", id);
+      if (error) throw error;
+      return id;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["infantil_acudientes"] }),
+  });
+}

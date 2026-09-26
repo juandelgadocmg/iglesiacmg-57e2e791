@@ -15,6 +15,7 @@ import CheckInView from "@/modules/infantil/components/CheckInView";
 import CentroAtencionView from "@/modules/infantil/components/CentroAtencionView";
 import PanelMaestroView from "@/modules/infantil/components/PanelMaestroView";
 import ClasesProgramacionView from "@/modules/infantil/components/ClasesProgramacionView";
+import PadresView from "@/modules/infantil/components/PadresView";
 import { AlertCircle, Contact } from "lucide-react";
 
 const TABS = [
@@ -99,7 +100,7 @@ export default function InfantilPage() {
           <Route path="/checkin" element={<CheckInView />} />
           
           {/* Placeholders for pending features */}
-          <Route path="/padres" element={<PlaceholderView title="Padres y Acudientes" />} />
+          <Route path="/padres" element={<PadresView />} />
           <Route path="/asistencia" element={<PlaceholderView title="Asistencia" />} />
           <Route path="/qr" element={<PlaceholderView title="Sistema QR" />} />
           <Route path="/carnes" element={<PlaceholderView title="Carnés de Identificación" />} />
