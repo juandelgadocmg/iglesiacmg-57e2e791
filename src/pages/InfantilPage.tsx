@@ -16,6 +16,9 @@ import CentroAtencionView from "@/modules/infantil/components/CentroAtencionView
 import PanelMaestroView from "@/modules/infantil/components/PanelMaestroView";
 import ClasesProgramacionView from "@/modules/infantil/components/ClasesProgramacionView";
 import PadresView from "@/modules/infantil/components/PadresView";
+import GruposInfantilesView from "@/modules/infantil/components/GruposInfantilesView";
+import MaestrosInfantilesView from "@/modules/infantil/components/MaestrosInfantilesView";
+import CarnesView from "@/modules/infantil/components/CarnesView";
 import { AlertCircle, Contact } from "lucide-react";
 
 const TABS = [
@@ -103,9 +106,9 @@ export default function InfantilPage() {
           <Route path="/padres" element={<PadresView />} />
           <Route path="/asistencia" element={<PlaceholderView title="Asistencia" />} />
           <Route path="/qr" element={<PlaceholderView title="Sistema QR" />} />
-          <Route path="/carnes" element={<PlaceholderView title="Carnés de Identificación" />} />
-          <Route path="/grupos" element={<PlaceholderView title="Grupos por Edad" />} />
-          <Route path="/maestros" element={<PlaceholderView title="Gestión de Maestros" />} />
+          <Route path="/carnes" element={<CarnesView />} />
+          <Route path="/grupos" element={<GruposInfantilesView />} />
+          <Route path="/maestros" element={<MaestrosInfantilesView />} />
           <Route path="/clases" element={<ClasesProgramacionView />} />
           <Route path="/programacion" element={<ClasesProgramacionView />} />
           <Route path="/seguimiento" element={<PlaceholderView title="Seguimiento Pastoral" />} />

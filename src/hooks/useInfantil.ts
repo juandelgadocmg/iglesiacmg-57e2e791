@@ -7,12 +7,80 @@ export function useInfantilGrupos() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("grupos")
-        .select("*")
+        .select("*, infantil_grupos_detalles(*)")
         .ilike("tipo", "%Infantil%")
         .order("nombre", { ascending: true });
       if (error) throw error;
       return data;
     },
+  });
+}
+
+export function useCreateInfantilGrupo() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (payload: { nombre: string; edades: string; edad_minima?: number; edad_maxima?: number; salon?: string; capacidad?: number }) => {
+      // 1. Create the base group
+      const { data: grupo, error: err1 } = await supabase.from("grupos").insert({
+        nombre: payload.nombre,
+        tipo: "Iglesia Infantil",
+        edades: payload.edades,
+        estado: "Activo"
+      }).select().single();
+      if (err1) throw err1;
+
+      // 2. Create the details
+      const { error: err2 } = await supabase.from("infantil_grupos_detalles").insert({
+        grupo_id: grupo.id,
+        edad_minima: payload.edad_minima,
+        edad_maxima: payload.edad_maxima,
+        salon: payload.salon,
+        capacidad: payload.capacidad
+      });
+      if (err2) throw err2;
+
+      return grupo;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["infantil_grupos"] })
+  });
+}
+
+export function useUpdateInfantilGrupo() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (payload: { id: string; nombre: string; edades: string; edad_minima?: number; edad_maxima?: number; salon?: string; capacidad?: number }) => {
+      // 1. Update the base group
+      const { error: err1 } = await supabase.from("grupos").update({
+        nombre: payload.nombre,
+        edades: payload.edades
+      }).eq("id", payload.id);
+      if (err1) throw err1;
+
+      // 2. Upsert the details
+      const { error: err2 } = await supabase.from("infantil_grupos_detalles").upsert({
+        grupo_id: payload.id,
+        edad_minima: payload.edad_minima,
+        edad_maxima: payload.edad_maxima,
+        salon: payload.salon,
+        capacidad: payload.capacidad
+      }, { onConflict: "grupo_id" });
+      if (err2) throw err2;
+
+      return payload;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["infantil_grupos"] })
+  });
+}
+
+export function useDeleteInfantilGrupo() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("grupos").delete().eq("id", id);
+      if (error) throw error;
+      return id;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["infantil_grupos"] })
   });
 }
 
