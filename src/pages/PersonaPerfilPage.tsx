@@ -105,6 +105,14 @@ export default function PersonaPerfilPage() {
 
     return false;
   }, [persona, misOfertas, personaProcesos]);
+
+  // Check if persona is a child (Niño)
+  const esNino = useMemo(() => {
+    if (!persona) return false;
+    const tipos = [persona.tipo_persona, ...(Array.isArray(persona.tipos_persona) ? persona.tipos_persona : [])].filter(Boolean);
+    return tipos.some(t => String(t).toLowerCase() === "niño" || String(t).toLowerCase() === "infantil");
+  }, [persona]);
+
   const createRelacion = useCreateRelacion();
   const deleteRelacion = useDeleteRelacion();
   const updateProceso = useUpdateProceso();
@@ -570,6 +578,7 @@ export default function PersonaPerfilPage() {
               { v: "finanzas", label: "Finanzas", icon: Wallet },
               { v: "certificados", label: "Certificados", icon: Award },
               { v: "qr", label: "QR", icon: QrCode },
+              ...(esNino ? [{ v: "atencion-infantil", label: "Atención Infantil", icon: Baby }] : []),
               { v: "historial", label: "Historial", icon: History },
             ].map(t => (
               <TabsTrigger
@@ -587,6 +596,27 @@ export default function PersonaPerfilPage() {
         {estaViendoNeumatologia && (
           <TabsContent value="seminario" className="mt-0 space-y-4">
             <TallerNeumatologiaAulaTab materiaNombre="Neumatología" materiaCodigo="NEU-101" embeddedInCourse={false} />
+          </TabsContent>
+        )}
+
+        {/* TAB · ATENCIÓN INFANTIL */}
+        {esNino && (
+          <TabsContent value="atencion-infantil" className="mt-0 space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Baby className="w-5 h-5 text-primary" />
+                  Historial de Atención y Solicitudes
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-center py-12 text-muted-foreground border-2 border-dashed rounded-xl">
+                  <Heart className="w-12 h-12 mx-auto mb-3 opacity-20" />
+                  <p>No hay registros de atención para este niño.</p>
+                  <p className="text-sm mt-1">Las atenciones registradas durante los servicios aparecerán aquí.</p>
+                </div>
+              </CardContent>
+            </Card>
           </TabsContent>
         )}
 

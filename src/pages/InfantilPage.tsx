@@ -12,9 +12,14 @@ import {
 import DashboardInfantil from "@/modules/infantil/components/DashboardInfantil";
 import NinosList from "@/modules/infantil/components/NinosList";
 import CheckInView from "@/modules/infantil/components/CheckInView";
+import CentroAtencionView from "@/modules/infantil/components/CentroAtencionView";
+import PanelMaestroView from "@/modules/infantil/components/PanelMaestroView";
+import { AlertCircle, Contact } from "lucide-react";
 
 const TABS = [
   { id: "dashboard", label: "Dashboard", icon: LayoutDashboard, path: "" },
+  { id: "centro-atencion", label: "Centro de Atención", icon: AlertCircle, path: "centro-atencion" },
+  { id: "panel-maestro", label: "Mi Panel (Maestro)", icon: Contact, path: "panel-maestro" },
   { id: "ninos", label: "Niños", icon: Users, path: "ninos" },
   { id: "padres", label: "Padres y acudientes", icon: UserRound, path: "padres" },
   { id: "asistencia", label: "Asistencia", icon: ClipboardList, path: "asistencia" },
@@ -22,7 +27,7 @@ const TABS = [
   { id: "qr", label: "QR", icon: QrCode, path: "qr" },
   { id: "carnes", label: "Carnés", icon: IdCard, path: "carnes" },
   { id: "grupos", label: "Grupos", icon: UsersRound, path: "grupos" },
-  { id: "maestros", label: "Maestros", icon: GraduationCap, path: "maestros" },
+  { id: "maestros", label: "Gestión Maestros", icon: GraduationCap, path: "maestros" },
   { id: "clases", label: "Clases", icon: BookOpen, path: "clases" },
   { id: "programacion", label: "Programación", icon: CalendarDays, path: "programacion" },
   { id: "seguimiento", label: "Seguimiento", icon: Heart, path: "seguimiento" },
@@ -87,6 +92,8 @@ export default function InfantilPage() {
       <div className="flex-1 bg-card rounded-xl border shadow-sm overflow-y-auto custom-scrollbar">
         <Routes>
           <Route path="/" element={<DashboardInfantil />} />
+          <Route path="/centro-atencion" element={<CentroAtencionView />} />
+          <Route path="/panel-maestro" element={<PanelMaestroView />} />
           <Route path="/ninos" element={<NinosList />} />
           <Route path="/checkin" element={<CheckInView />} />
           
@@ -96,7 +103,7 @@ export default function InfantilPage() {
           <Route path="/qr" element={<PlaceholderView title="Sistema QR" />} />
           <Route path="/carnes" element={<PlaceholderView title="Carnés de Identificación" />} />
           <Route path="/grupos" element={<PlaceholderView title="Grupos por Edad" />} />
-          <Route path="/maestros" element={<PlaceholderView title="Maestros" />} />
+          <Route path="/maestros" element={<PlaceholderView title="Gestión de Maestros" />} />
           <Route path="/clases" element={<PlaceholderView title="Control de Clases" />} />
           <Route path="/programacion" element={<PlaceholderView title="Programación" />} />
           <Route path="/seguimiento" element={<PlaceholderView title="Seguimiento Pastoral" />} />
