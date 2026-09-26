@@ -1,7 +1,8 @@
 import { useEffect } from "react";
 import { Link } from "react-router-dom";
 import doxaWordmarkNavy from "@/assets/doxa-wordmark-navy.png";
-import { diplomados, facultades } from "@/data/doxaAcademyData";
+import { useAcademyCMS } from "@/hooks/useAcademyCms";
+import { Loader2 } from "lucide-react";
 
 /**
  * Página pública de DOXA Academy — listado completo de los 6 diplomados
@@ -21,6 +22,17 @@ export default function AcademyPage() {
       document.head.appendChild(link);
     }
   }, []);
+  const { data, isLoading } = useAcademyCMS();
+  const facultades = data?.facultades || [];
+  const diplomados = data?.diplomados || [];
+
+  if (isLoading) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-white">
+        <Loader2 className="h-10 w-10 animate-spin text-navy" />
+      </div>
+    );
+  }
 
   return (
     <div className="doxa-academy">
@@ -111,13 +123,13 @@ export default function AcademyPage() {
                       <span>{d.nivel}</span>
                     </div>
 
-                    <p className="dip-objetivo"><strong>Objetivo general.</strong> {d.objetivoGeneral}</p>
+                    <p className="dip-objetivo"><strong>Objetivo general.</strong> {d.objetivo_general}</p>
 
-                    {d.dirigidoA && (
+                    {d.dirigido_a && (
                       <div className="dip-block">
                         <h4>Dirigido a</h4>
                         <div className="chip-row">
-                          {d.dirigidoA.map((p) => <span className="chip" key={p}>{p}</span>)}
+                          {d.dirigido_a.map((p) => <span className="chip" key={p}>{p}</span>)}
                         </div>
                       </div>
                     )}
@@ -152,7 +164,7 @@ export default function AcademyPage() {
                       <h4>Proyecto final del diplomado</h4>
                       <p className="dip-project-intro">Cada participante/iglesia desarrollará un entregable propio que incluye:</p>
                       <ul className="project-grid">
-                        {d.proyectoFinal.map((p) => <li key={p}>{p}</li>)}
+                        {d.proyecto_final.map((p) => <li key={p}>{p}</li>)}
                       </ul>
                     </div>
                   </div>
