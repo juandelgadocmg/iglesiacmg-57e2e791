@@ -93,14 +93,16 @@ export default function ClasesProgramacionView() {
   const maestros = personas?.filter(p => p.roles?.includes("maestro") || p.roles?.includes("admin")) || [];
 
   return (
-    <div className="p-6 space-y-6 animate-fade-in">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div className="p-4 md:p-8 space-y-8 animate-fade-in bg-slate-50/50 min-h-full">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
         <div>
-          <h2 className="text-2xl font-bold tracking-tight">Programación de Clases</h2>
-          <p className="text-muted-foreground">Gestiona el currículo y asigna maestros por cada grupo.</p>
+          <h2 className="text-3xl font-black tracking-tight bg-gradient-to-r from-navy to-blue-500 bg-clip-text text-transparent drop-shadow-sm">
+            Programación de Clases
+          </h2>
+          <p className="text-slate-500 mt-1 font-medium">Gestiona el currículo y asigna maestros de forma dinámica.</p>
         </div>
-        <Button onClick={openNew} className="bg-blue-600 hover:bg-blue-700 text-white">
-          <Plus className="h-4 w-4 mr-2" /> Programar Clase
+        <Button onClick={openNew} className="bg-navy hover:bg-navy/90 text-white shadow-lg shadow-navy/20 transition-all hover:scale-105 active:scale-95 rounded-xl h-11 px-6">
+          <Plus className="h-5 w-5 mr-2" /> Programar Clase
         </Button>
       </div>
 
@@ -118,38 +120,40 @@ export default function ClasesProgramacionView() {
               </CardContent>
             </Card>
           ) : (
-            <div className="grid sm:grid-cols-2 gap-4">
+            <div className="grid sm:grid-cols-2 gap-6">
               {clases?.map((c) => (
-                <Card key={c.id} className="relative overflow-hidden group hover:shadow-md transition-shadow">
-                  <div className={`absolute top-0 left-0 w-1 h-full ${c.estado === 'Realizada' ? 'bg-emerald-500' : c.estado === 'Cancelada' ? 'bg-red-500' : 'bg-blue-500'}`} />
-                  <CardHeader className="pb-3">
-                    <div className="flex justify-between items-start mb-1">
-                      <Badge variant={c.estado === 'Realizada' ? 'default' : 'secondary'} className={c.estado === 'Realizada' ? 'bg-emerald-100 text-emerald-800' : ''}>
+                <Card key={c.id} className="relative overflow-hidden group hover:shadow-xl transition-all duration-300 border-0 shadow-lg shadow-slate-200/50 bg-white rounded-2xl hover:-translate-y-1">
+                  <div className={`absolute top-0 left-0 w-1.5 h-full ${c.estado === 'Realizada' ? 'bg-emerald-500' : c.estado === 'Cancelada' ? 'bg-red-500' : 'bg-gradient-to-b from-coral to-orange-400'}`} />
+                  <CardHeader className="pb-3 pt-5 px-5">
+                    <div className="flex justify-between items-start mb-2">
+                      <Badge variant={c.estado === 'Realizada' ? 'default' : 'secondary'} className={`font-semibold tracking-wide uppercase text-[10px] ${c.estado === 'Realizada' ? 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200' : c.estado === 'Cancelada' ? 'bg-red-100 text-red-800' : 'bg-coral/10 text-coral hover:bg-coral/20'}`}>
                         {c.estado}
                       </Badge>
-                      <Button variant="ghost" size="icon" className="h-8 w-8 -mr-2 text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => openEdit(c)}>
+                      <Button variant="ghost" size="icon" className="h-8 w-8 -mr-2 bg-slate-100/50 hover:bg-slate-200 text-slate-500 rounded-full opacity-0 group-hover:opacity-100 transition-all scale-95 group-hover:scale-100" onClick={() => openEdit(c)}>
                         <Edit2 className="h-4 w-4" />
                       </Button>
                     </div>
-                    <CardTitle className="text-lg line-clamp-1" title={c.tema}>{c.tema}</CardTitle>
-                    <CardDescription className="text-xs font-medium text-blue-600">
+                    <CardTitle className="text-xl font-bold text-navy line-clamp-1 group-hover:text-coral transition-colors" title={c.tema}>{c.tema}</CardTitle>
+                    <CardDescription className="text-sm font-semibold text-slate-500 mt-1 flex items-center gap-1.5">
+                      <Users className="h-3.5 w-3.5" />
                       {c.grupo?.nombre || "Grupo sin nombre"}
                     </CardDescription>
                   </CardHeader>
-                  <CardContent className="space-y-3 pb-4">
-                    <div className="flex items-center gap-2 text-sm text-slate-600">
-                      <CalendarIcon className="h-4 w-4 text-slate-400" />
+                  <CardContent className="space-y-4 px-5 pb-5">
+                    <div className="flex items-center gap-2 text-sm text-slate-600 font-medium">
+                      <div className="p-1.5 bg-slate-100 rounded-md text-slate-500"><CalendarIcon className="h-4 w-4" /></div>
                       {format(new Date(c.fecha), "EEEE d 'de' MMMM, yyyy", { locale: es })}
                     </div>
                     {c.maestro && (
-                      <div className="flex items-center gap-2 text-sm text-slate-600">
-                        <UserRound className="h-4 w-4 text-slate-400" />
-                        Maestro: {c.maestro.nombres} {c.maestro.apellidos}
+                      <div className="flex items-center gap-2 text-sm text-slate-600 font-medium">
+                        <div className="p-1.5 bg-slate-100 rounded-md text-slate-500"><UserRound className="h-4 w-4" /></div>
+                        Maestro: <span className="text-navy">{c.maestro.nombres} {c.maestro.apellidos}</span>
                       </div>
                     )}
                     {c.versiculo && (
-                      <div className="mt-2 p-2 bg-muted/50 rounded-md text-xs italic text-slate-600 line-clamp-2">
-                        "{c.versiculo}"
+                      <div className="mt-3 p-3 bg-gradient-to-br from-slate-50 to-slate-100/50 border border-slate-100 rounded-xl text-xs italic text-slate-600 line-clamp-2 relative">
+                        <span className="text-3xl text-slate-200 absolute top-1 left-2 font-serif leading-none">"</span>
+                        <span className="relative z-10 pl-4 block">{c.versiculo}</span>
                       </div>
                     )}
                   </CardContent>
@@ -160,25 +164,26 @@ export default function ClasesProgramacionView() {
         </div>
 
         {/* Panel Lateral: Grupos Activos */}
-        <div className="space-y-4">
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base flex items-center gap-2">
-                <Users className="h-5 w-5 text-indigo-500" /> Grupos Infantiles
+        <div className="space-y-6">
+          <Card className="border-0 shadow-xl shadow-slate-200/50 bg-white rounded-3xl overflow-hidden">
+            <CardHeader className="pb-4 bg-navy text-white">
+              <CardTitle className="text-lg font-bold flex items-center gap-3">
+                <div className="p-2 bg-white/10 rounded-xl"><Users className="h-5 w-5" /></div>
+                Grupos Infantiles
               </CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="pt-6">
               {grupos?.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No hay grupos creados con tipo "Infantil".</p>
+                <p className="text-sm text-slate-500 text-center py-4">No hay grupos creados con tipo "Infantil".</p>
               ) : (
                 <div className="space-y-3">
                   {grupos?.map(g => (
-                    <div key={g.id} className="flex justify-between items-center p-2 rounded-lg border bg-slate-50/50">
+                    <div key={g.id} className="flex justify-between items-center p-3 rounded-xl border border-slate-100 bg-slate-50/50 hover:bg-slate-50 transition-colors">
                       <div>
-                        <p className="text-sm font-semibold text-slate-800">{g.nombre}</p>
-                        <p className="text-xs text-muted-foreground">{g.edades || "Edad no especificada"}</p>
+                        <p className="text-sm font-bold text-navy">{g.nombre}</p>
+                        <p className="text-xs text-slate-500 mt-0.5">{g.edades || "Edades no especificadas"}</p>
                       </div>
-                      <Badge variant="outline" className="bg-white">Grupo</Badge>
+                      <Badge variant="outline" className="bg-white border-slate-200 text-slate-600 shadow-sm font-medium">Activo</Badge>
                     </div>
                   ))}
                 </div>
