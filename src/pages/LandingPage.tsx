@@ -78,6 +78,7 @@ export default function LandingPage() {
               <a href="#top">Inicio</a>
               <a href="#nosotros">Nosotros</a>
               <a href="#servicios">Servicios</a>
+              <Link to="/eventos-publicos">Eventos</Link>
               <Link to="/academy">Academy</Link>
               <a href="#planes">Planes</a>
             </div>

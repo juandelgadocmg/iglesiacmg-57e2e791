@@ -657,11 +657,14 @@ export default function DiscipuladoPage() {
         />
       )}
       
-      <DiscipuloProcesoModal
-        open={!!selectedDiscipuloProceso}
-        onOpenChange={(open) => !open && setSelectedDiscipuloProceso(null)}
-        discipulo={selectedDiscipuloProceso}
-      />
+      {selectedDiscipuloProceso && (
+        <DiscipuloProcesoModal
+          open={!!selectedDiscipuloProceso}
+          onOpenChange={(open) => !open && setSelectedDiscipuloProceso(null)}
+          discipulo={selectedDiscipuloProceso}
+          onProgressUpdated={loadData}
+        />
+      )}
       
       <ListaDiscipulosModal
         isOpen={!!activeStatList}

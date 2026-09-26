@@ -11,6 +11,7 @@ import RoleGuard from "@/components/auth/RoleGuard";
 import AppLayout from "@/components/layout/AppLayout";
 import LandingPage from "@/pages/LandingPage";
 import AcademyPage from "@/pages/AcademyPage";
+import PublicEventosPage from "@/pages/PublicEventosPage";
 import LoginPage from "@/pages/LoginPage";
 import Dashboard from "@/pages/Dashboard";
 import PersonasPage from "@/pages/PersonasPage";
@@ -77,6 +78,7 @@ const App = () => (
           <Routes>
             <Route path="/" element={<LandingPage />} />
             <Route path="/academy" element={<AcademyPage />} />
+            <Route path="/eventos-publicos" element={<PublicEventosPage />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/reset-password" element={<ResetPasswordPage />} />
             <Route path="/check-in/:servicioId" element={<CheckInPage />} />
