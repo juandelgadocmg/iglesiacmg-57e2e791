@@ -14,6 +14,7 @@ import NinosList from "@/modules/infantil/components/NinosList";
 import CheckInView from "@/modules/infantil/components/CheckInView";
 import CentroAtencionView from "@/modules/infantil/components/CentroAtencionView";
 import PanelMaestroView from "@/modules/infantil/components/PanelMaestroView";
+import ClasesProgramacionView from "@/modules/infantil/components/ClasesProgramacionView";
 import { AlertCircle, Contact } from "lucide-react";
 
 const TABS = [
@@ -104,8 +105,8 @@ export default function InfantilPage() {
           <Route path="/carnes" element={<PlaceholderView title="Carnés de Identificación" />} />
           <Route path="/grupos" element={<PlaceholderView title="Grupos por Edad" />} />
           <Route path="/maestros" element={<PlaceholderView title="Gestión de Maestros" />} />
-          <Route path="/clases" element={<PlaceholderView title="Control de Clases" />} />
-          <Route path="/programacion" element={<PlaceholderView title="Programación" />} />
+          <Route path="/clases" element={<ClasesProgramacionView />} />
+          <Route path="/programacion" element={<ClasesProgramacionView />} />
           <Route path="/seguimiento" element={<PlaceholderView title="Seguimiento Pastoral" />} />
           <Route path="/notificaciones" element={<PlaceholderView title="Notificaciones" />} />
           <Route path="/estadisticas" element={<PlaceholderView title="Estadísticas de Crecimiento" />} />
