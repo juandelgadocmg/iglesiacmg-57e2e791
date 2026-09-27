@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Users, UserPlus, Shield, GraduationCap, Phone, Mail, Award, Search, Trash2 } from "lucide-react";
-import { usePersonas, useUpdatePersonaRoles } from "@/hooks/useDatabase";
+import { usePersonas, useUpdatePersona } from "@/hooks/useDatabase";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
@@ -13,7 +13,7 @@ import DeleteConfirmDialog from "@/components/shared/DeleteConfirmDialog";
 
 export default function MaestrosInfantilesView() {
   const { data: personas, isLoading } = usePersonas();
-  const updateRoles = useUpdatePersonaRoles();
+  const updateRoles = useUpdatePersona();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
