@@ -10,8 +10,8 @@ import { QRCodeSVG } from "qrcode.react";
 import { toast } from "sonner";
 
 export default function CarnesView() {
-  const { data: personas, isLoading } = usePersonas();
-  const { data: acudientes } = useInfantilAcudientes();
+  const { data: personas, isLoading: isLoadingPersonas } = usePersonas();
+  const { data: acudientes, isLoading: isLoadingAcudientes, isError } = useInfantilAcudientes();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedNino, setSelectedNino] = useState<any>(null);
   
@@ -58,7 +58,13 @@ export default function CarnesView() {
               />
               
               <div className="space-y-2 max-h-[400px] overflow-y-auto custom-scrollbar pr-2">
-                {isLoading ? (
+                {isError ? (
+                  <div className="text-center p-4 border border-red-200 bg-red-50 text-red-600 rounded-xl">
+                    <AlertCircle className="h-6 w-6 mx-auto mb-2" />
+                    <p className="text-xs font-bold">Error de conexión</p>
+                    <p className="text-[10px]">Faltan tablas en la base de datos (infantil_acudientes). Ejecuta la migración en Supabase.</p>
+                  </div>
+                ) : isLoadingPersonas ? (
                   <p className="text-center text-sm text-slate-500 py-4">Cargando...</p>
                 ) : filteredPersonas.map(p => (
                   <button 

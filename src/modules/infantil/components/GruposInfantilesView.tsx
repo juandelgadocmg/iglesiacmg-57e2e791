@@ -11,7 +11,7 @@ import { toast } from "sonner";
 import DeleteConfirmDialog from "@/components/shared/DeleteConfirmDialog";
 
 export default function GruposInfantilesView() {
-  const { data: grupos, isLoading } = useInfantilGrupos();
+  const { data: grupos, isLoading, isError } = useInfantilGrupos();
   const createGrupo = useCreateInfantilGrupo();
   const updateGrupo = useUpdateInfantilGrupo();
   const deleteGrupo = useDeleteInfantilGrupo();
@@ -97,6 +97,13 @@ export default function GruposInfantilesView() {
           <div className="col-span-full flex justify-center p-12">
             <div className="animate-spin h-8 w-8 border-4 border-navy border-t-transparent rounded-full" />
           </div>
+        ) : isError ? (
+          <Card className="col-span-full border-red-200 bg-red-50">
+            <CardContent className="flex flex-col items-center justify-center p-12 text-center text-red-600">
+              <h3 className="text-lg font-bold mb-2">Error de Base de Datos</h3>
+              <p className="text-sm">No se encontraron las tablas del módulo Infantil. Por favor, asegúrate de haber ejecutado la migración SQL en Supabase.</p>
+            </CardContent>
+          </Card>
         ) : grupos?.length === 0 ? (
           <Card className="col-span-full border-dashed shadow-none">
             <CardContent className="flex flex-col items-center justify-center p-12 text-center">
