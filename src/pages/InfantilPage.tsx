@@ -19,6 +19,12 @@ import PadresView from "@/modules/infantil/components/PadresView";
 import GruposInfantilesView from "@/modules/infantil/components/GruposInfantilesView";
 import MaestrosInfantilesView from "@/modules/infantil/components/MaestrosInfantilesView";
 import CarnesView from "@/modules/infantil/components/CarnesView";
+import AsistenciaInfantilView from "@/modules/infantil/components/AsistenciaInfantilView";
+import QRSystemView from "@/modules/infantil/components/QRSystemView";
+import SeguimientoInfantilView from "@/modules/infantil/components/SeguimientoInfantilView";
+import NotificacionesInfantilView from "@/modules/infantil/components/NotificacionesInfantilView";
+import EstadisticasInfantilView from "@/modules/infantil/components/EstadisticasInfantilView";
+import ReportesInfantilView from "@/modules/infantil/components/ReportesInfantilView";
 import { AlertCircle, Contact } from "lucide-react";
 
 const TABS = [
@@ -104,17 +110,17 @@ export default function InfantilPage() {
           
           {/* Placeholders for pending features */}
           <Route path="/padres" element={<PadresView />} />
-          <Route path="/asistencia" element={<PlaceholderView title="Asistencia" />} />
-          <Route path="/qr" element={<PlaceholderView title="Sistema QR" />} />
+          <Route path="/asistencia" element={<AsistenciaInfantilView />} />
+          <Route path="/qr" element={<QRSystemView />} />
           <Route path="/carnes" element={<CarnesView />} />
           <Route path="/grupos" element={<GruposInfantilesView />} />
           <Route path="/maestros" element={<MaestrosInfantilesView />} />
           <Route path="/clases" element={<ClasesProgramacionView />} />
           <Route path="/programacion" element={<ClasesProgramacionView />} />
-          <Route path="/seguimiento" element={<PlaceholderView title="Seguimiento Pastoral" />} />
-          <Route path="/notificaciones" element={<PlaceholderView title="Notificaciones" />} />
-          <Route path="/estadisticas" element={<PlaceholderView title="Estadísticas de Crecimiento" />} />
-          <Route path="/reportes" element={<PlaceholderView title="Reportes" />} />
+          <Route path="/seguimiento" element={<SeguimientoInfantilView />} />
+          <Route path="/notificaciones" element={<NotificacionesInfantilView />} />
+          <Route path="/estadisticas" element={<EstadisticasInfantilView />} />
+          <Route path="/reportes" element={<ReportesInfantilView />} />
           <Route path="/eventos" element={<PlaceholderView title="Eventos Especiales" />} />
           <Route path="/configuracion" element={<PlaceholderView title="Configuración" />} />
           
