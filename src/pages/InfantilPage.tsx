@@ -25,6 +25,8 @@ import SeguimientoInfantilView from "@/modules/infantil/components/SeguimientoIn
 import NotificacionesInfantilView from "@/modules/infantil/components/NotificacionesInfantilView";
 import EstadisticasInfantilView from "@/modules/infantil/components/EstadisticasInfantilView";
 import ReportesInfantilView from "@/modules/infantil/components/ReportesInfantilView";
+import EventosInfantilesView from "@/modules/infantil/components/EventosInfantilesView";
+import ConfiguracionInfantilView from "@/modules/infantil/components/ConfiguracionInfantilView";
 import { AlertCircle, Contact } from "lucide-react";
 
 const TABS = [
@@ -121,8 +123,8 @@ export default function InfantilPage() {
           <Route path="/notificaciones" element={<NotificacionesInfantilView />} />
           <Route path="/estadisticas" element={<EstadisticasInfantilView />} />
           <Route path="/reportes" element={<ReportesInfantilView />} />
-          <Route path="/eventos" element={<PlaceholderView title="Eventos Especiales" />} />
-          <Route path="/configuracion" element={<PlaceholderView title="Configuración" />} />
+          <Route path="/eventos" element={<EventosInfantilesView />} />
+          <Route path="/configuracion" element={<ConfiguracionInfantilView />} />
           
           <Route path="*" element={<Navigate to="/infantil" replace />} />
         </Routes>
