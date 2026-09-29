@@ -97,13 +97,16 @@ export function AsignarLiderCasaModal({
           
         if (upsertError) throw upsertError;
       } else {
-        // Actualizar el líder existente
-        const { error } = await supabase
-          .from('leaders')
-          .update({ casa_de_paz_id: casaId })
-          .eq('id', lider.id);
-          
-        if (error) throw error;
+        // Actualizar el líder existente SOLO si no tiene una casa_de_paz_id asignada
+        // Esto permite que el líder pueda pertenecer a múltiples casas (una en 'leaders' y otras en 'grupos')
+        if (!lider.casa_de_paz_id) {
+          const { error } = await supabase
+            .from('leaders')
+            .update({ casa_de_paz_id: casaId })
+            .eq('id', lider.id);
+            
+          if (error) throw error;
+        }
       }
       
       // Actualizar también la tabla grupos (Casa de Paz) para mantener la sincronización
@@ -126,12 +129,17 @@ export function AsignarLiderCasaModal({
   const handleRemove = async (liderId: string) => {
     setIsSubmitting(true);
     try {
-      const { error } = await supabase
-        .from('leaders')
-        .update({ casa_de_paz_id: null })
-        .eq('id', liderId);
+      const liderToRemove = combinedLideres.find(l => l.id === liderId);
+      
+      // Solo limpiamos la casa_de_paz_id en la tabla leaders si es la misma casa de la que lo estamos removiendo
+      if (liderToRemove && liderToRemove.casa_de_paz_id === casaId) {
+        const { error } = await supabase
+          .from('leaders')
+          .update({ casa_de_paz_id: null })
+          .eq('id', liderId);
 
-      if (error) throw error;
+        if (error) throw error;
+      }
       
       // Remover de grupos también
       await supabase
