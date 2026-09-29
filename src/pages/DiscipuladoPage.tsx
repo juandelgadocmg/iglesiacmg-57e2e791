@@ -134,26 +134,38 @@ export default function DiscipuladoPage() {
     if (liderData) {
       setLider(liderData);
       
-      // Fetch Casa de Paz info
+      // Fetch Casa de Paz info (Todas las casas donde lidera)
+      let casasData = [];
       if (liderData.casa_de_paz_id) {
-        const { data: casaData } = await supabase
-          .from('grupos')
-          .select('nombre, red')
-          .eq('id', liderData.casa_de_paz_id)
-          .maybeSingle();
-          
-        if (casaData) {
-          setCasaDePazInfo({ nombre: casaData.nombre, red: casaData.red });
-        }
+        const { data: c1 } = await supabase.from('grupos').select('id, nombre, red').eq('id', liderData.casa_de_paz_id);
+        if (c1) casasData.push(...c1);
+      }
+      const { data: c2 } = await supabase.from('grupos').select('id, nombre, red').eq('lider_id', liderData.id);
+      if (c2) {
+        c2.forEach(casa => {
+          if (!casasData.find(c => c.id === casa.id)) {
+            casasData.push(casa);
+          }
+        });
       }
       
-      // 2. Get Discipulos for this leader
-      const { data: dData } = await supabase
-        .from('discipulos')
-        .select('*')
-        .eq('lider_id', liderData.id)
-        .order('full_name');
-        
+      if (casasData && casasData.length > 0) {
+        const nombres = casasData.map(c => c.nombre).join(' & ');
+        const redes = Array.from(new Set(casasData.map(c => c.red).filter(Boolean))).join(' & ');
+        setCasaDePazInfo({ nombre: nombres, red: redes });
+      }
+      
+      // 2. Get Discipulos for this leader or their casas
+      const casaIds = casasData ? casasData.map(c => c.id) : [];
+      let discQuery = supabase.from('discipulos').select('*').order('full_name');
+      
+      if (casaIds.length > 0) {
+        discQuery = discQuery.or(`lider_id.eq.${liderData.id},casa_de_paz_id.in.(${casaIds.join(',')})`);
+      } else {
+        discQuery = discQuery.eq('lider_id', liderData.id);
+      }
+      
+      const { data: dData } = await discQuery;
       if (dData) setDiscipulos(dData);
       
       // 3. Get Visitas & Llamadas for this leader

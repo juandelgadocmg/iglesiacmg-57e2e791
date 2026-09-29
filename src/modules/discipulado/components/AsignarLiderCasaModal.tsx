@@ -110,10 +110,15 @@ export function AsignarLiderCasaModal({
       }
       
       // Actualizar también la tabla grupos (Casa de Paz) para mantener la sincronización
-      await supabase
+      const { error: errorGrupos } = await supabase
         .from('grupos')
         .update({ lider_id: lider.id })
         .eq('id', casaId);
+        
+      if (errorGrupos) {
+        console.error("Error updating grupos:", errorGrupos);
+        throw errorGrupos;
+      }
       
       toast.success("Líder asignado exitosamente");
       onSuccess();
