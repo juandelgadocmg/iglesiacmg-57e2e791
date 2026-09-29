@@ -4,16 +4,14 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 export const CODIFICACIONES_LLAMADA = [
-  "Buzón de mensajes",
   "Fuera de servicio",
-  "No contestó",
   "Contestó y atendió",
   "Número equivocado",
   "Llamada no efectiva",
   "Otro",
 ] as const;
 
-export type CodificacionLlamada = (typeof CODIFICACIONES_LLAMADA)[number];
+export type CodificacionLlamada = (typeof CODIFICACIONES_LLAMADA)[number] | "Buzón de mensajes" | "No contestó";
 
 export interface RegistroLlamadaConsolidacion {
   id: string;
@@ -262,6 +260,28 @@ export function useConsolidacionLlamadas(personaId?: string) {
     },
   });
 
+  const deleteLlamadaMutation = useMutation({
+    mutationFn: async (id: string) => {
+      // 1. Delete from local storage
+      const locals = getLocalLlamadas();
+      const newLocals = locals.filter(l => l.id !== id);
+      saveLocalLlamadas(newLocals);
+
+      // 2. Delete from security_audit_log if it exists
+      if (!id.startsWith('call_')) {
+        await supabase.from("security_audit_log").delete().eq("id", id);
+      }
+      return id;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["consolidacion-llamadas"] });
+      toast.success("Llamada eliminada correctamente");
+    },
+    onError: (err: any) => {
+      toast.error(err.message || "Error al eliminar la llamada");
+    }
+  });
+
   // Calculate statistics for 45-day Consolidation Report
   const stats = useMemo(() => {
     const totalLlamadas = llamadas.length;
@@ -308,6 +328,7 @@ export function useConsolidacionLlamadas(personaId?: string) {
     stats,
     registrarLlamada: registrarLlamadaMutation.mutateAsync,
     isSubmitting: registrarLlamadaMutation.isPending,
+    eliminarLlamada: deleteLlamadaMutation.mutateAsync,
     refetch,
   };
 }

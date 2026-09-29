@@ -72,7 +72,7 @@ const CODIFICACION_STYLE: Record<
 };
 
 export function ConsolidacionDashboardTab() {
-  const { llamadas, isLoading, stats } = useConsolidacionLlamadas();
+  const { llamadas, isLoading, stats, eliminarLlamada } = useConsolidacionLlamadas();
   const [openRegistrarDialog, setOpenRegistrarDialog] = useState(false);
   const [selectedCodificacionFilter, setSelectedCodificacionFilter] = useState<string>("todos");
 
@@ -264,6 +264,8 @@ export function ConsolidacionDashboardTab() {
                   {c}
                 </option>
               ))}
+              <option value="No contestó">No contestó</option>
+              <option value="Buzón de mensajes">Buzón de mensajes</option>
             </select>
           </div>
         </div>
@@ -331,11 +333,25 @@ export function ConsolidacionDashboardTab() {
                     </div>
                   </div>
 
-                  <div className="text-right shrink-0 text-xs text-muted-foreground tabular-nums">
-                    {format(parseISO(llamada.fecha_llamada), "dd MMM yyyy", { locale: es })}
-                    <div className="text-[10.5px] opacity-75">
-                      {format(parseISO(llamada.fecha_llamada), "HH:mm")}
+                  <div className="text-right shrink-0 flex flex-col items-end gap-1 text-xs text-muted-foreground tabular-nums">
+                    <div>
+                      {format(parseISO(llamada.fecha_llamada), "dd MMM yyyy", { locale: es })}
+                      <div className="text-[10.5px] opacity-75">
+                        {format(parseISO(llamada.fecha_llamada), "HH:mm")}
+                      </div>
                     </div>
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="h-6 px-2 text-rose-500 hover:bg-rose-50 hover:text-rose-600 font-medium"
+                      onClick={() => {
+                        if(window.confirm("¿Estás seguro de que deseas eliminar este registro de llamada?")) {
+                          eliminarLlamada(llamada.id);
+                        }
+                      }}
+                    >
+                      Eliminar
+                    </Button>
                   </div>
                 </div>
               );
