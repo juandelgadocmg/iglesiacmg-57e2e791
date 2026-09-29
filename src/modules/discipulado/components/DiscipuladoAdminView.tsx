@@ -64,6 +64,21 @@ export function DiscipuladoAdminView() {
     }
   };
 
+  const handleDeleteInteraction = async (id: string, tipo: string) => {
+    if (window.confirm(`¿Estás seguro de que deseas eliminar permanentemente esta ${tipo}? Esta acción no se puede deshacer.`)) {
+      try {
+        const table = tipo === 'Visita' ? 'discipulo_visitas' : 'discipulo_actividades';
+        const { error: deleteError } = await supabase.from(table).delete().eq('id', id);
+        if (deleteError) throw deleteError;
+        toast.success(`${tipo} eliminada correctamente`);
+        loadData();
+      } catch (err: any) {
+        console.error(`Error al eliminar ${tipo}:`, err);
+        toast.error(`Error al eliminar la ${tipo}`);
+      }
+    }
+  };
+
   // Global Stats
   const stats = useMemo(() => {
     return {
@@ -109,7 +124,15 @@ export function DiscipuladoAdminView() {
       const redCasas = allCasas.filter(c => c.red_id === red.id || (red.id === 'no-red' && !c.red_id));
       
       const parsedCasas = redCasas.map(casa => {
-        const rawLideres = lideres.filter(l => l.casa_de_paz_id === casa.id || (casa.id === 'no-casa' && !l.casa_de_paz_id));
+        const rawLideres = lideres.filter(l => {
+          if (casa.id !== 'no-casa') {
+            // Líder asignado explícitamente a la Casa en la tabla `leaders`, o es el `lider_id` de la Casa en la tabla `grupos`
+            return l.casa_de_paz_id === casa.id || casa.lider_id === l.id;
+          } else {
+            // "Sin casa": Solo si no tiene casa_de_paz_id Y tampoco figura como lider_id de ninguna casa de paz
+            return !l.casa_de_paz_id && !casasDePaz.some(c => c.lider_id === l.id);
+          }
+        });
         const allLids = [...rawLideres];
         
         if (casa.id === 'no-casa') {
@@ -117,7 +140,20 @@ export function DiscipuladoAdminView() {
         }
 
         const casaLideres = allLids.map(l => {
-          let lDiscs = discipulos.filter(d => d.lider_id === l.id || (l.id === 'no-lider' && !d.lider_id));
+          let lDiscs = discipulos.filter(d => {
+            if (l.id === 'no-lider') {
+              return !d.lider_id && d.casa_de_paz_id === casa.id;
+            }
+            if (d.lider_id === l.id) {
+              // Si la casa no es "Sin Casa", mostramos los discípulos asignados explícitamente a esta casa
+              if (casa.id !== 'no-casa') {
+                return d.casa_de_paz_id === casa.id || !d.casa_de_paz_id;
+              } else {
+                return !d.casa_de_paz_id;
+              }
+            }
+            return false;
+          });
           
           if (term && !l.full_name?.toLowerCase().includes(term)) {
              lDiscs = lDiscs.filter(d => d.full_name?.toLowerCase().includes(term));
@@ -486,6 +522,7 @@ export function DiscipuladoAdminView() {
               casasRaw={casasDePaz}
               discipulosRaw={discipulos}
               lideresRaw={lideres}
+              onDeleteInteraction={handleDeleteInteraction}
             />
           </TabsContent>
         </Tabs>

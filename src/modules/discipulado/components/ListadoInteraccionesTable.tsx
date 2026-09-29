@@ -18,6 +18,7 @@ interface ListadoInteraccionesTableProps {
   casasRaw: any[];
   discipulosRaw: any[];
   lideresRaw: any[];
+  onDeleteInteraction?: (id: string, tipo: string) => void;
 }
 
 export function ListadoInteraccionesTable({
@@ -29,7 +30,8 @@ export function ListadoInteraccionesTable({
   redesRaw = [],
   casasRaw = [],
   discipulosRaw = [],
-  lideresRaw = []
+  lideresRaw = [],
+  onDeleteInteraction
 }: ListadoInteraccionesTableProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [tipoFilter, setTipoFilter] = useState<string>("Todos");
@@ -230,6 +232,7 @@ export function ListadoInteraccionesTable({
               <th className="px-4 py-3 min-w-[180px]">Líder</th>
               <th className="px-4 py-3 min-w-[150px]">Red / Casa</th>
               <th className="px-4 py-3 min-w-[300px]">Detalles</th>
+              <th className="px-4 py-3 w-[80px]">Acciones</th>
             </tr>
           </thead>
             <tbody className="divide-y">
@@ -269,6 +272,19 @@ export function ListadoInteraccionesTable({
                     </td>
                     <td className="px-4 py-3 text-slate-600 italic">
                       {row.descripcion || row.notas || '-'}
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      {onDeleteInteraction && (
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          onClick={() => onDeleteInteraction(row.id, row.tipo)}
+                          className="text-red-500 hover:text-red-700 hover:bg-red-50 h-8 w-8 p-0"
+                          title={`Eliminar ${row.tipo}`}
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+                        </Button>
+                      )}
                     </td>
                   </tr>
                 ))
