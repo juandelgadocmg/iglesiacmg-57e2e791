@@ -140,13 +140,17 @@ export default function DiscipuladoPage() {
         const { data: c1 } = await supabase.from('grupos').select('id, nombre, red').eq('id', liderData.casa_de_paz_id);
         if (c1) casasData.push(...c1);
       }
-      const { data: c2 } = await supabase.from('grupos').select('id, nombre, red').eq('lider_id', liderData.id);
-      if (c2) {
-        c2.forEach(casa => {
-          if (!casasData.find(c => c.id === casa.id)) {
-            casasData.push(casa);
-          }
-        });
+      const { data: c2 } = await supabase.from('leaders_grupos').select('grupo_id').eq('leader_id', liderData.id);
+      if (c2 && c2.length > 0) {
+        const c2Ids = c2.map(lg => lg.grupo_id);
+        const { data: c2Casas } = await supabase.from('grupos').select('id, nombre, red').in('id', c2Ids);
+        if (c2Casas) {
+          c2Casas.forEach(casa => {
+            if (!casasData.find(c => c.id === casa.id)) {
+              casasData.push(casa);
+            }
+          });
+        }
       }
       
       if (casasData && casasData.length > 0) {

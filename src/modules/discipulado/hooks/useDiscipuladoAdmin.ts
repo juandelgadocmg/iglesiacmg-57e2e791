@@ -12,6 +12,7 @@ export function useDiscipuladoAdmin() {
   const [visitas, setVisitas] = useState<any[]>([]);
   const [llamadas, setLlamadas] = useState<any[]>([]);
   const [progreso, setProgreso] = useState<any[]>([]);
+  const [leadersGrupos, setLeadersGrupos] = useState<any[]>([]);
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -85,6 +86,10 @@ export function useDiscipuladoAdmin() {
       
       if (pError) throw pError;
       setProgreso(progresoData || []);
+      
+      // 6. Get leaders_grupos junctions
+      const { data: lgData } = await supabase.from('leaders_grupos').select('*');
+      setLeadersGrupos(lgData || []);
 
     } catch (err: any) {
       console.error('Error fetching admin discipulado data:', err);
@@ -104,6 +109,7 @@ export function useDiscipuladoAdmin() {
     visitas,
     llamadas,
     progreso,
+    leadersGrupos,
     loadData
   };
 }

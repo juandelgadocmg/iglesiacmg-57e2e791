@@ -109,15 +109,14 @@ export function AsignarLiderCasaModal({
         }
       }
       
-      // Actualizar también la tabla grupos (Casa de Paz) para mantener la sincronización
-      const { error: errorGrupos } = await supabase
-        .from('grupos')
-        .update({ lider_id: lider.id })
-        .eq('id', casaId);
+      // Insert into the junction table to support many-to-many Casas
+      const { error: errorJunction } = await supabase
+        .from('leaders_grupos')
+        .upsert({ leader_id: lider.id, grupo_id: casaId }, { onConflict: 'leader_id, grupo_id' });
         
-      if (errorGrupos) {
-        console.error("Error updating grupos:", errorGrupos);
-        throw errorGrupos;
+      if (errorJunction) {
+        console.error("Error updating leaders_grupos:", errorJunction);
+        throw errorJunction;
       }
       
       toast.success("Líder asignado exitosamente");
@@ -146,11 +145,12 @@ export function AsignarLiderCasaModal({
         if (error) throw error;
       }
       
-      // Remover de grupos también
+      // Remover de junction table también
       await supabase
-        .from('grupos')
-        .update({ lider_id: null })
-        .eq('id', casaId);
+        .from('leaders_grupos')
+        .delete()
+        .eq('leader_id', liderId)
+        .eq('grupo_id', casaId);
       
       toast.success("Líder removido de la Casa de Paz");
       onSuccess();

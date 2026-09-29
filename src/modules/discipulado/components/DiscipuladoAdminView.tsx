@@ -37,7 +37,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { UploadCloud, PieChart as PieChartIcon, ClipboardList, PhoneCall } from "lucide-react";
 
 export function DiscipuladoAdminView() {
-  const { loadData, loading, discipulos, lideres, redes, casasDePaz, visitas, llamadas, progreso } = useDiscipuladoAdmin();
+  const { loadData, loading, discipulos, lideres, redes, casasDePaz, visitas, llamadas, progreso, leadersGrupos } = useDiscipuladoAdmin();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedDiscipulo, setSelectedDiscipulo] = useState<any | null>(null);
   const [agregarDiscipuloCasa, setAgregarDiscipuloCasa] = useState<{casa_id: string, lider_id: string | null} | null>(null);
@@ -126,11 +126,11 @@ export function DiscipuladoAdminView() {
       const parsedCasas = redCasas.map(casa => {
         const rawLideres = lideres.filter(l => {
           if (casa.id !== 'no-casa') {
-            // Líder asignado explícitamente a la Casa en la tabla `leaders`, o es el `lider_id` de la Casa en la tabla `grupos`
-            return l.casa_de_paz_id === casa.id || casa.lider_id === l.id;
+            // Líder asignado explícitamente a la Casa en la tabla `leaders`, o es en la tabla `leaders_grupos`
+            return l.casa_de_paz_id === casa.id || (leadersGrupos || []).some(lg => lg.leader_id === l.id && lg.grupo_id === casa.id);
           } else {
-            // "Sin casa": Solo si no tiene casa_de_paz_id Y tampoco figura como lider_id de ninguna casa de paz
-            return !l.casa_de_paz_id && !casasDePaz.some(c => c.lider_id === l.id);
+            // "Sin casa": Solo si no tiene casa_de_paz_id Y tampoco figura en la junction table
+            return !l.casa_de_paz_id && !(leadersGrupos || []).some(lg => lg.leader_id === l.id);
           }
         });
         const allLids = [...rawLideres];
