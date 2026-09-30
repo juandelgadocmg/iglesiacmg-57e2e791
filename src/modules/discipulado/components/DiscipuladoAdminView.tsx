@@ -375,7 +375,10 @@ export function DiscipuladoAdminView() {
                                         className="h-7 text-xs gap-1 bg-red-600 hover:bg-red-700 text-white"
                                         onClick={(e) => {
                                           e.stopPropagation();
-                                          setAgregarDiscipuloCasa({ casa_id: casa.id, lider_id: casa.lider_id });
+                                          const firstLiderId = casa.lideres && casa.lideres.length > 0 && casa.lideres[0].id !== 'no-lider' 
+                                            ? casa.lideres[0].id 
+                                            : (casa.lider_id || '');
+                                          setAgregarDiscipuloCasa({ casa_id: casa.id, lider_id: firstLiderId });
                                         }}
                                       >
                                         <UserPlus className="w-3.5 h-3.5" /> Agregar Discípulo
