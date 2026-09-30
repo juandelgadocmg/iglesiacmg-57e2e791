@@ -27,7 +27,7 @@ export const ZadarmaWebRTC: React.FC<ZadarmaWebRTCProps> = ({ sipExtension }) =>
         setIsLoading(true);
         // 1. Fetch the secure temporary key from Edge Function
         const { data: resData, error: fnError } = await supabase.functions.invoke('zadarma-webrtc-key', {
-          body: { sipExtension }
+          body: { sip: sipExtension }
         });
 
         if (fnError) throw fnError;
@@ -76,7 +76,7 @@ export const ZadarmaWebRTC: React.FC<ZadarmaWebRTCProps> = ({ sipExtension }) =>
         setError(err.message || "Error al conectar con el servidor de llamadas");
         setIsLoading(false);
         if (mounted) {
-          toast.error("No se pudo cargar el teléfono virtual. Verifica la extensión y los permisos de dominio en Zadarma.");
+          toast.error(`Error: ${err.message || "No se pudo cargar el teléfono"}. Verifica permisos en Zadarma.`);
         }
       }
     };
