@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
+import CryptoJS from 'crypto-js';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Loader2, PhoneOff } from 'lucide-react';
@@ -25,13 +26,37 @@ export const ZadarmaWebRTC: React.FC<ZadarmaWebRTCProps> = ({ sipExtension }) =>
     const initWebRTC = async () => {
       try {
         setIsLoading(true);
-        // 1. Fetch the secure temporary key from Edge Function
-        const { data: resData, error: fnError } = await supabase.functions.invoke('zadarma-webrtc-key', {
-          body: { sip: sipExtension }
+        
+        // 1. Fetch the secure temporary key directly from Zadarma API (Frontend approach)
+        const ZADARMA_KEY = "fb94530cb765f6d212e2";
+        const ZADARMA_SECRET = "20d18884fda09f1f8587";
+        
+        const method = "/v1/webrtc/get_key/";
+        const params: Record<string, string> = { sip: sipExtension };
+        
+        const queryParams = new URLSearchParams();
+        Object.keys(params).sort().forEach(k => queryParams.append(k, params[k]));
+        let queryStr = queryParams.toString().replace(/\+/g, '%20');
+        
+        const md5 = CryptoJS.MD5(queryStr).toString(CryptoJS.enc.Hex);
+        const dataToSign = method + queryStr + md5;
+        
+        const signature = CryptoJS.HmacSHA1(dataToSign, ZADARMA_SECRET).toString(CryptoJS.enc.Base64);
+        
+        const response = await fetch(`https://api.zadarma.com${method}?${queryStr}`, {
+          method: "GET",
+          headers: {
+            "Authorization": `${ZADARMA_KEY}:${signature}`
+          }
         });
+        
+        const result = await response.json();
+        
+        if (!response.ok || result.status !== "success") {
+          throw new Error(`Zadarma API Error: ${JSON.stringify(result)}`);
+        }
 
-        if (fnError) throw fnError;
-        const key = resData?.key;
+        const key = result.key;
         if (!key) throw new Error("No se pudo obtener la llave de WebRTC");
         if (!mounted) return;
 
