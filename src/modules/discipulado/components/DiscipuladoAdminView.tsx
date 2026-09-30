@@ -135,13 +135,16 @@ export function DiscipuladoAdminView() {
         });
         const allLids = [...rawLideres];
         
-        if (casa.id === 'no-casa') {
-           allLids.push({ id: 'no-lider', full_name: 'Discípulos sin líder' });
-        }
+        // Siempre agregamos la categoría "sin líder" para capturar discípulos 
+        // que tienen casa_de_paz_id pero lider_id en null.
+        allLids.push({ id: 'no-lider', full_name: 'Discípulos sin líder' });
 
         const casaLideres = allLids.map(l => {
           let lDiscs = discipulos.filter(d => {
             if (l.id === 'no-lider') {
+              if (casa.id === 'no-casa') {
+                return !d.lider_id && !d.casa_de_paz_id;
+              }
               return !d.lider_id && d.casa_de_paz_id === casa.id;
             }
             if (d.lider_id === l.id) {
