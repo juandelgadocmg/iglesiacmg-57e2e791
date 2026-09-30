@@ -61,35 +61,37 @@ export function AgregarDiscipuloModal({ isOpen, onClose, liderId, casaDePazId, o
       // DEBUG LOG
       toast.info(`Debug: liderId='${liderId}', casaDePazId='${casaDePazId}', typeof liderId='${typeof liderId}'`);
 
-      // 1. Verificar que el líder existe en la tabla leaders
-      const { data: leaderExists, error: checkError } = await supabase
-        .from('leaders')
-        .select('id')
-        .eq('id', liderId)
-        .maybeSingle();
+      if (liderId) {
+        // 1. Verificar que el líder existe en la tabla leaders
+        const { data: leaderExists, error: checkError } = await supabase
+          .from('leaders')
+          .select('id')
+          .eq('id', liderId)
+          .maybeSingle();
 
-      if (checkError) {
-         toast.error(`Debug Check Error: ${checkError.message}`);
-      }
+        if (checkError) {
+           toast.error(`Debug Check Error: ${checkError.message}`);
+        }
 
-      if (!leaderExists) {
-        // Si el líder no existe en la base de datos (por ejemplo, porque era un perfil en memoria),
-        // intentamos crearlo antes de insertar al discípulo.
-        const { data: userData } = await supabase.auth.getUser();
-        if (userData?.user) {
-          const newLeader = {
-            id: liderId,
-            full_name: userData.user.user_metadata?.full_name || userData.user.email?.split('@')[0] || 'Líder',
-            email: userData.user.email,
-            casa_de_paz_id: casaDePazId || null
-          };
-          const { error: leaderInsertError } = await supabase.from('leaders').insert(newLeader);
-          if (leaderInsertError) {
-             console.error("Error al crear perfil de líder:", leaderInsertError);
-             throw new Error("No se pudo registrar tu perfil de líder en la base de datos (" + leaderInsertError.message + "). No puedes agregar discípulos sin un perfil de líder válido.");
+        if (!leaderExists) {
+          // Si el líder no existe en la base de datos (por ejemplo, porque era un perfil en memoria),
+          // intentamos crearlo antes de insertar al discípulo.
+          const { data: userData } = await supabase.auth.getUser();
+          if (userData?.user) {
+            const newLeader = {
+              id: liderId,
+              full_name: userData.user.user_metadata?.full_name || userData.user.email?.split('@')[0] || 'Líder',
+              email: userData.user.email,
+              casa_de_paz_id: casaDePazId || null
+            };
+            const { error: leaderInsertError } = await supabase.from('leaders').insert(newLeader);
+            if (leaderInsertError) {
+               console.error("Error al crear perfil de líder:", leaderInsertError);
+               throw new Error("No se pudo registrar tu perfil de líder en la base de datos (" + leaderInsertError.message + "). No puedes agregar discípulos sin un perfil de líder válido.");
+            }
+          } else {
+            throw new Error("Sesión inválida o líder no encontrado.");
           }
-        } else {
-          throw new Error("Sesión inválida o líder no encontrado.");
         }
       }
 
@@ -97,7 +99,7 @@ export function AgregarDiscipuloModal({ isOpen, onClose, liderId, casaDePazId, o
         full_name: discipulo.full_name,
         telefono: discipulo.telefono || null,
         notes: discipulo.notes || null,
-        lider_id: liderId,
+        lider_id: liderId || null,
         casa_de_paz_id: casaDePazId || null,
         status: 'Activo'
       });
