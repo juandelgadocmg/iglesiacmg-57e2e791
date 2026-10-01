@@ -18,15 +18,29 @@ export function useDiscipuladoAdmin() {
     setLoading(true);
     setError(null);
     try {
+      const fetchAllPages = async (queryFactory: () => any) => {
+        let allData: any[] = [];
+        let start = 0;
+        let hasMore = true;
+        while (hasMore) {
+          const { data, error } = await queryFactory().range(start, start + 999);
+          if (error) throw error;
+          if (data) {
+            allData = [...allData, ...data];
+            if (data.length === 1000) {
+              start += 1000;
+            } else {
+              hasMore = false;
+            }
+          } else {
+            hasMore = false;
+          }
+        }
+        return allData;
+      };
+
       // 1. Get all Grupos (Casas de Paz y Redes)
-      const { data: gruposData, error: gError } = await supabase
-        .from('grupos')
-        .select('*')
-        .eq('estado', 'Activo');
-      
-      if (gError) throw gError;
-      
-      const rawGrupos = gruposData || [];
+      const rawGrupos = await fetchAllPages(() => supabase.from('grupos').select('*').eq('estado', 'Activo'));
       
       // Extract unique Redes
       const uniqueRedes = Array.from(new Set(rawGrupos.map(g => g.red).filter(Boolean)));
@@ -43,52 +57,27 @@ export function useDiscipuladoAdmin() {
       setCasasDePaz(parsedCasas);
 
       // 3. Get all Leaders
-      const { data: lideresData, error: lError } = await supabase
-        .from('leaders')
-        .select('*')
-        .order('full_name');
-      
-      if (lError) throw lError;
+      const lideresData = await fetchAllPages(() => supabase.from('leaders').select('*').order('full_name'));
       setLideres(lideresData || []);
 
       // 2. Get all Discipulos
-      const { data: discipulosData, error: dError } = await supabase
-        .from('discipulos')
-        .select('*')
-        .order('full_name');
-        
-      if (dError) throw dError;
+      const discipulosData = await fetchAllPages(() => supabase.from('discipulos').select('*').order('full_name'));
       setDiscipulos(discipulosData || []);
 
       // 3. Get all Visitas
-      const { data: visitasData, error: vError } = await supabase
-        .from('discipulo_visitas')
-        .select('*')
-        .order('fecha', { ascending: false });
-        
-      if (vError) throw vError;
+      const visitasData = await fetchAllPages(() => supabase.from('discipulo_visitas').select('*').order('fecha', { ascending: false }));
       setVisitas(visitasData || []);
 
       // 4. Get all Llamadas
-      const { data: llamadasData, error: llError } = await supabase
-        .from('discipulo_actividades')
-        .select('*')
-        .eq('tipo_actividad', 'Llamada')
-        .order('fecha', { ascending: false });
-        
-      if (llError) throw llError;
+      const llamadasData = await fetchAllPages(() => supabase.from('discipulo_actividades').select('*').eq('tipo_actividad', 'Llamada').order('fecha', { ascending: false }));
       setLlamadas(llamadasData || []);
 
       // 5. Get all Progreso (Optional, for advanced stats)
-      const { data: progresoData, error: pError } = await supabase
-        .from('progreso_discipulo')
-        .select('*');
-      
-      if (pError) throw pError;
+      const progresoData = await fetchAllPages(() => supabase.from('progreso_discipulo').select('*'));
       setProgreso(progresoData || []);
       
       // 6. Get leaders_grupos junctions
-      const { data: lgData } = await supabase.from('leaders_grupos').select('*');
+      const lgData = await fetchAllPages(() => supabase.from('leaders_grupos').select('*'));
       setLeadersGrupos(lgData || []);
 
     } catch (err: any) {
