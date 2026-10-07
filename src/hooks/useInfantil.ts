@@ -24,7 +24,6 @@ export function useCreateInfantilGrupo() {
       const { data: grupo, error: err1 } = await supabase.from("grupos").insert({
         nombre: payload.nombre,
         tipo: "Iglesia Infantil",
-        edades: payload.edades,
         estado: "Activo"
       }).select().single();
       if (err1) throw err1;
@@ -51,8 +50,7 @@ export function useUpdateInfantilGrupo() {
     mutationFn: async (payload: { id: string; nombre: string; edades: string; edad_minima?: number; edad_maxima?: number; salon?: string; capacidad?: number }) => {
       // 1. Update the base group
       const { error: err1 } = await supabase.from("grupos").update({
-        nombre: payload.nombre,
-        edades: payload.edades
+        nombre: payload.nombre
       }).eq("id", payload.id);
       if (err1) throw err1;
 

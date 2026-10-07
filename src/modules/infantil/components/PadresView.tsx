@@ -10,6 +10,10 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { Check, ChevronsUpDown } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import DeleteConfirmDialog from "@/components/shared/DeleteConfirmDialog";
 
@@ -22,6 +26,9 @@ export default function PadresView() {
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  
+  const [ninoPopoverOpen, setNinoPopoverOpen] = useState(false);
+  const [acudientePopoverOpen, setAcudientePopoverOpen] = useState(false);
   
   const [form, setForm] = useState({
     nino_id: "",
@@ -208,30 +215,90 @@ export default function PadresView() {
           <form onSubmit={handleSubmit} className="px-6 pb-6 space-y-4">
             <div className="space-y-2">
               <Label className="text-slate-600 font-semibold">Seleccionar Niño *</Label>
-              <Select value={form.nino_id} onValueChange={(val) => setForm({...form, nino_id: val})}>
-                <SelectTrigger className="h-12 rounded-xl bg-slate-50">
-                  <SelectValue placeholder="Busca al niño..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {personas?.map(p => (
-                    <SelectItem key={p.id} value={p.id}>{p.nombres} {p.apellidos}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Popover open={ninoPopoverOpen} onOpenChange={setNinoPopoverOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    role="combobox"
+                    aria-expanded={ninoPopoverOpen}
+                    className="w-full justify-between h-12 rounded-xl bg-slate-50 font-normal"
+                  >
+                    <span className="truncate">
+                      {form.nino_id 
+                        ? personas?.find(p => p.id === form.nino_id)?.nombres + " " + personas?.find(p => p.id === form.nino_id)?.apellidos
+                        : "Busca al niño..."}
+                    </span>
+                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[300px] sm:w-[400px] p-0" align="start">
+                  <Command>
+                    <CommandInput placeholder="Buscar por nombre..." />
+                    <CommandList>
+                      <CommandEmpty>No se encontró ninguna persona.</CommandEmpty>
+                      <CommandGroup className="max-h-[250px] overflow-y-auto">
+                        {personas?.map(p => (
+                          <CommandItem
+                            key={p.id}
+                            value={`${p.nombres} ${p.apellidos}`}
+                            onSelect={() => {
+                              setForm({...form, nino_id: p.id});
+                              setNinoPopoverOpen(false);
+                            }}
+                          >
+                            <Check className={cn("mr-2 h-4 w-4", form.nino_id === p.id ? "opacity-100" : "opacity-0")} />
+                            {p.nombres} {p.apellidos}
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
             </div>
 
             <div className="space-y-2">
               <Label className="text-slate-600 font-semibold">Seleccionar Acudiente *</Label>
-              <Select value={form.acudiente_id} onValueChange={(val) => setForm({...form, acudiente_id: val})}>
-                <SelectTrigger className="h-12 rounded-xl bg-slate-50">
-                  <SelectValue placeholder="Busca al acudiente..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {personas?.map(p => (
-                    <SelectItem key={p.id} value={p.id}>{p.nombres} {p.apellidos}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Popover open={acudientePopoverOpen} onOpenChange={setAcudientePopoverOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    role="combobox"
+                    aria-expanded={acudientePopoverOpen}
+                    className="w-full justify-between h-12 rounded-xl bg-slate-50 font-normal"
+                  >
+                    <span className="truncate">
+                      {form.acudiente_id 
+                        ? personas?.find(p => p.id === form.acudiente_id)?.nombres + " " + personas?.find(p => p.id === form.acudiente_id)?.apellidos
+                        : "Busca al acudiente..."}
+                    </span>
+                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[300px] sm:w-[400px] p-0" align="start">
+                  <Command>
+                    <CommandInput placeholder="Buscar por nombre..." />
+                    <CommandList>
+                      <CommandEmpty>No se encontró ninguna persona.</CommandEmpty>
+                      <CommandGroup className="max-h-[250px] overflow-y-auto">
+                        {personas?.map(p => (
+                          <CommandItem
+                            key={p.id}
+                            value={`${p.nombres} ${p.apellidos}`}
+                            onSelect={() => {
+                              setForm({...form, acudiente_id: p.id});
+                              setAcudientePopoverOpen(false);
+                            }}
+                          >
+                            <Check className={cn("mr-2 h-4 w-4", form.acudiente_id === p.id ? "opacity-100" : "opacity-0")} />
+                            {p.nombres} {p.apellidos}
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
             </div>
 
             <div className="space-y-2">

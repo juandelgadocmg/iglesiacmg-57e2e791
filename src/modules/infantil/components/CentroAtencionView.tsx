@@ -52,6 +52,7 @@ export default function CentroAtencionView() {
   const [activeTab, setActiveTab] = useState("pendientes");
   const [selectedCase, setSelectedCase] = useState<any | null>(null);
   const [notifyModalOpen, setNotifyModalOpen] = useState(false);
+  const [whatsappMessage, setWhatsappMessage] = useState("");
 
   const getTipoIcon = (tipo: string) => {
     switch(tipo) {
@@ -200,7 +201,10 @@ export default function CentroAtencionView() {
                 
                 {selectedCase.estado !== 'Atendido' && (
                   <>
-                    <Button variant="secondary" className="w-full sm:w-auto gap-2" onClick={() => setNotifyModalOpen(true)}>
+                    <Button variant="secondary" className="w-full sm:w-auto gap-2" onClick={() => {
+                      setWhatsappMessage(`Hola. Necesitamos la presencia del acudiente de ${selectedCase?.nino_nombre || 'el niño'} en Iglesia Infantil lo antes posible. Por favor acércate al área correspondiente.`);
+                      setNotifyModalOpen(true);
+                    }}>
                       <MessageSquare className="w-4 h-4" /> Notificar Acudiente
                     </Button>
                     <Button variant="outline" className="w-full sm:w-auto border-green-200 text-green-700 hover:bg-green-50" onClick={() => setSelectedCase(null)}>
@@ -224,19 +228,23 @@ export default function CentroAtencionView() {
             <div className="space-y-2">
               <span className="text-sm font-medium">Plantilla:</span>
               <div className="flex gap-2">
-                <Badge variant="outline" className="cursor-pointer hover:bg-muted">Malestar</Badge>
-                <Badge variant="outline" className="cursor-pointer hover:bg-muted">General</Badge>
-                <Badge variant="outline" className="cursor-pointer bg-red-50 text-red-700 border-red-200">Urgente</Badge>
+                <Badge variant="outline" className="cursor-pointer hover:bg-muted" onClick={() => setWhatsappMessage(`Hola. El niño ${selectedCase?.nino_nombre || ''} presenta un malestar. Por favor acércate al área de Iglesia Infantil.`)}>Malestar</Badge>
+                <Badge variant="outline" className="cursor-pointer hover:bg-muted" onClick={() => setWhatsappMessage(`Hola. Necesitamos la presencia del acudiente de ${selectedCase?.nino_nombre || ''} en Iglesia Infantil lo antes posible.`)}>General</Badge>
+                <Badge variant="outline" className="cursor-pointer bg-red-50 text-red-700 border-red-200" onClick={() => setWhatsappMessage(`¡URGENTE! Por favor acércate INMEDIATAMENTE al área de Iglesia Infantil por el niño ${selectedCase?.nino_nombre || ''}.`)}>Urgente</Badge>
               </div>
             </div>
             <Textarea 
               className="min-h-[120px]" 
-              defaultValue={`Hola. Necesitamos la presencia del acudiente de ${selectedCase?.nino_nombre || 'el niño'} en Iglesia Infantil lo antes posible. Por favor acércate al área correspondiente.`}
+              value={whatsappMessage}
+              onChange={(e) => setWhatsappMessage(e.target.value)}
             />
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setNotifyModalOpen(false)}>Cancelar</Button>
-            <Button onClick={() => setNotifyModalOpen(false)}>Enviar Notificación</Button>
+            <Button onClick={() => {
+              window.open(`https://wa.me/?text=${encodeURIComponent(whatsappMessage)}`, '_blank');
+              setNotifyModalOpen(false);
+            }}>Enviar por WhatsApp</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

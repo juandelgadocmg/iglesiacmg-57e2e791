@@ -9,6 +9,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { Check, ChevronsUpDown } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
@@ -23,6 +27,9 @@ export default function ClasesProgramacionView() {
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  
+  const [grupoPopoverOpen, setGrupoPopoverOpen] = useState(false);
+  const [maestroPopoverOpen, setMaestroPopoverOpen] = useState(false);
   
   const [form, setForm] = useState({
     grupo_id: "",
@@ -202,16 +209,46 @@ export default function ClasesProgramacionView() {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Grupo / Clase *</Label>
-                <Select value={form.grupo_id} onValueChange={(val) => setForm({...form, grupo_id: val})}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Seleccionar grupo" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {grupos?.map(g => (
-                      <SelectItem key={g.id} value={g.id}>{g.nombre}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Popover open={grupoPopoverOpen} onOpenChange={setGrupoPopoverOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      aria-expanded={grupoPopoverOpen}
+                      className="w-full justify-between"
+                    >
+                      <span className="truncate">
+                        {form.grupo_id 
+                          ? grupos?.find(g => g.id === form.grupo_id)?.nombre
+                          : "Seleccionar grupo"}
+                      </span>
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[300px] p-0" align="start">
+                    <Command>
+                      <CommandInput placeholder="Buscar grupo..." />
+                      <CommandList>
+                        <CommandEmpty>No se encontró ningún grupo.</CommandEmpty>
+                        <CommandGroup className="max-h-[200px] overflow-y-auto">
+                          {grupos?.map(g => (
+                            <CommandItem
+                              key={g.id}
+                              value={g.nombre}
+                              onSelect={() => {
+                                setForm({...form, grupo_id: g.id});
+                                setGrupoPopoverOpen(false);
+                              }}
+                            >
+                              <Check className={cn("mr-2 h-4 w-4", form.grupo_id === g.id ? "opacity-100" : "opacity-0")} />
+                              {g.nombre}
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
               </div>
               <div className="space-y-2">
                 <Label>Fecha *</Label>
@@ -221,16 +258,46 @@ export default function ClasesProgramacionView() {
 
             <div className="space-y-2">
               <Label>Maestro Asignado</Label>
-              <Select value={form.maestro_id} onValueChange={(val) => setForm({...form, maestro_id: val})}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Seleccionar maestro (opcional)" />
-                </SelectTrigger>
-                <SelectContent>
-                  {maestros.map(m => (
-                    <SelectItem key={m.id} value={m.id}>{m.nombres} {m.apellidos}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Popover open={maestroPopoverOpen} onOpenChange={setMaestroPopoverOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    role="combobox"
+                    aria-expanded={maestroPopoverOpen}
+                    className="w-full justify-between"
+                  >
+                    <span className="truncate">
+                      {form.maestro_id 
+                        ? maestros?.find(m => m.id === form.maestro_id)?.nombres + " " + maestros?.find(m => m.id === form.maestro_id)?.apellidos
+                        : "Seleccionar maestro (opcional)"}
+                    </span>
+                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[300px] p-0" align="start">
+                  <Command>
+                    <CommandInput placeholder="Buscar maestro..." />
+                    <CommandList>
+                      <CommandEmpty>No se encontró ningún maestro.</CommandEmpty>
+                      <CommandGroup className="max-h-[200px] overflow-y-auto">
+                        {maestros.map(m => (
+                          <CommandItem
+                            key={m.id}
+                            value={`${m.nombres} ${m.apellidos}`}
+                            onSelect={() => {
+                              setForm({...form, maestro_id: m.id});
+                              setMaestroPopoverOpen(false);
+                            }}
+                          >
+                            <Check className={cn("mr-2 h-4 w-4", form.maestro_id === m.id ? "opacity-100" : "opacity-0")} />
+                            {m.nombres} {m.apellidos}
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
             </div>
 
             <div className="space-y-2">

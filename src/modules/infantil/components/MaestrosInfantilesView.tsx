@@ -8,6 +8,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { Check, ChevronsUpDown } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import DeleteConfirmDialog from "@/components/shared/DeleteConfirmDialog";
 
@@ -20,6 +24,7 @@ export default function MaestrosInfantilesView() {
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   
   const [selectedPersonaId, setSelectedPersonaId] = useState("");
+  const [popoverOpen, setPopoverOpen] = useState(false);
 
   const maestros = personas?.filter(p => p.roles?.includes("maestro")) || [];
 
@@ -154,16 +159,46 @@ export default function MaestrosInfantilesView() {
           <div className="px-6 pb-6 space-y-4">
             <div className="space-y-2">
               <Label className="text-slate-600 font-semibold">Buscar Persona *</Label>
-              <Select value={selectedPersonaId} onValueChange={setSelectedPersonaId}>
-                <SelectTrigger className="h-12 rounded-xl bg-slate-50">
-                  <SelectValue placeholder="Selecciona un miembro de la iglesia..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {personas?.map(p => (
-                    <SelectItem key={p.id} value={p.id}>{p.nombres} {p.apellidos}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    role="combobox"
+                    aria-expanded={popoverOpen}
+                    className="w-full justify-between h-12 rounded-xl bg-slate-50 font-normal"
+                  >
+                    <span className="truncate">
+                      {selectedPersonaId 
+                        ? personas?.find(p => p.id === selectedPersonaId)?.nombres + " " + personas?.find(p => p.id === selectedPersonaId)?.apellidos
+                        : "Selecciona un miembro de la iglesia..."}
+                    </span>
+                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[300px] sm:w-[400px] p-0" align="start">
+                  <Command>
+                    <CommandInput placeholder="Buscar por nombre..." />
+                    <CommandList>
+                      <CommandEmpty>No se encontró ninguna persona.</CommandEmpty>
+                      <CommandGroup className="max-h-[250px] overflow-y-auto">
+                        {personas?.map(p => (
+                          <CommandItem
+                            key={p.id}
+                            value={`${p.nombres} ${p.apellidos}`}
+                            onSelect={() => {
+                              setSelectedPersonaId(p.id);
+                              setPopoverOpen(false);
+                            }}
+                          >
+                            <Check className={cn("mr-2 h-4 w-4", selectedPersonaId === p.id ? "opacity-100" : "opacity-0")} />
+                            {p.nombres} {p.apellidos}
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
             </div>
 
             <div className="bg-blue-50 p-4 rounded-xl border border-blue-100 flex items-start gap-3 mt-4">
