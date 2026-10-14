@@ -102,7 +102,7 @@ export async function callZadarmaViaProxy(
  */
 export async function getZadarmaWebRTCKey(sip = ZADARMA_CONFIG.PRIMARY_SIP): Promise<string> {
   const targetSip = ZADARMA_CONFIG.PRIMARY_SIP;
-  const cacheKey = `zadarma_webrtc_cache_${targetSip}`;
+  const cacheKey = `zadarma_webrtc_cache_v3_${targetSip}`;
 
   // 1. Revisar caché local (máximo 12h para asegurar frescura)
   try {
@@ -134,6 +134,8 @@ export async function getZadarmaWebRTCKey(sip = ZADARMA_CONFIG.PRIMARY_SIP): Pro
 
 /**
  * Obtiene credenciales SIP efímeras y frescas para cada llamada WebRTC
+ * IMPORTANTE: get_webphone_data.php debe ser consultado directamente por el navegador
+ * del usuario para que el servidor SIP de Zadarma asocie la IP del cliente a la sesión.
  */
 export async function getZadarmaSIPCredentials(sip = ZADARMA_CONFIG.PRIMARY_SIP): Promise<ZadarmaSIPCredentials> {
   const targetSip = ZADARMA_CONFIG.PRIMARY_SIP;
@@ -143,21 +145,33 @@ export async function getZadarmaSIPCredentials(sip = ZADARMA_CONFIG.PRIMARY_SIP)
     webrtcKey
   )}&sipId=${encodeURIComponent(targetSip)}`;
 
-  const { data, error } = await supabase.rpc("http", {
-    request: {
-      method: "GET",
-      uri: targetUrl,
-      headers: [],
-      content_type: "application/json",
-      content: null,
-    },
-  });
+  let text = "";
+  try {
+    // 1. Fetch directo desde el navegador (Zadarma soporta Access-Control-Allow-Origin: *)
+    // Esto garantiza que la IP del usuario coincida con la conexión WebSocket a Asterisk
+    const resp = await fetch(targetUrl);
+    if (!resp.ok) {
+      throw new Error(`HTTP ${resp.status}`);
+    }
+    text = await resp.text();
+  } catch (directErr) {
+    console.warn("DOXA: Fetch directo a get_webphone_data falló, usando proxy Supabase:", directErr);
+    const { data, error } = await supabase.rpc("http", {
+      request: {
+        method: "GET",
+        uri: targetUrl,
+        headers: [],
+        content_type: "application/json",
+        content: null,
+      },
+    });
 
-  if (error) {
-    throw new Error(`Error al consultar gateway SIP: ${error.message}`);
+    if (error) {
+      throw new Error(`Error al consultar gateway SIP: ${error.message}`);
+    }
+    text = data?.content || "";
   }
 
-  const text = data?.content || "";
   const start = text.indexOf("{");
   const end = text.lastIndexOf("}");
   if (start === -1 || end === -1) {
@@ -344,6 +358,7 @@ export async function startBrowserCall(
     uri: `sip:${creds.username}@${creds.domain}`,
     password: creds.pass,
     authorization_user: creds.username,
+    realm: "sip.zadarma.com",
     display_name: creds.username,
     register: true,
     register_expires: 300,
