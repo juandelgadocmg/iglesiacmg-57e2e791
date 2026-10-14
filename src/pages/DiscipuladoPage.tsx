@@ -15,6 +15,7 @@ import { ImportarDiscipulosModal } from "@/modules/discipulado/components/Import
 import { AgregarDiscipuloModal } from "@/modules/discipulado/components/AgregarDiscipuloModal";
 import { ListaDiscipulosModal } from "@/modules/discipulado/components/ListaDiscipulosModal";
 import { LlamarDiscipuloModal } from "@/modules/discipulado/components/LlamarDiscipuloModal";
+import { DoxaWebPhone } from "@/components/DoxaWebPhone";
 import { ZadarmaWebRTC } from "@/components/ZadarmaWebRTC";
 import { useVisitas } from "@/modules/discipulado/hooks/useVisitas";
 import { useActiveRole } from "@/hooks/useActiveRole";
@@ -228,10 +229,14 @@ export default function DiscipuladoPage() {
   }, [session, activeRole]);
 
   // Derived Stats
-  // handleCallClick para abrir el asistente de llamada del discípulo
+  // handleCallClick para abrir el teléfono virtual con el discípulo seleccionado
   const handleCallClick = (e: React.MouseEvent, discipulo: any) => {
     e.preventDefault();
-    setDiscipuloParaLlamar(discipulo);
+    window.dispatchEvent(
+      new CustomEvent("doxa-call-number", {
+        detail: { discipulo, phone: discipulo.telefono },
+      })
+    );
   };
 
   const handleDeleteDiscipulo = async (id: string, name: string) => {
@@ -370,7 +375,11 @@ export default function DiscipuladoPage() {
             <span className="hidden sm:inline">Agregar</span>
           </Button>
           <Button 
-            onClick={() => setIsRegistrarLlamadaOpen(true)}
+            onClick={() => {
+              window.dispatchEvent(
+                new CustomEvent("doxa-call-number", { detail: {} })
+              );
+            }}
             className="bg-blue-600 hover:bg-blue-700 text-white font-bold shadow-md shadow-blue-200"
           >
             <PhoneCall className="w-4 h-4 sm:mr-2" />
@@ -688,6 +697,13 @@ export default function DiscipuladoPage() {
         discipulo={discipuloParaLlamar}
         liderId={lider?.id}
         onSuccess={loadData}
+      />
+
+      <DoxaWebPhone
+        sipExtension={zadarmaExtension}
+        discipulos={discipulos}
+        liderId={lider?.id}
+        onCallLogged={loadData}
       />
 
       {zadarmaExtension && <ZadarmaWebRTC sipExtension={zadarmaExtension} />}
