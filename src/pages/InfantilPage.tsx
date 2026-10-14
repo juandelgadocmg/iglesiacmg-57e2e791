@@ -6,7 +6,7 @@ import { useActiveRole } from "@/hooks/useActiveRole";
 import {
   LayoutDashboard, Users, UserRound, ClipboardList, LogIn, QrCode, IdCard,
   UsersRound, GraduationCap, BookOpen, CalendarDays, Heart, Bell, BarChart3,
-  FileText, PartyPopper, Settings
+  FileText, PartyPopper, Settings, Shirt
 } from "lucide-react";
 
 import DashboardInfantil from "@/modules/infantil/components/DashboardInfantil";
@@ -37,8 +37,8 @@ const TABS = [
   { id: "padres", label: "Padres y acudientes", icon: UserRound, path: "padres" },
   { id: "asistencia", label: "Asistencia", icon: ClipboardList, path: "asistencia" },
   { id: "checkin", label: "Check-in / Check-out", icon: LogIn, path: "checkin" },
-  { id: "qr", label: "QR", icon: QrCode, path: "qr" },
-  { id: "carnes", label: "Carnés", icon: IdCard, path: "carnes" },
+  { id: "carnes", label: "Stickers & Carnés QR", icon: Shirt, path: "carnes" },
+  { id: "qr", label: "Sistema QR", icon: QrCode, path: "qr" },
   { id: "grupos", label: "Grupos", icon: UsersRound, path: "grupos" },
   { id: "maestros", label: "Gestión Maestros", icon: GraduationCap, path: "maestros" },
   { id: "clases", label: "Clases", icon: BookOpen, path: "clases" },

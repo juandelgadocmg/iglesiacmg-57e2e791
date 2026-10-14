@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Search, Filter, AlertCircle, Clock, CheckCircle2, AlertTriangle, UserPlus, MessageSquare } from "lucide-react";
+import { useState, useMemo } from "react";
+import { Search, Filter, AlertCircle, Clock, CheckCircle2, AlertTriangle, UserPlus, MessageSquare, ShieldCheck } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -7,8 +7,10 @@ import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
-import { useInfantilAcudientes } from "@/hooks/useInfantil";
+import { useInfantilAcudientes, useInfantilAtenciones, useUpdateInfantilAtencion } from "@/hooks/useInfantil";
 import { toast } from "sonner";
+import { formatDistanceToNow } from "date-fns";
+import { es } from "date-fns/locale";
 
 const normalizeName = (s: string) =>
   (s || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/\s+/g, " ").trim();
@@ -21,46 +23,6 @@ const toWhatsAppNumber = (phone: string) => {
   return digits;
 };
 
-// Mock data para la interfaz
-const MOCK_SOLICITUDES = [
-  {
-    id: "1",
-    nino_nombre: "Juan Pérez",
-    grupo: "Párvulos (2-3 años)",
-    maestro: "Ana Gómez",
-    tipo: "Urgencia",
-    estado: "Pendiente",
-    hora: "10:45 AM",
-    tiempo_transcurrido: "2 min",
-    prioridad: "Alta",
-    observacion: "Se golpeó la cabeza, necesita revisión inmediata."
-  },
-  {
-    id: "2",
-    nino_nombre: "María López",
-    grupo: "Exploradores (4-5 años)",
-    maestro: "Carlos Ruiz",
-    tipo: "Acudiente",
-    estado: "En atención",
-    hora: "10:30 AM",
-    tiempo_transcurrido: "17 min",
-    prioridad: "Media",
-    observacion: "Llora mucho y pregunta por su mamá."
-  },
-  {
-    id: "3",
-    nino_nombre: "Samuel Díaz",
-    grupo: "Valientes (6-8 años)",
-    maestro: "Laura Torres",
-    tipo: "Baño",
-    estado: "Atendido",
-    hora: "09:15 AM",
-    tiempo_transcurrido: "Cerrado",
-    prioridad: "Baja",
-    observacion: ""
-  }
-];
-
 export default function CentroAtencionView() {
   const [activeTab, setActiveTab] = useState("pendientes");
   const [selectedCase, setSelectedCase] = useState<any | null>(null);
@@ -68,7 +30,51 @@ export default function CentroAtencionView() {
   const [whatsappMessage, setWhatsappMessage] = useState("");
   const [acudienteTelefono, setAcudienteTelefono] = useState("");
   const [acudienteNombre, setAcudienteNombre] = useState("");
+  const [searchTerm, setSearchTerm] = useState("");
+
+  const { data: atencionesDb, isLoading } = useInfantilAtenciones();
+  const updateAtencion = useUpdateInfantilAtencion();
   const { data: acudientes } = useInfantilAcudientes();
+
+  // Consolidar solicitudes reales de la base de datos
+  const solicitudes = useMemo(() => {
+    return (atencionesDb || []).map((a: any) => {
+      let tiempoStr = "Ahora";
+      try {
+        if (a.hora_creacion) {
+          tiempoStr = formatDistanceToNow(new Date(a.hora_creacion), { addSuffix: true, locale: es });
+        }
+      } catch {}
+
+      return {
+        id: a.id,
+        nino_id: a.nino_id,
+        nino_nombre: a.nino ? `${a.nino.nombres} ${a.nino.apellidos}` : "Niño",
+        grupo: a.grupo_nombre || "Clase Infantil",
+        maestro: a.maestro ? `${a.maestro.nombres} ${a.maestro.apellidos}` : "Maestro",
+        tipo: a.tipo_solicitud || "Atención",
+        estado: a.estado || "Pendiente",
+        hora: a.hora_creacion ? new Date(a.hora_creacion).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "",
+        tiempo_transcurrido: tiempoStr,
+        prioridad: a.prioridad || "Normal",
+        observacion: a.observaciones || a.sintomas || ""
+      };
+    });
+  }, [atencionesDb]);
+
+  const filtradasPorBusqueda = useMemo(() => {
+    if (!searchTerm.trim()) return solicitudes;
+    const q = searchTerm.toLowerCase().trim();
+    return solicitudes.filter(s =>
+      s.nino_nombre.toLowerCase().includes(q) ||
+      s.maestro.toLowerCase().includes(q) ||
+      s.tipo.toLowerCase().includes(q)
+    );
+  }, [solicitudes, searchTerm]);
+
+  const pendientesCount = useMemo(() => solicitudes.filter(s => s.estado === 'Pendiente').length, [solicitudes]);
+  const enAtencionCount = useMemo(() => solicitudes.filter(s => s.estado === 'En atención').length, [solicitudes]);
+  const atendidasCount = useMemo(() => solicitudes.filter(s => s.estado === 'Atendido' || s.estado === 'Cerrada').length, [solicitudes]);
 
   /** Busca el acudiente (principal primero) del niño del caso para precargar su WhatsApp. */
   const openNotify = (caso: any) => {
@@ -98,6 +104,34 @@ export default function CentroAtencionView() {
     setNotifyModalOpen(false);
   };
 
+  const handleTomarCaso = async (caso: any) => {
+    try {
+      await updateAtencion.mutateAsync({
+        id: caso.id,
+        estado: "En atención",
+        hora_atencion: new Date().toISOString()
+      });
+      toast.success("Caso tomado en atención");
+      setSelectedCase(null);
+    } catch (err: any) {
+      toast.error("Error al actualizar estado");
+    }
+  };
+
+  const handleCerrarCaso = async (caso: any) => {
+    try {
+      await updateAtencion.mutateAsync({
+        id: caso.id,
+        estado: "Atendido",
+        hora_cierre: new Date().toISOString()
+      });
+      toast.success("✓ Caso marcado como atendido");
+      setSelectedCase(null);
+    } catch (err: any) {
+      toast.error("Error al cerrar caso");
+    }
+  };
+
   const getTipoIcon = (tipo: string) => {
     switch(tipo) {
       case 'Urgencia': return <AlertTriangle className="w-5 h-5 text-red-500" />;
@@ -108,19 +142,24 @@ export default function CentroAtencionView() {
   };
 
   const getPrioridadColor = (prioridad: string) => {
-    if (prioridad === 'Alta') return 'bg-red-100 text-red-700 border-red-200';
-    if (prioridad === 'Media') return 'bg-orange-100 text-orange-700 border-orange-200';
+    if (prioridad === 'Alta' || prioridad === 'Urgente') return 'bg-red-100 text-red-700 border-red-200';
+    if (prioridad === 'Media' || prioridad === 'Prioritaria') return 'bg-orange-100 text-orange-700 border-orange-200';
     return 'bg-blue-100 text-blue-700 border-blue-200';
   };
 
   const renderSolicitudes = (estado: string) => {
-    const filtradas = MOCK_SOLICITUDES.filter(s => s.estado.toLowerCase() === estado.toLowerCase());
+    const filtradas = filtradasPorBusqueda.filter(s => {
+      if (estado === 'Pendiente') return s.estado === 'Pendiente';
+      if (estado === 'En atención') return s.estado === 'En atención';
+      return s.estado === 'Atendido' || s.estado === 'Cerrada';
+    });
     
     if (filtradas.length === 0) {
       return (
-        <div className="text-center py-12 text-muted-foreground border-2 border-dashed rounded-xl">
-          <CheckCircle2 className="w-12 h-12 mx-auto mb-3 opacity-20" />
-          <p>No hay solicitudes en este estado.</p>
+        <div className="text-center py-12 text-muted-foreground border-2 border-dashed rounded-2xl bg-white/50">
+          <CheckCircle2 className="w-12 h-12 mx-auto mb-3 text-slate-300" />
+          <p className="font-semibold text-slate-700">No hay solicitudes en este estado.</p>
+          <p className="text-xs text-slate-400 mt-1">Cuando un maestro reporte una novedad en su panel, aparecerá aquí.</p>
         </div>
       );
     }
@@ -130,7 +169,11 @@ export default function CentroAtencionView() {
         {filtradas.map(solicitud => (
           <Card 
             key={solicitud.id} 
-            className={`p-4 cursor-pointer transition-all hover:shadow-md ${solicitud.prioridad === 'Alta' ? 'border-red-200 bg-red-50/30' : ''}`}
+            className={`p-4 cursor-pointer transition-all hover:shadow-md rounded-2xl ${
+              solicitud.prioridad === 'Alta' || solicitud.prioridad === 'Urgente'
+                ? 'border-red-200 bg-red-50/30'
+                : 'border-slate-200 bg-white'
+            }`}
             onClick={() => setSelectedCase(solicitud)}
           >
             <div className="flex justify-between items-start mb-3">
@@ -146,13 +189,13 @@ export default function CentroAtencionView() {
               </div>
             </div>
             
-            <h3 className="font-bold text-lg leading-tight">{solicitud.nino_nombre}</h3>
-            <p className="text-sm text-muted-foreground mb-3">{solicitud.grupo}</p>
+            <h3 className="font-bold text-lg leading-tight text-navy">{solicitud.nino_nombre}</h3>
+            <p className="text-xs text-muted-foreground mb-3">{solicitud.grupo}</p>
             
-            <div className="text-xs bg-muted/50 p-2 rounded-md">
-              <span className="font-semibold">Maestro:</span> {solicitud.maestro}
+            <div className="text-xs bg-slate-50 p-2.5 rounded-xl border border-slate-100">
+              <span className="font-semibold text-slate-700">Maestro:</span> {solicitud.maestro}
               {solicitud.observacion && (
-                <p className="mt-1 text-muted-foreground italic line-clamp-2">"{solicitud.observacion}"</p>
+                <p className="mt-1 text-slate-600 italic line-clamp-2">"{solicitud.observacion}"</p>
               )}
             </div>
           </Card>
@@ -172,17 +215,27 @@ export default function CentroAtencionView() {
         <div className="flex items-center gap-2">
           <div className="relative">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input placeholder="Buscar niño o maestro..." className="pl-9 w-full sm:w-64" />
+            <Input 
+              placeholder="Buscar niño o maestro..." 
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-9 w-full sm:w-64 rounded-xl" 
+            />
           </div>
-          <Button variant="outline" size="icon"><Filter className="h-4 w-4" /></Button>
         </div>
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-3 max-w-md">
-          <TabsTrigger value="pendientes">Pendientes (1)</TabsTrigger>
-          <TabsTrigger value="en-atencion">En Atención (1)</TabsTrigger>
-          <TabsTrigger value="atendido">Cerradas (1)</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-3 max-w-md bg-slate-200/70 p-1 rounded-xl">
+          <TabsTrigger value="pendientes" className="rounded-lg font-bold text-xs">
+            Pendientes ({pendientesCount})
+          </TabsTrigger>
+          <TabsTrigger value="en-atencion" className="rounded-lg font-bold text-xs">
+            En Atención ({enAtencionCount})
+          </TabsTrigger>
+          <TabsTrigger value="atendido" className="rounded-lg font-bold text-xs">
+            Cerradas ({atendidasCount})
+          </TabsTrigger>
         </TabsList>
         
         <div className="mt-6">
@@ -200,7 +253,7 @@ export default function CentroAtencionView() {
 
       {/* Modal de Detalle de Caso */}
       <Dialog open={!!selectedCase} onOpenChange={(open) => !open && setSelectedCase(null)}>
-        <DialogContent className="sm:max-w-lg">
+        <DialogContent className="sm:max-w-lg rounded-2xl">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               {selectedCase && getTipoIcon(selectedCase.tipo)}
@@ -210,10 +263,10 @@ export default function CentroAtencionView() {
           
           {selectedCase && (
             <div className="space-y-4 py-2">
-              <div className="flex justify-between items-start bg-muted/30 p-4 rounded-lg">
+              <div className="flex justify-between items-start bg-slate-50 p-4 rounded-xl border border-slate-100">
                 <div>
-                  <h3 className="font-bold text-xl">{selectedCase.nino_nombre}</h3>
-                  <p className="text-sm text-muted-foreground">{selectedCase.grupo}</p>
+                  <h3 className="font-bold text-xl text-navy">{selectedCase.nino_nombre}</h3>
+                  <p className="text-sm text-slate-500">{selectedCase.grupo}</p>
                 </div>
                 <Badge variant="outline" className={getPrioridadColor(selectedCase.prioridad)}>
                   {selectedCase.estado}
@@ -222,33 +275,33 @@ export default function CentroAtencionView() {
 
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div>
-                  <span className="text-muted-foreground block">Reportado por:</span>
-                  <span className="font-medium">{selectedCase.maestro}</span>
+                  <span className="text-muted-foreground block text-xs">Reportado por:</span>
+                  <span className="font-semibold text-slate-800">{selectedCase.maestro}</span>
                 </div>
                 <div>
-                  <span className="text-muted-foreground block">Hora de solicitud:</span>
-                  <span className="font-medium">{selectedCase.hora} ({selectedCase.tiempo_transcurrido})</span>
+                  <span className="text-muted-foreground block text-xs">Hora de solicitud:</span>
+                  <span className="font-semibold text-slate-800">{selectedCase.hora || selectedCase.tiempo_transcurrido}</span>
                 </div>
               </div>
 
               <div className="space-y-1">
-                <span className="text-sm text-muted-foreground">Observaciones del maestro:</span>
-                <p className="p-3 bg-muted rounded-md text-sm">{selectedCase.observacion || 'Ninguna observación registrada.'}</p>
+                <span className="text-xs text-muted-foreground">Observaciones del maestro:</span>
+                <p className="p-3 bg-slate-50 rounded-xl text-sm border border-slate-100">{selectedCase.observacion || 'Ninguna observación registrada.'}</p>
               </div>
 
               <DialogFooter className="mt-6 flex-col sm:flex-row gap-2">
                 {selectedCase.estado === 'Pendiente' && (
-                  <Button className="w-full sm:w-auto" onClick={() => setSelectedCase({...selectedCase, estado: 'En atención'})}>
+                  <Button className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold" onClick={() => handleTomarCaso(selectedCase)}>
                     Tomar Caso
                   </Button>
                 )}
                 
-                {selectedCase.estado !== 'Atendido' && (
+                {selectedCase.estado !== 'Atendido' && selectedCase.estado !== 'Cerrada' && (
                   <>
-                    <Button variant="secondary" className="w-full sm:w-auto gap-2" onClick={() => openNotify(selectedCase)}>
+                    <Button variant="secondary" className="w-full sm:w-auto gap-2 rounded-xl" onClick={() => openNotify(selectedCase)}>
                       <MessageSquare className="w-4 h-4" /> Notificar Acudiente
                     </Button>
-                    <Button variant="outline" className="w-full sm:w-auto border-green-200 text-green-700 hover:bg-green-50" onClick={() => setSelectedCase(null)}>
+                    <Button variant="outline" className="w-full sm:w-auto border-emerald-300 text-emerald-700 hover:bg-emerald-50 rounded-xl font-bold" onClick={() => handleCerrarCaso(selectedCase)}>
                       Marcar como Atendido
                     </Button>
                   </>
@@ -259,9 +312,9 @@ export default function CentroAtencionView() {
         </DialogContent>
       </Dialog>
 
-      {/* Modal de Notificación */}
+      {/* Modal de Notificación WhatsApp */}
       <Dialog open={notifyModalOpen} onOpenChange={setNotifyModalOpen}>
-        <DialogContent>
+        <DialogContent className="rounded-2xl">
           <DialogHeader>
             <DialogTitle>Enviar Mensaje a Acudiente</DialogTitle>
           </DialogHeader>
@@ -273,6 +326,7 @@ export default function CentroAtencionView() {
                 placeholder="Ej. 300 123 4567"
                 value={acudienteTelefono}
                 onChange={(e) => setAcudienteTelefono(e.target.value)}
+                className="rounded-xl"
               />
               {!acudienteNombre && (
                 <p className="text-xs text-muted-foreground">No hay acudiente vinculado a este niño. Escribe el número manualmente o vincúlalo en "Padres y acudientes".</p>
@@ -281,26 +335,25 @@ export default function CentroAtencionView() {
             <div className="space-y-2">
               <span className="text-sm font-medium">Plantilla:</span>
               <div className="flex gap-2">
-                <Badge variant="outline" className="cursor-pointer hover:bg-muted" onClick={() => setWhatsappMessage(`Hola. El niño ${selectedCase?.nino_nombre || ''} presenta un malestar. Por favor acércate al área de Iglesia Infantil.`)}>Malestar</Badge>
+                <Badge variant="outline" className="cursor-pointer hover:bg-muted" onClick={() => setWhatsappMessage(`Hola. El niño/a ${selectedCase?.nino_nombre || ''} presenta un malestar. Por favor acércate al área de Iglesia Infantil.`)}>Malestar</Badge>
                 <Badge variant="outline" className="cursor-pointer hover:bg-muted" onClick={() => setWhatsappMessage(`Hola. Necesitamos la presencia del acudiente de ${selectedCase?.nino_nombre || ''} en Iglesia Infantil lo antes posible.`)}>General</Badge>
-                <Badge variant="outline" className="cursor-pointer bg-red-50 text-red-700 border-red-200" onClick={() => setWhatsappMessage(`¡URGENTE! Por favor acércate INMEDIATAMENTE al área de Iglesia Infantil por el niño ${selectedCase?.nino_nombre || ''}.`)}>Urgente</Badge>
+                <Badge variant="outline" className="cursor-pointer bg-red-50 text-red-700 border-red-200" onClick={() => setWhatsappMessage(`¡URGENTE! Por favor acércate INMEDIATAMENTE al área de Iglesia Infantil por ${selectedCase?.nino_nombre || ''}.`)}>Urgente</Badge>
               </div>
             </div>
             <Textarea 
-              className="min-h-[120px]" 
+              className="min-h-[120px] rounded-xl" 
               value={whatsappMessage}
               onChange={(e) => setWhatsappMessage(e.target.value)}
             />
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setNotifyModalOpen(false)}>Cancelar</Button>
-            <Button className="bg-green-600 hover:bg-green-700 text-white gap-2" onClick={sendWhatsApp}>
+            <Button variant="outline" onClick={() => setNotifyModalOpen(false)} className="rounded-xl">Cancelar</Button>
+            <Button className="bg-emerald-600 hover:bg-emerald-700 text-white gap-2 rounded-xl font-bold" onClick={sendWhatsApp}>
               <MessageSquare className="w-4 h-4" /> Abrir en WhatsApp
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
     </div>
   );
 }

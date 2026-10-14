@@ -1,4 +1,4 @@
-import { QrCode, ScanLine, CreditCard } from "lucide-react";
+import { QrCode, ScanLine, CreditCard, Shirt } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
@@ -8,47 +8,70 @@ export default function QRSystemView() {
 
   return (
     <div className="p-4 md:p-8 space-y-8 animate-fade-in bg-slate-50/50 min-h-full flex flex-col items-center justify-center">
-      <div className="text-center mb-8">
+      <div className="text-center mb-6">
         <div className="mx-auto w-20 h-20 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mb-4 shadow-lg shadow-blue-100">
           <QrCode className="w-10 h-10" />
         </div>
         <h2 className="text-3xl font-black tracking-tight bg-gradient-to-r from-navy to-blue-500 bg-clip-text text-transparent drop-shadow-sm">
-          Sistema QR DOXA
+          Sistema QR & Adhesivos DOXA
         </h2>
-        <p className="text-slate-500 mt-2 font-medium max-w-md mx-auto">
-          El sistema de escaneo y generación de códigos QR está integrado directamente en los módulos de operación.
+        <p className="text-slate-500 mt-2 font-medium max-w-md mx-auto text-sm">
+          Control de acceso rápido, escaneo con cámara y generación de stickers adhesivos físicos para camisetas.
         </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full max-w-3xl">
-        <Card className="border-0 shadow-xl shadow-slate-200/50 rounded-3xl hover:-translate-y-2 transition-transform duration-300">
-          <CardContent className="p-8 text-center flex flex-col h-full items-center">
-            <ScanLine className="w-16 h-16 text-emerald-500 mb-6" />
-            <h3 className="text-xl font-bold text-navy mb-3">Escanear QR (Check-in)</h3>
-            <p className="text-slate-500 mb-8 flex-1">
-              Ve al módulo de Check-in / Check-out para activar la cámara y registrar la entrada o salida de un niño escaneando su carné.
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full max-w-5xl">
+        <Card className="border-0 shadow-xl shadow-slate-200/50 rounded-3xl hover:-translate-y-2 transition-transform duration-300 bg-white">
+          <CardContent className="p-6 text-center flex flex-col h-full items-center">
+            <div className="w-16 h-16 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center mb-4">
+              <Shirt className="w-8 h-8" />
+            </div>
+            <h3 className="text-lg font-bold text-navy mb-2">Stickers de Camiseta</h3>
+            <p className="text-xs text-slate-500 mb-6 flex-1">
+              Imprime etiquetas adhesivas individuales o en planillas con el nombre grande, grupo, alergias y QR para pegar en la ropa de los niños.
+            </p>
+            <Button 
+              onClick={() => navigate('/infantil/carnes')}
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white rounded-xl h-11 shadow-lg shadow-blue-500/20 font-bold text-xs"
+            >
+              Imprimir Stickers
+            </Button>
+          </CardContent>
+        </Card>
+
+        <Card className="border-0 shadow-xl shadow-slate-200/50 rounded-3xl hover:-translate-y-2 transition-transform duration-300 bg-white">
+          <CardContent className="p-6 text-center flex flex-col h-full items-center">
+            <div className="w-16 h-16 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center mb-4">
+              <ScanLine className="w-8 h-8" />
+            </div>
+            <h3 className="text-lg font-bold text-navy mb-2">Escanear Check-in</h3>
+            <p className="text-xs text-slate-500 mb-6 flex-1">
+              Activa la cámara del dispositivo para registrar la entrada o salida escaneando el carné o sticker de la camiseta del menor.
             </p>
             <Button 
               onClick={() => navigate('/infantil/checkin')}
-              className="w-full bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl h-12 shadow-lg shadow-emerald-500/30 font-bold"
+              className="w-full bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl h-11 shadow-lg shadow-emerald-500/20 font-bold text-xs"
             >
               Ir a Check-in
             </Button>
           </CardContent>
         </Card>
 
-        <Card className="border-0 shadow-xl shadow-slate-200/50 rounded-3xl hover:-translate-y-2 transition-transform duration-300">
-          <CardContent className="p-8 text-center flex flex-col h-full items-center">
-            <CreditCard className="w-16 h-16 text-blue-500 mb-6" />
-            <h3 className="text-xl font-bold text-navy mb-3">Generar Carnés QR</h3>
-            <p className="text-slate-500 mb-8 flex-1">
-              Ve al módulo de Carnés para generar las identificaciones con los códigos criptográficos de cada niño e imprimirlos.
+        <Card className="border-0 shadow-xl shadow-slate-200/50 rounded-3xl hover:-translate-y-2 transition-transform duration-300 bg-white">
+          <CardContent className="p-6 text-center flex flex-col h-full items-center">
+            <div className="w-16 h-16 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center mb-4">
+              <CreditCard className="w-8 h-8" />
+            </div>
+            <h3 className="text-lg font-bold text-navy mb-2">Carnés Tradicionales</h3>
+            <p className="text-xs text-slate-500 mb-6 flex-1">
+              Genera credenciales verticales plastificadas para colgar con lanyard con los datos del acudiente y código de seguridad.
             </p>
             <Button 
               onClick={() => navigate('/infantil/carnes')}
-              className="w-full bg-blue-500 hover:bg-blue-600 text-white rounded-xl h-12 shadow-lg shadow-blue-500/30 font-bold"
+              variant="outline"
+              className="w-full border-slate-300 text-slate-700 hover:bg-slate-50 rounded-xl h-11 font-bold text-xs"
             >
-              Ir a Carnés
+              Ver Carnés
             </Button>
           </CardContent>
         </Card>

@@ -48,7 +48,7 @@ export const useNinos = () => {
 
     return (personas || []).map(p => ({
       ...p,
-      detalles: p.detalles?.[0] || {} // infantil_detalles retorna array porque es join 1 a 1, tomamos el primero
+      detalles: Array.isArray(p.detalles) ? (p.detalles[0] || {}) : (p.detalles || {})
     })) as Nino[];
   };
 

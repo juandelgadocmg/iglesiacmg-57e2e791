@@ -162,19 +162,23 @@ export function useInfantilCheckIn() {
       entregado_por_id?: string;
       observaciones?: string;
     }) => {
-      const { data, error } = await supabase.from("infantil_asistencia_checkin").insert({
+      const fechaHoy = new Date().toISOString().split("T")[0];
+      const { data, error } = await supabase.from("infantil_asistencia_checkin").upsert({
         nino_id: payload.nino_id,
         grupo_id: payload.grupo_id,
-        fecha: new Date().toISOString().split("T")[0],
+        fecha: fechaHoy,
         estado: "Presente",
         hora_entrada: new Date().toISOString(),
-        entregado_por_id: payload.entregado_por_id,
-        observaciones: payload.observaciones
-      }).select().single();
+        entregado_por_id: payload.entregado_por_id || null,
+        observaciones: payload.observaciones || null
+      }, { onConflict: "nino_id,fecha,grupo_id" }).select().single();
       if (error) throw error;
       return data;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["infantil_asistencia"] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["infantil_asistencia"] });
+      qc.invalidateQueries({ queryKey: ["infantil_asistencias_lista"] });
+    },
   });
 }
 
@@ -187,12 +191,15 @@ export function useInfantilCheckOut() {
     }) => {
       const { data, error } = await supabase.from("infantil_asistencia_checkin").update({
         hora_salida: new Date().toISOString(),
-        recogido_por_id: payload.recogido_por_id,
+        recogido_por_id: payload.recogido_por_id || null,
       }).eq("id", payload.asistencia_id).select().single();
       if (error) throw error;
       return data;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["infantil_asistencia"] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["infantil_asistencia"] });
+      qc.invalidateQueries({ queryKey: ["infantil_asistencias_lista"] });
+    },
   });
 }
 
@@ -202,7 +209,7 @@ export function useInfantilAsistencias(fecha: string) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("infantil_asistencia_checkin")
-        .select("*, nino:nino_id(id, nombres, apellidos), entregado:entregado_por_id(id, nombres, apellidos), recogido:recogido_por_id(id, nombres, apellidos), grupo:grupo_id(id, nombre)")
+        .select("*, nino:nino_id(id, nombres, apellidos, documento), entregado:entregado_por_id(id, nombres, apellidos), recogido:recogido_por_id(id, nombres, apellidos), grupo:grupo_id(id, nombre)")
         .eq("fecha", fecha)
         .order("hora_entrada", { ascending: false });
       if (error) throw error;
@@ -260,3 +267,64 @@ export function useDeleteInfantilAcudiente() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["infantil_acudientes"] }),
   });
 }
+
+export function useInfantilAtenciones() {
+  return useQuery({
+    queryKey: ["infantil_atenciones"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("infantil_atenciones")
+        .select("*, nino:nino_id(id, nombres, apellidos), maestro:maestro_id(id, nombres, apellidos), responsable:responsable_id(id, nombres, apellidos)")
+        .order("hora_creacion", { ascending: false });
+      if (error) {
+        if (error.code === "42P01") return []; // tabla no existe aún
+        throw error;
+      }
+      return data || [];
+    },
+  });
+}
+
+export function useCreateInfantilAtencion() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (payload: {
+      nino_id: string;
+      tipo_solicitud: string;
+      prioridad?: string;
+      observaciones?: string;
+      sintomas?: string;
+      temperatura?: number | null;
+      necesita_acudiente?: boolean;
+      maestro_id?: string | null;
+    }) => {
+      const { data, error } = await supabase.from("infantil_atenciones").insert({
+        nino_id: payload.nino_id,
+        tipo_solicitud: payload.tipo_solicitud as any,
+        prioridad: payload.prioridad || "Normal",
+        observaciones: payload.observaciones || null,
+        sintomas: payload.sintomas || null,
+        temperatura: payload.temperatura || null,
+        necesita_acudiente: payload.necesita_acudiente ?? false,
+        maestro_id: payload.maestro_id || null,
+        estado: "Pendiente"
+      }).select().single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["infantil_atenciones"] }),
+  });
+}
+
+export function useUpdateInfantilAtencion() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, ...updates }: { id: string; [key: string]: any }) => {
+      const { data, error } = await supabase.from("infantil_atenciones").update(updates).eq("id", id).select().single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["infantil_atenciones"] }),
+  });
+}
+
