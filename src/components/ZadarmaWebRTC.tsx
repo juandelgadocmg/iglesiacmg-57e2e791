@@ -21,8 +21,8 @@ export const ZadarmaWebRTC: React.FC<ZadarmaWebRTCProps> = ({ sipExtension }) =>
   useEffect(() => {
     let active = true;
     const init = async () => {
-      // Priorizar extensión 301311 (CMG) o la asignada
-      const targetSip = sipExtension && sipExtension !== 'default' ? sipExtension : '301311';
+      // Priorizar extensión PBX 337021-100 de CMG o la asignada
+      const targetSip = sipExtension && sipExtension.includes('-') ? sipExtension : '337021-100';
       const success = await initZadarmaWebPhone(targetSip);
       if (active) {
         setIsConnected(success);

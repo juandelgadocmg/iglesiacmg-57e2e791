@@ -3,7 +3,7 @@ import { createPortal } from "react-dom";
 import { Phone, PhoneCall, PhoneOff, MessageCircle, Delete, X, ChevronDown, CheckCircle2, User, Volume2, Sparkles, Copy, Check, Settings, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { initZadarmaWebPhone } from "@/services/zadarmaService";
+import { initZadarmaWebPhone, callViaZadarma } from "@/services/zadarmaService";
 
 interface DoxaWebPhoneProps {
   sipExtension?: string;
@@ -148,6 +148,11 @@ export const DoxaWebPhone: React.FC<DoxaWebPhoneProps> = ({
     setTimeout(() => setCopied(false), 2000);
   };
 
+  useEffect(() => {
+    // Pre-inicializar Zadarma WebPhone en segundo plano
+    initZadarmaWebPhone(sipExtension || "337021-100").catch(() => {});
+  }, [sipExtension]);
+
   const handleStartCall = async () => {
     const clean = phoneNumber.replace(/\D/g, "");
     if (!clean || clean.length < 7) {
@@ -155,42 +160,42 @@ export const DoxaWebPhone: React.FC<DoxaWebPhoneProps> = ({
       return;
     }
 
-    const w = window as any;
-    // 1. Intentar con Zadarma WebRTC si está cargado
-    if (w.zdrmWebPhone && typeof w.zdrmWebPhone.call === "function") {
-      try {
-        w.zdrmWebPhone.call(clean);
-        setIsCalling(true);
-        toast.success(`Llamando a ${matchedDiscipulo?.full_name || clean} por Zadarma (+57 601 9179246)...`);
-        return;
-      } catch (err) {
-        console.warn("Zadarma call error:", err);
-      }
-    }
+    toast.loading("Conectando con Zadarma VoIP...", { id: "zdrm-call" });
 
-    // Si aún no está listo, inicializar al vuelo
-    try {
-      toast.info("Conectando con Zadarma VoIP...");
-      const ok = await initZadarmaWebPhone(sipExtension || "301311");
-      if (ok) {
-        // Breve pausa para que se registre el objeto global
+    // 1. Intentar llamar por Zadarma si ya está listo
+    let ok = callViaZadarma(clean);
+
+    // 2. Si no, inicializar y reintentar
+    if (!ok) {
+      const initSuccess = await initZadarmaWebPhone(sipExtension || "337021-100");
+      if (initSuccess) {
         await new Promise((r) => setTimeout(r, 600));
-        if (w.zdrmWebPhone && typeof w.zdrmWebPhone.call === "function") {
-          w.zdrmWebPhone.call(clean);
-          setIsCalling(true);
-          toast.success(`Llamando a ${matchedDiscipulo?.full_name || clean} por Zadarma (+57 601 9179246)...`);
-          return;
-        }
+        ok = callViaZadarma(clean);
       }
-    } catch (e) {
-      console.warn("Error inicializando Zadarma al llamar:", e);
     }
 
-    // 2. Si WebRTC no está disponible en este dispositivo, ofrecer marcado telefónico
-    toast.info(`Marcando a ${matchedDiscipulo?.full_name || clean}...`, {
-      description: "Abriendo la aplicación telefónica de tu dispositivo.",
-    });
+    if (ok) {
+      setIsCalling(true);
+      toast.success(`Llamando a ${matchedDiscipulo?.full_name || clean} por Zadarma (+57 601 9179246)...`, {
+        id: "zdrm-call",
+      });
+      return;
+    }
 
+    // 3. Si WebRTC no conectó, informar claramente sin abrir FaceTime
+    toast.error("No se pudo iniciar el audio WebRTC de Zadarma.", {
+      id: "zdrm-call",
+      description: "Verifica permisos de micrófono en el navegador o usa WhatsApp.",
+    });
+  };
+
+  const handleNativeCall = () => {
+    const clean = phoneNumber.replace(/\D/g, "");
+    if (!clean || clean.length < 7) {
+      toast.error("Ingresa un número telefónico válido");
+      return;
+    }
+    toast.info(`Abriendo marcador del dispositivo para ${clean}...`);
     const link = document.createElement("a");
     link.href = `tel:${clean}`;
     link.rel = "noopener noreferrer";
@@ -498,6 +503,16 @@ export const DoxaWebPhone: React.FC<DoxaWebPhoneProps> = ({
                 >
                   <MessageCircle className="w-5 h-5 text-emerald-400" />
                   <span>WhatsApp</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleNativeCall}
+                  disabled={!phoneNumber}
+                  className="h-12 w-11 bg-slate-850 hover:bg-slate-800 disabled:opacity-40 text-slate-400 hover:text-white border border-slate-750 rounded-2xl flex items-center justify-center transition-all active:scale-95 shrink-0"
+                  title="Marcar con la app de teléfono / celular de tu dispositivo"
+                >
+                  <Phone className="w-4 h-4" />
                 </button>
               </div>
             ) : (
