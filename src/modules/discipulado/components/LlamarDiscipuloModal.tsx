@@ -38,17 +38,12 @@ export function LlamarDiscipuloModal({
   const waPhone = cleanPhone.length === 10 ? `57${cleanPhone}` : cleanPhone;
 
   const handleLlamarNativo = () => {
-    const w = window as any;
-    // Si Zadarma está cargado y listo, llamar por Zadarma
-    if (w.zdrmWebPhone && typeof w.zdrmWebPhone.call === "function") {
-      w.zdrmWebPhone.call(cleanPhone);
-      toast.success(`Llamando a ${discipulo.full_name} por Zadarma...`);
-      return;
-    }
-
-    // Marcado directo por app de teléfono / FaceTime / cel
-    toast.info(`Marcando a ${discipulo.full_name} (${cleanPhone})...`);
-    window.location.href = `tel:${cleanPhone}`;
+    onOpenChange(false);
+    window.dispatchEvent(
+      new CustomEvent("doxa-call-number", {
+        detail: { discipulo, phone: cleanPhone },
+      })
+    );
   };
 
   const handleWhatsApp = () => {

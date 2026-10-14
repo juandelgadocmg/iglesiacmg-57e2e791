@@ -1,48 +1,21 @@
-import React, { useEffect, useState } from 'react';
-import { initZadarmaWebPhone } from '@/services/zadarmaService';
+import React, { useEffect } from 'react';
+import { initZadarmaEngine } from '@/services/zadarmaService';
 
 interface ZadarmaWebRTCProps {
-  sipExtension: string;
+  sipExtension?: string;
 }
 
-declare global {
-  interface Window {
-    ZadarmaWidget: any;
-    zadarmaWidgetInstance: any;
-    zadarmaWidgetFn: any;
-    zdrmWebPhone: any;
-    zdrmWPhI: any;
-  }
-}
-
+/**
+ * Componente silencioso que pre-conecta el cliente WebRTC de Zadarma en segundo plano
+ * sin inyectar widgets externos ni solicitar apps móviles.
+ */
 export const ZadarmaWebRTC: React.FC<ZadarmaWebRTCProps> = ({ sipExtension }) => {
-  const [, setIsConnected] = useState(false);
-
   useEffect(() => {
-    let active = true;
-    const init = async () => {
-      // Priorizar extensión PBX 337021-100 de CMG o la asignada
-      const targetSip = sipExtension && sipExtension.includes('-') ? sipExtension : '337021-100';
-      const success = await initZadarmaWebPhone(targetSip);
-      if (active) {
-        setIsConnected(success);
-      }
-    };
-
-    init();
-
-    return () => {
-      active = false;
-    };
+    const targetSip = sipExtension && sipExtension.includes('-') ? sipExtension : '337021-100';
+    initZadarmaEngine(targetSip).catch((err) => {
+      console.warn("Pre-conexión WebRTC silenciosa:", err);
+    });
   }, [sipExtension]);
 
-  return (
-    <style>
-      {`
-        #zdrm-webphone, .zdrm-phone, .zdrm-webphone-media-box {
-          z-index: 9999999 !important;
-        }
-      `}
-    </style>
-  );
+  return null;
 };
