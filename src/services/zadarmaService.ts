@@ -102,7 +102,7 @@ export async function callZadarmaViaProxy(
  */
 export async function getZadarmaWebRTCKey(sip = ZADARMA_CONFIG.PRIMARY_SIP): Promise<string> {
   const targetSip = ZADARMA_CONFIG.PRIMARY_SIP;
-  const cacheKey = `zadarma_webrtc_cache_v3_${targetSip}`;
+  const cacheKey = `zadarma_webrtc_cache_v4_${targetSip}`;
 
   // 1. Revisar caché local (máximo 12h para asegurar frescura)
   try {
@@ -134,61 +134,65 @@ export async function getZadarmaWebRTCKey(sip = ZADARMA_CONFIG.PRIMARY_SIP): Pro
 
 /**
  * Obtiene credenciales SIP efímeras y frescas para cada llamada WebRTC
- * IMPORTANTE: get_webphone_data.php debe ser consultado directamente por el navegador
- * del usuario para que el servidor SIP de Zadarma asocie la IP del cliente a la sesión.
+ * IMPORTANTE: Zadarma exige que esta consulta se haga por JSONP desde el navegador del usuario
+ * para vincular la IP del cliente a la contraseña SIP en Asterisk.
  */
 export async function getZadarmaSIPCredentials(sip = ZADARMA_CONFIG.PRIMARY_SIP): Promise<ZadarmaSIPCredentials> {
   const targetSip = ZADARMA_CONFIG.PRIMARY_SIP;
   const webrtcKey = await getZadarmaWebRTCKey(targetSip);
 
-  const targetUrl = `https://api.zadarma.com/sys/webrtc/get_webphone_data.php?integrationType=site&key=${encodeURIComponent(
-    webrtcKey
-  )}&sipId=${encodeURIComponent(targetSip)}`;
+  return new Promise<ZadarmaSIPCredentials>((resolve, reject) => {
+    const callbackName = `zdrm_jsonp_${Date.now()}_${Math.floor(Math.random() * 100000)}`;
+    const script = document.createElement("script");
 
-  let text = "";
-  try {
-    // 1. Fetch directo desde el navegador (Zadarma soporta Access-Control-Allow-Origin: *)
-    // Esto garantiza que la IP del usuario coincida con la conexión WebSocket a Asterisk
-    const resp = await fetch(targetUrl);
-    if (!resp.ok) {
-      throw new Error(`HTTP ${resp.status}`);
-    }
-    text = await resp.text();
-  } catch (directErr) {
-    console.warn("DOXA: Fetch directo a get_webphone_data falló, usando proxy Supabase:", directErr);
-    const { data, error } = await supabase.rpc("http", {
-      request: {
-        method: "GET",
-        uri: targetUrl,
-        headers: [],
-        content_type: "application/json",
-        content: null,
-      },
-    });
+    const cleanup = () => {
+      try {
+        delete (window as any)[callbackName];
+      } catch {}
+      if (script.parentNode) {
+        script.parentNode.removeChild(script);
+      }
+      clearTimeout(timer);
+    };
 
-    if (error) {
-      throw new Error(`Error al consultar gateway SIP: ${error.message}`);
-    }
-    text = data?.content || "";
-  }
+    (window as any)[callbackName] = (response: any) => {
+      cleanup();
+      if (!response) {
+        reject(new Error("Respuesta vacía del servidor telefónico de Zadarma"));
+        return;
+      }
+      if (response.error) {
+        reject(new Error(response.error.content || "Error en credenciales Zadarma"));
+        return;
+      }
+      if (!response.pass) {
+        reject(new Error("Zadarma no devolvió contraseña SIP válida"));
+        return;
+      }
+      resolve({
+        username: response.username || targetSip,
+        pass: response.pass,
+        domain: response.domain || "sipny1.zadarma.com",
+        datacenter: response.datacenter || "ny",
+      });
+    };
 
-  const start = text.indexOf("{");
-  const end = text.lastIndexOf("}");
-  if (start === -1 || end === -1) {
-    throw new Error(`Respuesta inválida al consultar gateway SIP Zadarma: ${text}`);
-  }
+    script.src = `https://api.zadarma.com/sys/webrtc/get_webphone_data.php?integrationType=site&jsonpCallback=${callbackName}&key=${encodeURIComponent(
+      webrtcKey
+    )}&sipId=${encodeURIComponent(targetSip)}`;
 
-  const json = JSON.parse(text.slice(start, end + 1));
-  if (json.error) {
-    throw new Error(`Error de gateway Zadarma: ${JSON.stringify(json.error)}`);
-  }
+    script.onerror = () => {
+      cleanup();
+      reject(new Error("No se pudo cargar el gateway telefónico de Zadarma"));
+    };
 
-  return {
-    username: json.username || targetSip,
-    pass: json.pass,
-    domain: json.domain || "sipny1.zadarma.com",
-    datacenter: json.datacenter || "ny",
-  };
+    const timer = setTimeout(() => {
+      cleanup();
+      reject(new Error("Tiempo de espera agotado al obtener credenciales SIP de Zadarma"));
+    }, 10000);
+
+    document.head.appendChild(script);
+  });
 }
 
 /**
@@ -351,17 +355,16 @@ export async function startBrowserCall(
   const socketUrl = `wss://${creds.domain}:4443`;
   const socket = new w.JsSIP.WebSocketInterface(socketUrl);
 
-  w.JsSIP.C.USER_AGENT = "Zadarma webRTC";
+  w.JsSIP.C.USER_AGENT = "Zadarma CallmeButton Widget";
 
   const configuration = {
     sockets: [socket],
     uri: `sip:${creds.username}@${creds.domain}`,
     password: creds.pass,
     authorization_user: creds.username,
-    realm: "sip.zadarma.com",
     display_name: creds.username,
     register: true,
-    register_expires: 300,
+    register_expires: 580,
     session_timers: false,
     connection_recovery_min_interval: 2,
     connection_recovery_max_interval: 30,
