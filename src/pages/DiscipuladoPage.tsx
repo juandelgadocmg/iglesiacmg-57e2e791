@@ -63,7 +63,9 @@ export default function DiscipuladoPage() {
   const [activeStatList, setActiveStatList] = useState<{title: string, list: any[]} | null>(null);
   
   // Zadarma WebRTC configuration
-  const [zadarmaExtension, setZadarmaExtension] = useState<string>('');
+  const [zadarmaExtension, setZadarmaExtension] = useState<string>(() => {
+    return localStorage.getItem('zadarma_extension') || '';
+  });
 
   const loadData = async () => {
     if (!session?.user?.id) return;
@@ -74,9 +76,13 @@ export default function DiscipuladoPage() {
     });
       
     if (allocatedExtension) {
-      setZadarmaExtension(allocatedExtension as string);
+      const extStr = allocatedExtension as string;
+      setZadarmaExtension(extStr);
+      localStorage.setItem('zadarma_extension', extStr);
     } else {
       console.warn("No available Zadarma extensions in the pool.");
+      const fallbackExt = localStorage.getItem('zadarma_extension') || '337021-100';
+      setZadarmaExtension(fallbackExt);
     }
 
     // 2. Get Lider record by ID
@@ -219,7 +225,7 @@ export default function DiscipuladoPage() {
   }, [session, activeRole]);
 
   // Derived Stats
-  // handleCallClick modificado para usar la API real de Zadarma v9 (zdrmWebPhone)
+  // handleCallClick para usar la API real de Zadarma v9 (zdrmWebPhone) con fallback a tel:
   const handleCallClick = (e: React.MouseEvent<HTMLAnchorElement>, telefono: string) => {
     e.preventDefault();
     const cleanPhone = telefono.replace(/\D/g, '');
@@ -229,20 +235,22 @@ export default function DiscipuladoPage() {
     if (w.zdrmWebPhone) {
       if (typeof w.zdrmWebPhone.call === 'function') {
         w.zdrmWebPhone.call(cleanPhone);
+        return;
       } else if (typeof w.zdrmWebPhone.callTo === 'function') {
         w.zdrmWebPhone.callTo(cleanPhone);
+        return;
       }
     } else if (w.zdrmWPhI && w.zdrmWPhI.setCallingNumber) {
       // Fallback interno si el objeto de interfaz está disponible
       w.zdrmWPhI.setCallingNumber(cleanPhone);
-      // Intentar abrir el widget simulando click
       const widgetBtn = document.querySelector('.zdrm-webphone-button') as HTMLElement;
       if (widgetBtn) widgetBtn.click();
-    } else {
-      console.error("No se encontró la API de Zadarma (zdrmWebPhone)");
-      alert("El teclado virtual aún no está listo. Por favor, asegúrate de que el widget verde telefónico haya cargado en la esquina inferior derecha.");
-      alert("El teclado virtual aún no está listo. Por favor, asegúrate de que el widget verde telefónico haya cargado en la esquina inferior derecha.");
+      return;
     }
+    
+    // Si el widget no ha cargado o está en móvil, fallback nativo a tel:
+    toast.info(`Marcando ${cleanPhone}...`);
+    window.location.href = `tel:${cleanPhone}`;
   };
 
   const handleDeleteDiscipulo = async (id: string, name: string) => {
@@ -397,20 +405,35 @@ export default function DiscipuladoPage() {
         </div>
 
         {/* Zadarma Extension Config (Auto) */}
-        {activeRole?.startsWith('lider') && (
-          <div className="bg-white p-3 rounded-lg border border-slate-200 shadow-sm flex items-center gap-3">
-            <PhoneCall className="w-4 h-4 text-slate-500" />
-            <div className="flex-1">
+        <div className="bg-white p-3 rounded-lg border border-slate-200 shadow-sm flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3 flex-1 min-w-0">
+            <div className="w-8 h-8 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+              <PhoneCall className="w-4 h-4" />
+            </div>
+            <div className="flex-1 min-w-0">
               <label className="text-xs font-bold text-slate-700 block">Tu Extensión Zadarma (Asignada Automáticamente)</label>
               {zadarmaExtension ? (
-                <p className="text-sm font-medium text-green-700">{zadarmaExtension}</p>
+                <div className="flex items-center gap-2">
+                  <p className="text-sm font-medium text-green-700 truncate">{zadarmaExtension}</p>
+                  <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-green-100 text-green-800">
+                    Activa
+                  </span>
+                </div>
               ) : (
-                <p className="text-sm text-red-500">Buscando extensión libre...</p>
+                <p className="text-sm text-amber-600 font-medium">Buscando extensión libre...</p>
               )}
             </div>
-            {zadarmaExtension && <ZadarmaWebRTC sipExtension={zadarmaExtension} />}
           </div>
-        )}
+          <button
+            type="button"
+            onClick={() => {
+              window.dispatchEvent(new CustomEvent('open-zadarma-settings'));
+            }}
+            className="text-xs text-blue-600 hover:text-blue-800 font-semibold px-2.5 py-1.5 rounded-lg border border-blue-200 bg-blue-50 hover:bg-blue-100 transition-colors shrink-0"
+          >
+            Ajustes Teléfono
+          </button>
+        </div>
       </div>
 
       <div className="p-4 max-w-3xl mx-auto space-y-8 mt-2">
@@ -689,6 +712,7 @@ export default function DiscipuladoPage() {
         discipulos={activeStatList?.list || []}
       />
 
+      {zadarmaExtension && <ZadarmaWebRTC sipExtension={zadarmaExtension} />}
     </div>
   );
 }
