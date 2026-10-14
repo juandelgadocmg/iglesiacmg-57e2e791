@@ -14,10 +14,10 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import {
-  LayoutDashboard, Users, UsersRound, Church,
+  LayoutDashboard, Users, UsersRound, Church, Home,
   DollarSign, CalendarDays, GraduationCap, BookMarked,
   Award, BarChart3, Settings, UserCog, ChevronLeft, ChevronRight,
-  LogOut, HandHeart, LifeBuoy, Mail, ShieldCheck, Cake, Bell, Activity
+  LogOut, HandHeart, LifeBuoy, Mail, ShieldCheck, Cake, Bell, Activity, UserCheck, CheckCircle2, Route
 } from "lucide-react";
 
 type MenuItem = { label: string; icon: any; path: string; section: string };
@@ -27,10 +27,12 @@ const menuItems: MenuItem[] = [
   { label: "Alertas", icon: Bell, path: "/alertas", section: "Principal" },
   { label: "Actividad", icon: Activity, path: "/actividad", section: "Principal" },
   { label: "Personas", icon: Users, path: "/personas", section: "Comunidad" },
+  { label: "Casas de Paz", icon: Home, path: "/casas-de-paz", section: "Comunidad" },
   { label: "Cumpleaños", icon: Cake, path: "/cumpleanos", section: "Comunidad" },
   { label: "Grupos", icon: UsersRound, path: "/grupos", section: "Comunidad" },
   { label: "Reuniones", icon: Church, path: "/servicios", section: "Comunidad" },
-  { label: "Eventos", icon: CalendarDays, path: "/eventos", section: "Comunidad" },
+  { label: "Afirmación", icon: CheckCircle2, path: "/afirmacion", section: "Formación" },
+  { label: "Discipulado", icon: Route, path: "/discipulado", section: "Formación" },
   { label: "Academia", icon: GraduationCap, path: "/academia", section: "Formación" },
   { label: "Seminario", icon: BookMarked, path: "/seminario", section: "Formación" },
   { label: "Certificados", icon: Award, path: "/certificados", section: "Formación" },

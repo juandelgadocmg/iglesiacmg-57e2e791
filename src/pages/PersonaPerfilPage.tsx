@@ -31,7 +31,8 @@ import PersonaFormDialog from "@/components/forms/PersonaFormDialog";
 import PersonaActivityTimeline, { type TimelineEvent } from "@/components/persona/PersonaActivityTimeline";
 import { SeguimientoTab, MinisteriosTab, ProximasReunionesTab, NotasTab, ArchivosTab } from "@/components/persona/PersonaExtraTabs";
 import PersonaHistorialTab from "@/components/persona/PersonaHistorialTab";
-import { History } from "lucide-react";
+import { RegistrarLlamadaConsolidacionDialog } from "@/components/persona/RegistrarLlamadaConsolidacionDialog";
+import { History, PhoneCall } from "lucide-react";
 import {
   ArrowLeft, Phone, Mail, MapPin, Calendar, Church, Users, Briefcase,
   Heart, BookOpen, CheckCircle2, XCircle, Clock, User, FileText,
@@ -51,6 +52,9 @@ import { cn } from "@/lib/utils";
 import { useUrlParam } from "@/hooks/useUrlParam";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { QRCodeSVG } from "qrcode.react";
+import { TallerNeumatologiaAulaTab } from "@/components/seminario/TallerNeumatologiaAulaTab";
+import { useMisOfertas } from "@/hooks/useSeminarioStudent";
+import { VoiceDictationButton } from "@/components/shared/VoiceDictationButton";
 
 const tipoColor: Record<string, string> = {
   Miembro: "bg-primary/15 text-primary border-primary/30",
@@ -73,6 +77,42 @@ export default function PersonaPerfilPage() {
   const { data: peticionesP } = usePersonaPeticiones(id);
   const { data: consejeriasP } = usePersonaConsejerias(id);
   const { data: todasPersonas } = usePersonas();
+  const { data: misOfertas = [] } = useMisOfertas(id);
+
+  // Check if this persona is enrolled in Seminario and taking Neumatología (NEU-101)
+  const estaViendoNeumatologia = useMemo(() => {
+    if (!persona) return false;
+
+    // 1. Check if persona has an active enrollment in Neumatología in sem_inscripcion_materias
+    const tieneMateriaNeumatologia = misOfertas.some((o: any) => {
+      const matNombre = String(o.sem_materias?.nombre || "").toLowerCase();
+      const matCodigo = String(o.sem_materias?.codigo || "").toLowerCase();
+      return matNombre.includes("neumatolog") || matCodigo.includes("neu-101") || matCodigo.includes("neu");
+    });
+
+    if (tieneMateriaNeumatologia) return true;
+
+    // 2. Check if persona processes or roles explicitly mention Neumatología
+    const tipos = [persona.tipo_persona, ...(Array.isArray(persona.tipos_persona) ? persona.tipos_persona : [])].filter(Boolean);
+    const esEstudianteSeminario = tipos.some(t => String(t).toLowerCase().includes("estudiante seminario") || String(t).toLowerCase().includes("seminario"));
+
+    const tieneProcesoNeumatologia = Array.isArray(personaProcesos) && personaProcesos.some((pp: any) => {
+      const procName = String(pp.procesos_crecimiento?.nombre || pp.proceso_nombre || (pp as any).nombre || "").toLowerCase();
+      return procName.includes("neumatolog");
+    });
+
+    if (esEstudianteSeminario && tieneProcesoNeumatologia) return true;
+
+    return false;
+  }, [persona, misOfertas, personaProcesos]);
+
+  // Check if persona is a child (Niño)
+  const esNino = useMemo(() => {
+    if (!persona) return false;
+    const tipos = [persona.tipo_persona, ...(Array.isArray(persona.tipos_persona) ? persona.tipos_persona : [])].filter(Boolean);
+    return tipos.some(t => String(t).toLowerCase() === "niño" || String(t).toLowerCase() === "infantil");
+  }, [persona]);
+
   const createRelacion = useCreateRelacion();
   const deleteRelacion = useDeleteRelacion();
   const updateProceso = useUpdateProceso();
@@ -97,6 +137,7 @@ export default function PersonaPerfilPage() {
   const [exportPreview, setExportPreview] = useState<null | "pdf" | "csv">(null);
   const [qrCheckinOpen, setQrCheckinOpen] = useState(false);
   const [qrCheckinServicio, setQrCheckinServicio] = useState<string>("");
+  const [openLlamadaModal, setOpenLlamadaModal] = useState(false);
   const [activeTab, setActiveTab] = useUrlParam("tab", "resumen");
   const { data: servicios } = useServicios();
   const upsertAsistencia = useUpsertAsistencia();
@@ -151,7 +192,10 @@ export default function PersonaPerfilPage() {
     [personaProcesos]
   );
 
-  const completedCount = personaProcesos?.filter((pp) => pp.estado === "Realizado").length || 0;
+  const completedCount = (personaProcesos || []).filter((pp) => {
+    const st = pp.estado?.toLowerCase()?.trim();
+    return st === "realizado" || st === "finalizado" || st === "completado";
+  }).length;
   const totalProcesos = procesos?.length || 0;
   const progressPercent = totalProcesos > 0 ? Math.round((completedCount / totalProcesos) * 100) : 0;
 
@@ -319,19 +363,48 @@ export default function PersonaPerfilPage() {
     setProcesoObservacion((pp as any)?.observacion || "");
     setProcesoDialog({ procesoId, nombre });
   };
+
   const handleSaveProceso = () => {
     if (!procesoDialog || !persona) return;
     updateProceso.mutate(
-      { personaId: persona.id, procesoId: procesoDialog.procesoId, estado: procesoEstado,
-        fecha_completado: procesoFecha ? format(procesoFecha, "yyyy-MM-dd") : null, observacion: procesoObservacion || null },
-      { onSuccess: () => { toast.success("Proceso actualizado"); setProcesoDialog(null); }, onError: () => toast.error("Error al actualizar") }
+      {
+        personaId: persona.id,
+        procesoId: procesoDialog.procesoId,
+        estado: procesoEstado,
+        fecha_completado: procesoFecha ? format(procesoFecha, "yyyy-MM-dd") : null,
+        observacion: procesoObservacion,
+      },
+      {
+        onSuccess: () => {
+          toast.success("Información del hito guardada");
+          setProcesoDialog(null);
+        },
+        onError: (err: any) => toast.error("Error al actualizar hito", { description: err?.message }),
+      }
     );
   };
+
   const handleToggleEstado = (procesoId: string, currentEstado: string) => {
-    const next = currentEstado === "No Realizado" ? "En Curso" : currentEstado === "En Curso" ? "Realizado" : "No Realizado";
+    const pp = procesosMap.get(procesoId);
+    const norm = (currentEstado || "").toLowerCase().trim();
+    let next = "En Curso";
+    if (norm === "en curso") {
+      next = "Realizado";
+    } else if (norm === "realizado" || norm === "finalizado" || norm === "completado") {
+      next = "No Realizado";
+    } else {
+      next = "En Curso";
+    }
+
     updateProceso.mutate(
-      { personaId: persona.id, procesoId, estado: next, fecha_completado: next === "Realizado" ? format(new Date(), "yyyy-MM-dd") : null },
-      { onError: () => toast.error("Error al actualizar") }
+      {
+        personaId: persona.id,
+        procesoId,
+        estado: next,
+        fecha_completado: next === "Realizado" ? (pp?.fecha_completado || format(new Date(), "yyyy-MM-dd")) : (pp?.fecha_completado ?? null),
+        observacion: pp?.observacion ?? undefined,
+      },
+      { onError: (err: any) => toast.error("Error al actualizar estado", { description: err?.message }) }
     );
   };
 
@@ -428,7 +501,10 @@ export default function PersonaPerfilPage() {
 
             {/* Actions */}
             <div className="flex flex-wrap gap-2 md:pb-3">
-              <Button size="sm" className="gap-1.5 rounded-full shadow-sm" onClick={openRegistrarAsistencia}>
+              <Button size="sm" className="gap-1.5 rounded-full shadow-sm" onClick={() => setOpenLlamadaModal(true)}>
+                <PhoneCall className="h-4 w-4" /> Registrar llamada
+              </Button>
+              <Button size="sm" variant="outline" className="gap-1.5 rounded-full shadow-sm" onClick={openRegistrarAsistencia}>
                 <ClipboardCheck className="h-4 w-4" /> Registrar asistencia
               </Button>
               <Button size="sm" variant="outline" className="gap-1.5 rounded-full" onClick={() => setEditing(true)}>
@@ -442,6 +518,7 @@ export default function PersonaPerfilPage() {
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-56">
                   <DropdownMenuLabel>Acciones rápidas</DropdownMenuLabel>
+                  <DropdownMenuItem onClick={() => setOpenLlamadaModal(true)}><PhoneCall className="h-4 w-4 mr-2" /> Registrar llamada consolidación</DropdownMenuItem>
                   <DropdownMenuItem onClick={generarCertificado}><Award className="h-4 w-4 mr-2" /> Generar certificado</DropdownMenuItem>
                   <DropdownMenuItem onClick={openRegistrarAsistencia}><ClipboardCheck className="h-4 w-4 mr-2" /> Registrar asistencia</DropdownMenuItem>
                   <DropdownMenuSeparator />
@@ -488,6 +565,7 @@ export default function PersonaPerfilPage() {
           <TabsList className="h-auto p-0 bg-transparent gap-1 overflow-x-auto flex-nowrap w-full justify-start rounded-none">
             {[
               { v: "resumen", label: "Indicadores", icon: User },
+              ...(estaViendoNeumatologia ? [{ v: "seminario", label: "Seminario & Talleres", icon: GraduationCap }] : []),
               { v: "actividad", label: "Timeline", icon: Activity },
               { v: "seguimiento", label: "Seguimiento", icon: Target },
               { v: "discipulado", label: "Discipulado", icon: Route },
@@ -500,6 +578,7 @@ export default function PersonaPerfilPage() {
               { v: "finanzas", label: "Finanzas", icon: Wallet },
               { v: "certificados", label: "Certificados", icon: Award },
               { v: "qr", label: "QR", icon: QrCode },
+              ...(esNino ? [{ v: "atencion-infantil", label: "Atención Infantil", icon: Baby }] : []),
               { v: "historial", label: "Historial", icon: History },
             ].map(t => (
               <TabsTrigger
@@ -512,6 +591,34 @@ export default function PersonaPerfilPage() {
             ))}
           </TabsList>
         </div>
+
+        {/* TAB · SEMINARIO Y TALLERES (Solo visible para estudiantes de Neumatología) */}
+        {estaViendoNeumatologia && (
+          <TabsContent value="seminario" className="mt-0 space-y-4">
+            <TallerNeumatologiaAulaTab materiaNombre="Neumatología" materiaCodigo="NEU-101" embeddedInCourse={false} />
+          </TabsContent>
+        )}
+
+        {/* TAB · ATENCIÓN INFANTIL */}
+        {esNino && (
+          <TabsContent value="atencion-infantil" className="mt-0 space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Baby className="w-5 h-5 text-primary" />
+                  Historial de Atención y Solicitudes
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-center py-12 text-muted-foreground border-2 border-dashed rounded-xl">
+                  <Heart className="w-12 h-12 mx-auto mb-3 opacity-20" />
+                  <p>No hay registros de atención para este niño.</p>
+                  <p className="text-sm mt-1">Las atenciones registradas durante los servicios aparecerán aquí.</p>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        )}
 
         {/* ======================================================
              TAB · RESUMEN — Dashboard ejecutivo (bento + sidebar)
@@ -650,6 +757,7 @@ export default function PersonaPerfilPage() {
               <SideRow label="Vinculación" value={persona.vinculacion || "—"} />
               <SideRow label="Ministerio" value={persona.ministerio || "—"} />
               <SideRow label="Líder" value={persona.lider_responsable || "—"} />
+              <SideRow label="Consolidador" value={persona.seguimiento_por || "—"} />
               <SideRow label="Invitado por" value={persona.invitado_por || "—"} />
               <SideRow label="Ingreso" value={persona.fecha_ingreso ? format(parseISO(persona.fecha_ingreso), "dd MMM yyyy", { locale: es }) : "—"} />
               <SideRow label="Conversión" value={persona.fecha_conversion ? format(parseISO(persona.fecha_conversion), "dd MMM yyyy", { locale: es }) : "—"} />
@@ -684,9 +792,18 @@ export default function PersonaPerfilPage() {
             totalProcesos={totalProcesos}
             onToggle={handleToggleEstado}
             onOpenDetail={openProcesoDialog}
-            onSetDate={(procesoId, date, estado, obs) =>
-              updateProceso.mutate({ personaId: persona.id, procesoId, estado: estado === "No Realizado" ? "En Curso" : estado, fecha_completado: format(date, "yyyy-MM-dd"), observacion: obs || null })
-            }
+            onSetDate={(procesoId, date, estado, obs) => {
+              const pp = procesosMap.get(procesoId);
+              const norm = (estado || "").toLowerCase().trim();
+              const nextEstado = norm === "no realizado" ? "En Curso" : estado;
+              updateProceso.mutate({
+                personaId: persona.id,
+                procesoId,
+                estado: nextEstado,
+                fecha_completado: format(date, "yyyy-MM-dd"),
+                observacion: obs !== null && obs !== undefined ? obs : (pp?.observacion ?? undefined),
+              });
+            }}
           />
         </TabsContent>
 
@@ -851,16 +968,112 @@ export default function PersonaPerfilPage() {
 
 
       {/* ============ DIALOGS ============ */}
+      {/* ============ DIALOG · DETALLE Y EDICIÓN DE HITO / PASO ============ */}
       <Dialog open={!!procesoDialog} onOpenChange={(o) => !o && setProcesoDialog(null)}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2"><FileText className="h-4 w-4" /> Detalle del Proceso</DialogTitle>
-            <p className="text-sm text-muted-foreground">{procesoDialog?.nombre}</p>
+            <DialogTitle className="flex items-center gap-2 text-primary">
+              <FileText className="h-5 w-5" /> Detalle del Hito de Crecimiento
+            </DialogTitle>
+            <p className="text-base font-semibold text-foreground">{procesoDialog?.nombre}</p>
+            <p className="text-xs text-muted-foreground">
+              Guarda información, notas y el estado de este paso. Toda la información se conservará sin perderse entre etapas.
+            </p>
           </DialogHeader>
-          <Textarea placeholder="Información adicional del proceso" value={procesoObservacion} onChange={(e) => setProcesoObservacion(e.target.value)} rows={6} />
+
+          <div className="space-y-4 py-2">
+            {/* Estado Selector */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-foreground flex items-center gap-1">
+                <Activity className="h-3.5 w-3.5 text-primary" /> Estado del hito
+              </label>
+              <Select value={procesoEstado} onValueChange={setProcesoEstado}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Seleccionar estado" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="No Realizado">
+                    <span className="flex items-center gap-2">
+                      <span className="w-2.5 h-2.5 rounded-full bg-muted border border-border" />
+                      Inicial / Pendiente
+                    </span>
+                  </SelectItem>
+                  <SelectItem value="En Curso">
+                    <span className="flex items-center gap-2">
+                      <span className="w-2.5 h-2.5 rounded-full bg-primary" />
+                      En curso
+                    </span>
+                  </SelectItem>
+                  <SelectItem value="Realizado">
+                    <span className="flex items-center gap-2">
+                      <span className="w-2.5 h-2.5 rounded-full bg-success" />
+                      Finalizado
+                    </span>
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Fecha Selector */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-foreground flex items-center gap-1">
+                <Calendar className="h-3.5 w-3.5 text-primary" /> Fecha del paso / completado
+              </label>
+              <div className="flex items-center gap-2">
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className="w-full justify-start text-left font-normal h-10">
+                      <Calendar className="mr-2 h-4 w-4 text-muted-foreground" />
+                      {procesoFecha ? format(procesoFecha, "dd 'de' MMMM, yyyy", { locale: es }) : <span className="text-muted-foreground">Sin fecha registrada</span>}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <CalendarComponent
+                      mode="single"
+                      selected={procesoFecha}
+                      onSelect={setProcesoFecha}
+                      locale={es}
+                    />
+                  </PopoverContent>
+                </Popover>
+                {procesoFecha && (
+                  <Button variant="ghost" size="sm" onClick={() => setProcesoFecha(undefined)} title="Quitar fecha">
+                    Limpiar
+                  </Button>
+                )}
+              </div>
+            </div>
+
+            {/* Observaciones / Información */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between gap-2 flex-wrap">
+                <label className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                  <MessageSquare className="h-4 w-4 text-primary" /> Información y notas ingresadas
+                </label>
+                <VoiceDictationButton
+                  onTranscript={(text) =>
+                    setProcesoObservacion((prev) => (prev ? prev + " " + text : text))
+                  }
+                />
+              </div>
+              <Textarea
+                placeholder="Escribe aquí la información o pulsa 'Dictar por voz' para grabar con tu micrófono..."
+                value={procesoObservacion}
+                onChange={(e) => setProcesoObservacion(e.target.value)}
+                rows={5}
+                className="resize-none rounded-xl"
+              />
+              <div className="p-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-[11px] text-emerald-800 dark:text-emerald-300 flex items-center justify-between">
+                <span>🎙️ <strong>Dictado por voz disponible:</strong> Haz clic en el botón superior para grabar tus notas.</span>
+              </div>
+            </div>
+          </div>
+
           <DialogFooter className="gap-2">
-            <Button onClick={handleSaveProceso}>Guardar</Button>
-            <Button variant="destructive" onClick={() => setProcesoDialog(null)}>Cancelar</Button>
+            <Button variant="outline" onClick={() => setProcesoDialog(null)}>Cancelar</Button>
+            <Button onClick={handleSaveProceso} disabled={updateProceso.isPending}>
+              {updateProceso.isPending ? "Guardando..." : "Guardar información"}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -928,6 +1141,12 @@ export default function PersonaPerfilPage() {
         kind={exportPreview ?? "pdf"}
         persona={persona}
         timeline={timeline}
+      />
+
+      <RegistrarLlamadaConsolidacionDialog
+        open={openLlamadaModal}
+        onOpenChange={setOpenLlamadaModal}
+        persona={persona}
       />
     </div>
   );
@@ -1247,14 +1466,20 @@ function DiscipuladoRoadmap({ procesos, procesosMap, progressPercent, completedC
                   "border-border/60 bg-card hover:border-primary/30"
                 )}>
                   <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
+                    <div className="min-w-0 flex-1">
                       <p className="text-sm font-semibold text-foreground">{p.nombre}</p>
-                      <div className="flex items-center gap-2 mt-1.5 text-xs text-muted-foreground">
+                      <div className="flex items-center gap-2 mt-1.5 text-xs text-muted-foreground flex-wrap">
                         {pp?.fecha_completado ? (
                           <span className="flex items-center gap-1"><Calendar className="h-3 w-3" /> {format(parseISO(pp.fecha_completado), "dd MMM yyyy", { locale: es })}</span>
                         ) : <span>Sin fecha registrada</span>}
-                        {(pp as any)?.observacion && <span className="text-primary">· Con notas</span>}
+                        {(pp as any)?.observacion && <span className="text-primary font-medium">· Con notas</span>}
                       </div>
+                      {(pp as any)?.observacion && (
+                        <div className="mt-2.5 p-2.5 rounded-xl bg-muted/60 border border-border/50 text-xs text-foreground/90 whitespace-pre-wrap">
+                          <span className="font-semibold text-primary block mb-0.5">Información / Notas:</span>
+                          {(pp as any).observacion}
+                        </div>
+                      )}
                     </div>
                     <div className="flex items-center gap-1 shrink-0">
                       <Button size="sm" variant={done ? "outline" : doing ? "default" : "secondary"} className="h-7 text-xs" onClick={() => onToggle(p.id, estado)}>

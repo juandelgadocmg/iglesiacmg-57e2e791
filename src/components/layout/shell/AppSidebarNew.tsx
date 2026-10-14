@@ -15,7 +15,7 @@ import {
   Home, Users, UsersRound, Church, CalendarDays, GraduationCap, BookMarked,
   Award, DollarSign, BarChart3, HandHeart, LifeBuoy, Mail, Settings,
   UserCog, ShieldCheck, ChevronLeft, ChevronRight, LogOut, Star, Clock,
-  ChevronDown, Sparkles, BookOpenText, ExternalLink,
+  ChevronDown, Sparkles, BookOpenText, ExternalLink, CheckCircle2, Route,
 } from "lucide-react";
 import { useUnreadCount } from "@/hooks/useMensajes";
 import { useDiscipulando } from "@/hooks/useDiscipulando";
@@ -30,11 +30,14 @@ const ZONES: { label: string; items: Item[] }[] = [
       { label: "Grupos", icon: UsersRound, to: "/grupos" },
       { label: "Reuniones", icon: Church, to: "/servicios" },
       { label: "Eventos", icon: CalendarDays, to: "/eventos" },
+      { label: "Iglesia Infantil", icon: Sparkles, to: "/infantil" },
     ],
   },
   {
     label: "Formación",
     items: [
+      { label: "Afirmación", icon: CheckCircle2, to: "/afirmacion" },
+      { label: "Discipulado", icon: Route, to: "/discipulado" },
       { label: "Academia", icon: GraduationCap, to: "/academia" },
       { label: "Seminario", icon: BookMarked, to: "/seminario" },
       { label: "Certificados", icon: Award, to: "/certificados" },
@@ -64,7 +67,18 @@ const ADMIN: Item[] = [
 ];
 
 function Content({ onNav }: { onNav?: () => void }) {
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsed, setCollapsed] = useState(() => {
+    return localStorage.getItem("doxa_main_sidebar_collapsed") === "true";
+  });
+
+  const toggleCollapsed = () => {
+    setCollapsed((prev) => {
+      const next = !prev;
+      localStorage.setItem("doxa_main_sidebar_collapsed", String(next));
+      return next;
+    });
+  };
+
   const [adminOpen, setAdminOpen] = useState(false);
   const { pathname } = useLocation();
   const nav = useNavigate();
@@ -240,26 +254,24 @@ function Content({ onNav }: { onNav?: () => void }) {
       {/* Footer */}
       <div className="border-t border-sidebar-border p-2 space-y-0.5">
         <button
-          onClick={() => { openDiscipulando(); onNav?.(); }}
-          title={showCollapsed ? "Discipulando Naciones" : undefined}
+          onClick={() => { nav("/discipulado"); onNav?.(); }}
+          title={showCollapsed ? "Módulo de Discipulado" : undefined}
           className={cn(
             "group w-full flex items-center gap-2.5 h-8 rounded-md text-[12.5px] font-medium",
             "text-muted-foreground hover:text-foreground",
             "hover:bg-gradient-to-r hover:from-primary/10 hover:to-transparent",
-            showCollapsed ? "justify-center px-0" : "px-2.5"
+            showCollapsed ? "justify-center px-0" : "px-2.5",
+            pathname.startsWith("/discipulado") && activeCls
           )}
         >
-          <BookOpenText className="h-4 w-4 text-primary shrink-0" />
+          <Route className="h-4 w-4 text-primary shrink-0" />
           {!showCollapsed && (
-            <>
-              <span className="flex-1 truncate text-left">Discipulando</span>
-              <ExternalLink className="h-3 w-3 opacity-0 group-hover:opacity-60 transition-opacity" />
-            </>
+            <span className="flex-1 truncate text-left">Ficha Discipulado</span>
           )}
         </button>
         {!isMobile && (
           <button
-            onClick={() => setCollapsed(!collapsed)}
+            onClick={toggleCollapsed}
             className={cn(
               "w-full flex items-center gap-2.5 h-8 rounded-md text-[12.5px] text-muted-foreground hover:text-foreground hover:bg-muted",
               showCollapsed ? "justify-center px-0" : "px-2.5"

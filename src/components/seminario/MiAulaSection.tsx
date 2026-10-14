@@ -15,12 +15,13 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import {
   ArrowLeft, BookOpen, Video, FileText, Megaphone, MessageSquare, Upload, Calendar, User, Clock,
   MapPin, CheckCircle2, AlertCircle, Download, Send, Trash2, Plus, GraduationCap, Bell, Eye,
-  Lock, Unlock, Search, ChevronLeft, ChevronRight, History,
+  Lock, Unlock, Search, ChevronLeft, ChevronRight, History, Sparkles,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import AssetPreview from "@/components/shared/AssetPreview";
 import { openAsset } from "@/lib/openAsset";
+import { TallerNeumatologiaAulaTab } from "./TallerNeumatologiaAulaTab";
 
 function fmtDate(d?: string) { return d ? new Date(d).toLocaleDateString("es-CO", { day: "2-digit", month: "short", year: "numeric" }) : "—"; }
 function fmtDateTime(d?: string) { return d ? new Date(d).toLocaleString("es-CO") : "—"; }
@@ -98,6 +99,9 @@ export default function MiAulaSection() {
           <p className="text-xs text-muted-foreground">{persona.documento || persona.email}</p>
         </div>
       </div>
+
+      {/* Sección de Talleres Interactivos destacados del Seminario */}
+      <TallerNeumatologiaAulaTab materiaNombre="Neumatología" materiaCodigo="NEU-101" embeddedInCourse={false} />
 
       {!ofertas?.length ? (
         <Card><CardContent className="p-8 text-center">
@@ -258,10 +262,23 @@ function CursoDetalle({ persona, im, onBack }: { persona: any; im: any; onBack: 
             })()}
           </TabsTrigger>
           <TabsTrigger value="notas"><CheckCircle2 className="h-3.5 w-3.5 mr-1" />Mis notas</TabsTrigger>
+          <TabsTrigger value="talleres" className="relative font-bold text-emerald-700 dark:text-emerald-300">
+            <Sparkles className="h-3.5 w-3.5 mr-1" />Talleres interactivos
+            <span className="ml-1 h-4 min-w-4 px-1 rounded-full bg-emerald-600 text-white text-[10px] inline-flex items-center justify-center font-bold">1</span>
+          </TabsTrigger>
           <TabsTrigger value="recursos"><FileText className="h-3.5 w-3.5 mr-1" />Recursos ({data?.recursos?.length || 0})</TabsTrigger>
           <TabsTrigger value="clases"><Video className="h-3.5 w-3.5 mr-1" />Clases grabadas</TabsTrigger>
           <TabsTrigger value="foros"><MessageSquare className="h-3.5 w-3.5 mr-1" />Foros</TabsTrigger>
         </TabsList>
+
+        {/* TALLERES INTERACTIVOS */}
+        <TabsContent value="talleres" className="space-y-3">
+          <TallerNeumatologiaAulaTab
+            materiaNombre={mat?.nombre || "Neumatología"}
+            materiaCodigo={mat?.codigo || "NEU-101"}
+            embeddedInCourse={true}
+          />
+        </TabsContent>
 
         {/* ANUNCIOS */}
         <TabsContent value="anuncios" className="space-y-2">

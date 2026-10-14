@@ -1,0 +1,1 @@
+ALTER TABLE public.leaders DROP CONSTRAINT IF EXISTS leaders_id_fkey;

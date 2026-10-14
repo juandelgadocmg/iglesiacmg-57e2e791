@@ -1,0 +1,97 @@
+@import url('https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 98%;
+    --foreground: 220 15% 20%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 220 15% 20%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 220 15% 20%;
+
+    --primary: 340 75% 48%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 175 45% 42%;
+    --secondary-foreground: 0 0% 100%;
+
+    --muted: 220 14% 94%;
+    --muted-foreground: 220 10% 46%;
+
+    --accent: 20 85% 52%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 220 13% 90%;
+    --input: 220 13% 90%;
+    --ring: 340 75% 48%;
+
+    --radius: 0.75rem;
+
+    /* Semáforo */
+    --semaforo-verde: 142 71% 45%;
+    --semaforo-amarillo: 45 93% 47%;
+    --semaforo-rojo: 0 72% 51%;
+    --semaforo-gris: 220 10% 60%;
+    --semaforo-azul: 210 70% 50%;
+
+    /* Brand accents */
+    --brand-magenta: 340 75% 48%;
+    --brand-orange: 20 85% 52%;
+    --brand-yellow: 50 90% 52%;
+    --brand-teal: 175 45% 42%;
+    --brand-purple: 280 55% 35%;
+    --brand-lime: 80 70% 50%;
+
+    --sidebar-background: 220 15% 16%;
+    --sidebar-foreground: 220 10% 85%;
+    --sidebar-primary: 340 75% 48%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 220 15% 22%;
+    --sidebar-accent-foreground: 220 10% 85%;
+    --sidebar-border: 220 15% 25%;
+    --sidebar-ring: 340 75% 48%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans;
+    font-family: 'Open Sans', system-ui, sans-serif;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Montserrat', 'Open Sans', system-ui, sans-serif;
+    @apply font-bold tracking-tight;
+  }
+}
+
+@layer utilities {
+  .semaforo-verde {
+    @apply bg-[hsl(var(--semaforo-verde))];
+  }
+  .semaforo-amarillo {
+    @apply bg-[hsl(var(--semaforo-amarillo))];
+  }
+  .semaforo-rojo {
+    @apply bg-[hsl(var(--semaforo-rojo))];
+  }
+  .semaforo-gris {
+    @apply bg-[hsl(var(--semaforo-gris))];
+  }
+  .semaforo-azul {
+    @apply bg-[hsl(var(--semaforo-azul))];
+  }
+}

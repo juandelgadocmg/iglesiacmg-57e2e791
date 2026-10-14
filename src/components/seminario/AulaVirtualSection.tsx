@@ -20,7 +20,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import {
   Video, Megaphone, Plus, Trash2, FileText, Calendar, User, Clock, MapPin, Eye, Settings,
   Upload, ClipboardList, BarChart3, UserCheck, MessageSquare, Download, Lock, Unlock,
-  ChevronLeft, ChevronRight, Search, Send, Pencil,
+  ChevronLeft, ChevronRight, Search, Send, Pencil, Sparkles,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -35,6 +35,7 @@ import MiAulaSection from "./MiAulaSection";
 import AulaErrorBoundary from "./AulaErrorBoundary";
 import AulaDiagnosticPanel from "./AulaDiagnosticPanel";
 import { openAsset } from "@/lib/openAsset";
+import { PanelProfesorView } from "@/modules/seminario/taller/components/PanelProfesorView";
 
 const sb = supabase as any;
 function fmtDateTime(d?: string) { return d ? new Date(d).toLocaleString("es-CO") : "—"; }
@@ -207,11 +208,19 @@ function AulaVirtualStaff() {
             <TabsList className="flex-wrap h-auto">
               <TabsTrigger value="material"><FileText className="h-3.5 w-3.5 mr-1" />Material ({recursos?.length || 0})</TabsTrigger>
               <TabsTrigger value="trabajos"><ClipboardList className="h-3.5 w-3.5 mr-1" />Trabajos ({evals?.length || 0})</TabsTrigger>
+              <TabsTrigger value="talleres" className="font-bold text-emerald-700 dark:text-emerald-300">
+                <Sparkles className="h-3.5 w-3.5 mr-1" />Talleres / Neumatología
+              </TabsTrigger>
               <TabsTrigger value="estudiantes"><User className="h-3.5 w-3.5 mr-1" />Estudiantes ({matriz?.estudiantes?.length || 0})</TabsTrigger>
               <TabsTrigger value="anuncios"><Megaphone className="h-3.5 w-3.5 mr-1" />Anuncios ({anuncios?.length || 0})</TabsTrigger>
               <TabsTrigger value="clases"><Video className="h-3.5 w-3.5 mr-1" />Clases grabadas</TabsTrigger>
               <TabsTrigger value="foros"><MessageSquare className="h-3.5 w-3.5 mr-1" />Foros</TabsTrigger>
             </TabsList>
+
+            {/* TALLERES PROFESOR */}
+            <TabsContent value="talleres" className="space-y-3">
+              <PanelProfesorView />
+            </TabsContent>
 
             {/* MATERIAL */}
             <TabsContent value="material" className="space-y-2">

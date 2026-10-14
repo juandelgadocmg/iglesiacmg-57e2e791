@@ -323,31 +323,51 @@ export default function ReporteGrupoFormDialog({ open, onOpenChange, editReporte
     }
 
     try {
-      const { data: persona, error } = await supabase
-        .from("personas")
-        .insert({
-          nombres: newForm.nombres,
-          apellidos: newForm.apellidos,
-          telefono: newForm.telefono || null,
-          email: newForm.email || null,
-          direccion: newForm.direccion || null,
-          documento: newForm.documento || null,
-          tipo_documento: newForm.tipo_documento || null,
-          fecha_nacimiento: newForm.fecha_nacimiento || null,
-          sexo: newForm.sexo || null,
-          fecha_ingreso: newForm.fecha_ingreso || null,
-          tipo_persona: "CDP" as any,
-          tipos_persona: ["CDP"],
-          grupo_id: grupoId,
-        } as any)
-        .select("id, nombres, apellidos, foto_url, tipo_persona")
-        .single();
-      if (error) throw error;
+      const payload: any = {
+        nombres: newForm.nombres,
+        apellidos: newForm.apellidos,
+        telefono: newForm.telefono || null,
+        email: newForm.email || null,
+        direccion: newForm.direccion || null,
+        documento: newForm.documento || null,
+        tipo_documento: newForm.tipo_documento || null,
+        fecha_nacimiento: newForm.fecha_nacimiento || null,
+        sexo: newForm.sexo || null,
+        fecha_ingreso: newForm.fecha_ingreso || null,
+        tipo_persona: "CDP" as any,
+        tipos_persona: ["CDP"],
+        grupo_id: grupoId || null,
+      };
 
-      await supabase.from("grupo_miembros").insert({
-        grupo_id: grupoId,
-        persona_id: persona.id,
-      } as any);
+      let persona: any;
+      // Try security definer RPC first to avoid RLS insert policy restrictions for non-admin users
+      const { data: rpcData, error: rpcError } = await (supabase.rpc as any)("create_persona_with_permission", {
+        _payload: payload,
+      });
+
+      if (!rpcError && rpcData) {
+        persona = Array.isArray(rpcData) ? rpcData[0] : rpcData;
+      } else {
+        // Fallback to direct insert if RPC fails or is missing
+        const { data: directData, error: directError } = await supabase
+          .from("personas")
+          .insert(payload)
+          .select("id, nombres, apellidos, foto_url, tipo_persona")
+          .single();
+        if (directError) throw directError;
+        persona = directData;
+      }
+
+      if (grupoId && persona?.id) {
+        try {
+          await supabase.from("grupo_miembros").insert({
+            grupo_id: grupoId,
+            persona_id: persona.id,
+          } as any);
+        } catch {
+          // Trigger sync_grupo_miembros_from_persona handles this automatically
+        }
+      }
 
       setNewPersonaIds(prev => [...prev, persona.id]);
       setNuevasPersonas(prev => [...prev, { ...newForm }]);
@@ -356,14 +376,13 @@ export default function ReporteGrupoFormDialog({ open, onOpenChange, editReporte
         persona_id: persona.id,
         nombres: newForm.nombres,
         apellidos: newForm.apellidos,
-        foto_url: null,
+        foto_url: persona.foto_url || null,
         tipo_persona: "CDP",
         presente: true,
         es_nuevo: true,
         motivo_ausencia: "",
         rol: "asistente",
       }]);
-
 
       setShowNewPersonForm(false);
       setNewForm(emptyNewPerson());
@@ -794,92 +813,125 @@ export default function ReporteGrupoFormDialog({ open, onOpenChange, editReporte
   const reportDates = grupoReportes.map(r => parseISO(r.fecha));
   const reportDateModifiers = { reported: reportDates };
 
+  const handleProceedToStep1 = () => {
+    if (!grupoId) {
+      toast.error("Por favor seleccione un grupo para continuar.");
+      return;
+    }
+    if (!mensaje?.trim()) {
+      toast.error("Por favor ingrese el mensaje o tema del grupo para continuar.");
+      return;
+    }
+    if (duplicateReporte) {
+      toast.error("Ya existe un reporte para este grupo en esta fecha.");
+      return;
+    }
+    if (deadlinePassed) {
+      toast.error("La fecha límite para enviar reportes ha vencido (Jueves 11:59 PM).", {
+        description: "Solo administradores o pastores pueden crear reportes fuera de plazo.",
+      });
+      return;
+    }
+    setStep(1);
+    if (!isEditMode) setShowNewPersonModal(true);
+  };
+
   return (
     <>
       <Dialog open={open} onOpenChange={(o) => { if (!o) resetForm(); onOpenChange(o); }}>
-        <DialogContent className="sm:max-w-6xl max-h-[90vh] flex flex-col p-0 gap-0" style={{ overflow: "hidden" }}>
+        <DialogContent className="sm:max-w-6xl max-h-[92vh] flex flex-col p-0 gap-0 overflow-hidden">
           {/* Header */}
-          <div className="p-4 border-b bg-background">
-            <div className="flex items-center justify-between">
+          <div className="p-3 sm:p-4 border-b bg-background space-y-2">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
               <div>
-                <h1 className="text-xl font-bold uppercase tracking-wide">
+                <h1 className="text-lg sm:text-xl font-bold uppercase tracking-wide">
                   {isEditMode ? "Editar Reporte" : "Reporte del Grupo"}
                 </h1>
-                <p className="text-sm text-muted-foreground">
+                <p className="text-xs sm:text-sm text-muted-foreground">
                   {step === 0
                     ? "Diligencia la información general de tu reporte."
                     : "Registra las asistencias. Al terminar da CLIC en finalizar."}
                 </p>
-                {(() => {
-                  const deadline = thursdayDeadlineFor(new Date());
-                  const overdue = deadline.getTime() < Date.now();
-                  return (
-                    <div className="mt-2 space-y-1.5">
-                      <div className="inline-flex flex-wrap items-center gap-2 rounded-md border bg-muted/40 px-2.5 py-1 text-[11px]">
-                        <CalendarClock className="h-3 w-3 text-primary" />
-                        <span className="font-medium">Fecha límite:</span>
-                        <span className="capitalize">{formatDeadlineBogota(deadline)}</span>
-                        <span className="text-muted-foreground">(hora Bogotá)</span>
-                        <Badge variant={overdue ? "destructive" : "secondary"} className="h-4 px-1.5 text-[10px]">
-                          {deadlineCountdown(deadline)}
-                        </Badge>
-                      </div>
-                      {overdue && !isEditMode && (
-                        <div className={`flex items-start gap-2 rounded-md border px-2.5 py-1.5 text-[11px] ${canBypassDeadline ? "border-amber-300 bg-amber-50 text-amber-900" : "border-destructive/40 bg-destructive/10 text-destructive"}`}>
-                          <ShieldCheck className="h-3 w-3 mt-0.5 shrink-0" />
-                          <span>
-                            {canBypassDeadline
-                              ? "Plazo vencido. Como Admin/Pastor puedes crear este reporte fuera de plazo (excepción autorizada; quedará registrado en auditoría)."
-                              : "Plazo vencido. Solo Admin o Pastor pueden crear reportes después del jueves 11:59 PM (hora Bogotá)."}
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })()}
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 shrink-0">
                 {step === 1 && (
-                  <Button size="sm" variant="outline" onClick={() => setStep(0)} className="gap-1">
-                    1 Datos Principales
+                  <Button size="sm" variant="outline" onClick={() => setStep(0)} className="gap-1 text-xs h-8">
+                    ← 1. Datos Principales
                   </Button>
                 )}
-                {step === 0 && grupoId && (
-                  <Button size="sm" variant="outline" onClick={() => { setStep(1); if (!isEditMode) setShowNewPersonModal(true); }} className="gap-1 text-destructive border-destructive">
-                    2 Añadir Asistentes
+                {step === 0 && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={handleProceedToStep1}
+                    className="gap-1 text-xs h-8"
+                  >
+                    2. Añadir Asistentes →
                   </Button>
                 )}
               </div>
             </div>
 
-            <div className="flex gap-2 mt-3">
+            {(() => {
+              const deadline = thursdayDeadlineFor(new Date());
+              const overdue = deadline.getTime() < Date.now();
+              return (
+                <div className="space-y-1">
+                  <div className="inline-flex flex-wrap items-center gap-1.5 rounded-md border bg-muted/40 px-2 py-0.5 text-[11px]">
+                    <CalendarClock className="h-3 w-3 text-primary shrink-0" />
+                    <span className="font-medium">Fecha límite:</span>
+                    <span className="capitalize">{formatDeadlineBogota(deadline)}</span>
+                    <Badge variant={overdue ? "destructive" : "secondary"} className="h-4 px-1.5 text-[10px]">
+                      {deadlineCountdown(deadline)}
+                    </Badge>
+                  </div>
+                  {overdue && !isEditMode && (
+                    <div className={`flex items-start gap-1.5 rounded-md border px-2 py-1 text-[11px] ${canBypassDeadline ? "border-amber-300 bg-amber-50 text-amber-900" : "border-destructive/40 bg-destructive/10 text-destructive"}`}>
+                      <ShieldCheck className="h-3 w-3 mt-0.5 shrink-0" />
+                      <span>
+                        {canBypassDeadline
+                          ? "Plazo vencido. Como Admin/Pastor puedes crear este reporte fuera de plazo."
+                          : "Plazo vencido. Solo Admin o Pastor pueden crear reportes después del jueves 11:59 PM (hora Bogotá)."}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
+
+            <div className="flex items-center gap-2 flex-wrap pt-1">
               {step === 0 ? (
                 <Button
                   size="sm"
-                  disabled={!canCreateReport || (!isEditMode && grupoId && !dayAllowed)}
-                  onClick={() => { setStep(1); if (!isEditMode) setShowNewPersonModal(true); }}
+                  onClick={handleProceedToStep1}
+                  className="gap-1 text-xs h-8 font-semibold"
                 >
-                  {isEditMode ? "Continuar edición" : "Crear reporte"}
+                  {isEditMode ? "Continuar edición →" : "Continuar a Asistentes →"}
                 </Button>
               ) : (
-                <Button size="sm" onClick={handleSubmit} disabled={createReporte.isPending || updateReporte.isPending || !!duplicateReporte}>
-                  {(createReporte.isPending || updateReporte.isPending) ? "Guardando..." : isEditMode ? "Guardar Cambios" : "Finalizar Reporte"}
+                <Button
+                  size="sm"
+                  onClick={handleSubmit}
+                  disabled={createReporte.isPending || updateReporte.isPending || !!duplicateReporte}
+                  className="gap-1 text-xs h-8 font-semibold"
+                >
+                  {(createReporte.isPending || updateReporte.isPending) ? "Guardando..." : isEditMode ? "Guardar Cambios ✓" : "Finalizar Reporte ✓"}
                 </Button>
               )}
-              <Button size="sm" variant="destructive" className="gap-1" onClick={() => { resetForm(); onOpenChange(false); }}>
+              <Button size="sm" variant="destructive" className="gap-1 text-xs h-8" onClick={() => { resetForm(); onOpenChange(false); }}>
                 ↩ Cancelar
               </Button>
               {!isEditMode && grupoId && !dayAllowed && (
-                <span className="ml-2 text-xs text-destructive flex items-center gap-1">
+                <span className="text-xs text-destructive flex items-center gap-1">
                   <AlertTriangle className="h-3.5 w-3.5" />
                   Solo disponible los {diaReunion || "días configurados"}
                 </span>
               )}
-              <span className="ml-auto text-sm text-destructive">* Campos obligatorios</span>
+              <span className="ml-auto text-xs text-destructive hidden sm:inline">* Campos obligatorios</span>
             </div>
           </div>
 
-          <div className="flex-1 overflow-y-auto" style={{ maxHeight: "calc(90vh - 160px)", overscrollBehavior: "contain" }}>
+          <div className="flex-1 overflow-y-auto max-h-[calc(88vh-140px)]" style={{ overscrollBehavior: "contain" }}>
             {/* Step 0 */}
             {step === 0 && (
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-0">

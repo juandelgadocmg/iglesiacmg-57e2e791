@@ -68,8 +68,8 @@ export default function GruposViewSwitcher({ grupos, onOpen, onEdit, onDelete, c
   return (
     <div className="space-y-4">
       {/* Barra de vista */}
-      <div className="flex flex-wrap items-center gap-2">
-        <div className="inline-flex rounded-lg border bg-muted/40 p-0.5 max-w-full overflow-x-auto">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2">
+        <div className="inline-flex rounded-lg border bg-muted/40 p-0.5 max-w-full overflow-x-auto no-scrollbar shrink-0">
           {VIEWS.map((v) => (
             <button
               key={v.id}
@@ -86,35 +86,36 @@ export default function GruposViewSwitcher({ grupos, onOpen, onEdit, onDelete, c
             </button>
           ))}
         </div>
-        <div className="flex-1 min-w-0" />
-        <Input
-          placeholder="Buscar grupo, líder, red…"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          aria-label="Buscar grupo, líder o red"
-          className="h-8 w-full sm:w-56 text-[12.5px]"
-        />
-        {tipos.length > 1 && (
-          <div className="inline-flex rounded-lg border bg-muted/40 p-0.5 max-w-full overflow-x-auto">
-            <button
-              onClick={() => setTipoFilter("all")}
-              aria-pressed={tipoFilter === "all"}
-              className={cn("px-2.5 h-7 rounded-md text-[11.5px] shrink-0", tipoFilter === "all" ? "bg-card shadow-sm" : "text-muted-foreground")}
-            >
-              Todos
-            </button>
-            {tipos.map((t) => (
+        <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+          <Input
+            placeholder="Buscar grupo, líder, red…"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            aria-label="Buscar grupo, líder o red"
+            className="h-8 w-full sm:w-56 text-[12.5px]"
+          />
+          {tipos.length > 1 && (
+            <div className="inline-flex rounded-lg border bg-muted/40 p-0.5 max-w-full overflow-x-auto shrink-0">
               <button
-                key={t}
-                onClick={() => setTipoFilter(t)}
-                aria-pressed={tipoFilter === t}
-                className={cn("px-2.5 h-7 rounded-md text-[11.5px] shrink-0", tipoFilter === t ? "bg-card shadow-sm" : "text-muted-foreground")}
+                onClick={() => setTipoFilter("all")}
+                aria-pressed={tipoFilter === "all"}
+                className={cn("px-2.5 h-7 rounded-md text-[11.5px] shrink-0", tipoFilter === "all" ? "bg-card shadow-sm" : "text-muted-foreground")}
               >
-                {t}
+                Todos
               </button>
-            ))}
-          </div>
-        )}
+              {tipos.map((t) => (
+                <button
+                  key={t}
+                  onClick={() => setTipoFilter(t)}
+                  aria-pressed={tipoFilter === t}
+                  className={cn("px-2.5 h-7 rounded-md text-[11.5px] shrink-0", tipoFilter === t ? "bg-card shadow-sm" : "text-muted-foreground")}
+                >
+                  {t}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
 
@@ -175,7 +176,7 @@ function CardsView({ grupos, onOpen, onEdit, canEdit }: { grupos: any[]; onOpen:
     return <EmptyState />;
   }
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-3">
+    <div className="grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-3">
       {grupos.map((g) => {
         const health = healthFor(g);
         return (
@@ -189,13 +190,13 @@ function CardsView({ grupos, onOpen, onEdit, canEdit }: { grupos: any[]; onOpen:
             </div>
             <div className="p-4">
               <div className="flex items-start justify-between gap-2">
-                <div className="min-w-0">
+                <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
                     <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">{g.red || "Sin red"}</span>
                     <span className="text-[10px] text-muted-foreground/50">·</span>
                     <span className="text-[10px] text-muted-foreground">{g.tipo}</span>
                   </div>
-                  <h3 className="font-semibold text-[15px] truncate mt-0.5">{g.nombre}</h3>
+                  <h3 className="font-semibold text-[15px] line-clamp-2 break-words mt-0.5" title={g.nombre}>{g.nombre}</h3>
                 </div>
                 <StatusBadge status={g.estado} />
               </div>
@@ -269,9 +270,9 @@ function KanbanView({ grupos, onOpen }: { grupos: any[]; onOpen: (id: string) =>
   }, [grupos]);
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+    <div className="flex sm:grid sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 overflow-x-auto pb-3 snap-x max-w-full scrollbar-none">
       {columns.map(([label, items]) => (
-        <div key={label} className="rounded-xl border bg-muted/30 flex flex-col min-h-[300px]">
+        <div key={label} className="w-[260px] sm:w-auto shrink-0 snap-start rounded-xl border bg-muted/30 flex flex-col min-h-[300px]">
           <div className="px-3 py-2.5 border-b flex items-center justify-between bg-card/50 rounded-t-xl">
             <span className="text-[12px] font-semibold">{label}</span>
             <Badge variant="secondary" className="h-5 text-[10px]">{items.length}</Badge>
@@ -314,11 +315,11 @@ function CalendarView({ grupos, onOpen }: { grupos: any[]; onOpen: (id: string) 
   }, [grupos]);
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7 gap-2">
+    <div className="flex sm:grid sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7 gap-2 overflow-x-auto pb-3 snap-x max-w-full scrollbar-none">
       {[...DIAS, "Sin día"].map((dia) => {
         const items = porDia[dia];
         return (
-          <div key={dia} className="rounded-xl border bg-card overflow-hidden flex flex-col min-h-[220px]">
+          <div key={dia} className="w-[240px] sm:w-auto shrink-0 snap-start rounded-xl border bg-card overflow-hidden flex flex-col min-h-[220px]">
             <div className="px-3 py-2 border-b bg-primary/5 flex items-center justify-between">
               <span className="text-[11.5px] font-semibold">{dia}</span>
               <span className="text-[10px] text-muted-foreground">{items.length}</span>

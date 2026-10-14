@@ -1,13 +1,13 @@
 {
-  "name": "CMG Admin - Centro Mundial de Gloria",
-  "short_name": "CMG Admin",
-  "description": "Sistema de administración integral del Centro Mundial de Gloria",
+  "name": "DOXA - Centro Mundial de Gloria",
+  "short_name": "DOXA",
+  "description": "Gestión inteligente, liderazgo eficiente. Plataforma de administración para congregaciones.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#ffffff",
-  "theme_color": "#1e3a8a",
+  "theme_color": "#003A6C",
   "lang": "es",
   "icons": [
     {

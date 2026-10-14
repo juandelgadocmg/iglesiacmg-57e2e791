@@ -10,10 +10,11 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Church, Globe, Clock, Save, BookOpen, ImageIcon, Video, Radio, DollarSign, Bell, Upload, X, AlertCircle, ShieldCheck, Award, History, ClipboardList } from "lucide-react";
+import { Church, Globe, Clock, Save, BookOpen, ImageIcon, Video, Radio, DollarSign, Bell, Upload, X, AlertCircle, ShieldCheck, Award, History, ClipboardList, DatabaseZap } from "lucide-react";
 import CertTemplatesManager from "@/components/configuracion/CertTemplatesManager";
 import CertExportHistory from "@/components/configuracion/CertExportHistory";
 import PlanillaConfigCard from "@/components/configuracion/PlanillaConfigCard";
+import MigracionBackupManager from "@/components/configuracion/MigracionBackupManager";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -203,6 +204,7 @@ export default function ConfiguracionPage() {
           <TabsTrigger value="certificados" className="gap-1.5"><Award className="h-3.5 w-3.5" /> Plantillas de Certificados</TabsTrigger>
           <TabsTrigger value="cert-historial" className="gap-1.5"><History className="h-3.5 w-3.5" /> Historial de Certificados</TabsTrigger>
           <TabsTrigger value="planilla" className="gap-1.5"><ClipboardList className="h-3.5 w-3.5" /> Planilla</TabsTrigger>
+          <TabsTrigger value="backup" className="gap-1.5"><DatabaseZap className="h-3.5 w-3.5" /> Backup SQL</TabsTrigger>
         </TabsList>
 
         <TabsContent value="general">
@@ -455,6 +457,10 @@ export default function ConfiguracionPage() {
 
         <TabsContent value="planilla">
           <PlanillaConfigCard />
+        </TabsContent>
+
+        <TabsContent value="backup">
+          <MigracionBackupManager />
         </TabsContent>
       </Tabs>
     </div>

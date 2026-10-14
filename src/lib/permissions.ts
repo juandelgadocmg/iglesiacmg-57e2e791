@@ -30,6 +30,9 @@ export const ROUTE_PERMISSIONS: Record<string, AppRole[]> = {
   "/finanzas": ["admin", "super_admin", "tesoreria"],
   "/eventos": ["admin", "super_admin", "pastor", "lider", "secretaria"],
   "/academia": ["admin", "super_admin", "pastor", "maestro"],
+  "/afirmacion": ["admin", "super_admin", "pastor", "lider", "consolidador", "consolidador_lider"],
+  "/discipulado": [],
+  "/consolidacion": ["admin", "super_admin", "pastor", "lider", "consolidador", "consolidador_lider"],
   "/seminario": ["admin", "super_admin", "pastor", "maestro", "seminario_admin", "seminario_docente", "seminario_estudiante"],
   "/mensajes": [],
   "/certificados": ["admin", "super_admin", "pastor", "maestro"],
@@ -40,6 +43,8 @@ export const ROUTE_PERMISSIONS: Record<string, AppRole[]> = {
   "/seguridad": ["admin", "super_admin", "pastor", "lider_red"],
   "/donaciones": ["admin", "super_admin", "tesoreria"],
   "/reportes-grupos": ["admin", "super_admin", "pastor", "lider", "lider_red", "lider_casa_paz"],
+  "/casas-de-paz": [],
+  "/infantil": ["admin", "super_admin"],
 };
 
 /**
@@ -83,8 +88,8 @@ export type ActionPermission =
   | "share:view_audit";
 
 export const ACTION_PERMISSIONS: Record<ActionPermission, AppRole[]> = {
-  "personas:create": ["admin", "super_admin", "pastor", "lider", "secretaria", "consolidador_lider", "consolidador"],
-  "personas:edit":   ["admin", "super_admin", "pastor", "lider", "secretaria", "consolidador_lider", "consolidador"],
+  "personas:create": ["admin", "super_admin", "pastor", "lider", "lider_red", "lider_casa_paz", "secretaria", "consolidador_lider", "consolidador", "maestro", "tesoreria"],
+  "personas:edit":   ["admin", "super_admin", "pastor", "lider", "lider_red", "lider_casa_paz", "secretaria", "consolidador_lider", "consolidador", "maestro", "tesoreria"],
   "personas:delete": ["admin", "super_admin", "pastor"],
   "grupos:create":   ["admin", "super_admin", "pastor", "lider"],
   "grupos:edit":     ["admin", "super_admin", "pastor", "lider"],

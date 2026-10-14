@@ -72,8 +72,8 @@ BEGIN
     FOR g IN
       SELECT gr.id, gr.nombre, gr.red
       FROM public.grupos gr
-      WHERE gr.tipo IN ('Casas de paz','Grupos encuentro')
-        AND gr.activo IS NOT FALSE
+      WHERE gr.tipo::text IN ('Casas de paz','Grupos encuentro')
+        AND gr.estado = 'Activo'
         AND NOT EXISTS (
           SELECT 1 FROM public.planificaciones_grupo p
           WHERE p.grupo_id = gr.id
@@ -105,8 +105,8 @@ BEGIN
     FOR g IN
       SELECT gr.id, gr.nombre, gr.red
       FROM public.grupos gr
-      WHERE gr.tipo IN ('Casas de paz','Grupos encuentro')
-        AND gr.activo IS NOT FALSE
+      WHERE gr.tipo::text IN ('Casas de paz','Grupos encuentro')
+        AND gr.estado = 'Activo'
         AND NOT EXISTS (
           SELECT 1 FROM public.reportes_grupos r
           WHERE r.grupo_id = gr.id

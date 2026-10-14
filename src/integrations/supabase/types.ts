@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.1"
+    PostgrestVersion: "14.5"
   }
   public: {
     Tables: {
@@ -977,6 +977,186 @@ export type Database = {
         }
         Relationships: []
       }
+      discipulo_actividades: {
+        Row: {
+          created_at: string
+          descripcion: string
+          discipulo_id: string
+          fecha: string
+          hora: string | null
+          id: string
+          lider_id: string
+          referencia_id: string | null
+          tipo_actividad: string
+        }
+        Insert: {
+          created_at?: string
+          descripcion: string
+          discipulo_id: string
+          fecha?: string
+          hora?: string | null
+          id?: string
+          lider_id: string
+          referencia_id?: string | null
+          tipo_actividad: string
+        }
+        Update: {
+          created_at?: string
+          descripcion?: string
+          discipulo_id?: string
+          fecha?: string
+          hora?: string | null
+          id?: string
+          lider_id?: string
+          referencia_id?: string | null
+          tipo_actividad?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "discipulo_actividades_discipulo_id_fkey"
+            columns: ["discipulo_id"]
+            isOneToOne: false
+            referencedRelation: "discipulos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "discipulo_actividades_lider_id_fkey"
+            columns: ["lider_id"]
+            isOneToOne: false
+            referencedRelation: "leaders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      discipulo_visitas: {
+        Row: {
+          compromiso: string | null
+          created_at: string
+          direccion: string | null
+          discipulo_id: string
+          enseno: boolean
+          fecha: string
+          hora: string | null
+          id: string
+          lider_id: string
+          lugar: string
+          observaciones: string | null
+          oro: boolean
+          proximo_seguimiento: string | null
+          realizada: boolean
+          ungio_casa: string
+          updated_at: string
+        }
+        Insert: {
+          compromiso?: string | null
+          created_at?: string
+          direccion?: string | null
+          discipulo_id: string
+          enseno?: boolean
+          fecha?: string
+          hora?: string | null
+          id?: string
+          lider_id: string
+          lugar: string
+          observaciones?: string | null
+          oro?: boolean
+          proximo_seguimiento?: string | null
+          realizada?: boolean
+          ungio_casa?: string
+          updated_at?: string
+        }
+        Update: {
+          compromiso?: string | null
+          created_at?: string
+          direccion?: string | null
+          discipulo_id?: string
+          enseno?: boolean
+          fecha?: string
+          hora?: string | null
+          id?: string
+          lider_id?: string
+          lugar?: string
+          observaciones?: string | null
+          oro?: boolean
+          proximo_seguimiento?: string | null
+          realizada?: boolean
+          ungio_casa?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "discipulo_visitas_discipulo_id_fkey"
+            columns: ["discipulo_id"]
+            isOneToOne: false
+            referencedRelation: "discipulos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "discipulo_visitas_lider_id_fkey"
+            columns: ["lider_id"]
+            isOneToOne: false
+            referencedRelation: "leaders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      discipulos: {
+        Row: {
+          casa_de_paz_id: string | null
+          created_at: string
+          full_name: string
+          id: string
+          last_update_at: string | null
+          lider_id: string | null
+          notes: string | null
+          start_date: string | null
+          status: string
+          telefono: string | null
+          updated_at: string
+        }
+        Insert: {
+          casa_de_paz_id?: string | null
+          created_at?: string
+          full_name: string
+          id?: string
+          last_update_at?: string | null
+          lider_id?: string | null
+          notes?: string | null
+          start_date?: string | null
+          status?: string
+          telefono?: string | null
+          updated_at?: string
+        }
+        Update: {
+          casa_de_paz_id?: string | null
+          created_at?: string
+          full_name?: string
+          id?: string
+          last_update_at?: string | null
+          lider_id?: string | null
+          notes?: string | null
+          start_date?: string | null
+          status?: string
+          telefono?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "discipulos_casa_de_paz_id_fkey"
+            columns: ["casa_de_paz_id"]
+            isOneToOne: false
+            referencedRelation: "grupos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "discipulos_lider_id_fkey"
+            columns: ["lider_id"]
+            isOneToOne: false
+            referencedRelation: "leaders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       donaciones: {
         Row: {
           created_at: string
@@ -1237,6 +1417,24 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      etapas_discipulado: {
+        Row: {
+          code: string
+          label: string
+          order_num: number
+        }
+        Insert: {
+          code: string
+          label: string
+          order_num: number
+        }
+        Update: {
+          code?: string
+          label?: string
+          order_num?: number
+        }
+        Relationships: []
       }
       evento_categorias: {
         Row: {
@@ -1794,6 +1992,47 @@ export type Database = {
           },
         ]
       }
+      leaders: {
+        Row: {
+          casa_de_paz_id: string | null
+          created_at: string
+          email: string | null
+          full_name: string
+          id: string
+          phone: string | null
+          update_token: string | null
+          updated_at: string
+        }
+        Insert: {
+          casa_de_paz_id?: string | null
+          created_at?: string
+          email?: string | null
+          full_name: string
+          id: string
+          phone?: string | null
+          update_token?: string | null
+          updated_at?: string
+        }
+        Update: {
+          casa_de_paz_id?: string | null
+          created_at?: string
+          email?: string | null
+          full_name?: string
+          id?: string
+          phone?: string | null
+          update_token?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "leaders_casa_de_paz_id_fkey"
+            columns: ["casa_de_paz_id"]
+            isOneToOne: false
+            referencedRelation: "grupos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       materias: {
         Row: {
           alerta_inasistencias: boolean
@@ -1943,6 +2182,80 @@ export type Database = {
             columns: ["persona_id"]
             isOneToOne: false
             referencedRelation: "personas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      metas_mensuales: {
+        Row: {
+          casa_de_paz_id: string | null
+          created_at: string
+          created_by: string | null
+          discipulo_id: string | null
+          id: string
+          lider_id: string | null
+          meta_etapas: number
+          meta_seguimientos: number
+          month_key: string
+          notes: string | null
+          scope_type: string
+          updated_at: string
+        }
+        Insert: {
+          casa_de_paz_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          discipulo_id?: string | null
+          id?: string
+          lider_id?: string | null
+          meta_etapas?: number
+          meta_seguimientos?: number
+          month_key: string
+          notes?: string | null
+          scope_type: string
+          updated_at?: string
+        }
+        Update: {
+          casa_de_paz_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          discipulo_id?: string | null
+          id?: string
+          lider_id?: string | null
+          meta_etapas?: number
+          meta_seguimientos?: number
+          month_key?: string
+          notes?: string | null
+          scope_type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "metas_mensuales_casa_de_paz_id_fkey"
+            columns: ["casa_de_paz_id"]
+            isOneToOne: false
+            referencedRelation: "grupos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "metas_mensuales_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "leaders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "metas_mensuales_discipulo_id_fkey"
+            columns: ["discipulo_id"]
+            isOneToOne: false
+            referencedRelation: "discipulos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "metas_mensuales_lider_id_fkey"
+            columns: ["lider_id"]
+            isOneToOne: false
+            referencedRelation: "leaders"
             referencedColumns: ["id"]
           },
         ]
@@ -2550,7 +2863,6 @@ export type Database = {
       personas: {
         Row: {
           apellidos: string
-          clasificacion_cdp: string | null
           created_at: string
           direccion: string | null
           documento: string | null
@@ -2584,7 +2896,6 @@ export type Database = {
         }
         Insert: {
           apellidos: string
-          clasificacion_cdp?: string | null
           created_at?: string
           direccion?: string | null
           documento?: string | null
@@ -2618,7 +2929,6 @@ export type Database = {
         }
         Update: {
           apellidos?: string
-          clasificacion_cdp?: string | null
           created_at?: string
           direccion?: string | null
           documento?: string | null
@@ -2906,6 +3216,7 @@ export type Database = {
           red: string | null
           updated_at: string
           user_id: string
+          zadarma_extension: string | null
         }
         Insert: {
           avatar_url?: string | null
@@ -2917,6 +3228,7 @@ export type Database = {
           red?: string | null
           updated_at?: string
           user_id: string
+          zadarma_extension?: string | null
         }
         Update: {
           avatar_url?: string | null
@@ -2928,6 +3240,7 @@ export type Database = {
           red?: string | null
           updated_at?: string
           user_id?: string
+          zadarma_extension?: string | null
         }
         Relationships: [
           {
@@ -3297,6 +3610,7 @@ export type Database = {
           codigo: string | null
           created_at: string
           estaciones: Json | null
+          estaciones_texto: string[] | null
           fecha_fin: string | null
           fecha_inicio: string | null
           fecha_vigencia: string | null
@@ -3315,6 +3629,7 @@ export type Database = {
           codigo?: string | null
           created_at?: string
           estaciones?: Json | null
+          estaciones_texto?: string[] | null
           fecha_fin?: string | null
           fecha_inicio?: string | null
           fecha_vigencia?: string | null
@@ -3333,6 +3648,7 @@ export type Database = {
           codigo?: string | null
           created_at?: string
           estaciones?: Json | null
+          estaciones_texto?: string[] | null
           fecha_fin?: string | null
           fecha_inicio?: string | null
           fecha_vigencia?: string | null
@@ -3518,6 +3834,58 @@ export type Database = {
             columns: ["persona_id"]
             isOneToOne: false
             referencedRelation: "personas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      progreso_discipulo: {
+        Row: {
+          completed: boolean
+          completed_at: string | null
+          discipulo_id: string
+          etapa_code: string
+          id: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          completed?: boolean
+          completed_at?: string | null
+          discipulo_id: string
+          etapa_code: string
+          id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          completed?: boolean
+          completed_at?: string | null
+          discipulo_id?: string
+          etapa_code?: string
+          id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "progreso_discipulo_discipulo_id_fkey"
+            columns: ["discipulo_id"]
+            isOneToOne: false
+            referencedRelation: "discipulos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "progreso_discipulo_etapa_code_fkey"
+            columns: ["etapa_code"]
+            isOneToOne: false
+            referencedRelation: "etapas_discipulado"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "progreso_discipulo_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "leaders"
             referencedColumns: ["id"]
           },
         ]
@@ -3963,6 +4331,57 @@ export type Database = {
           table_name?: string
         }
         Relationships: []
+      }
+      seguimientos: {
+        Row: {
+          asistencia: string | null
+          created_at: string
+          created_by: string | null
+          discipulo_id: string
+          fecha: string
+          id: string
+          peticiones_oracion: string | null
+          proximos_pasos: string | null
+          resumen: string
+        }
+        Insert: {
+          asistencia?: string | null
+          created_at?: string
+          created_by?: string | null
+          discipulo_id: string
+          fecha?: string
+          id?: string
+          peticiones_oracion?: string | null
+          proximos_pasos?: string | null
+          resumen: string
+        }
+        Update: {
+          asistencia?: string | null
+          created_at?: string
+          created_by?: string | null
+          discipulo_id?: string
+          fecha?: string
+          id?: string
+          peticiones_oracion?: string | null
+          proximos_pasos?: string | null
+          resumen?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "seguimientos_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "leaders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "seguimientos_discipulo_id_fkey"
+            columns: ["discipulo_id"]
+            isOneToOne: false
+            referencedRelation: "discipulos"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       sem_anuncios: {
         Row: {
@@ -5603,11 +6022,35 @@ export type Database = {
         }
         Relationships: []
       }
+      zadarma_pool: {
+        Row: {
+          assigned_user_id: string | null
+          extension: string
+          last_heartbeat: string | null
+        }
+        Insert: {
+          assigned_user_id?: string | null
+          extension: string
+          last_heartbeat?: string | null
+        }
+        Update: {
+          assigned_user_id?: string | null
+          extension?: string
+          last_heartbeat?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
+      allocate_zadarma_extension: {
+        Args: { p_user_id: string }
+        Returns: string
+      }
+      bytea_to_text: { Args: { data: string }; Returns: string }
+      call_zadarma: { Args: { p_to: string }; Returns: Json }
       can_create_personas: { Args: { _uid: string }; Returns: boolean }
       cdp_generate_deadline_alerts: { Args: never; Returns: number }
       checkin_qr: {
@@ -5673,11 +6116,140 @@ export type Database = {
           user_id: string
         }[]
       }
+      get_zadarma_webrtc_key: {
+        Args: { p_sip_extension: string }
+        Returns: string
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
           _user_id: string
         }
+        Returns: boolean
+      }
+      http: {
+        Args: { request: Database["public"]["CompositeTypes"]["http_request"] }
+        Returns: Database["public"]["CompositeTypes"]["http_response"]
+        SetofOptions: {
+          from: "http_request"
+          to: "http_response"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      http_delete:
+        | {
+            Args: { uri: string }
+            Returns: Database["public"]["CompositeTypes"]["http_response"]
+            SetofOptions: {
+              from: "*"
+              to: "http_response"
+              isOneToOne: true
+              isSetofReturn: false
+            }
+          }
+        | {
+            Args: { content: string; content_type: string; uri: string }
+            Returns: Database["public"]["CompositeTypes"]["http_response"]
+            SetofOptions: {
+              from: "*"
+              to: "http_response"
+              isOneToOne: true
+              isSetofReturn: false
+            }
+          }
+      http_get:
+        | {
+            Args: { uri: string }
+            Returns: Database["public"]["CompositeTypes"]["http_response"]
+            SetofOptions: {
+              from: "*"
+              to: "http_response"
+              isOneToOne: true
+              isSetofReturn: false
+            }
+          }
+        | {
+            Args: { data: Json; uri: string }
+            Returns: Database["public"]["CompositeTypes"]["http_response"]
+            SetofOptions: {
+              from: "*"
+              to: "http_response"
+              isOneToOne: true
+              isSetofReturn: false
+            }
+          }
+      http_head: {
+        Args: { uri: string }
+        Returns: Database["public"]["CompositeTypes"]["http_response"]
+        SetofOptions: {
+          from: "*"
+          to: "http_response"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      http_header: {
+        Args: { field: string; value: string }
+        Returns: Database["public"]["CompositeTypes"]["http_header"]
+        SetofOptions: {
+          from: "*"
+          to: "http_header"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      http_list_curlopt: {
+        Args: never
+        Returns: {
+          curlopt: string
+          value: string
+        }[]
+      }
+      http_patch: {
+        Args: { content: string; content_type: string; uri: string }
+        Returns: Database["public"]["CompositeTypes"]["http_response"]
+        SetofOptions: {
+          from: "*"
+          to: "http_response"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      http_post:
+        | {
+            Args: { content: string; content_type: string; uri: string }
+            Returns: Database["public"]["CompositeTypes"]["http_response"]
+            SetofOptions: {
+              from: "*"
+              to: "http_response"
+              isOneToOne: true
+              isSetofReturn: false
+            }
+          }
+        | {
+            Args: { data: Json; uri: string }
+            Returns: Database["public"]["CompositeTypes"]["http_response"]
+            SetofOptions: {
+              from: "*"
+              to: "http_response"
+              isOneToOne: true
+              isSetofReturn: false
+            }
+          }
+      http_put: {
+        Args: { content: string; content_type: string; uri: string }
+        Returns: Database["public"]["CompositeTypes"]["http_response"]
+        SetofOptions: {
+          from: "*"
+          to: "http_response"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      http_reset_curlopt: { Args: never; Returns: boolean }
+      http_set_curlopt: {
+        Args: { curlopt: string; value: string }
         Returns: boolean
       }
       log_cdp_deadline_block: {
@@ -5766,6 +6338,10 @@ export type Database = {
           msg_id: number
           read_ct: number
         }[]
+      }
+      release_zadarma_extension: {
+        Args: { p_user_id: string }
+        Returns: undefined
       }
       resolve_user_id_by_email: { Args: { _email: string }; Returns: string }
       sem_calcular_promedio: {
@@ -5895,6 +6471,21 @@ export type Database = {
           url: string
         }[]
       }
+      text_to_bytea: { Args: { data: string }; Returns: string }
+      urlencode:
+        | { Args: { data: Json }; Returns: string }
+        | {
+            Args: { string: string }
+            Returns: {
+              error: true
+            } & "Could not choose the best candidate function between: public.urlencode(string => bytea), public.urlencode(string => varchar). Try renaming the parameters or the function itself in the database so function overloading can be resolved"
+          }
+        | {
+            Args: { string: string }
+            Returns: {
+              error: true
+            } & "Could not choose the best candidate function between: public.urlencode(string => bytea), public.urlencode(string => varchar). Try renaming the parameters or the function itself in the database so function overloading can be resolved"
+          }
     }
     Enums: {
       app_role:
@@ -5958,7 +6549,23 @@ export type Database = {
         | "Servicio especial"
     }
     CompositeTypes: {
-      [_ in never]: never
+      http_header: {
+        field: string | null
+        value: string | null
+      }
+      http_request: {
+        method: unknown
+        uri: string | null
+        headers: Database["public"]["CompositeTypes"]["http_header"][] | null
+        content_type: string | null
+        content: string | null
+      }
+      http_response: {
+        status: number | null
+        content_type: string | null
+        headers: Database["public"]["CompositeTypes"]["http_header"][] | null
+        content: string | null
+      }
     }
   }
 }
@@ -5971,12 +6578,12 @@ export type Tables<
   DefaultSchemaTableNameOrOptions extends
     | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
         DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -6000,11 +6607,11 @@ export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -6025,11 +6632,11 @@ export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -6050,11 +6657,11 @@ export type Enums<
   DefaultSchemaEnumNameOrOptions extends
     | keyof DefaultSchema["Enums"]
     | { schema: keyof DatabaseWithoutInternals },
-  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+  EnumName extends (DefaultSchemaEnumNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaEnumNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -6067,11 +6674,11 @@ export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema["CompositeTypes"]
     | { schema: keyof DatabaseWithoutInternals },
-  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+  CompositeTypeName extends (PublicCompositeTypeNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-    : never = never,
+    : never) = never,
 > = PublicCompositeTypeNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }

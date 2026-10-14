@@ -618,29 +618,98 @@ function SeguimientoView({ consejeros }: any) {
 // ============ DETAIL DIALOG ============
 function CitaDetailDialog({ cita, onClose, canEdit, showObservaciones }: any) {
   const upd = useUpsertCita();
+  const del = useDeleteCita();
   const { data: obs = [] } = useObservaciones(cita?.id);
   const upObs = useUpsertObservacion();
+  
   const [newObs, setNewObs] = useState({ notas: "", estado_caso: "en_proceso", proxima_accion: "", fecha_seguimiento: "" });
+  const [isEditing, setIsEditing] = useState(false);
+  const [editData, setEditData] = useState<any>({});
 
   if (!cita) return null;
-  return (
-    <Dialog open={!!cita} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader><DialogTitle>Cita de {cita.solicitante_nombre}</DialogTitle></DialogHeader>
-        <div className="space-y-3 text-sm">
-          <div className="grid grid-cols-2 gap-2">
-            <div><strong>Consejero:</strong> {cita.consejero_nombre}</div>
-            <div><strong>Modalidad:</strong> <span className="capitalize">{cita.modalidad}</span></div>
-            <div><strong>Fecha:</strong> {format(parseISO(cita.fecha), "d MMM yyyy", { locale: es })}</div>
-            <div><strong>Hora:</strong> {cita.hora_inicio.slice(0,5)} – {cita.hora_fin.slice(0,5)}</div>
-            <div><strong>Categoría:</strong> {cita.motivo_categoria}</div>
-            <div><strong>Estado:</strong> <Badge className={cn(ESTADO_COLORS[cita.estado])}>{cita.estado}</Badge></div>
-          </div>
-          {cita.motivo_descripcion && <div><strong>Motivo:</strong><p className="mt-1 text-muted-foreground">{cita.motivo_descripcion}</p></div>}
-          {cita.solicitante_email && <div><strong>Email:</strong> {cita.solicitante_email}</div>}
-          {cita.solicitante_telefono && <div><strong>Teléfono:</strong> {cita.solicitante_telefono}</div>}
 
-          {canEdit && (
+  const handleEditChange = (field: string, value: any) => {
+    setEditData({ ...editData, [field]: value });
+  };
+
+  const handleSaveEdit = async () => {
+    await upd.mutateAsync({
+      id: cita.id,
+      fecha: editData.fecha,
+      hora_inicio: editData.hora_inicio,
+      hora_fin: editData.hora_fin,
+      modalidad: editData.modalidad,
+      motivo_categoria: editData.motivo_categoria,
+      motivo_descripcion: editData.motivo_descripcion,
+    });
+    setIsEditing(false);
+    onClose();
+  };
+
+  return (
+    <Dialog open={!!cita} onOpenChange={(o) => { if (!o) { setIsEditing(false); onClose(); } }}>
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Cita de {cita.solicitante_nombre}</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-3 text-sm">
+          {!isEditing ? (
+            <>
+              <div className="grid grid-cols-2 gap-2">
+                <div><strong>Consejero:</strong> {cita.consejero_nombre}</div>
+                <div><strong>Modalidad:</strong> <span className="capitalize">{cita.modalidad}</span></div>
+                <div><strong>Fecha:</strong> {format(parseISO(cita.fecha), "d MMM yyyy", { locale: es })}</div>
+                <div><strong>Hora:</strong> {cita.hora_inicio.slice(0,5)} – {cita.hora_fin.slice(0,5)}</div>
+                <div><strong>Categoría:</strong> {cita.motivo_categoria}</div>
+                <div><strong>Estado:</strong> <Badge className={cn(ESTADO_COLORS[cita.estado] || "bg-muted text-muted-foreground border-border")}>{cita.estado}</Badge></div>
+              </div>
+              {cita.motivo_descripcion && <div><strong>Motivo:</strong><p className="mt-1 text-muted-foreground">{cita.motivo_descripcion}</p></div>}
+              {cita.solicitante_email && <div><strong>Email:</strong> {cita.solicitante_email}</div>}
+              {cita.solicitante_telefono && <div><strong>Teléfono:</strong> {cita.solicitante_telefono}</div>}
+            </>
+          ) : (
+            <div className="space-y-3">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <Label>Fecha</Label>
+                  <Input type="date" value={editData.fecha || ""} onChange={e => handleEditChange("fecha", e.target.value)} />
+                </div>
+                <div className="space-y-1">
+                  <Label>Modalidad</Label>
+                  <Select value={editData.modalidad} onValueChange={v => handleEditChange("modalidad", v)}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="presencial">Presencial</SelectItem>
+                      <SelectItem value="virtual">Virtual</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1">
+                  <Label>Hora Inicio</Label>
+                  <Input type="time" value={editData.hora_inicio || ""} onChange={e => handleEditChange("hora_inicio", e.target.value)} />
+                </div>
+                <div className="space-y-1">
+                  <Label>Hora Fin</Label>
+                  <Input type="time" value={editData.hora_fin || ""} onChange={e => handleEditChange("hora_fin", e.target.value)} />
+                </div>
+                <div className="space-y-1">
+                  <Label>Categoría</Label>
+                  <Select value={editData.motivo_categoria} onValueChange={v => handleEditChange("motivo_categoria", v)}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {MOTIVOS.map(m => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div className="space-y-1">
+                <Label>Motivo (Descripción)</Label>
+                <Textarea value={editData.motivo_descripcion || ""} onChange={e => handleEditChange("motivo_descripcion", e.target.value)} />
+              </div>
+            </div>
+          )}
+
+          {!isEditing && canEdit && (
             <div className="border-t pt-3 space-y-2">
               <Label>Cambiar estado</Label>
               <div className="flex gap-2 flex-wrap">
@@ -662,7 +731,7 @@ function CitaDetailDialog({ cita, onClose, canEdit, showObservaciones }: any) {
             </div>
           )}
 
-          {showObservaciones && (
+          {!isEditing && showObservaciones && (
             <div className="border-t pt-3 space-y-2">
               <h4 className="font-semibold">Observaciones</h4>
               {obs.map((o: any) => (
@@ -695,7 +764,30 @@ function CitaDetailDialog({ cita, onClose, canEdit, showObservaciones }: any) {
             </div>
           )}
         </div>
-        <DialogFooter><Button variant="outline" onClick={onClose}>Cerrar</Button></DialogFooter>
+        <DialogFooter className="mt-4 flex sm:justify-between w-full">
+          {canEdit && !isEditing && (
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => {
+                setEditData(cita);
+                setIsEditing(true);
+              }}>Editar</Button>
+              <Button variant="destructive" onClick={async () => {
+                if (confirm("¿Estás seguro de que deseas eliminar esta cita de consejería? Esta acción no se puede deshacer.")) {
+                  await del.mutateAsync(cita.id);
+                  onClose();
+                }
+              }}>Eliminar</Button>
+            </div>
+          )}
+          {isEditing ? (
+            <div className="flex gap-2 w-full justify-end">
+              <Button variant="outline" onClick={() => setIsEditing(false)}>Cancelar</Button>
+              <Button onClick={handleSaveEdit}>Guardar Cambios</Button>
+            </div>
+          ) : (
+            <Button variant="outline" onClick={() => { setIsEditing(false); onClose(); }}>Cerrar</Button>
+          )}
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

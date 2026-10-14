@@ -128,7 +128,7 @@ export default function EditUserDialog({ profile, userRoles, open, onOpenChange,
   const handleSave = async () => {
     setLoading(true);
     try {
-      // 1. Update display_name in profile (always safe)
+      // 1. Update display_name in profile
       const { error: nameErr } = await supabase
         .from("profiles")
         .update({ display_name: displayName.trim() || profile.display_name })

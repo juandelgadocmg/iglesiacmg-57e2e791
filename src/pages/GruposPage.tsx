@@ -13,6 +13,7 @@ import GruposViewSwitcher from "@/components/grupos/GruposViewSwitcher";
 import PlanificacionGrupoFormDialog from "@/components/forms/PlanificacionGrupoFormDialog";
 import { usePlanificaciones, useDeletePlanificacion } from "@/hooks/usePlanificaciones";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Users, Pencil, Plus, ClipboardList, Network, DollarSign, TrendingUp, BarChart3, FileText, Trash2, Eye, ChevronDown, Calendar as CalendarIcon } from "lucide-react";
 import { useGrupos, useDeleteGrupo } from "@/hooks/useDatabase";
@@ -35,6 +36,7 @@ import ErrorState from "@/components/shared/ErrorState";
 import { GrupoInfoCard, GrupoCardsSkeletonGrid } from "@/components/grupos/GrupoInfoCard";
 import PlanificacionBulkBar from "@/components/grupos/PlanificacionBulkBar";
 import { Checkbox } from "@/components/ui/checkbox";
+import { cn } from "@/lib/utils";
 
 const ReportesGruposContent = lazy(() => import("@/pages/ReportesGruposPage"));
 const MapaGruposContent = lazy(() => import("@/pages/MapaGruposPage"));
@@ -105,6 +107,7 @@ export default function GruposPage() {
   const [selectedGrupoId, setSelectedGrupoId] = useState<string | null>(null);
   const [selectedRed, setSelectedRed] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<string>("lista");
+  const [mobileRailOpen, setMobileRailOpen] = useState(false);
   const { data: planificaciones, error: planError, refetch: refetchPlan, isLoading: loadingPlan } = usePlanificaciones();
   const deletePlan = useDeletePlanificacion();
   const [viewingPlan, setViewingPlan] = useState<any>(null);
@@ -268,17 +271,83 @@ export default function GruposPage() {
     : 0;
 
   return (
-    <div className="animate-fade-in -m-3 md:-m-6 flex min-h-[calc(100vh-3.5rem)]">
-      <GruposRedRail
-        grupos={tableData}
-        selectedRed={selectedRed}
-        selectedGrupoId={null}
-        onSelectAll={() => setSelectedRed(null)}
-        onSelectRed={(r) => setSelectedRed(r)}
-        onSelectGrupo={(id) => setSelectedGrupoId(id)}
-      />
+    <div className="animate-fade-in -m-3 md:-m-6 flex flex-col md:flex-row h-[calc(100vh-3.5rem)] overflow-hidden">
+      {/* Desktop Sidebar Rail */}
+      <div className="hidden md:block shrink-0 h-full overflow-y-auto">
+        <GruposRedRail
+          grupos={tableData}
+          selectedRed={selectedRed}
+          selectedGrupoId={null}
+          onSelectAll={() => setSelectedRed(null)}
+          onSelectRed={(r) => setSelectedRed(r)}
+          onSelectGrupo={(id) => setSelectedGrupoId(id)}
+        />
+      </div>
 
-      <div className="flex-1 min-w-0 p-3 md:p-6 space-y-4">
+      {/* Mobile Drawer Sheet */}
+      <Sheet open={mobileRailOpen} onOpenChange={setMobileRailOpen}>
+        <SheetContent side="left" className="p-0 w-[290px] sm:w-[320px]">
+          <SheetHeader className="p-3 border-b">
+            <SheetTitle className="text-sm font-semibold flex items-center gap-2">
+              <Network className="h-4 w-4 text-primary" /> Redes y Grupos
+            </SheetTitle>
+          </SheetHeader>
+          <div className="h-[calc(100vh-3.5rem)] overflow-y-auto">
+            <GruposRedRail
+              grupos={tableData}
+              selectedRed={selectedRed}
+              selectedGrupoId={null}
+              onSelectAll={() => { setSelectedRed(null); setMobileRailOpen(false); }}
+              onSelectRed={(r) => { setSelectedRed(r); setMobileRailOpen(false); }}
+              onSelectGrupo={(id) => { setSelectedGrupoId(id); setMobileRailOpen(false); }}
+              onItemSelect={() => setMobileRailOpen(false)}
+              className="w-full border-r-0 h-full sticky-none top-0 static"
+            />
+          </div>
+        </SheetContent>
+      </Sheet>
+
+      <div className="flex-1 min-w-0 p-3 md:p-6 space-y-4 overflow-y-auto h-full">
+        {/* Mobile Horizontal Quick Red Bar */}
+        <div className="md:hidden flex items-center gap-1.5 overflow-x-auto pb-1 max-w-full scrollbar-none">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setMobileRailOpen(true)}
+            className="h-7 text-xs gap-1 shrink-0 bg-background shadow-none border-border"
+          >
+            <Network className="h-3.5 w-3.5 text-primary" />
+            Explorar
+            <ChevronDown className="h-3 w-3 opacity-60" />
+          </Button>
+
+          <Badge
+            variant={!selectedRed ? "default" : "outline"}
+            className="cursor-pointer text-[11.5px] px-2.5 py-1 shrink-0 font-normal transition-colors"
+            onClick={() => { setSelectedRed(null); setActiveTab("lista"); }}
+          >
+            Todas ({tableData.length})
+          </Badge>
+
+          {REDES.map((r) => {
+            const count = tableData.filter((g) => g.red === r).length;
+            const isSel = selectedRed === r;
+            return (
+              <Badge
+                key={r}
+                variant={isSel ? "default" : "outline"}
+                className={cn(
+                  "cursor-pointer text-[11.5px] px-2.5 py-1 shrink-0 font-normal transition-colors",
+                  isSel && "bg-primary text-primary-foreground"
+                )}
+                onClick={() => { setSelectedRed(r); setActiveTab("lista"); }}
+              >
+                {r} ({count})
+              </Badge>
+            );
+          })}
+        </div>
+
         <div className="flex items-start justify-between gap-3 flex-wrap">
           <div>
             <h1 className="text-xl md:text-2xl font-semibold tracking-tight">
@@ -290,7 +359,7 @@ export default function GruposPage() {
                 : "Redes, casas de paz y planificación pastoral"}
             </p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap w-full sm:w-auto">
             <ExportDropdown title="Grupos" filename="grupos" columns={[
               { header: "Nombre", key: "nombre" }, { header: "Tipo", key: "tipo" },
               { header: "Red", key: "red" }, { header: "Líder", key: "liderNombre" },
@@ -299,7 +368,7 @@ export default function GruposPage() {
             ]} data={gruposFiltrados} />
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm" className="h-8 gap-1.5">
+                <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs sm:text-sm">
                   <FileText className="h-3.5 w-3.5" /> Herramientas <ChevronDown className="h-3 w-3 opacity-60" />
                 </Button>
               </DropdownMenuTrigger>
@@ -320,17 +389,32 @@ export default function GruposPage() {
         {canEditGrupo && editing && <GrupoFormDialog initialData={editing} onClose={() => setEditing(null)} />}
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-          <TabsList className="h-9 flex-wrap">
-            <TabsTrigger value="lista" className="text-[12.5px]">
+          <TabsList className="h-9 w-full flex flex-nowrap overflow-x-auto justify-start max-w-full no-scrollbar pb-0.5">
+            <TabsTrigger value="lista" className="text-[12.5px] shrink-0">
               {selectedRed ? "Grupos de la red" : "Todos los grupos"}
             </TabsTrigger>
             {!selectedRed && (
-              <TabsTrigger value="dashboard" className="gap-1 text-[12.5px]">
+              <TabsTrigger value="dashboard" className="gap-1 text-[12.5px] shrink-0">
                 <BarChart3 className="h-3.5 w-3.5" /> Dashboard redes
               </TabsTrigger>
             )}
+            <TabsTrigger value="planificacion" className="gap-1 text-[12.5px] shrink-0">
+              <FileText className="h-3.5 w-3.5" /> Planificación
+            </TabsTrigger>
+            <TabsTrigger value="reportes" className="gap-1 text-[12.5px] shrink-0">
+              <ClipboardList className="h-3.5 w-3.5" /> Reportes
+            </TabsTrigger>
+            <TabsTrigger value="jerarquia" className="gap-1 text-[12.5px] shrink-0">
+              <Network className="h-3.5 w-3.5" /> Jerarquía
+            </TabsTrigger>
+            <TabsTrigger value="mapa" className="gap-1 text-[12.5px] shrink-0">
+              Mapa
+            </TabsTrigger>
+            <TabsTrigger value="organigrama" className="gap-1 text-[12.5px] shrink-0">
+              Organigrama
+            </TabsTrigger>
             {canManageTesoreriaCDP && (
-              <TabsTrigger value="tesoreria-cdp" className="gap-1 text-[12.5px]">
+              <TabsTrigger value="tesoreria-cdp" className="gap-1 text-[12.5px] shrink-0">
                 <DollarSign className="h-3.5 w-3.5" /> Tesorería CDP
               </TabsTrigger>
             )}

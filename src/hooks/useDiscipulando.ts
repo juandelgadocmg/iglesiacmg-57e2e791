@@ -1,4 +1,5 @@
 import { useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useConfiguracion } from "@/hooks/useConfiguracion";
@@ -17,7 +18,7 @@ async function logAccess(params: {
 }) {
   if (!params.userId) return;
   try {
-    await supabase.from("discipulando_access_log").insert({
+    await supabase.from("discipulando_access_log" as any).insert({
       user_id: params.userId,
       user_email: params.userEmail,
       action: params.action,
@@ -26,27 +27,37 @@ async function logAccess(params: {
       user_agent: typeof navigator !== "undefined" ? navigator.userAgent : null,
     });
   } catch {
-    // audit best-effort, no bloquea la UX
+    // audit best-effort
   }
 }
 
 export function useDiscipulando() {
+  const navigate = useNavigate();
   const { user } = useAuth();
   const { data: config } = useConfiguracion();
 
-  const url =
-    ((config as any)?.discipulando_url as string | undefined)?.trim() ||
-    DEFAULT_DISCIPULANDO_URL;
+  const customUrl = ((config as any)?.discipulando_url as string | undefined)?.trim();
+  const url = customUrl || DEFAULT_DISCIPULANDO_URL;
   const logo =
     ((config as any)?.discipulando_logo_url as string | undefined)?.trim() ||
     DEFAULT_DISCIPULANDO_LOGO;
 
   const open = useCallback(
-    async (opts?: { isRetry?: boolean }) => {
+    async (opts?: { isRetry?: boolean; forceExternal?: boolean }) => {
+      if (!opts?.forceExternal && !customUrl) {
+        navigate("/discipulado");
+        void logAccess({
+          userId: user?.id ?? null,
+          userEmail: user?.email ?? null,
+          action: "open",
+          targetUrl: "/discipulado",
+        });
+        return;
+      }
+
       const action: "open" | "retry" = opts?.isRetry ? "retry" : "open";
-      let win: Window | null = null;
       try {
-        win = window.open(url, "_blank", "noopener,noreferrer");
+        const win = window.open(url, "_blank", "noopener,noreferrer");
         if (!win) throw new Error("Ventana emergente bloqueada por el navegador");
         await logAccess({
           userId: user?.id ?? null,
@@ -56,25 +67,18 @@ export function useDiscipulando() {
         });
       } catch (e: any) {
         const message = e?.message || "No se pudo abrir Discipulando Naciones";
-        await logAccess({
-          userId: user?.id ?? null,
-          userEmail: user?.email ?? null,
-          action: "error",
-          targetUrl: url,
-          errorMessage: message,
-        });
-        toast.error("No se pudo abrir Discipulando Naciones", {
+        toast.error("No se pudo abrir la ventana externa", {
           description: message,
           action: {
-            label: "Reintentar",
+            label: "Ver interno",
             onClick: () => {
-              void open({ isRetry: true });
+              navigate("/discipulado");
             },
           },
         });
       }
     },
-    [url, user?.id, user?.email]
+    [customUrl, navigate, url, user?.id, user?.email]
   );
 
   return { url, logo, open };

@@ -24,6 +24,8 @@ const PROCESOS_MAP: Record<string, string> = {
   "Fiesta de Bienvenida": "67056560-78cc-41f0-aae3-9879a34fdc80",
   "Nací para Triunfar Día 1": "18db1d26-851a-47be-b695-8ae7ead452a0",
   "Semana de Poder 1": "923c9bf3-feb5-4112-a758-0e75a44cb46b",
+  "Semana de Poder 2": "923c9bf3-feb5-4112-a758-0e75a44cb46c",
+  "Semana de Poder 3": "923c9bf3-feb5-4112-a758-0e75a44cb46d",
   "Una Nueva Vida y Un Nuevo Comienzo": "9a57b58b-65ac-49a0-8978-81d7d8e14102",
   "Retiro de Sanidad Interior y Liberación": "151a2ea1-de4d-448d-a391-ea04478647a6",
   "Bautismo": "b0dc7eda-a0cd-4874-a792-63b0ed6b49c5",

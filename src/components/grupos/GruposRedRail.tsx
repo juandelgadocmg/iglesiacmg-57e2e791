@@ -13,10 +13,19 @@ interface Props {
   onSelectAll: () => void;
   onSelectRed: (red: string) => void;
   onSelectGrupo: (id: string) => void;
+  className?: string;
+  onItemSelect?: () => void;
 }
 
 export default function GruposRedRail({
-  grupos, selectedRed, selectedGrupoId, onSelectAll, onSelectRed, onSelectGrupo,
+  grupos,
+  selectedRed,
+  selectedGrupoId,
+  onSelectAll,
+  onSelectRed,
+  onSelectGrupo,
+  className,
+  onItemSelect,
 }: Props) {
   const [q, setQ] = useState("");
   const [expanded, setExpanded] = useState<Record<string, boolean>>(() =>
@@ -41,8 +50,23 @@ export default function GruposRedRail({
 
   const toggle = (r: string) => setExpanded((e) => ({ ...e, [r]: !e[r] }));
 
+  const handleSelectAll = () => {
+    onSelectAll();
+    onItemSelect?.();
+  };
+
+  const handleSelectRed = (red: string) => {
+    onSelectRed(red);
+    onItemSelect?.();
+  };
+
+  const handleSelectGrupo = (id: string) => {
+    onSelectGrupo(id);
+    onItemSelect?.();
+  };
+
   return (
-    <aside className="w-64 shrink-0 border-r bg-card/40 flex flex-col h-[calc(100vh-3.5rem)] sticky top-14">
+    <aside className={cn("w-64 shrink-0 border-r bg-card/40 flex flex-col h-[calc(100vh-3.5rem)] sticky top-14", className)}>
       <div className="p-3 border-b space-y-2">
         <div className="relative">
           <Search className="h-3.5 w-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
@@ -57,9 +81,9 @@ export default function GruposRedRail({
 
       <div className="flex-1 overflow-y-auto py-2">
         <button
-          onClick={onSelectAll}
+          onClick={handleSelectAll}
           className={cn(
-            "w-full flex items-center gap-2 px-3 py-1.5 text-[13px] hover:bg-muted/60",
+            "w-full flex items-center gap-2 px-3 py-1.5 text-[13px] hover:bg-muted/60 transition-colors",
             !selectedRed && !selectedGrupoId && "bg-primary/10 text-primary font-medium"
           )}
         >
@@ -76,9 +100,9 @@ export default function GruposRedRail({
                 key={p.id}
                 onClick={() => {
                   const id = p.to.split("/").pop();
-                  if (id) onSelectGrupo(id);
+                  if (id) handleSelectGrupo(id);
                 }}
-                className="w-full flex items-center gap-2 px-3 py-1.5 text-[13px] hover:bg-muted/60"
+                className="w-full flex items-center gap-2 px-3 py-1.5 text-[13px] hover:bg-muted/60 transition-colors"
               >
                 <Star className="h-3.5 w-3.5 text-amber-500" />
                 <span className="flex-1 text-left truncate">{p.label}</span>
@@ -97,15 +121,15 @@ export default function GruposRedRail({
               <div key={red}>
                 <div
                   className={cn(
-                    "group flex items-center px-3 py-1.5 text-[13px] hover:bg-muted/60 cursor-pointer",
+                    "group flex items-center px-3 py-1.5 text-[13px] hover:bg-muted/60 cursor-pointer transition-colors",
                     isRedActive && "bg-primary/10 text-primary font-medium"
                   )}
                 >
-                  <button onClick={() => toggle(red)} className="p-0.5 -ml-0.5 mr-0.5">
+                  <button onClick={() => toggle(red)} className="p-0.5 -ml-0.5 mr-0.5 text-muted-foreground hover:text-foreground">
                     {open ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
                   </button>
                   <button
-                    onClick={() => onSelectRed(red)}
+                    onClick={() => handleSelectRed(red)}
                     className="flex items-center gap-2 flex-1 text-left"
                   >
                     <Network className="h-3.5 w-3.5" />
@@ -118,9 +142,9 @@ export default function GruposRedRail({
                     {items.map((g) => (
                       <button
                         key={g.id}
-                        onClick={() => onSelectGrupo(g.id)}
+                        onClick={() => handleSelectGrupo(g.id)}
                         className={cn(
-                          "w-full flex items-center gap-2 pl-9 pr-3 py-1 text-[12.5px] hover:bg-muted/60",
+                          "w-full flex items-center gap-2 pl-9 pr-3 py-1 text-[12.5px] hover:bg-muted/60 transition-colors",
                           selectedGrupoId === g.id && "bg-primary/10 text-primary font-medium"
                         )}
                       >
@@ -146,9 +170,9 @@ export default function GruposRedRail({
               {gruposByRed.sinRed.map((g) => (
                 <button
                   key={g.id}
-                  onClick={() => onSelectGrupo(g.id)}
+                  onClick={() => handleSelectGrupo(g.id)}
                   className={cn(
-                    "w-full flex items-center gap-2 px-3 py-1 text-[12.5px] hover:bg-muted/60",
+                    "w-full flex items-center gap-2 px-3 py-1 text-[12.5px] hover:bg-muted/60 transition-colors",
                     selectedGrupoId === g.id && "bg-primary/10 text-primary font-medium"
                   )}
                 >

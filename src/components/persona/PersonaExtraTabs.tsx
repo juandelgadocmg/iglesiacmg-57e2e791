@@ -18,12 +18,19 @@ import EmptyState from "@/components/shared/EmptyState";
 /* =========================================================
    SEGUIMIENTO — resumen pastoral (peticiones, consejería, salud)
    ========================================================= */
+import { useConsolidacionLlamadas } from "@/hooks/useConsolidacionLlamadas";
+import { RegistrarLlamadaConsolidacionDialog } from "./RegistrarLlamadaConsolidacionDialog";
+import { PhoneCall, Plus } from "lucide-react";
+
 export function SeguimientoTab({
   persona, peticiones = [], consejerias = [], progresoPct, asistenciaPct,
 }: any) {
   const abiertas = peticiones.filter((p: any) => p.estado !== "cerrada").length;
   const consejeriasCount = consejerias.length;
   const trendUp = asistenciaPct >= 70;
+  const [openCallModal, setOpenCallModal] = useState(false);
+
+  const { llamadas } = useConsolidacionLlamadas(persona?.id);
 
   const salud = useMemo(() => {
     const s = Math.round((progresoPct * 0.5) + (asistenciaPct * 0.5));
@@ -68,6 +75,22 @@ export function SeguimientoTab({
 
       {/* Estadísticas rápidas */}
       <div className="space-y-3">
+        <Card className="p-4 bg-gradient-to-br from-primary/10 to-card border">
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-lg bg-primary/15 text-primary flex items-center justify-center">
+                <PhoneCall className="h-4 w-4" />
+              </div>
+              <div className="text-sm font-semibold">Llamadas Consolidación</div>
+            </div>
+            <Button size="sm" variant="ghost" className="h-7 px-2 text-xs gap-1" onClick={() => setOpenCallModal(true)}>
+              <Plus className="h-3.5 w-3.5" /> Registrar
+            </Button>
+          </div>
+          <div className="text-2xl font-bold">{llamadas.length}</div>
+          <p className="text-xs text-muted-foreground">llamadas codificadas</p>
+        </Card>
+
         <Card className="p-4 bg-gradient-to-br from-rose-500/8 to-card">
           <div className="flex items-center gap-2 mb-2">
             <div className="w-8 h-8 rounded-lg bg-rose-500/15 text-rose-600 flex items-center justify-center">
@@ -78,17 +101,59 @@ export function SeguimientoTab({
           <div className="text-2xl font-bold">{abiertas}</div>
           <p className="text-xs text-muted-foreground">de {peticiones.length} totales</p>
         </Card>
-        <Card className="p-4 bg-gradient-to-br from-accent/8 to-card">
-          <div className="flex items-center gap-2 mb-2">
-            <div className="w-8 h-8 rounded-lg bg-accent/15 text-accent flex items-center justify-center">
-              <Heart className="h-4 w-4" />
-            </div>
-            <div className="text-sm font-semibold">Consejerías</div>
-          </div>
-          <div className="text-2xl font-bold">{consejeriasCount}</div>
-          <p className="text-xs text-muted-foreground">sesiones registradas</p>
-        </Card>
       </div>
+
+      {/* Historial de Llamadas de Consolidación */}
+      <Card className="lg:col-span-3 p-5">
+        <div className="flex items-center justify-between mb-3">
+          <CardTitle className="text-base flex items-center gap-2">
+            <PhoneCall className="h-4 w-4 text-primary" /> Llamadas y Gestión de Consolidación
+          </CardTitle>
+          <Button size="sm" onClick={() => setOpenCallModal(true)} className="gap-1.5 font-bold">
+            <Plus className="h-3.5 w-3.5" /> Registrar Llamada
+          </Button>
+        </div>
+
+        {llamadas.length === 0 ? (
+          <div className="text-center py-6 border border-dashed rounded-xl bg-muted/20">
+            <PhoneCall className="h-8 w-8 text-muted-foreground/30 mx-auto mb-2" />
+            <p className="text-sm font-medium">Sin llamadas registradas para este discípulo</p>
+            <Button size="sm" variant="outline" className="mt-2 text-xs gap-1" onClick={() => setOpenCallModal(true)}>
+              <Plus className="h-3 w-3" /> Registrar primera llamada
+            </Button>
+          </div>
+        ) : (
+          <div className="divide-y">
+            {llamadas.map((ll) => (
+              <div key={ll.id} className="py-2.5 flex items-start justify-between gap-3">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <Badge variant="outline" className="font-semibold text-xs bg-primary/10 text-primary border-primary/30">
+                      {ll.codificacion}
+                    </Badge>
+                    {ll.completo_45_dias && (
+                      <Badge className="bg-emerald-600 text-white text-[10px]">
+                        🎉 45 Días Completados
+                      </Badge>
+                    )}
+                  </div>
+                  {ll.observacion && (
+                    <p className="text-xs text-muted-foreground bg-muted/40 p-2 rounded-md border">
+                      {ll.observacion}
+                    </p>
+                  )}
+                  <div className="text-[11px] text-muted-foreground">
+                    Consolidador: {ll.consolidador_email || "Sistema"}
+                  </div>
+                </div>
+                <div className="text-xs text-muted-foreground shrink-0 tabular-nums">
+                  {format(parseISO(ll.fecha_llamada), "dd MMM yyyy · HH:mm", { locale: es })}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </Card>
 
       {/* Peticiones listado */}
       <Card className="lg:col-span-2 p-5">
@@ -140,6 +205,13 @@ export function SeguimientoTab({
           </ul>
         )}
       </Card>
+
+      {/* Modal Registrar Llamada */}
+      <RegistrarLlamadaConsolidacionDialog
+        open={openCallModal}
+        onOpenChange={setOpenCallModal}
+        persona={persona}
+      />
     </div>
   );
 }

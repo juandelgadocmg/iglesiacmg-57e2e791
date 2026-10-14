@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -21,7 +21,7 @@ interface Props {
 
 const TIPOS_PETICION = ["Financiera", "Familiar", "Sanidad", "Emocional", "Espiritual", "Otros"];
 
-const TIPOS_DOCUMENTO = [
+export const TIPOS_DOCUMENTO = [
   "Registro Civil",
   "Tarjeta de identidad",
   "Cédula de ciudadanía",
@@ -92,24 +92,47 @@ export default function PersonaFormDialog({ initialData, onClose, open: openProp
   // Multi-select tipos_persona
   const [tiposSeleccionados, setTiposSeleccionados] = useState<string[]>([]);
 
+  // Controlled Red & Grupo state for dynamic filtering
+  const [selectedRed, setSelectedRed] = useState<string>("none");
+  const [selectedGrupoId, setSelectedGrupoId] = useState<string>("none");
+
+  // Dynamic available networks list
+  const availableRedes = useMemo(() => {
+    const set = new Set<string>(REDES);
+    (grupos as any[] || []).forEach((g) => {
+      if (g.red && g.red.trim()) set.add(g.red.trim());
+    });
+    return Array.from(set).sort();
+  }, [grupos]);
+
   useEffect(() => {
     if (initialData) {
       setOpen(true);
-      // Use tipos_persona if it has meaningful data (more than one type, or a non-Miembro type)
-      // Otherwise fall back to tipo_persona as single source of truth
       const tipoActual: string = initialData.tipo_persona || "Miembro";
       const tiposArr: string[] = initialData.tipos_persona || [];
-      // Only trust tipos_persona if it contains the current tipo_persona
-      // This avoids showing stale migration data
       const cleanTipos = tiposArr.includes(tipoActual)
         ? [...new Set(tiposArr)]
         : [tipoActual];
       setTiposSeleccionados(cleanTipos.length > 0 ? cleanTipos : [tipoActual]);
-    } else {
-      // New persona: start with empty selection so user must choose deliberately
-      setTiposSeleccionados([]);
+
+      if (initialData.grupo_id) {
+        setSelectedGrupoId(initialData.grupo_id);
+        const groupObj = (grupos as any[])?.find((g) => g.id === initialData.grupo_id);
+        if (groupObj?.red) {
+          setSelectedRed(groupObj.red);
+        }
+      }
     }
-  }, [initialData]);
+  }, [initialData, grupos]);
+
+  // Filter Casas de Paz according to selected Red
+  const filteredGrupos = useMemo(() => {
+    if (!grupos) return [];
+    if (!selectedRed || selectedRed === "none") return grupos;
+    return (grupos as any[]).filter(
+      (g) => (g.red || "").trim().toLowerCase() === selectedRed.trim().toLowerCase()
+    );
+  }, [grupos, selectedRed]);
 
   const handleClose = () => {
     setOpen(false);
@@ -117,6 +140,8 @@ export default function PersonaFormDialog({ initialData, onClose, open: openProp
     setDescripcionPeticion("");
     setAceptaPolitica(false);
     setTiposSeleccionados([]);
+    setSelectedRed("none");
+    setSelectedGrupoId("none");
     onClose?.();
   };
 
@@ -397,25 +422,70 @@ export default function PersonaFormDialog({ initialData, onClose, open: openProp
               </Select>
             </div>
             <div className="space-y-2">
-              <Label>Red</Label>
-              <Select name="red_persona" defaultValue="none">
+              <div className="flex items-center justify-between">
+                <Label>Red</Label>
+                {selectedRed !== "none" && (
+                  <button
+                    type="button"
+                    onClick={() => setSelectedRed("none")}
+                    className="text-[11px] font-medium text-primary hover:underline"
+                  >
+                    Ver todas las redes
+                  </button>
+                )}
+              </div>
+              <Select
+                value={selectedRed}
+                onValueChange={(val) => {
+                  setSelectedRed(val);
+                  if (val !== "none") {
+                    const currentGroup = (grupos as any[])?.find((g) => g.id === selectedGrupoId);
+                    if (
+                      !currentGroup ||
+                      (currentGroup.red || "").trim().toLowerCase() !== val.trim().toLowerCase()
+                    ) {
+                      setSelectedGrupoId("none");
+                    }
+                  }
+                }}
+              >
                 <SelectTrigger><SelectValue placeholder="Seleccionar red" /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="none">Sin especificar</SelectItem>
-                  {REDES.map(r => (
-                    <SelectItem key={r} value={r}>{r}</SelectItem>
+                  <SelectItem value="none">Sin especificar (Ver todas las casas)</SelectItem>
+                  {availableRedes.map((r) => (
+                    <SelectItem key={r} value={r}>
+                      {r}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="grupo_id">Grupo</Label>
-              <Select name="grupo_id" defaultValue={initialData?.grupo_id || "none"}>
-                <SelectTrigger><SelectValue placeholder="Sin grupo" /></SelectTrigger>
-                <SelectContent>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="grupo_id">Casa de Paz / Grupo</Label>
+                {selectedRed !== "none" && (
+                  <span className="text-[11px] font-semibold text-emerald-700 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
+                    {filteredGrupos.length} {filteredGrupos.length === 1 ? "casa" : "casas"} en Red {selectedRed}
+                  </span>
+                )}
+              </div>
+              <input type="hidden" name="grupo_id" value={selectedGrupoId} />
+              <Select value={selectedGrupoId} onValueChange={setSelectedGrupoId}>
+                <SelectTrigger>
+                  <SelectValue
+                    placeholder={
+                      selectedRed !== "none"
+                        ? `Seleccionar casa (${filteredGrupos.length} disponibles)`
+                        : "Sin grupo"
+                    }
+                  />
+                </SelectTrigger>
+                <SelectContent className="max-h-[260px]">
                   <SelectItem value="none">Sin grupo</SelectItem>
-                  {(grupos || []).map((g: any) => (
-                    <SelectItem key={g.id} value={g.id}>{g.nombre}</SelectItem>
+                  {filteredGrupos.map((g: any) => (
+                    <SelectItem key={g.id} value={g.id}>
+                      {g.nombre} {g.red ? `(Red ${g.red})` : ""}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>

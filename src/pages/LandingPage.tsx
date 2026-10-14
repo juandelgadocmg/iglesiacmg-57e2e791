@@ -78,6 +78,8 @@ export default function LandingPage() {
               <a href="#top">Inicio</a>
               <a href="#nosotros">Nosotros</a>
               <a href="#servicios">Servicios</a>
+              <Link to="/eventos-publicos">Eventos</Link>
+              <Link to="/academy">Academy</Link>
               <a href="#planes">Planes</a>
             </div>
             <div className="navcta">
@@ -273,6 +275,63 @@ export default function LandingPage() {
           </div>
         </section>
 
+        {/* DOXA ACADEMY */}
+        <section className="academy" id="academy">
+          <div className="wrap">
+            <div className="sec-head">
+              <span className="pill-tag"><span className="dot" />DOXA Academy</span>
+              <h2>Formación para transformar el liderazgo de tu iglesia</h2>
+              <p>Diplomados prácticos organizados por facultades — cada uno con 10 módulos, 40 horas, talleres, plantillas descargables, casos reales, proyecto final implementado en tu iglesia y certificación DOXA.</p>
+              <div className="academy-format">
+                <span>10 módulos</span><span>·</span><span>40 horas</span><span>·</span><span>Proyecto final</span><span>·</span><span>Certificación DOXA</span>
+              </div>
+            </div>
+
+            <div className="faculty-grid">
+              <div className="faculty-card">
+                <span className="faculty-tag">Facultad de Liderazgo</span>
+                <ul>
+                  <li>Liderazgo Ministerial</li>
+                  <li>Mentoría y Multiplicación</li>
+                  <li>Gobierno Organizacional</li>
+                </ul>
+              </div>
+              <div className="faculty-card">
+                <span className="faculty-tag">Facultad de Gestión</span>
+                <ul>
+                  <li>Administración Eclesiástica</li>
+                  <li>Planeación e Indicadores</li>
+                  <li>Finanzas para Iglesias</li>
+                  <li>Gestión de Proyectos Ministeriales</li>
+                </ul>
+              </div>
+              <div className="faculty-card">
+                <span className="faculty-tag">Facultad de Desarrollo Ministerial</span>
+                <ul>
+                  <li>Visión y Cultura Organizacional</li>
+                  <li>Discipulado Estratégico</li>
+                  <li>Evangelismo y Consolidación</li>
+                  <li>Desarrollo de Ministerios</li>
+                </ul>
+              </div>
+              <div className="faculty-card">
+                <span className="faculty-tag">Facultad de Innovación</span>
+                <ul>
+                  <li>Tecnología para Iglesias</li>
+                  <li>Inteligencia Artificial aplicada al Ministerio</li>
+                  <li>Comunicación Digital</li>
+                  <li>Analítica y Gestión de Datos</li>
+                </ul>
+              </div>
+            </div>
+
+            <div className="academy-cta">
+              <p>DOXA Academy se apoya en la misma Visión de tu iglesia — no la reemplaza, la sistematiza.</p>
+              <Link to="/academy" className="btn btn-cta">Ver el programa completo →</Link>
+            </div>
+          </div>
+        </section>
+
         {/* QUOTE */}
         <section className="quote-sec">
           <div className="wrap">
@@ -455,6 +514,7 @@ export default function LandingPage() {
               <p className="tag">Gestión inteligente, liderazgo eficiente.<br />www.doxa.app.co</p>
             </div>
             <div><h4>Comunidad</h4><ul><li><a href="#servicios">Personas</a></li><li><a href="#servicios">Grupos</a></li><li><a href="#servicios">Eventos</a></li></ul></div>
+            <div><h4>DOXA Academy</h4><ul><li><Link to="/academy">Facultad de Liderazgo</Link></li><li><Link to="/academy">Facultad de Gestión</Link></li><li><Link to="/academy">Desarrollo Ministerial</Link></li><li><Link to="/academy">Innovación</Link></li></ul></div>
             <div><h4>Formación</h4><ul><li><a href="#servicios">Academia</a></li><li><a href="#servicios">Seminario</a></li><li><a href="#servicios">Certificados</a></li></ul></div>
             <div><h4>Operación</h4><ul><li><a href="#servicios">Programación</a></li><li><a href="#servicios">Finanzas</a></li><li><a href="#servicios">Reportes</a></li></ul></div>
             <div><h4>Contacto</h4><ul><li><a href="#demo">Agendar demo</a></li><li><a href="mailto:hola@doxa.app.co">hola@doxa.app.co</a></li><li><Link to="/login">Login</Link></li></ul></div>
@@ -583,6 +643,20 @@ export default function LandingPage() {
         .doxa-landing .prod-visual .row .k{ color:var(--slate); }
         .doxa-landing .prod-visual .row .v{ font-weight:700; color:var(--navy); font-family:'Poppins'; }
         .doxa-landing .prod-visual .row .badge{ background:var(--coral-soft); color:var(--coral-deep); padding:3px 10px; border-radius:999px; font-size:11.5px; font-weight:700; }
+
+        .doxa-landing .academy{ padding:90px 0 100px; background:var(--bg-tint); border-top:1px solid var(--line); border-bottom:1px solid var(--line); }
+        .doxa-landing .academy-format{ display:flex; flex-wrap:wrap; justify-content:center; gap:10px; margin-top:22px; font-family:'Poppins'; font-size:13px; font-weight:600; color:var(--navy); }
+        .doxa-landing .academy-format span:nth-child(even){ color:var(--slate); font-weight:400; }
+        .doxa-landing .faculty-grid{ display:grid; grid-template-columns:repeat(4,1fr); gap:20px; margin-top:20px; }
+        @media (max-width:980px){ .doxa-landing .faculty-grid{ grid-template-columns:1fr 1fr; } }
+        @media (max-width:560px){ .doxa-landing .faculty-grid{ grid-template-columns:1fr; } }
+        .doxa-landing .faculty-card{ background:#fff; border:1px solid var(--line); border-radius:var(--r-md); padding:26px 22px; }
+        .doxa-landing .faculty-tag{ display:block; font-family:'Poppins'; font-weight:700; font-size:14.5px; color:var(--navy); margin-bottom:16px; padding-bottom:14px; border-bottom:2px solid var(--coral); }
+        .doxa-landing .faculty-card ul{ display:flex; flex-direction:column; gap:10px; }
+        .doxa-landing .faculty-card li{ font-size:13.5px; color:var(--slate); padding-left:14px; position:relative; }
+        .doxa-landing .faculty-card li::before{ content:""; position:absolute; left:0; top:7px; width:5px; height:5px; border-radius:50%; background:var(--coral); }
+        .doxa-landing .academy-cta{ text-align:center; margin-top:44px; }
+        .doxa-landing .academy-cta p{ color:var(--slate); font-size:14.5px; margin-bottom:18px; font-style:italic; }
 
         .doxa-landing .quote-sec{ padding:100px 0; }
         .doxa-landing .quote-card{ max-width:820px; margin:0 auto; text-align:center; background:linear-gradient(120deg, var(--navy) 0%, var(--coral) 160%); border-radius:var(--r-lg); padding:64px 48px; color:#fff; position:relative; overflow:hidden; }

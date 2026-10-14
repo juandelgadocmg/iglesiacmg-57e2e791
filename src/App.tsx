@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
 import { ThemeProvider } from "@/hooks/useTheme";
 import { ActiveRoleProvider } from "@/hooks/useActiveRole";
@@ -10,16 +10,22 @@ import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import RoleGuard from "@/components/auth/RoleGuard";
 import AppLayout from "@/components/layout/AppLayout";
 import LandingPage from "@/pages/LandingPage";
+import AcademyPage from "@/pages/AcademyPage";
+import PublicEventosPage from "@/pages/PublicEventosPage";
 import LoginPage from "@/pages/LoginPage";
 import Dashboard from "@/pages/Dashboard";
 import PersonasPage from "@/pages/PersonasPage";
 import PersonaPerfilPage from "@/pages/PersonaPerfilPage";
 import GruposPage from "@/pages/GruposPage";
+import CasasDePazPage from "@/pages/CasasDePazPage";
 import ServiciosPage from "@/pages/ServiciosPage";
 import FinanzasPage from "@/pages/FinanzasPage";
 import EventosPage from "@/pages/EventosPage";
 import AcademiaPage from "@/pages/AcademiaPage";
 import SeminarioPage from "@/pages/SeminarioPage";
+import TallerNeumatologiaPage from "@/pages/TallerNeumatologiaPage";
+import DiscipuladoPage from "@/pages/DiscipuladoPage";
+import AfirmacionPage from "@/pages/AfirmacionPage";
 import CertificadosPage from "@/pages/CertificadosPage";
 import ReportesPage from "@/pages/ReportesPage";
 import PeticionesPage from "@/pages/PeticionesPage";
@@ -39,6 +45,16 @@ import HoyPage from "@/pages/HoyPage";
 import CumpleanosPage from "@/pages/CumpleanosPage";
 import AlertasPage from "@/pages/AlertasPage";
 import ActividadPage from "@/pages/ActividadPage";
+import AsistenciaPage from "@/pages/AsistenciaPage";
+import BannersPage from "@/pages/BannersPage";
+import DonacionesPage from "@/pages/DonacionesPage";
+import GraficoMinisterioPage from "@/pages/GraficoMinisterioPage";
+import InscripcionesPage from "@/pages/InscripcionesPage";
+import MapaGruposPage from "@/pages/MapaGruposPage";
+import ReportesGruposPage from "@/pages/ReportesGruposPage";
+import SenalEnVivoPage from "@/pages/SenalEnVivoPage";
+import VideosPage from "@/pages/VideosPage";
+import InfantilPage from "@/pages/InfantilPage";
 import PWAUpdatePrompt from "@/components/pwa/PWAUpdatePrompt";
 import { installOfflineQueueAutoFlush } from "@/lib/qrOfflineQueue";
 
@@ -56,46 +72,77 @@ const App = () => (
         <Sonner />
         <PWAUpdatePrompt />
 
-        <BrowserRouter>
-          <AuthProvider>
-            <ActiveRoleProvider>
-              <Routes>
-                <Route path="/" element={<LandingPage />} />
-                <Route path="/login" element={<LoginPage />} />
-                <Route path="/reset-password" element={<ResetPasswordPage />} />
-                <Route path="/check-in/:servicioId" element={<CheckInPage />} />
-                <Route path="/.lovable/oauth/consent" element={<OAuthConsentPage />} />
-                <Route path="/design-system" element={<DesignSystemPage />} />
-                <Route path="/chat/compartida/:token" element={<ChatSharePage />} />
-                <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
-                  <Route path="/hoy" element={<HoyPage />} />
-                  <Route path="/dashboard" element={<Dashboard />} />
-                  <Route path="/personas" element={<RoleGuard><PersonasPage /></RoleGuard>} />
-                  <Route path="/personas/:id" element={<RoleGuard><PersonaPerfilPage /></RoleGuard>} />
-                  <Route path="/grupos" element={<RoleGuard><GruposPage /></RoleGuard>} />
-                  <Route path="/servicios" element={<RoleGuard><ServiciosPage /></RoleGuard>} />
-                  <Route path="/finanzas" element={<RoleGuard><FinanzasPage /></RoleGuard>} />
-                  <Route path="/eventos" element={<RoleGuard><EventosPage /></RoleGuard>} />
-                  <Route path="/academia" element={<RoleGuard><AcademiaPage /></RoleGuard>} />
-                  <Route path="/seminario" element={<RoleGuard><SeminarioPage /></RoleGuard>} />
-                  <Route path="/certificados" element={<RoleGuard><CertificadosPage /></RoleGuard>} />
-                  <Route path="/reportes" element={<RoleGuard><ReportesPage /></RoleGuard>} />
-                  <Route path="/peticiones" element={<RoleGuard><PeticionesPage /></RoleGuard>} />
-                  <Route path="/usuarios" element={<RoleGuard><UsuariosPage /></RoleGuard>} />
-                  <Route path="/mensajes" element={<MensajesPage />} />
-                  <Route path="/configuracion" element={<RoleGuard><ConfiguracionPage /></RoleGuard>} />
-                  <Route path="/seguridad" element={<RoleGuard><SeguridadPage /></RoleGuard>} />
-                  <Route path="/chat" element={<ChatPage />} />
-                  <Route path="/cumpleanos" element={<CumpleanosPage />} />
-                  <Route path="/alertas" element={<AlertasPage />} />
-                  <Route path="/actividad" element={<ActividadPage />} />
-                  <Route path="/verificar-academico/:id" element={<VerificarAcademicoPage />} />
-                </Route>
-                <Route path="*" element={<NotFound />} />
-              </Routes>
-            </ActiveRoleProvider>
-          </AuthProvider>
-        </BrowserRouter>
+      <BrowserRouter>
+        <AuthProvider>
+          <ActiveRoleProvider>
+          <Routes>
+            <Route path="/" element={<LandingPage />} />
+            <Route path="/academy" element={<AcademyPage />} />
+            <Route path="/eventos-publicos" element={<PublicEventosPage />} />
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/reset-password" element={<ResetPasswordPage />} />
+            <Route path="/check-in/:servicioId" element={<CheckInPage />} />
+            <Route path="/.lovable/oauth/consent" element={<OAuthConsentPage />} />
+            <Route path="/design-system" element={<DesignSystemPage />} />
+            <Route path="/chat/compartida/:token" element={<ChatSharePage />} />
+
+            {/* Aliases for legacy or bookmarked paths */}
+            <Route path="/lideres" element={<Navigate to="/personas" replace />} />
+            <Route path="/lideres/*" element={<Navigate to="/personas" replace />} />
+            <Route path="/lider/:id" element={<Navigate to="/personas" replace />} />
+            <Route path="/discipulos" element={<Navigate to="/discipulado" replace />} />
+            <Route path="/discipulos/*" element={<Navigate to="/discipulado" replace />} />
+            <Route path="/metas" element={<Navigate to="/afirmacion" replace />} />
+            <Route path="/export-lideres" element={<Navigate to="/afirmacion" replace />} />
+            <Route path="/setup" element={<Navigate to="/dashboard" replace />} />
+
+            <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
+              <Route path="/hoy" element={<HoyPage />} />
+              <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/personas" element={<RoleGuard><PersonasPage /></RoleGuard>} />
+              <Route path="/personas/:id" element={<RoleGuard><PersonaPerfilPage /></RoleGuard>} />
+              <Route path="/grupos" element={<RoleGuard><GruposPage /></RoleGuard>} />
+              <Route path="/casas-de-paz" element={<RoleGuard><CasasDePazPage /></RoleGuard>} />
+              <Route path="/servicios" element={<RoleGuard><ServiciosPage /></RoleGuard>} />
+              <Route path="/finanzas" element={<RoleGuard><FinanzasPage /></RoleGuard>} />
+              <Route path="/eventos" element={<RoleGuard><EventosPage /></RoleGuard>} />
+              <Route path="/academia" element={<RoleGuard><AcademiaPage /></RoleGuard>} />
+              <Route path="/afirmacion" element={<RoleGuard><AfirmacionPage /></RoleGuard>} />
+              <Route path="/afirmacion/*" element={<RoleGuard><AfirmacionPage /></RoleGuard>} />
+              <Route path="/discipulado" element={<RoleGuard><DiscipuladoPage /></RoleGuard>} />
+              <Route path="/discipulado/*" element={<RoleGuard><DiscipuladoPage /></RoleGuard>} />
+              <Route path="/consolidacion" element={<RoleGuard><AfirmacionPage /></RoleGuard>} />
+              <Route path="/consolidacion/*" element={<RoleGuard><AfirmacionPage /></RoleGuard>} />
+              <Route path="/seminario" element={<RoleGuard><SeminarioPage /></RoleGuard>} />
+              <Route path="/seminario/taller-neumatologia" element={<RoleGuard><TallerNeumatologiaPage /></RoleGuard>} />
+              <Route path="/certificados" element={<RoleGuard><CertificadosPage /></RoleGuard>} />
+              <Route path="/reportes" element={<RoleGuard><ReportesPage /></RoleGuard>} />
+              <Route path="/peticiones" element={<RoleGuard><PeticionesPage /></RoleGuard>} />
+              <Route path="/usuarios" element={<RoleGuard><UsuariosPage /></RoleGuard>} />
+              <Route path="/mensajes" element={<MensajesPage />} />
+              <Route path="/configuracion" element={<RoleGuard><ConfiguracionPage /></RoleGuard>} />
+              <Route path="/seguridad" element={<RoleGuard><SeguridadPage /></RoleGuard>} />
+              <Route path="/chat" element={<ChatPage />} />
+              <Route path="/cumpleanos" element={<CumpleanosPage />} />
+              <Route path="/alertas" element={<AlertasPage />} />
+              <Route path="/actividad" element={<ActividadPage />} />
+              <Route path="/asistencia" element={<RoleGuard><AsistenciaPage /></RoleGuard>} />
+              <Route path="/banners" element={<RoleGuard><BannersPage /></RoleGuard>} />
+              <Route path="/donaciones" element={<RoleGuard><DonacionesPage /></RoleGuard>} />
+              <Route path="/grafico-ministerio" element={<RoleGuard><GraficoMinisterioPage /></RoleGuard>} />
+              <Route path="/inscripciones" element={<RoleGuard><InscripcionesPage /></RoleGuard>} />
+              <Route path="/mapa-grupos" element={<RoleGuard><MapaGruposPage /></RoleGuard>} />
+              <Route path="/reportes-grupos" element={<RoleGuard><ReportesGruposPage /></RoleGuard>} />
+              <Route path="/senal-en-vivo" element={<RoleGuard><SenalEnVivoPage /></RoleGuard>} />
+              <Route path="/videos" element={<RoleGuard><VideosPage /></RoleGuard>} />
+              <Route path="/verificar-academico/:id" element={<VerificarAcademicoPage />} />
+              <Route path="/infantil/*" element={<RoleGuard><InfantilPage /></RoleGuard>} />
+            </Route>
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </ActiveRoleProvider>
+        </AuthProvider>
+      </BrowserRouter>
       </TooltipProvider>
     </ThemeProvider>
   </QueryClientProvider>

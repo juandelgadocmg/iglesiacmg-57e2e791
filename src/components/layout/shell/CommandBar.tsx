@@ -7,7 +7,7 @@ import {
 import {
   Home, Users, UsersRound, Church, CalendarDays, GraduationCap, BookMarked,
   Award, DollarSign, BarChart3, HandHeart, LifeBuoy, Mail, Settings,
-  UserCog, ShieldCheck, Plus, QrCode, Search, ArrowRight, Clock, Star,
+  UserCog, ShieldCheck, Plus, QrCode, Search, ArrowRight, Clock, Star, CheckCircle2, Route,
 } from "lucide-react";
 import { useUserRoles } from "@/hooks/useUserRoles";
 import { useActiveRole } from "@/hooks/useActiveRole";
@@ -23,6 +23,8 @@ type NavCmd = { label: string; to: string; icon: any; hint?: string };
 const NAV_COMMANDS: NavCmd[] = [
   { label: "Hoy", to: "/hoy", icon: Home, hint: "g h" },
   { label: "Personas", to: "/personas", icon: Users, hint: "g p" },
+  { label: "Afirmación", to: "/afirmacion", icon: CheckCircle2 },
+  { label: "Discipulado", icon: Route, to: "/discipulado" },
   { label: "Grupos", to: "/grupos", icon: UsersRound, hint: "g g" },
   { label: "Reuniones", to: "/servicios", icon: Church, hint: "g r" },
   { label: "Eventos", to: "/eventos", icon: CalendarDays },
@@ -64,12 +66,13 @@ export default function CommandBar({ open, onOpenChange }: Props) {
 
   // Búsqueda en personas
   useEffect(() => {
-    if (!open || query.length < 2) { setPersonas([]); return; }
+    if (!open || query.trim().length < 2) { setPersonas([]); return; }
     const t = setTimeout(async () => {
+      const clean = query.trim().replace(/,/g, " ");
       const { data } = await supabase
         .from("personas")
-        .select("id,nombres,apellidos,documento_numero,telefono")
-        .or(`nombres.ilike.%${query}%,apellidos.ilike.%${query}%,documento_numero.ilike.%${query}%,telefono.ilike.%${query}%`)
+        .select("id,nombres,apellidos,documento,telefono")
+        .or(`nombres.ilike."%${clean}%",apellidos.ilike."%${clean}%",documento.ilike."%${clean}%",telefono.ilike."%${clean}%"`)
         .limit(6);
       setPersonas(data || []);
     }, 200);
@@ -96,7 +99,7 @@ export default function CommandBar({ open, onOpenChange }: Props) {
                   onSelect={() => go(`/personas/${p.id}`)}>
                   <Users className="h-4 w-4 mr-2 text-muted-foreground" />
                   <span className="flex-1">{p.nombres} {p.apellidos}</span>
-                  <span className="text-xs text-muted-foreground">{p.documento_numero || p.telefono}</span>
+                  <span className="text-xs text-muted-foreground">{p.documento || p.telefono}</span>
                 </CommandItem>
               ))}
             </CommandGroup>

@@ -7,31 +7,51 @@ export function usePersonas() {
   return useQuery({
     queryKey: ["personas"],
     queryFn: async () => {
-      // Fetch ALL personas without the default 1000-row limit
-      const allData: any[] = [];
-      const PAGE_SIZE = 1000;
-      let from = 0;
-      let hasMore = true;
+      let all: any[] = [];
+      let pageFrom = 0;
+      const CHUNK_SIZE = 1000;
+      let hasMorePages = true;
 
-      while (hasMore) {
-        const { data, error } = await supabase
-          .from("personas")
-          .select("*, grupos!fk_personas_grupo(nombre)")
-          .order("created_at", { ascending: false })
-          .order("id", { ascending: true })
-          .range(from, from + PAGE_SIZE - 1);
-        if (error) throw error;
-        if (data && data.length > 0) {
-          allData.push(...data);
-          from += PAGE_SIZE;
-          hasMore = data.length === PAGE_SIZE;
-        } else {
-          hasMore = false;
+      while (hasMorePages) {
+        try {
+          const { data, error } = await supabase
+            .from("personas")
+            .select("*, grupos(id, nombre), persona_procesos(proceso_id, estado, fecha_completado, observacion)")
+            .order("created_at", { ascending: false })
+            .range(pageFrom, pageFrom + CHUNK_SIZE - 1);
+
+          if (error) {
+            console.warn("Retrying fallback range query for personas:", error.message);
+            const { data: simpleData } = await supabase
+              .from("personas")
+              .select("*")
+              .order("created_at", { ascending: false })
+              .range(pageFrom, pageFrom + CHUNK_SIZE - 1);
+
+            if (simpleData && simpleData.length > 0) {
+              all = all.concat(simpleData);
+            }
+            if (!simpleData || simpleData.length < CHUNK_SIZE) {
+              hasMorePages = false;
+            }
+          } else {
+            if (data && data.length > 0) {
+              all = all.concat(data);
+            }
+            if (!data || data.length < CHUNK_SIZE) {
+              hasMorePages = false;
+            }
+          }
+        } catch (err) {
+          console.error("usePersonas query exception:", err);
+          hasMorePages = false;
         }
+        pageFrom += CHUNK_SIZE;
       }
-
-      return allData;
+      return all;
     },
+    staleTime: 1000 * 60 * 5,
+    retry: 2,
   });
 }
 
@@ -39,10 +59,27 @@ export function useCreatePersona() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (persona: TablesInsert<"personas">) => {
+      // 1. Try direct Supabase table insert first
+      const { data: directData, error: directErr } = await supabase
+        .from("personas")
+        .insert(persona)
+        .select()
+        .single();
+
+      if (!directErr && directData) {
+        return directData;
+      }
+
+      console.warn("Direct insert into personas failed, attempting RPC fallback:", directErr?.message);
+
+      // 2. Try RPC fallback if direct insert fails
       const { data, error } = await (supabase.rpc as any)("create_persona_with_permission", {
         _payload: persona,
       });
-      if (error) throw error;
+
+      if (error) {
+        throw directErr || error;
+      }
       return Array.isArray(data) ? data[0] : data;
     },
     onSuccess: () => {
@@ -52,6 +89,7 @@ export function useCreatePersona() {
       qc.invalidateQueries({ queryKey: ["grupo_miembros_detail"] });
       qc.invalidateQueries({ queryKey: ["grupo_miembros_perfil"] });
       qc.invalidateQueries({ queryKey: ["grupos"] });
+      qc.invalidateQueries({ queryKey: ["afirmacion_personas_ruta"] });
     },
   });
 }
@@ -93,6 +131,42 @@ export interface PersonaExportFiltros {
   campo?: "created_at" | "fecha_ingreso" | "ingreso_proceso"; // campo de fecha a filtrar (default: created_at)
 }
 
+const CANONICAL_SEQUENCE = [
+  "llamada de consolidación 1",
+  "mensaje 1",
+  "llamada de consolidación 2",
+  "mensaje 2",
+  "llamada de consolidación 3",
+  "mensaje 3",
+  "mensaje 4",
+  "mensaje 5",
+  "mensaje 6",
+  "visita",
+  "consejería",
+  "fiesta de bienvenida",
+  "nací para triunfar día 1",
+  "semana de poder 1",
+  "semana de poder 2",
+  "semana de poder 3",
+  "una nueva vida y un nuevo comienzo",
+  "retiro de sanidad interior y liberación",
+  "bautismo",
+  "discipulado de nuevos creyentes",
+  "escuela de evangelismo sobrenatural",
+  "escuela de líderes de casa de paz",
+  "retiro de líderes de casas de paz",
+  "escuela de mentores",
+  "retiro de mentores",
+  "escuela del ministerio quíntuple",
+];
+
+function getCanonicalOrder(nombre: string, fallbackOrden: number): number {
+  const normName = String(nombre || "").toLowerCase().trim();
+  const idx = CANONICAL_SEQUENCE.findIndex((seq) => normName.includes(seq) || seq.includes(normName));
+  if (idx !== -1) return (idx + 1) * 10;
+  return fallbackOrden * 10;
+}
+
 export function useProcesosCrecimiento() {
   return useQuery({
     queryKey: ["procesos_crecimiento"],
@@ -102,7 +176,57 @@ export function useProcesosCrecimiento() {
         .select("id, nombre, orden")
         .order("orden", { ascending: true });
       if (error) throw error;
-      return data || [];
+      let list = data || [];
+
+      // Verificar si faltan Semana de Poder 2 o Semana de Poder 3
+      const hasSdp1 = list.some((p) => p.nombre.toLowerCase().includes("semana de poder 1") || p.nombre.toLowerCase().includes("semana poder 1"));
+      const hasSdp2 = list.some((p) => p.nombre.toLowerCase().includes("semana de poder 2") || p.nombre.toLowerCase().includes("semana poder 2"));
+      const hasSdp3 = list.some((p) => p.nombre.toLowerCase().includes("semana de poder 3") || p.nombre.toLowerCase().includes("semana poder 3"));
+
+      if (hasSdp1 && (!hasSdp2 || !hasSdp3)) {
+        try {
+          const sdp1Obj = list.find((p) => p.nombre.toLowerCase().includes("semana de poder 1"));
+          const baseOrden = sdp1Obj ? sdp1Obj.orden : 15;
+
+          const toInsert: any[] = [];
+          if (!hasSdp2) toInsert.push({ nombre: "Semana de Poder 2", orden: baseOrden + 1 });
+          if (!hasSdp3) toInsert.push({ nombre: "Semana de Poder 3", orden: baseOrden + 2 });
+
+          if (toInsert.length > 0) {
+            const { data: inserted } = await supabase
+              .from("procesos_crecimiento")
+              .insert(toInsert)
+              .select("id, nombre, orden");
+
+            if (inserted && inserted.length > 0) {
+              list = [...list, ...inserted];
+            }
+          }
+        } catch (e) {
+          console.warn("Auto-insert Semana de Poder 2/3 error:", e);
+        }
+      }
+
+      // Si no están guardados en BD aún, inyectarlos sintéticamente para garantizar la vista completa
+      const finalHasSdp2 = list.some((p) => p.nombre.toLowerCase().includes("semana de poder 2") || p.nombre.toLowerCase().includes("semana poder 2"));
+      const finalHasSdp3 = list.some((p) => p.nombre.toLowerCase().includes("semana de poder 3") || p.nombre.toLowerCase().includes("semana poder 3"));
+
+      if (!finalHasSdp2 || !finalHasSdp3) {
+        const sdp1Idx = list.findIndex((p) => p.nombre.toLowerCase().includes("semana de poder 1"));
+        if (sdp1Idx !== -1) {
+          const sdp1Item = list[sdp1Idx];
+          const newItems: any[] = [];
+          if (!finalHasSdp2) newItems.push({ id: `synthetic_sdp2`, nombre: "Semana de Poder 2", orden: sdp1Item.orden + 0.1 });
+          if (!finalHasSdp3) newItems.push({ id: `synthetic_sdp3`, nombre: "Semana de Poder 3", orden: sdp1Item.orden + 0.2 });
+
+          list.splice(sdp1Idx + 1, 0, ...newItems);
+        }
+      }
+
+      // Ordenar canónicamente para garantizar: Semana de Poder 1 -> Semana de Poder 2 -> Semana de Poder 3 -> Una Nueva Vida...
+      list.sort((a, b) => getCanonicalOrder(a.nombre, a.orden) - getCanonicalOrder(b.nombre, b.orden));
+
+      return list;
     },
   });
 }

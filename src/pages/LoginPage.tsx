@@ -42,9 +42,13 @@ export default function LoginPage() {
         redirectTo: `${window.location.origin}/reset-password`,
       });
       if (error) {
-        toast.error(error.message);
+        if (/rate limit|too many/i.test(error.message)) {
+          toast.error("Límite de solicitudes por hora alcanzado. Si no recibes el correo, solicita a un administrador que restablezca tu contraseña.");
+        } else {
+          toast.error(error.message);
+        }
       } else {
-        toast.success("Se envió un enlace de recuperación a su correo.");
+        toast.success("Se envió el enlace de recuperación a su correo. Por favor revise su bandeja de entrada y Spam.");
       }
       setLoading(false);
       return;
@@ -74,8 +78,11 @@ export default function LoginPage() {
 
   const handleGoogleLogin = async () => {
     setGoogleLoading(true);
-    const { error } = await lovable.auth.signInWithOAuth("google", {
-      redirect_uri: postAuthAbsolute,
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo: postAuthAbsolute,
+      },
     });
     if (error) {
       toast.error("Error al iniciar sesión con Google");
@@ -118,8 +125,8 @@ export default function LoginPage() {
           <h1 className="text-4xl font-bold text-sidebar-primary-foreground mb-3 tracking-tight">
             CMG Admin
           </h1>
-          <p className="text-sidebar-foreground/60 text-sm max-w-xs leading-relaxed">
-            Sistema de administración integral del Centro Mundial de Gloria
+          <p className="text-sidebar-foreground/70 text-sm max-w-xs leading-relaxed">
+            Plataforma integral de gestión pastoral, afirmación y consolidación de la Iglesia Cristiana CMG.
           </p>
           <div className="mt-10 flex items-center gap-3 justify-center text-sidebar-foreground/40 text-xs">
             <span className="w-8 h-px bg-sidebar-foreground/20" />
