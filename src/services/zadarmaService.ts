@@ -1,4 +1,5 @@
 import CryptoJS from "crypto-js";
+import { supabase } from "@/integrations/supabase/client";
 
 // Credenciales oficiales de Zadarma para Centro Mundial de Gloria
 export const ZADARMA_CONFIG = {
@@ -52,6 +53,49 @@ export function getZadarmaAuthHeader(
 }
 
 /**
+ * Llama a la API de Zadarma a través de la extensión http de Supabase
+ * para evitar bloqueos de CORS o preflight OPTIONS en el navegador
+ */
+export async function callZadarmaViaProxy(
+  method: string,
+  params: Record<string, string> = {}
+): Promise<any> {
+  const authHeader = getZadarmaAuthHeader(method, params);
+  const queryParams = new URLSearchParams();
+  Object.keys(params)
+    .sort()
+    .forEach((k) => queryParams.append(k, params[k]));
+  const queryStr = queryParams.toString().replace(/\+/g, "%20");
+  const targetUrl = `${ZADARMA_CONFIG.API_URL}${method}?format=json${queryStr ? `&${queryStr}` : ""}`;
+
+  const { data, error } = await supabase.rpc("http", {
+    request: {
+      method: "GET",
+      uri: targetUrl,
+      headers: [{ field: "Authorization", value: authHeader }],
+      content_type: "application/json",
+      content: null,
+    },
+  });
+
+  if (error) {
+    throw new Error(`Error en enlace Supabase-Zadarma: ${error.message}`);
+  }
+
+  if (!data || data.status !== 200) {
+    const errorBody = data?.content || `Status ${data?.status}`;
+    throw new Error(`Error Zadarma (${data?.status}): ${errorBody}`);
+  }
+
+  const parsed = typeof data.content === "string" ? JSON.parse(data.content) : data.content;
+  if (parsed.status === "error") {
+    throw new Error(parsed.message || "Error en respuesta de Zadarma");
+  }
+
+  return parsed;
+}
+
+/**
  * Obtiene la clave de WebRTC válida de Zadarma (válida por 72 horas)
  */
 export async function getZadarmaWebRTCKey(sip = ZADARMA_CONFIG.DEFAULT_SIP): Promise<string> {
@@ -75,38 +119,21 @@ export async function getZadarmaWebRTCKey(sip = ZADARMA_CONFIG.DEFAULT_SIP): Pro
     return customKey.trim();
   }
 
-  // 3. Consultar dinámicamente a la API de Zadarma
-  const method = "/v1/webrtc/get_key/";
-  const params = { sip: targetSip };
-  const authHeader = getZadarmaAuthHeader(method, params);
-  const url = `${ZADARMA_CONFIG.API_URL}${method}?format=json&sip=${encodeURIComponent(targetSip)}`;
-
-  const response = await fetch(url, {
-    method: "GET",
-    headers: {
-      Authorization: authHeader,
-    },
-  });
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`Error Zadarma API (${response.status}): ${errorText}`);
-  }
-
-  const data = await response.json();
-  if (data.status !== "success" || !data.key) {
-    throw new Error(`Respuesta inválida de Zadarma: ${JSON.stringify(data)}`);
+  // 3. Consultar dinámicamente a la API de Zadarma a través de Supabase RPC (100% libre de CORS)
+  const result = await callZadarmaViaProxy("/v1/webrtc/get_key/", { sip: targetSip });
+  if (!result.key) {
+    throw new Error("Respuesta inválida: falta el campo 'key'");
   }
 
   // Guardar en caché
   try {
     localStorage.setItem(
       cacheKey,
-      JSON.stringify({ key: data.key, timestamp: Date.now() })
+      JSON.stringify({ key: result.key, timestamp: Date.now() })
     );
   } catch {}
 
-  return data.key;
+  return result.key;
 }
 
 /**
@@ -116,17 +143,29 @@ export async function getZadarmaSIPCredentials(sip = ZADARMA_CONFIG.DEFAULT_SIP)
   const targetSip = sip && sip.includes("-") ? sip : ZADARMA_CONFIG.DEFAULT_SIP;
   const webrtcKey = await getZadarmaWebRTCKey(targetSip);
 
-  const url = `https://api.zadarma.com/sys/webrtc/get_webphone_data.php?integrationType=site&key=${encodeURIComponent(
+  const targetUrl = `https://api.zadarma.com/sys/webrtc/get_webphone_data.php?integrationType=site&key=${encodeURIComponent(
     webrtcKey
   )}&sipId=${encodeURIComponent(targetSip)}`;
 
-  const response = await fetch(url);
-  const text = await response.text();
+  const { data, error } = await supabase.rpc("http", {
+    request: {
+      method: "GET",
+      uri: targetUrl,
+      headers: [],
+      content_type: "application/json",
+      content: null,
+    },
+  });
 
+  if (error) {
+    throw new Error(`Error al consultar gateway SIP: ${error.message}`);
+  }
+
+  const text = data?.content || "";
   const start = text.indexOf("{");
   const end = text.lastIndexOf("}");
   if (start === -1 || end === -1) {
-    throw new Error(`Respuesta inválida al consultar gateway SIP Zadarma`);
+    throw new Error(`Respuesta inválida al consultar gateway SIP Zadarma: ${text}`);
   }
 
   const json = JSON.parse(text.slice(start, end + 1));
@@ -269,7 +308,7 @@ export async function initZadarmaEngine(sip = ZADARMA_CONFIG.DEFAULT_SIP): Promi
       throw new Error("JsSIP no disponible en la ventana.");
     }
 
-    // 2. Obtener credenciales SIP seguras
+    // 2. Obtener credenciales SIP seguras (a través de Supabase RPC para bypass de CORS)
     const creds = await getZadarmaSIPCredentials(sip);
     currentSipCredentials = creds;
 
@@ -477,31 +516,14 @@ export async function triggerZadarmaCallback(
   // Si no se especifica número de origen, usar el SIP principal 301311 de CMG o el número del líder
   const cleanFrom = fromPhone ? formatZadarmaNumber(fromPhone) : "301311";
 
-  const method = "/v1/request/callback/";
   const params: Record<string, string> = {
     from: cleanFrom,
     to: cleanTo,
-    sip: "576019179246", // Línea DID de Bogotá
+    sip: "301311", // SIP principal de CMG
   };
 
-  const authHeader = getZadarmaAuthHeader(method, params);
-  const queryStr = Object.keys(params)
-    .sort()
-    .map((k) => `${encodeURIComponent(k)}=${encodeURIComponent(params[k])}`)
-    .join("&");
-
-  const url = `${ZADARMA_CONFIG.API_URL}${method}?format=json&${queryStr}`;
-  const response = await fetch(url, {
-    method: "GET",
-    headers: { Authorization: authHeader },
-  });
-
-  const data = await response.json();
-  if (!response.ok || data.status !== "success") {
-    throw new Error(data.message || "Error al solicitar llamada por Zadarma Callback");
-  }
-
-  return data;
+  const result = await callZadarmaViaProxy("/v1/request/callback/", params);
+  return result;
 }
 
 // Aliases compatibles para código previo
