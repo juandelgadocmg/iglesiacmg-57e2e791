@@ -385,7 +385,7 @@ export default function DiscipuladoPage() {
           </Button>
         </div>
 
-        {/* Marcador Telefónico y Ajustes */}
+        {/* Marcador Telefónico y WhatsApp */}
         <div className="bg-white p-3 rounded-lg border border-slate-200 shadow-sm flex items-center justify-between gap-3">
           <div className="flex items-center gap-3 flex-1 min-w-0">
             <div className="w-8 h-8 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
@@ -397,24 +397,12 @@ export default function DiscipuladoPage() {
                 <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-green-100 text-green-800">
                   Marcado Directo y WhatsApp Activos
                 </span>
-                {zadarmaExtension && (
-                  <span className="text-[11px] text-slate-400 hidden sm:inline">
-                    (Extensión Zadarma: {zadarmaExtension})
-                  </span>
-                )}
+                <span className="text-[11px] text-slate-400 hidden sm:inline">
+                  (Listo en doxastack.com)
+                </span>
               </div>
             </div>
           </div>
-          <button
-            type="button"
-            onClick={() => {
-              window.dispatchEvent(new CustomEvent('open-zadarma-settings'));
-            }}
-            className="text-xs text-slate-600 hover:text-slate-900 font-medium px-2.5 py-1.5 rounded-lg border border-slate-200 hover:bg-slate-50 transition-colors shrink-0 flex items-center gap-1.5"
-          >
-            <Settings className="w-3.5 h-3.5 text-slate-400" />
-            <span>Ajustes WebRTC</span>
-          </button>
         </div>
       </div>
 
