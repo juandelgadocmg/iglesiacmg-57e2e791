@@ -3,6 +3,7 @@ import { createPortal } from "react-dom";
 import { Phone, PhoneCall, PhoneOff, MessageCircle, Delete, X, ChevronDown, CheckCircle2, User, Volume2, Sparkles, Copy, Check, Settings, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { initZadarmaWebPhone } from "@/services/zadarmaService";
 
 interface DoxaWebPhoneProps {
   sipExtension?: string;
@@ -147,29 +148,47 @@ export const DoxaWebPhone: React.FC<DoxaWebPhoneProps> = ({
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const handleStartCall = () => {
+  const handleStartCall = async () => {
     const clean = phoneNumber.replace(/\D/g, "");
     if (!clean || clean.length < 7) {
       toast.error("Ingresa un número telefónico válido (mínimo 7 dígitos)");
       return;
     }
 
-    // 1. Intentar con Zadarma WebRTC si está cargado en el navegador
     const w = window as any;
+    // 1. Intentar con Zadarma WebRTC si está cargado
     if (w.zdrmWebPhone && typeof w.zdrmWebPhone.call === "function") {
       try {
         w.zdrmWebPhone.call(clean);
         setIsCalling(true);
-        toast.success(`Llamando a ${matchedDiscipulo?.full_name || clean} por WebRTC...`);
+        toast.success(`Llamando a ${matchedDiscipulo?.full_name || clean} por Zadarma (+57 601 9179246)...`);
         return;
       } catch (err) {
         console.warn("Zadarma call error:", err);
       }
     }
 
-    // 2. Marcado telefónico directo al celular / app del dispositivo
-    toast.success(`Marcando a ${matchedDiscipulo?.full_name || clean}...`, {
-      description: "Se abrió la aplicación telefónica de tu dispositivo. También puedes usar WhatsApp o copiar el número.",
+    // Si aún no está listo, inicializar al vuelo
+    try {
+      toast.info("Conectando con Zadarma VoIP...");
+      const ok = await initZadarmaWebPhone(sipExtension || "301311");
+      if (ok) {
+        // Breve pausa para que se registre el objeto global
+        await new Promise((r) => setTimeout(r, 600));
+        if (w.zdrmWebPhone && typeof w.zdrmWebPhone.call === "function") {
+          w.zdrmWebPhone.call(clean);
+          setIsCalling(true);
+          toast.success(`Llamando a ${matchedDiscipulo?.full_name || clean} por Zadarma (+57 601 9179246)...`);
+          return;
+        }
+      }
+    } catch (e) {
+      console.warn("Error inicializando Zadarma al llamar:", e);
+    }
+
+    // 2. Si WebRTC no está disponible en este dispositivo, ofrecer marcado telefónico
+    toast.info(`Marcando a ${matchedDiscipulo?.full_name || clean}...`, {
+      description: "Abriendo la aplicación telefónica de tu dispositivo.",
     });
 
     const link = document.createElement("a");
@@ -293,7 +312,7 @@ export const DoxaWebPhone: React.FC<DoxaWebPhoneProps> = ({
             <div className="flex items-center gap-2">
               <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
               <span className="text-xs font-bold tracking-wide text-slate-200">Teléfono DOXA</span>
-              <span className="text-[10px] text-slate-500 font-mono">doxastack.com</span>
+              <span className="text-[10px] text-emerald-400 font-mono bg-emerald-950/60 px-1.5 py-0.5 rounded border border-emerald-800/40">Zadarma +57 601 9179246</span>
             </div>
             <div className="flex items-center gap-1">
               <button
@@ -464,10 +483,10 @@ export const DoxaWebPhone: React.FC<DoxaWebPhoneProps> = ({
                   onClick={handleStartCall}
                   disabled={!phoneNumber}
                   className="flex-1 h-12 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 disabled:hover:bg-emerald-600 text-white font-bold rounded-2xl flex items-center justify-center gap-2 shadow-lg shadow-emerald-900/30 transition-all active:scale-95"
-                  title="Llamar al teléfono"
+                  title="Llamar directamente por Zadarma VoIP"
                 >
                   <PhoneCall className="w-5 h-5" />
-                  <span className="text-sm">Llamar Teléfono</span>
+                  <span className="text-sm">Llamar por Zadarma</span>
                 </button>
 
                 <button

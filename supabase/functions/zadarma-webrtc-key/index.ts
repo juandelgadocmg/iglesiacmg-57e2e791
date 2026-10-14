@@ -1,8 +1,8 @@
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import crypto from "node:crypto";
 
-const ZADARMA_KEY = Deno.env.get("ZADARMA_KEY") || "fb94530cb765f6d212e2";
-const ZADARMA_SECRET = Deno.env.get("ZADARMA_SECRET") || "20d18884fda09f1f8587";
+const ZADARMA_KEY = Deno.env.get("ZADARMA_KEY") || "c068eb681e595e132a89";
+const ZADARMA_SECRET = Deno.env.get("ZADARMA_SECRET") || "3351412a4e36798a200f";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
