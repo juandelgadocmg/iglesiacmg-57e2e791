@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { BookOpen, Calendar as CalendarIcon, Plus, Users, UserRound, MoreVertical, Edit2, Trash2 } from "lucide-react";
-import { useInfantilClases, useCreateInfantilClase, useUpdateInfantilClase, useInfantilGrupos } from "@/hooks/useInfantil";
+import { useInfantilClases, useCreateInfantilClase, useUpdateInfantilClase, useInfantilGrupos, isMaestroInfantil } from "@/hooks/useInfantil";
 import { usePersonas } from "@/hooks/useDatabase";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -9,10 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
-import { Check, ChevronsUpDown } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { SearchableSelect } from "./SearchableSelect";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
@@ -27,9 +24,6 @@ export default function ClasesProgramacionView() {
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-  
-  const [grupoPopoverOpen, setGrupoPopoverOpen] = useState(false);
-  const [maestroPopoverOpen, setMaestroPopoverOpen] = useState(false);
   
   const [form, setForm] = useState({
     grupo_id: "",
@@ -82,12 +76,13 @@ export default function ClasesProgramacionView() {
       return;
     }
 
+    const payload = { ...form, maestro_id: form.maestro_id || null };
     try {
       if (editingId) {
-        await updateClase.mutateAsync({ id: editingId, ...form });
+        await updateClase.mutateAsync({ id: editingId, ...payload });
         toast.success("Clase actualizada");
       } else {
-        await createClase.mutateAsync(form);
+        await createClase.mutateAsync(payload);
         toast.success("Clase programada");
       }
       setIsModalOpen(false);
@@ -96,8 +91,28 @@ export default function ClasesProgramacionView() {
     }
   };
 
-  // Obtener solo maestros para el select
-  const maestros = personas?.filter(p => p.roles?.includes("maestro") || p.roles?.includes("admin")) || [];
+  // Solo personas nombradas como maestros infantiles (Gestión Maestros)
+  const maestroOptions = useMemo(
+    () =>
+      (personas || [])
+        .filter(isMaestroInfantil)
+        .map((m: any) => ({ value: m.id, label: `${m.nombres} ${m.apellidos}`.trim(), hint: m.telefono || undefined }))
+        .sort((a, b) => a.label.localeCompare(b.label, "es")),
+    [personas],
+  );
+
+  const grupoOptions = useMemo(
+    () =>
+      (grupos || []).map((g: any) => {
+        const d = g.infantil_grupos_detalles?.[0];
+        return {
+          value: g.id,
+          label: g.nombre,
+          hint: g.edades || (d ? `${d.edad_minima ?? 0} a ${d.edad_maxima ?? 0} años` : undefined),
+        };
+      }),
+    [grupos],
+  );
 
   return (
     <div className="p-4 md:p-8 space-y-8 animate-fade-in bg-slate-50/50 min-h-full">
@@ -149,7 +164,7 @@ export default function ClasesProgramacionView() {
                   <CardContent className="space-y-4 px-5 pb-5">
                     <div className="flex items-center gap-2 text-sm text-slate-600 font-medium">
                       <div className="p-1.5 bg-slate-100 rounded-md text-slate-500"><CalendarIcon className="h-4 w-4" /></div>
-                      {format(new Date(c.fecha), "EEEE d 'de' MMMM, yyyy", { locale: es })}
+                      {format(new Date(`${c.fecha}T00:00:00`), "EEEE d 'de' MMMM, yyyy", { locale: es })}
                     </div>
                     {c.maestro && (
                       <div className="flex items-center gap-2 text-sm text-slate-600 font-medium">
@@ -209,46 +224,14 @@ export default function ClasesProgramacionView() {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Grupo / Clase *</Label>
-                <Popover open={grupoPopoverOpen} onOpenChange={setGrupoPopoverOpen}>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      role="combobox"
-                      aria-expanded={grupoPopoverOpen}
-                      className="w-full justify-between"
-                    >
-                      <span className="truncate">
-                        {form.grupo_id 
-                          ? grupos?.find(g => g.id === form.grupo_id)?.nombre
-                          : "Seleccionar grupo"}
-                      </span>
-                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-[300px] p-0" align="start">
-                    <Command>
-                      <CommandInput placeholder="Buscar grupo..." />
-                      <CommandList>
-                        <CommandEmpty>No se encontró ningún grupo.</CommandEmpty>
-                        <CommandGroup className="max-h-[200px] overflow-y-auto">
-                          {grupos?.map(g => (
-                            <CommandItem
-                              key={g.id}
-                              value={g.nombre}
-                              onSelect={() => {
-                                setForm({...form, grupo_id: g.id});
-                                setGrupoPopoverOpen(false);
-                              }}
-                            >
-                              <Check className={cn("mr-2 h-4 w-4", form.grupo_id === g.id ? "opacity-100" : "opacity-0")} />
-                              {g.nombre}
-                            </CommandItem>
-                          ))}
-                        </CommandGroup>
-                      </CommandList>
-                    </Command>
-                  </PopoverContent>
-                </Popover>
+                <SearchableSelect
+                  options={grupoOptions}
+                  value={form.grupo_id}
+                  onChange={(v) => setForm({ ...form, grupo_id: v })}
+                  placeholder="Seleccionar grupo"
+                  searchPlaceholder="Buscar grupo..."
+                  emptyText="No hay grupos. Créalos en el módulo Grupos."
+                />
               </div>
               <div className="space-y-2">
                 <Label>Fecha *</Label>
@@ -258,46 +241,15 @@ export default function ClasesProgramacionView() {
 
             <div className="space-y-2">
               <Label>Maestro Asignado</Label>
-              <Popover open={maestroPopoverOpen} onOpenChange={setMaestroPopoverOpen}>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    role="combobox"
-                    aria-expanded={maestroPopoverOpen}
-                    className="w-full justify-between"
-                  >
-                    <span className="truncate">
-                      {form.maestro_id 
-                        ? maestros?.find(m => m.id === form.maestro_id)?.nombres + " " + maestros?.find(m => m.id === form.maestro_id)?.apellidos
-                        : "Seleccionar maestro (opcional)"}
-                    </span>
-                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-[300px] p-0" align="start">
-                  <Command>
-                    <CommandInput placeholder="Buscar maestro..." />
-                    <CommandList>
-                      <CommandEmpty>No se encontró ningún maestro.</CommandEmpty>
-                      <CommandGroup className="max-h-[200px] overflow-y-auto">
-                        {maestros.map(m => (
-                          <CommandItem
-                            key={m.id}
-                            value={`${m.nombres} ${m.apellidos}`}
-                            onSelect={() => {
-                              setForm({...form, maestro_id: m.id});
-                              setMaestroPopoverOpen(false);
-                            }}
-                          >
-                            <Check className={cn("mr-2 h-4 w-4", form.maestro_id === m.id ? "opacity-100" : "opacity-0")} />
-                            {m.nombres} {m.apellidos}
-                          </CommandItem>
-                        ))}
-                      </CommandGroup>
-                    </CommandList>
-                  </Command>
-                </PopoverContent>
-              </Popover>
+              <SearchableSelect
+                options={maestroOptions}
+                value={form.maestro_id}
+                onChange={(v) => setForm({ ...form, maestro_id: v })}
+                placeholder="Seleccionar maestro (opcional)"
+                searchPlaceholder="Buscar maestro..."
+                emptyText="No hay maestros. Nómbralos en Gestión Maestros."
+                allowClear
+              />
             </div>
 
             <div className="space-y-2">

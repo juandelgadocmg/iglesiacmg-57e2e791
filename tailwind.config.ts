@@ -19,6 +19,8 @@ export default {
         heading: ['Sora', 'system-ui', 'sans-serif'],
       },
       colors: {
+        navy: "#003A6C",
+        coral: "#FD8972",
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",

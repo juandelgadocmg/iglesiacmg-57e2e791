@@ -1,32 +1,42 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Users, UserPlus, Shield, GraduationCap, Phone, Mail, Award, Search, Trash2 } from "lucide-react";
 import { usePersonas, useUpdatePersona } from "@/hooks/useDatabase";
+import { TIPO_MAESTRO_INFANTIL, getTiposPersona as getTipos, isMaestroInfantil } from "@/hooks/useInfantil";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
-import { Check, ChevronsUpDown } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { SearchableSelect } from "./SearchableSelect";
 import { toast } from "sonner";
 import DeleteConfirmDialog from "@/components/shared/DeleteConfirmDialog";
 
+
 export default function MaestrosInfantilesView() {
   const { data: personas, isLoading } = usePersonas();
-  const updateRoles = useUpdatePersona();
+  const updatePersona = useUpdatePersona();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   
   const [selectedPersonaId, setSelectedPersonaId] = useState("");
-  const [popoverOpen, setPopoverOpen] = useState(false);
 
-  const maestros = personas?.filter(p => p.roles?.includes("maestro")) || [];
+  const maestros = personas?.filter(isMaestroInfantil) || [];
+
+  const personaOptions = useMemo(
+    () =>
+      (personas || [])
+        .filter((p: any) => !isMaestroInfantil(p))
+        .map((p: any) => ({
+          value: p.id,
+          label: `${p.nombres} ${p.apellidos}`.trim(),
+          hint: [p.documento, p.telefono].filter(Boolean).join(" · ") || undefined,
+        }))
+        .sort((a, b) => a.label.localeCompare(b.label, "es")),
+    [personas],
+  );
 
   const handleAddMaestro = async () => {
     if (!selectedPersonaId) return toast.error("Selecciona una persona");
@@ -34,18 +44,18 @@ export default function MaestrosInfantilesView() {
     const persona = personas?.find(p => p.id === selectedPersonaId);
     if (!persona) return;
 
-    if (persona.roles?.includes("maestro")) {
+    if (isMaestroInfantil(persona)) {
       return toast.error("Esta persona ya es maestro");
     }
 
-    const newRoles = [...(persona.roles || []), "maestro"];
+    const nuevosTipos = [...getTipos(persona), TIPO_MAESTRO_INFANTIL];
     try {
-      await updateRoles.mutateAsync({ id: persona.id, roles: newRoles });
+      await updatePersona.mutateAsync({ id: persona.id, tipos_persona: nuevosTipos } as any);
       toast.success("Maestro nombrado exitosamente");
       setIsModalOpen(false);
       setSelectedPersonaId("");
     } catch (e: any) {
-      toast.error("Error al nombrar maestro");
+      toast.error("Error al nombrar maestro: " + (e?.message || ""));
     }
   };
 
@@ -54,9 +64,9 @@ export default function MaestrosInfantilesView() {
     const persona = personas?.find(p => p.id === deleteConfirmId);
     if (!persona) return;
 
-    const newRoles = persona.roles?.filter(r => r !== "maestro") || [];
+    const nuevosTipos = getTipos(persona).filter(t => t !== TIPO_MAESTRO_INFANTIL);
     try {
-      await updateRoles.mutateAsync({ id: persona.id, roles: newRoles });
+      await updatePersona.mutateAsync({ id: persona.id, tipos_persona: nuevosTipos } as any);
       toast.success("Rol de maestro removido");
       setDeleteConfirmId(null);
     } catch (e: any) {
@@ -159,46 +169,15 @@ export default function MaestrosInfantilesView() {
           <div className="px-6 pb-6 space-y-4">
             <div className="space-y-2">
               <Label className="text-slate-600 font-semibold">Buscar Persona *</Label>
-              <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    role="combobox"
-                    aria-expanded={popoverOpen}
-                    className="w-full justify-between h-12 rounded-xl bg-slate-50 font-normal"
-                  >
-                    <span className="truncate">
-                      {selectedPersonaId 
-                        ? personas?.find(p => p.id === selectedPersonaId)?.nombres + " " + personas?.find(p => p.id === selectedPersonaId)?.apellidos
-                        : "Selecciona un miembro de la iglesia..."}
-                    </span>
-                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-[300px] sm:w-[400px] p-0" align="start">
-                  <Command>
-                    <CommandInput placeholder="Buscar por nombre..." />
-                    <CommandList>
-                      <CommandEmpty>No se encontró ninguna persona.</CommandEmpty>
-                      <CommandGroup className="max-h-[250px] overflow-y-auto">
-                        {personas?.map(p => (
-                          <CommandItem
-                            key={p.id}
-                            value={`${p.nombres} ${p.apellidos}`}
-                            onSelect={() => {
-                              setSelectedPersonaId(p.id);
-                              setPopoverOpen(false);
-                            }}
-                          >
-                            <Check className={cn("mr-2 h-4 w-4", selectedPersonaId === p.id ? "opacity-100" : "opacity-0")} />
-                            {p.nombres} {p.apellidos}
-                          </CommandItem>
-                        ))}
-                      </CommandGroup>
-                    </CommandList>
-                  </Command>
-                </PopoverContent>
-              </Popover>
+              <SearchableSelect
+                options={personaOptions}
+                value={selectedPersonaId}
+                onChange={setSelectedPersonaId}
+                placeholder="Selecciona un miembro de la iglesia..."
+                searchPlaceholder="Escribe nombre, documento o teléfono..."
+                emptyText="No se encontró ninguna persona."
+                className="h-12 rounded-xl bg-slate-50"
+              />
             </div>
 
             <div className="bg-blue-50 p-4 rounded-xl border border-blue-100 flex items-start gap-3 mt-4">
@@ -211,7 +190,7 @@ export default function MaestrosInfantilesView() {
 
             <DialogFooter className="pt-4">
               <Button type="button" variant="ghost" onClick={() => setIsModalOpen(false)} className="rounded-xl">Cancelar</Button>
-              <Button onClick={handleAddMaestro} className="bg-navy hover:bg-navy/90 text-white rounded-xl px-8">Confirmar Nombramiento</Button>
+              <Button onClick={handleAddMaestro} disabled={updatePersona.isPending} className="bg-navy hover:bg-navy/90 text-white rounded-xl px-8">Confirmar Nombramiento</Button>
             </DialogFooter>
           </div>
         </DialogContent>

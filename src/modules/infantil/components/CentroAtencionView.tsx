@@ -7,6 +7,19 @@ import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
+import { useInfantilAcudientes } from "@/hooks/useInfantil";
+import { toast } from "sonner";
+
+const normalizeName = (s: string) =>
+  (s || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/\s+/g, " ").trim();
+
+/** Convierte un teléfono a formato wa.me (solo dígitos, con indicativo 57 si es un celular colombiano de 10 dígitos). */
+const toWhatsAppNumber = (phone: string) => {
+  let digits = (phone || "").replace(/\D/g, "");
+  if (digits.startsWith("00")) digits = digits.slice(2);
+  if (digits.length === 10 && digits.startsWith("3")) digits = "57" + digits;
+  return digits;
+};
 
 // Mock data para la interfaz
 const MOCK_SOLICITUDES = [
@@ -53,6 +66,37 @@ export default function CentroAtencionView() {
   const [selectedCase, setSelectedCase] = useState<any | null>(null);
   const [notifyModalOpen, setNotifyModalOpen] = useState(false);
   const [whatsappMessage, setWhatsappMessage] = useState("");
+  const [acudienteTelefono, setAcudienteTelefono] = useState("");
+  const [acudienteNombre, setAcudienteNombre] = useState("");
+  const { data: acudientes } = useInfantilAcudientes();
+
+  /** Busca el acudiente (principal primero) del niño del caso para precargar su WhatsApp. */
+  const openNotify = (caso: any) => {
+    const nombre = normalizeName(caso?.nino_nombre);
+    const rels = (acudientes || []).filter((a: any) =>
+      (caso?.nino_id && a.nino_id === caso.nino_id) ||
+      normalizeName(`${a.nino?.nombres ?? ""} ${a.nino?.apellidos ?? ""}`) === nombre
+    );
+    const rel = rels.find((a: any) => a.es_principal) || rels[0];
+    setAcudienteTelefono(rel?.acudiente?.whatsapp || rel?.acudiente?.telefono || "");
+    setAcudienteNombre(rel ? `${rel.acudiente?.nombres ?? ""} ${rel.acudiente?.apellidos ?? ""}`.trim() : "");
+    setWhatsappMessage(`Hola. Necesitamos la presencia del acudiente de ${caso?.nino_nombre || 'el niño'} en Iglesia Infantil lo antes posible. Por favor acércate al área correspondiente.`);
+    setNotifyModalOpen(true);
+  };
+
+  const sendWhatsApp = () => {
+    const number = toWhatsAppNumber(acudienteTelefono);
+    if (number.length < 8) {
+      toast.error("Ingresa un número de WhatsApp válido del acudiente.");
+      return;
+    }
+    if (!whatsappMessage.trim()) {
+      toast.error("Escribe el mensaje a enviar.");
+      return;
+    }
+    window.open(`https://wa.me/${number}?text=${encodeURIComponent(whatsappMessage)}`, "_blank", "noopener");
+    setNotifyModalOpen(false);
+  };
 
   const getTipoIcon = (tipo: string) => {
     switch(tipo) {
@@ -201,10 +245,7 @@ export default function CentroAtencionView() {
                 
                 {selectedCase.estado !== 'Atendido' && (
                   <>
-                    <Button variant="secondary" className="w-full sm:w-auto gap-2" onClick={() => {
-                      setWhatsappMessage(`Hola. Necesitamos la presencia del acudiente de ${selectedCase?.nino_nombre || 'el niño'} en Iglesia Infantil lo antes posible. Por favor acércate al área correspondiente.`);
-                      setNotifyModalOpen(true);
-                    }}>
+                    <Button variant="secondary" className="w-full sm:w-auto gap-2" onClick={() => openNotify(selectedCase)}>
                       <MessageSquare className="w-4 h-4" /> Notificar Acudiente
                     </Button>
                     <Button variant="outline" className="w-full sm:w-auto border-green-200 text-green-700 hover:bg-green-50" onClick={() => setSelectedCase(null)}>
@@ -226,6 +267,18 @@ export default function CentroAtencionView() {
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
+              <span className="text-sm font-medium">WhatsApp del acudiente{acudienteNombre ? ` (${acudienteNombre})` : ""}:</span>
+              <Input
+                type="tel"
+                placeholder="Ej. 300 123 4567"
+                value={acudienteTelefono}
+                onChange={(e) => setAcudienteTelefono(e.target.value)}
+              />
+              {!acudienteNombre && (
+                <p className="text-xs text-muted-foreground">No hay acudiente vinculado a este niño. Escribe el número manualmente o vincúlalo en "Padres y acudientes".</p>
+              )}
+            </div>
+            <div className="space-y-2">
               <span className="text-sm font-medium">Plantilla:</span>
               <div className="flex gap-2">
                 <Badge variant="outline" className="cursor-pointer hover:bg-muted" onClick={() => setWhatsappMessage(`Hola. El niño ${selectedCase?.nino_nombre || ''} presenta un malestar. Por favor acércate al área de Iglesia Infantil.`)}>Malestar</Badge>
@@ -241,10 +294,9 @@ export default function CentroAtencionView() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setNotifyModalOpen(false)}>Cancelar</Button>
-            <Button onClick={() => {
-              window.open(`https://wa.me/?text=${encodeURIComponent(whatsappMessage)}`, '_blank');
-              setNotifyModalOpen(false);
-            }}>Enviar por WhatsApp</Button>
+            <Button className="bg-green-600 hover:bg-green-700 text-white gap-2" onClick={sendWhatsApp}>
+              <MessageSquare className="w-4 h-4" /> Abrir en WhatsApp
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Users, UserPlus, ShieldCheck, Phone, Mail, Link as LinkIcon, AlertTriangle, ShieldAlert, CheckCircle2, Trash2 } from "lucide-react";
 import { useInfantilAcudientes, useCreateInfantilAcudiente, useUpdateInfantilAcudiente, useDeleteInfantilAcudiente } from "@/hooks/useInfantil";
 import { usePersonas } from "@/hooks/useDatabase";
@@ -10,10 +10,10 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
-import { Check, ChevronsUpDown } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { SearchableSelect, type SearchableOption } from "./SearchableSelect";
+import { RegistrarAcudienteModal } from "./RegistrarAcudienteModal";
+import { RegistrarNinoModal } from "./RegistrarNinoModal";
+import { isNino } from "@/hooks/useInfantil";
 import { toast } from "sonner";
 import DeleteConfirmDialog from "@/components/shared/DeleteConfirmDialog";
 
@@ -27,8 +27,25 @@ export default function PadresView() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   
-  const [ninoPopoverOpen, setNinoPopoverOpen] = useState(false);
-  const [acudientePopoverOpen, setAcudientePopoverOpen] = useState(false);
+  const [registrarNino, setRegistrarNino] = useState<{ open: boolean; name: string }>({ open: false, name: "" });
+  const [registrarAcu, setRegistrarAcu] = useState<{ open: boolean; name: string }>({ open: false, name: "" });
+
+  const toOption = (p: any): SearchableOption => ({
+    value: p.id,
+    label: `${p.nombres ?? ""} ${p.apellidos ?? ""}`.trim(),
+    hint: [p.documento, p.telefono || p.whatsapp].filter(Boolean).join(" · ") || undefined,
+    badge: isNino(p) ? "Niño" : undefined,
+  });
+
+  // Niños primero en el selector de niño; adultos (no niños) en el de acudiente.
+  const ninoOptions = useMemo(() => {
+    const list = (personas || []).map(toOption);
+    return list.sort((a, b) => Number(!!b.badge) - Number(!!a.badge));
+  }, [personas]);
+  const acudienteOptions = useMemo(
+    () => (personas || []).filter((p: any) => !isNino(p)).map(toOption),
+    [personas],
+  );
   
   const [form, setForm] = useState({
     nino_id: "",
@@ -215,90 +232,38 @@ export default function PadresView() {
           <form onSubmit={handleSubmit} className="px-6 pb-6 space-y-4">
             <div className="space-y-2">
               <Label className="text-slate-600 font-semibold">Seleccionar Niño *</Label>
-              <Popover open={ninoPopoverOpen} onOpenChange={setNinoPopoverOpen}>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    role="combobox"
-                    aria-expanded={ninoPopoverOpen}
-                    className="w-full justify-between h-12 rounded-xl bg-slate-50 font-normal"
-                  >
-                    <span className="truncate">
-                      {form.nino_id 
-                        ? personas?.find(p => p.id === form.nino_id)?.nombres + " " + personas?.find(p => p.id === form.nino_id)?.apellidos
-                        : "Busca al niño..."}
-                    </span>
-                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+              <SearchableSelect
+                options={ninoOptions}
+                value={form.nino_id}
+                onChange={(v) => setForm((f) => ({ ...f, nino_id: v }))}
+                placeholder="Busca al niño..."
+                searchPlaceholder="Nombre, documento..."
+                emptyText="No se encontró el niño."
+                className="h-12 rounded-xl bg-slate-50"
+                footer={(close, search) => (
+                  <Button type="button" variant="ghost" className="w-full justify-start text-navy" onClick={() => { close(); setRegistrarNino({ open: true, name: search }); }}>
+                    <UserPlus className="h-4 w-4 mr-2" /> Registrar nuevo niño{search ? `: "${search}"` : ""}
                   </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-[300px] sm:w-[400px] p-0" align="start">
-                  <Command>
-                    <CommandInput placeholder="Buscar por nombre..." />
-                    <CommandList>
-                      <CommandEmpty>No se encontró ninguna persona.</CommandEmpty>
-                      <CommandGroup className="max-h-[250px] overflow-y-auto">
-                        {personas?.map(p => (
-                          <CommandItem
-                            key={p.id}
-                            value={`${p.nombres} ${p.apellidos}`}
-                            onSelect={() => {
-                              setForm({...form, nino_id: p.id});
-                              setNinoPopoverOpen(false);
-                            }}
-                          >
-                            <Check className={cn("mr-2 h-4 w-4", form.nino_id === p.id ? "opacity-100" : "opacity-0")} />
-                            {p.nombres} {p.apellidos}
-                          </CommandItem>
-                        ))}
-                      </CommandGroup>
-                    </CommandList>
-                  </Command>
-                </PopoverContent>
-              </Popover>
+                )}
+              />
             </div>
 
             <div className="space-y-2">
               <Label className="text-slate-600 font-semibold">Seleccionar Acudiente *</Label>
-              <Popover open={acudientePopoverOpen} onOpenChange={setAcudientePopoverOpen}>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    role="combobox"
-                    aria-expanded={acudientePopoverOpen}
-                    className="w-full justify-between h-12 rounded-xl bg-slate-50 font-normal"
-                  >
-                    <span className="truncate">
-                      {form.acudiente_id 
-                        ? personas?.find(p => p.id === form.acudiente_id)?.nombres + " " + personas?.find(p => p.id === form.acudiente_id)?.apellidos
-                        : "Busca al acudiente..."}
-                    </span>
-                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+              <SearchableSelect
+                options={acudienteOptions}
+                value={form.acudiente_id}
+                onChange={(v) => setForm((f) => ({ ...f, acudiente_id: v }))}
+                placeholder="Busca al padre / acudiente..."
+                searchPlaceholder="Nombre, documento o teléfono..."
+                emptyText="No se encontró el acudiente."
+                className="h-12 rounded-xl bg-slate-50"
+                footer={(close, search) => (
+                  <Button type="button" variant="ghost" className="w-full justify-start text-navy" onClick={() => { close(); setRegistrarAcu({ open: true, name: search }); }}>
+                    <UserPlus className="h-4 w-4 mr-2" /> Registrar nuevo acudiente{search ? `: "${search}"` : ""}
                   </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-[300px] sm:w-[400px] p-0" align="start">
-                  <Command>
-                    <CommandInput placeholder="Buscar por nombre..." />
-                    <CommandList>
-                      <CommandEmpty>No se encontró ninguna persona.</CommandEmpty>
-                      <CommandGroup className="max-h-[250px] overflow-y-auto">
-                        {personas?.map(p => (
-                          <CommandItem
-                            key={p.id}
-                            value={`${p.nombres} ${p.apellidos}`}
-                            onSelect={() => {
-                              setForm({...form, acudiente_id: p.id});
-                              setAcudientePopoverOpen(false);
-                            }}
-                          >
-                            <Check className={cn("mr-2 h-4 w-4", form.acudiente_id === p.id ? "opacity-100" : "opacity-0")} />
-                            {p.nombres} {p.apellidos}
-                          </CommandItem>
-                        ))}
-                      </CommandGroup>
-                    </CommandList>
-                  </Command>
-                </PopoverContent>
-              </Popover>
+                )}
+              />
             </div>
 
             <div className="space-y-2">
@@ -336,11 +301,26 @@ export default function PadresView() {
 
             <DialogFooter className="pt-4">
               <Button type="button" variant="ghost" onClick={() => setIsModalOpen(false)} className="rounded-xl">Cancelar</Button>
-              <Button type="submit" className="bg-navy hover:bg-navy/90 text-white rounded-xl px-8">Vincular</Button>
+              <Button type="submit" disabled={createAcudiente.isPending} className="bg-navy hover:bg-navy/90 text-white rounded-xl px-8">
+                {createAcudiente.isPending ? "Guardando..." : "Vincular"}
+              </Button>
             </DialogFooter>
           </form>
         </DialogContent>
       </Dialog>
+
+      <RegistrarNinoModal
+        open={registrarNino.open}
+        initialName={registrarNino.name}
+        onOpenChange={(open) => setRegistrarNino((s) => ({ ...s, open }))}
+        onCreated={(p) => setForm((f) => ({ ...f, nino_id: p.id }))}
+      />
+      <RegistrarAcudienteModal
+        open={registrarAcu.open}
+        initialName={registrarAcu.name}
+        onOpenChange={(open) => setRegistrarAcu((s) => ({ ...s, open }))}
+        onCreated={(p) => setForm((f) => ({ ...f, acudiente_id: p.id }))}
+      />
 
       <DeleteConfirmDialog 
         isOpen={!!deleteConfirmId}

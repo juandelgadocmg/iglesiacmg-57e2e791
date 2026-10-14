@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,20 +10,32 @@ import { useNinos } from "../hooks/useNinos";
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  /** Se llama con la persona creada (útil para auto-seleccionarla). */
+  onCreated?: (persona: { id: string; nombres: string; apellidos: string }) => void;
+  /** Texto para precargar el nombre (ej. lo que el usuario buscó). */
+  initialName?: string;
 }
 
-export function RegistrarNinoModal({ open, onOpenChange }: Props) {
+export function RegistrarNinoModal({ open, onOpenChange, onCreated, initialName }: Props) {
   const { registrarNino } = useNinos();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     nombres: "",
     apellidos: "",
+    documento: "",
     fecha_nacimiento: "",
     sexo: "M" as "M" | "F",
     alergias: "",
     info_medica: "",
     contacto_emergencia: "",
   });
+
+  useEffect(() => {
+    if (open && initialName) {
+      const [first, ...rest] = initialName.trim().split(/\s+/);
+      setFormData(prev => ({ ...prev, nombres: first || "", apellidos: rest.join(" ") }));
+    }
+  }, [open, initialName]);
 
   const handleChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -34,9 +46,10 @@ export function RegistrarNinoModal({ open, onOpenChange }: Props) {
     setLoading(true);
     
     try {
-      await registrarNino.mutateAsync({
+      const created = await registrarNino.mutateAsync({
         nombres: formData.nombres,
         apellidos: formData.apellidos,
+        documento: formData.documento || undefined,
         fecha_nacimiento: formData.fecha_nacimiento || undefined,
         sexo: formData.sexo,
         detalles: {
@@ -45,9 +58,10 @@ export function RegistrarNinoModal({ open, onOpenChange }: Props) {
           contacto_emergencia: formData.contacto_emergencia
         }
       });
+      if (created) onCreated?.(created as any);
       onOpenChange(false);
       setFormData({
-        nombres: "", apellidos: "", fecha_nacimiento: "", sexo: "M",
+        nombres: "", apellidos: "", documento: "", fecha_nacimiento: "", sexo: "M",
         alergias: "", info_medica: "", contacto_emergencia: ""
       });
     } catch (error) {
@@ -84,6 +98,15 @@ export function RegistrarNinoModal({ open, onOpenChange }: Props) {
                 onChange={(e) => handleChange("apellidos", e.target.value)}
               />
             </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="documento_nino">Documento (T.I. / Registro civil)</Label>
+            <Input
+              id="documento_nino"
+              value={formData.documento}
+              onChange={(e) => handleChange("documento", e.target.value)}
+            />
           </div>
 
           <div className="grid grid-cols-2 gap-4">

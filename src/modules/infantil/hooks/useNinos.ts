@@ -68,6 +68,7 @@ export const useNinos = () => {
           fecha_nacimiento: nuevoNino.fecha_nacimiento,
           sexo: nuevoNino.sexo,
           direccion: nuevoNino.direccion,
+          documento: nuevoNino.documento || null,
           tipos_persona: ["Niño", "Miembro"],
           estado_iglesia: "Activo"
         })
@@ -93,6 +94,7 @@ export const useNinos = () => {
     onSuccess: () => {
       toast.success("Niño registrado correctamente");
       queryClient.invalidateQueries({ queryKey: ["infantil_ninos"] });
+      queryClient.invalidateQueries({ queryKey: ["personas"] });
     },
     onError: (error) => {
       toast.error("Error al registrar el niño: " + error.message);

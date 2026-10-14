@@ -1,6 +1,20 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
+/**
+ * Los grupos infantiles se guardan en `grupos` con tipo "Niños" (valor válido
+ * del enum `tipo_grupo`). La descripción de edades se guarda en `descripcion`.
+ */
+export const TIPO_GRUPO_INFANTIL = "Niños" as const;
+
+/** Valor en personas.tipos_persona que identifica a un maestro infantil. */
+export const TIPO_MAESTRO_INFANTIL = "Maestro Infantil";
+
+export const getTiposPersona = (p: any): string[] =>
+  Array.isArray(p?.tipos_persona) ? p.tipos_persona : [];
+export const isMaestroInfantil = (p: any) => getTiposPersona(p).includes(TIPO_MAESTRO_INFANTIL);
+export const isNino = (p: any) => getTiposPersona(p).includes("Niño");
+
 export function useInfantilGrupos() {
   return useQuery({
     queryKey: ["infantil_grupos"],
@@ -8,10 +22,19 @@ export function useInfantilGrupos() {
       const { data, error } = await supabase
         .from("grupos")
         .select("*, infantil_grupos_detalles(*)")
-        .ilike("tipo", "%Infantil%")
+        .eq("tipo", TIPO_GRUPO_INFANTIL)
         .order("nombre", { ascending: true });
       if (error) throw error;
-      return data;
+      return (data || []).map((g: any) => ({
+        ...g,
+        edades: g.descripcion,
+        // 1:1 relation may come back as object or array depending on PostgREST
+        infantil_grupos_detalles: Array.isArray(g.infantil_grupos_detalles)
+          ? g.infantil_grupos_detalles
+          : g.infantil_grupos_detalles
+            ? [g.infantil_grupos_detalles]
+            : [],
+      }));
     },
   });
 }
@@ -23,7 +46,8 @@ export function useCreateInfantilGrupo() {
       // 1. Create the base group
       const { data: grupo, error: err1 } = await supabase.from("grupos").insert({
         nombre: payload.nombre,
-        tipo: "Iglesia Infantil",
+        descripcion: payload.edades || null,
+        tipo: TIPO_GRUPO_INFANTIL,
         estado: "Activo"
       }).select().single();
       if (err1) throw err1;
@@ -50,7 +74,8 @@ export function useUpdateInfantilGrupo() {
     mutationFn: async (payload: { id: string; nombre: string; edades: string; edad_minima?: number; edad_maxima?: number; salon?: string; capacidad?: number }) => {
       // 1. Update the base group
       const { error: err1 } = await supabase.from("grupos").update({
-        nombre: payload.nombre
+        nombre: payload.nombre,
+        descripcion: payload.edades || null
       }).eq("id", payload.id);
       if (err1) throw err1;
 
@@ -192,7 +217,7 @@ export function useInfantilAcudientes() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("infantil_acudientes")
-        .select("*, nino:nino_id(id, nombres, apellidos, documento_identidad), acudiente:acudiente_id(id, nombres, apellidos, telefono, email, documento_identidad)")
+        .select("*, nino:nino_id(id, nombres, apellidos, documento), acudiente:acudiente_id(id, nombres, apellidos, telefono, whatsapp, email, documento)")
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data;

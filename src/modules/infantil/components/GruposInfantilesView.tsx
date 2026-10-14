@@ -201,7 +201,9 @@ export default function GruposInfantilesView() {
 
             <DialogFooter className="pt-4 mt-4">
               <Button type="button" variant="ghost" onClick={() => setIsModalOpen(false)} className="rounded-xl">Cancelar</Button>
-              <Button type="submit" className="bg-navy hover:bg-navy/90 text-white rounded-xl px-8">Guardar Grupo</Button>
+              <Button type="submit" disabled={createGrupo.isPending || updateGrupo.isPending} className="bg-navy hover:bg-navy/90 text-white rounded-xl px-8">
+                {createGrupo.isPending || updateGrupo.isPending ? "Guardando..." : "Guardar Grupo"}
+              </Button>
             </DialogFooter>
           </form>
         </DialogContent>
