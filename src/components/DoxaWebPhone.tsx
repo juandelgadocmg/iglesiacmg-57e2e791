@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import { Phone, PhoneCall, PhoneOff, MessageCircle, Delete, X, ChevronDown, CheckCircle2, User, Volume2, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -222,10 +223,13 @@ export const DoxaWebPhone: React.FC<DoxaWebPhoneProps> = ({
     { key: "#", sub: "" },
   ];
 
-  return (
-    <>
+  const phoneModal = (
+    <div className="fixed inset-0 pointer-events-none z-[9999999]">
       {/* Floating Button (Siempre visible en la esquina inferior derecha) */}
-      <div className="fixed bottom-5 right-5 z-[99999]">
+      <div 
+        style={{ position: "fixed", bottom: "20px", right: "20px", zIndex: 9999999 }}
+        className="pointer-events-auto"
+      >
         <button
           type="button"
           onClick={() => setIsOpen(!isOpen)}
@@ -253,10 +257,18 @@ export const DoxaWebPhone: React.FC<DoxaWebPhoneProps> = ({
 
       {/* Virtual Phone Window */}
       {isOpen && (
-        <div className="fixed bottom-22 right-5 z-[99999] w-[320px] sm:w-[340px] bg-slate-950 text-white rounded-3xl shadow-2xl border border-slate-800/80 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-          
+        <div
+          style={{
+            position: "fixed",
+            bottom: "84px",
+            right: "20px",
+            zIndex: 9999999,
+            maxHeight: "calc(100vh - 104px)",
+          }}
+          className="pointer-events-auto w-[320px] sm:w-[350px] bg-slate-950 text-white rounded-3xl shadow-2xl border border-slate-750/80 overflow-y-auto flex flex-col animate-in fade-in zoom-in-95 duration-200"
+        >
           {/* Top Bar */}
-          <div className="bg-slate-900/90 px-4 py-3 border-b border-slate-800 flex items-center justify-between">
+          <div className="bg-slate-900/90 px-4 py-3 border-b border-slate-800 flex items-center justify-between sticky top-0 z-10 backdrop-blur-md">
             <div className="flex items-center gap-2">
               <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
               <span className="text-xs font-bold tracking-wide text-slate-200">Teléfono DOXA</span>
@@ -358,7 +370,7 @@ export const DoxaWebPhone: React.FC<DoxaWebPhoneProps> = ({
           )}
 
           {/* Action Buttons */}
-          <div className="p-4 bg-slate-900/80 border-t border-slate-800/80 space-y-2.5">
+          <div className="p-4 bg-slate-900/80 border-t border-slate-800/80 space-y-2.5 mt-auto">
             {!isCalling ? (
               <div className="flex items-center gap-2">
                 <button
@@ -420,6 +432,13 @@ export const DoxaWebPhone: React.FC<DoxaWebPhoneProps> = ({
           </div>
         </div>
       )}
-    </>
+    </div>
   );
+
+  if (typeof document !== "undefined") {
+    return createPortal(phoneModal, document.body);
+  }
+
+  return phoneModal;
 };
+
