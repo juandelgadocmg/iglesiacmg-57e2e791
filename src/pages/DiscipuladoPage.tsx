@@ -14,6 +14,7 @@ import { DiscipuladoAdminView } from "@/modules/discipulado/components/Discipula
 import { ImportarDiscipulosModal } from "@/modules/discipulado/components/ImportarDiscipulosModal";
 import { AgregarDiscipuloModal } from "@/modules/discipulado/components/AgregarDiscipuloModal";
 import { ListaDiscipulosModal } from "@/modules/discipulado/components/ListaDiscipulosModal";
+import { LlamarDiscipuloModal } from "@/modules/discipulado/components/LlamarDiscipuloModal";
 import { ZadarmaWebRTC } from "@/components/ZadarmaWebRTC";
 import { useVisitas } from "@/modules/discipulado/hooks/useVisitas";
 import { useActiveRole } from "@/hooks/useActiveRole";
@@ -31,7 +32,8 @@ import {
   UploadCloud,
   Trophy,
   UserPlus,
-  Trash2
+  Trash2,
+  Settings
 } from "lucide-react";
 
 declare global {
@@ -61,6 +63,7 @@ export default function DiscipuladoPage() {
   const [isAgregarOpen, setIsAgregarOpen] = useState(false);
   const [selectedDiscipuloProceso, setSelectedDiscipuloProceso] = useState<any | null>(null);
   const [activeStatList, setActiveStatList] = useState<{title: string, list: any[]} | null>(null);
+  const [discipuloParaLlamar, setDiscipuloParaLlamar] = useState<any | null>(null);
   
   // Zadarma WebRTC configuration
   const [zadarmaExtension, setZadarmaExtension] = useState<string>(() => {
@@ -225,32 +228,10 @@ export default function DiscipuladoPage() {
   }, [session, activeRole]);
 
   // Derived Stats
-  // handleCallClick para usar la API real de Zadarma v9 (zdrmWebPhone) con fallback a tel:
-  const handleCallClick = (e: React.MouseEvent<HTMLAnchorElement>, telefono: string) => {
+  // handleCallClick para abrir el asistente de llamada del discípulo
+  const handleCallClick = (e: React.MouseEvent, discipulo: any) => {
     e.preventDefault();
-    const cleanPhone = telefono.replace(/\D/g, '');
-    
-    const w = window as any;
-    // API real de Zadarma v9
-    if (w.zdrmWebPhone) {
-      if (typeof w.zdrmWebPhone.call === 'function') {
-        w.zdrmWebPhone.call(cleanPhone);
-        return;
-      } else if (typeof w.zdrmWebPhone.callTo === 'function') {
-        w.zdrmWebPhone.callTo(cleanPhone);
-        return;
-      }
-    } else if (w.zdrmWPhI && w.zdrmWPhI.setCallingNumber) {
-      // Fallback interno si el objeto de interfaz está disponible
-      w.zdrmWPhI.setCallingNumber(cleanPhone);
-      const widgetBtn = document.querySelector('.zdrm-webphone-button') as HTMLElement;
-      if (widgetBtn) widgetBtn.click();
-      return;
-    }
-    
-    // Si el widget no ha cargado o está en móvil, fallback nativo a tel:
-    toast.info(`Marcando ${cleanPhone}...`);
-    window.location.href = `tel:${cleanPhone}`;
+    setDiscipuloParaLlamar(discipulo);
   };
 
   const handleDeleteDiscipulo = async (id: string, name: string) => {
@@ -404,24 +385,24 @@ export default function DiscipuladoPage() {
           </Button>
         </div>
 
-        {/* Zadarma Extension Config (Auto) */}
+        {/* Marcador Telefónico y Ajustes */}
         <div className="bg-white p-3 rounded-lg border border-slate-200 shadow-sm flex items-center justify-between gap-3">
           <div className="flex items-center gap-3 flex-1 min-w-0">
             <div className="w-8 h-8 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
               <PhoneCall className="w-4 h-4" />
             </div>
             <div className="flex-1 min-w-0">
-              <label className="text-xs font-bold text-slate-700 block">Tu Extensión Zadarma (Asignada Automáticamente)</label>
-              {zadarmaExtension ? (
-                <div className="flex items-center gap-2">
-                  <p className="text-sm font-medium text-green-700 truncate">{zadarmaExtension}</p>
-                  <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-green-100 text-green-800">
-                    Activa
+              <label className="text-xs font-bold text-slate-700 block">Llamadas a Discípulos</label>
+              <div className="flex items-center gap-2 mt-0.5">
+                <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-green-100 text-green-800">
+                  Marcado Directo y WhatsApp Activos
+                </span>
+                {zadarmaExtension && (
+                  <span className="text-[11px] text-slate-400 hidden sm:inline">
+                    (Extensión Zadarma: {zadarmaExtension})
                   </span>
-                </div>
-              ) : (
-                <p className="text-sm text-amber-600 font-medium">Buscando extensión libre...</p>
-              )}
+                )}
+              </div>
             </div>
           </div>
           <button
@@ -429,9 +410,10 @@ export default function DiscipuladoPage() {
             onClick={() => {
               window.dispatchEvent(new CustomEvent('open-zadarma-settings'));
             }}
-            className="text-xs text-blue-600 hover:text-blue-800 font-semibold px-2.5 py-1.5 rounded-lg border border-blue-200 bg-blue-50 hover:bg-blue-100 transition-colors shrink-0"
+            className="text-xs text-slate-600 hover:text-slate-900 font-medium px-2.5 py-1.5 rounded-lg border border-slate-200 hover:bg-slate-50 transition-colors shrink-0 flex items-center gap-1.5"
           >
-            Ajustes Teléfono
+            <Settings className="w-3.5 h-3.5 text-slate-400" />
+            <span>Ajustes WebRTC</span>
           </button>
         </div>
       </div>
@@ -558,15 +540,15 @@ export default function DiscipuladoPage() {
                           </Badge>
                           {d.telefono && (
                             <div className="flex items-center gap-1.5">
-                              <a 
-                                href="#"
-                                onClick={(e) => handleCallClick(e, d.telefono)}
-                                className="inline-flex items-center gap-1 text-slate-600 bg-slate-100 hover:bg-slate-200 hover:text-slate-900 transition-colors px-2 py-0.5 rounded-full text-xs font-semibold"
-                                title="Llamar"
+                              <button 
+                                type="button"
+                                onClick={(e) => handleCallClick(e, d)}
+                                className="inline-flex items-center gap-1 text-blue-700 bg-blue-50 hover:bg-blue-100 hover:text-blue-900 transition-colors px-2.5 py-1 rounded-full text-xs font-bold shadow-xs active:scale-95 cursor-pointer"
+                                title="Llamar a este discípulo"
                               >
-                                <PhoneCall className="w-3 h-3" />
+                                <PhoneCall className="w-3 h-3 text-blue-600" />
                                 {d.telefono}
-                              </a>
+                              </button>
                               <a 
                                 href={`https://wa.me/${d.telefono.replace(/\D/g, '')}`} 
                                 target="_blank" 
@@ -710,6 +692,14 @@ export default function DiscipuladoPage() {
         onClose={() => setActiveStatList(null)}
         title={activeStatList?.title || ''}
         discipulos={activeStatList?.list || []}
+      />
+
+      <LlamarDiscipuloModal
+        open={!!discipuloParaLlamar}
+        onOpenChange={(open) => !open && setDiscipuloParaLlamar(null)}
+        discipulo={discipuloParaLlamar}
+        liderId={lider?.id}
+        onSuccess={loadData}
       />
 
       {zadarmaExtension && <ZadarmaWebRTC sipExtension={zadarmaExtension} />}
