@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
-import { Phone, PhoneCall, PhoneOff, MessageCircle, Delete, X, ChevronDown, CheckCircle2, User, Volume2, Sparkles } from "lucide-react";
+import { Phone, PhoneCall, PhoneOff, MessageCircle, Delete, X, ChevronDown, CheckCircle2, User, Volume2, Sparkles, Copy, Check, Settings, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -31,6 +31,9 @@ export const DoxaWebPhone: React.FC<DoxaWebPhoneProps> = ({
   const [isCalling, setIsCalling] = useState(false);
   const [callDuration, setCallDuration] = useState(0);
   const [selectedDiscipuloId, setSelectedDiscipuloId] = useState<string>("");
+  const [copied, setCopied] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+  const [customKey, setCustomKey] = useState<string>(() => localStorage.getItem("zadarma_webrtc_key") || "");
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Reproduce DTMF sound
@@ -135,6 +138,15 @@ export const DoxaWebPhone: React.FC<DoxaWebPhoneProps> = ({
     return `${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
   };
 
+  const handleCopy = () => {
+    const clean = phoneNumber.replace(/\D/g, "");
+    if (!clean) return;
+    navigator.clipboard.writeText(clean);
+    setCopied(true);
+    toast.success(`Número ${clean} copiado`);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
   const handleStartCall = () => {
     const clean = phoneNumber.replace(/\D/g, "");
     if (!clean || clean.length < 7) {
@@ -142,21 +154,30 @@ export const DoxaWebPhone: React.FC<DoxaWebPhoneProps> = ({
       return;
     }
 
-    setIsCalling(true);
-
-    // 1. Intentar con Zadarma WebRTC si está cargado
+    // 1. Intentar con Zadarma WebRTC si está cargado en el navegador
     const w = window as any;
     if (w.zdrmWebPhone && typeof w.zdrmWebPhone.call === "function") {
       try {
         w.zdrmWebPhone.call(clean);
+        setIsCalling(true);
         toast.success(`Llamando a ${matchedDiscipulo?.full_name || clean} por WebRTC...`);
         return;
-      } catch {}
+      } catch (err) {
+        console.warn("Zadarma call error:", err);
+      }
     }
 
-    // 2. Marcado directo al celular / app telefónica
-    toast.info(`Iniciando llamada a ${matchedDiscipulo?.full_name || clean}...`);
-    window.location.href = `tel:${clean}`;
+    // 2. Marcado telefónico directo al celular / app del dispositivo
+    toast.success(`Marcando a ${matchedDiscipulo?.full_name || clean}...`, {
+      description: "Se abrió la aplicación telefónica de tu dispositivo. También puedes usar WhatsApp o copiar el número.",
+    });
+
+    const link = document.createElement("a");
+    link.href = `tel:${clean}`;
+    link.rel = "noopener noreferrer";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   const handleEndCall = () => {
@@ -274,13 +295,63 @@ export const DoxaWebPhone: React.FC<DoxaWebPhoneProps> = ({
               <span className="text-xs font-bold tracking-wide text-slate-200">Teléfono DOXA</span>
               <span className="text-[10px] text-slate-500 font-mono">doxastack.com</span>
             </div>
-            <button
-              onClick={() => setIsOpen(false)}
-              className="text-slate-400 hover:text-white p-1 rounded-lg"
-            >
-              <X className="w-4 h-4" />
-            </button>
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                onClick={() => setShowSettings(!showSettings)}
+                className="text-slate-400 hover:text-white p-1 rounded-lg transition-colors"
+                title="Configuración de Llamadas VoIP"
+              >
+                <Settings className="w-3.5 h-3.5" />
+              </button>
+              <button
+                type="button"
+                onClick={() => setIsOpen(false)}
+                className="text-slate-400 hover:text-white p-1 rounded-lg transition-colors"
+                title="Cerrar"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
           </div>
+
+          {/* Optional VoIP / Zadarma Settings */}
+          {showSettings && (
+            <div className="p-3 bg-slate-900 border-b border-slate-800 text-xs space-y-2 animate-in fade-in duration-150">
+              <div className="flex items-center justify-between">
+                <span className="font-bold text-slate-200">Llamadas VoIP Zadarma</span>
+                <span className="text-[10px] text-amber-400 font-medium">Opcional</span>
+              </div>
+              <p className="text-[11px] text-slate-400 leading-tight">
+                Puedes llamar directamente por tu celular o WhatsApp sin costo. Si tienes una cuenta activa en Zadarma y deseas audio VoIP desde la web, ingresa tu clave WebRTC aquí:
+              </p>
+              <div className="flex gap-1.5 pt-1">
+                <input
+                  type="password"
+                  value={customKey}
+                  onChange={(e) => setCustomKey(e.target.value)}
+                  placeholder="Pegar clave WebRTC de Zadarma..."
+                  className="flex-1 bg-slate-800 border border-slate-700 rounded-lg px-2.5 py-1 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500"
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (customKey.trim()) {
+                      localStorage.setItem("zadarma_webrtc_key", customKey.trim());
+                      toast.success("Clave WebRTC guardada. Recarga la página para activar VoIP.");
+                    } else {
+                      localStorage.removeItem("zadarma_webrtc_key");
+                      toast.info("Clave removida.");
+                    }
+                    setShowSettings(false);
+                  }}
+                  className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg font-bold text-xs"
+                >
+                  Guardar
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* Quick Disciple Picker */}
           {discipulos.length > 0 && (
@@ -338,10 +409,25 @@ export const DoxaWebPhone: React.FC<DoxaWebPhoneProps> = ({
               )}
             </div>
 
+            {/* Copy Button */}
+            {phoneNumber && !isCalling && (
+              <div className="mt-1 flex items-center justify-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleCopy}
+                  className="inline-flex items-center gap-1 text-[11px] font-semibold text-slate-400 hover:text-emerald-400 transition-colors px-2 py-0.5 rounded-full bg-slate-900 border border-slate-800"
+                  title="Copiar número"
+                >
+                  {copied ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
+                  <span>{copied ? "¡Copiado!" : "Copiar"}</span>
+                </button>
+              </div>
+            )}
+
             {isCalling && (
               <div className="text-xs font-mono text-emerald-400 mt-1 flex items-center justify-center gap-1">
                 <Volume2 className="w-3.5 h-3.5 animate-pulse" />
-                <span>Llamada en curso: {formatSeconds(callDuration)}</span>
+                <span>Llamada VoIP en curso: {formatSeconds(callDuration)}</span>
               </div>
             )}
           </div>
@@ -378,19 +464,21 @@ export const DoxaWebPhone: React.FC<DoxaWebPhoneProps> = ({
                   onClick={handleStartCall}
                   disabled={!phoneNumber}
                   className="flex-1 h-12 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 disabled:hover:bg-emerald-600 text-white font-bold rounded-2xl flex items-center justify-center gap-2 shadow-lg shadow-emerald-900/30 transition-all active:scale-95"
+                  title="Llamar al teléfono"
                 >
                   <PhoneCall className="w-5 h-5" />
-                  <span className="text-sm">Llamar</span>
+                  <span className="text-sm">Llamar Teléfono</span>
                 </button>
 
                 <button
                   type="button"
                   onClick={handleWhatsApp}
                   disabled={!phoneNumber}
-                  className="h-12 px-4 bg-emerald-900/60 hover:bg-emerald-800/60 disabled:opacity-40 text-emerald-400 border border-emerald-700/40 rounded-2xl flex items-center justify-center transition-all active:scale-95"
-                  title="Escribir por WhatsApp"
+                  className="h-12 px-3.5 bg-emerald-900/60 hover:bg-emerald-800/60 disabled:opacity-40 text-emerald-400 border border-emerald-700/40 rounded-2xl flex items-center justify-center gap-1.5 transition-all active:scale-95 text-xs font-bold"
+                  title="Abrir chat y llamada por WhatsApp"
                 >
-                  <MessageCircle className="w-5 h-5" />
+                  <MessageCircle className="w-5 h-5 text-emerald-400" />
+                  <span>WhatsApp</span>
                 </button>
               </div>
             ) : (
@@ -405,24 +493,29 @@ export const DoxaWebPhone: React.FC<DoxaWebPhoneProps> = ({
             )}
 
             {/* Quick Register Result into Mi Cosecha */}
-            {matchedDiscipulo && (
-              <div className="pt-1.5 border-t border-slate-800">
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5 flex items-center gap-1">
-                  <Sparkles className="w-3 h-3 text-amber-400" />
-                  Registrar en Mi Cosecha:
+            {(matchedDiscipulo || selectedDiscipuloId) && (
+              <div className="pt-2 border-t border-slate-800">
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5 flex items-center justify-between">
+                  <span className="flex items-center gap-1">
+                    <Sparkles className="w-3 h-3 text-amber-400" />
+                    Registrar en Mi Cosecha:
+                  </span>
+                  <span className="text-[9px] text-slate-500 lowercase font-normal truncate max-w-[120px]">
+                    {matchedDiscipulo?.full_name}
+                  </span>
                 </p>
                 <div className="grid grid-cols-2 gap-1.5">
                   <button
                     type="button"
                     onClick={() => handleRegistrarLlamada("Contestó y oramos")}
-                    className="p-1.5 bg-slate-800 hover:bg-slate-700 text-[11px] rounded-lg text-emerald-300 font-medium transition-colors text-center truncate"
+                    className="p-2 bg-emerald-950/60 hover:bg-emerald-900/80 border border-emerald-800/50 text-[11px] rounded-xl text-emerald-300 font-semibold transition-all text-center truncate active:scale-95"
                   >
                     ✓ Contestó y oró
                   </button>
                   <button
                     type="button"
                     onClick={() => handleRegistrarLlamada("No contestó / Ocupado")}
-                    className="p-1.5 bg-slate-800 hover:bg-slate-700 text-[11px] rounded-lg text-amber-300 font-medium transition-colors text-center truncate"
+                    className="p-2 bg-slate-800 hover:bg-slate-700 border border-slate-700/60 text-[11px] rounded-xl text-amber-300 font-semibold transition-all text-center truncate active:scale-95"
                   >
                     ✗ No contestó
                   </button>
