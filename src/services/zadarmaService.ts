@@ -5,8 +5,9 @@ import { supabase } from "@/integrations/supabase/client";
 export const ZADARMA_CONFIG = {
   KEY: "c068eb681e595e132a89",
   SECRET: "3351412a4e36798a200f",
-  DEFAULT_SIP: "337021-100", // Extensión PBX 100 de CMG
-  PRIMARY_SIP: "301311",     // SIP principal de CMG
+  DEFAULT_SIP: "301311", // Cuenta SIP principal con saldo activo y DID Bogotá
+  PRIMARY_SIP: "301311", // SIP principal de CMG
+  PBX_EXTENSION: "337021-100",
   DID_NUMBER: "+57 (601) 917-9246",
   API_URL: "https://api.zadarma.com",
 };
@@ -99,8 +100,8 @@ export async function callZadarmaViaProxy(
 /**
  * Obtiene la clave de WebRTC válida de Zadarma (válida por 72 horas)
  */
-export async function getZadarmaWebRTCKey(sip = ZADARMA_CONFIG.DEFAULT_SIP): Promise<string> {
-  const targetSip = sip && sip.includes("-") ? sip : ZADARMA_CONFIG.DEFAULT_SIP;
+export async function getZadarmaWebRTCKey(sip = ZADARMA_CONFIG.PRIMARY_SIP): Promise<string> {
+  const targetSip = ZADARMA_CONFIG.PRIMARY_SIP; // Siempre usar la troncal principal 301311 con saldo
   const cacheKey = `zadarma_webrtc_cache_${targetSip}`;
 
   // 1. Revisar caché local (máximo 24h para evitar claves revocadas)
@@ -140,8 +141,8 @@ export async function getZadarmaWebRTCKey(sip = ZADARMA_CONFIG.DEFAULT_SIP): Pro
 /**
  * Obtiene las credenciales SIP dinámicas para conectar WebRTC directamente sin widget externo
  */
-export async function getZadarmaSIPCredentials(sip = ZADARMA_CONFIG.DEFAULT_SIP): Promise<ZadarmaSIPCredentials> {
-  const targetSip = sip && sip.includes("-") ? sip : ZADARMA_CONFIG.DEFAULT_SIP;
+export async function getZadarmaSIPCredentials(sip = ZADARMA_CONFIG.PRIMARY_SIP): Promise<ZadarmaSIPCredentials> {
+  const targetSip = ZADARMA_CONFIG.PRIMARY_SIP;
   const webrtcKey = await getZadarmaWebRTCKey(targetSip);
 
   const targetUrl = `https://api.zadarma.com/sys/webrtc/get_webphone_data.php?integrationType=site&key=${encodeURIComponent(

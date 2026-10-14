@@ -246,24 +246,15 @@ export const DoxaWebPhone: React.FC<DoxaWebPhoneProps> = ({
           toast.info(`Llamada con ${destName} finalizada`, { id: "doxa-call" });
         },
         onFailed: (cause) => {
-          if (cause.toLowerCase().includes("auth") || cause.toLowerCase().includes("error")) {
-            toast.error(`Llamada finalizada: ${cause}`, {
-              id: "doxa-call",
-              description: "Puedes cursar la llamada presionando 'Conectar mi Celular'.",
-              action: {
-                label: "Conectar mi Celular",
-                onClick: () => handleTriggerCallback(),
-              },
-            });
-          } else {
-            toast.error(`Llamada finalizada: ${cause}`, { id: "doxa-call" });
-          }
+          console.warn("WebRTC finalizó:", cause);
+          toast.info("Enlazando llamada a través de tu celular...", { id: "doxa-call" });
+          handleTriggerCallback();
         },
       });
     } catch (err: any) {
-      toast.error("No se pudo iniciar la llamada: " + (err.message || "desconocido"), {
-        id: "doxa-call",
-      });
+      console.warn("Error WebRTC:", err);
+      toast.info("Enlazando llamada a través de tu celular...", { id: "doxa-call" });
+      handleTriggerCallback();
     }
   };
 
