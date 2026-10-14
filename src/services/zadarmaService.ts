@@ -6,6 +6,7 @@ export const ZADARMA_CONFIG = {
   KEY: "c068eb681e595e132a89",
   SECRET: "3351412a4e36798a200f",
   DEFAULT_SIP: "337021-100", // Extensión PBX 100 de CMG
+  PRIMARY_SIP: "301311",     // SIP principal de CMG
   DID_NUMBER: "+57 (601) 917-9246",
   API_URL: "https://api.zadarma.com",
 };
@@ -102,12 +103,12 @@ export async function getZadarmaWebRTCKey(sip = ZADARMA_CONFIG.DEFAULT_SIP): Pro
   const targetSip = sip && sip.includes("-") ? sip : ZADARMA_CONFIG.DEFAULT_SIP;
   const cacheKey = `zadarma_webrtc_cache_${targetSip}`;
 
-  // 1. Revisar caché local para evitar consultas innecesarias
+  // 1. Revisar caché local (máximo 24h para evitar claves revocadas)
   try {
     const cached = localStorage.getItem(cacheKey);
     if (cached) {
       const parsed = JSON.parse(cached);
-      if (parsed.timestamp && Date.now() - parsed.timestamp < 48 * 3600 * 1000 && parsed.key) {
+      if (parsed.timestamp && Date.now() - parsed.timestamp < 24 * 3600 * 1000 && parsed.key) {
         return parsed.key;
       }
     }
@@ -316,15 +317,20 @@ export async function initZadarmaEngine(sip = ZADARMA_CONFIG.DEFAULT_SIP): Promi
     const socketUrl = `wss://${creds.domain}:4443`;
     const socket = new w.JsSIP.WebSocketInterface(socketUrl);
 
-    // 4. Configurar User Agent SIP
+    // 4. Configurar User Agent SIP con todos los parámetros oficiales de Zadarma
+    w.JsSIP.C.USER_AGENT = "Zadarma webRTC";
+
     const configuration = {
       sockets: [socket],
       uri: `sip:${creds.username}@${creds.domain}`,
       password: creds.pass,
+      authorization_user: creds.username, // Requerido por Zadarma para autenticar INVITE/REGISTER
+      display_name: creds.username,
       register: true,
-      register_expires: 600,
+      register_expires: 580,
       session_timers: false,
-      user_agent: "DOXA WebPhone (Centro Mundial de Gloria)",
+      connection_recovery_min_interval: 2,
+      connection_recovery_max_interval: 30,
     };
 
     if (jssipUA) {
@@ -459,6 +465,7 @@ export async function startBrowserCall(
   const callOptions = {
     eventHandlers,
     mediaConstraints: { audio: true, video: false },
+    pcConfig: { rtcpMuxPolicy: "negotiate" },
     rtcOfferConstraints: {
       offerToReceiveAudio: true,
       offerToReceiveVideo: false,
@@ -514,12 +521,12 @@ export async function triggerZadarmaCallback(
   }
 
   // Si no se especifica número de origen, usar el SIP principal 301311 de CMG o el número del líder
-  const cleanFrom = fromPhone ? formatZadarmaNumber(fromPhone) : "301311";
+  const cleanFrom = fromPhone ? formatZadarmaNumber(fromPhone) : ZADARMA_CONFIG.PRIMARY_SIP;
 
   const params: Record<string, string> = {
     from: cleanFrom,
     to: cleanTo,
-    sip: "301311", // SIP principal de CMG
+    sip: ZADARMA_CONFIG.PRIMARY_SIP, // SIP principal de CMG (301311)
   };
 
   const result = await callZadarmaViaProxy("/v1/request/callback/", params);

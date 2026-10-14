@@ -77,6 +77,28 @@ export const DoxaWebPhone: React.FC<DoxaWebPhoneProps> = ({
 
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
+  // Auto-cargar teléfono del líder si está registrado en la base de datos
+  useEffect(() => {
+    if (!liderId) return;
+    const fetchLeaderPhone = async () => {
+      try {
+        const { data } = await supabase
+          .from("leaders")
+          .select("telefono")
+          .eq("id", liderId)
+          .maybeSingle();
+        if (data && (data as any).telefono) {
+          const t = (data as any).telefono.replace(/\D/g, "");
+          if (t.length >= 7 && !localStorage.getItem("doxa_leader_phone")) {
+            setLeaderPhone(t);
+            localStorage.setItem("doxa_leader_phone", t);
+          }
+        }
+      } catch {}
+    };
+    fetchLeaderPhone();
+  }, [liderId]);
+
   // Suscribirse al estado del motor WebRTC nativo
   useEffect(() => {
     const unsubscribe = subscribeToCallState((state) => {
@@ -224,7 +246,18 @@ export const DoxaWebPhone: React.FC<DoxaWebPhoneProps> = ({
           toast.info(`Llamada con ${destName} finalizada`, { id: "doxa-call" });
         },
         onFailed: (cause) => {
-          toast.error(`Llamada finalizada: ${cause}`, { id: "doxa-call" });
+          if (cause.toLowerCase().includes("auth") || cause.toLowerCase().includes("error")) {
+            toast.error(`Llamada finalizada: ${cause}`, {
+              id: "doxa-call",
+              description: "Puedes cursar la llamada presionando 'Conectar mi Celular'.",
+              action: {
+                label: "Conectar mi Celular",
+                onClick: () => handleTriggerCallback(),
+              },
+            });
+          } else {
+            toast.error(`Llamada finalizada: ${cause}`, { id: "doxa-call" });
+          }
         },
       });
     } catch (err: any) {
