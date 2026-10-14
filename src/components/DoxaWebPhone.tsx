@@ -247,14 +247,12 @@ export const DoxaWebPhone: React.FC<DoxaWebPhoneProps> = ({
         },
         onFailed: (cause) => {
           console.warn("WebRTC finalizó:", cause);
-          toast.info("Enlazando llamada a través de tu celular...", { id: "doxa-call" });
-          handleTriggerCallback();
+          toast.error(`Llamada no completada: ${cause || "finalizada"}`, { id: "doxa-call" });
         },
       });
     } catch (err: any) {
       console.warn("Error WebRTC:", err);
-      toast.info("Enlazando llamada a través de tu celular...", { id: "doxa-call" });
-      handleTriggerCallback();
+      toast.error(`Error al conectar llamada: ${err.message || "desconocido"}`, { id: "doxa-call" });
     }
   };
 

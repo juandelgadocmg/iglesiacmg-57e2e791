@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 export const ZADARMA_CONFIG = {
   KEY: "c068eb681e595e132a89",
   SECRET: "3351412a4e36798a200f",
-  DEFAULT_SIP: "301311", // Cuenta SIP principal con saldo activo y DID Bogotá
+  DEFAULT_SIP: "301311", // Cuenta SIP principal con saldo activo ($16.73 USD) y DID Bogotá
   PRIMARY_SIP: "301311", // SIP principal de CMG
   PBX_EXTENSION: "337021-100",
   DID_NUMBER: "+57 (601) 917-9246",
@@ -101,27 +101,21 @@ export async function callZadarmaViaProxy(
  * Obtiene la clave de WebRTC válida de Zadarma (válida por 72 horas)
  */
 export async function getZadarmaWebRTCKey(sip = ZADARMA_CONFIG.PRIMARY_SIP): Promise<string> {
-  const targetSip = ZADARMA_CONFIG.PRIMARY_SIP; // Siempre usar la troncal principal 301311 con saldo
+  const targetSip = ZADARMA_CONFIG.PRIMARY_SIP;
   const cacheKey = `zadarma_webrtc_cache_${targetSip}`;
 
-  // 1. Revisar caché local (máximo 24h para evitar claves revocadas)
+  // 1. Revisar caché local (máximo 12h para asegurar frescura)
   try {
     const cached = localStorage.getItem(cacheKey);
     if (cached) {
       const parsed = JSON.parse(cached);
-      if (parsed.timestamp && Date.now() - parsed.timestamp < 24 * 3600 * 1000 && parsed.key) {
+      if (parsed.timestamp && Date.now() - parsed.timestamp < 12 * 3600 * 1000 && parsed.key) {
         return parsed.key;
       }
     }
   } catch {}
 
-  // 2. Revisar si el usuario guardó una clave personalizada
-  const customKey = localStorage.getItem("zadarma_webrtc_key");
-  if (customKey && customKey.trim().length > 20) {
-    return customKey.trim();
-  }
-
-  // 3. Consultar dinámicamente a la API de Zadarma a través de Supabase RPC (100% libre de CORS)
+  // 2. Consultar dinámicamente a la API de Zadarma a través de Supabase RPC (100% libre de CORS)
   const result = await callZadarmaViaProxy("/v1/webrtc/get_key/", { sip: targetSip });
   if (!result.key) {
     throw new Error("Respuesta inválida: falta el campo 'key'");
@@ -139,7 +133,7 @@ export async function getZadarmaWebRTCKey(sip = ZADARMA_CONFIG.PRIMARY_SIP): Pro
 }
 
 /**
- * Obtiene las credenciales SIP dinámicas para conectar WebRTC directamente sin widget externo
+ * Obtiene credenciales SIP efímeras y frescas para cada llamada WebRTC
  */
 export async function getZadarmaSIPCredentials(sip = ZADARMA_CONFIG.PRIMARY_SIP): Promise<ZadarmaSIPCredentials> {
   const targetSip = ZADARMA_CONFIG.PRIMARY_SIP;
@@ -178,7 +172,7 @@ export async function getZadarmaSIPCredentials(sip = ZADARMA_CONFIG.PRIMARY_SIP)
   return {
     username: json.username || targetSip,
     pass: json.pass,
-    domain: json.domain || "pbxny1.zadarma.com",
+    domain: json.domain || "sipny1.zadarma.com",
     datacenter: json.datacenter || "ny",
   };
 }
@@ -235,8 +229,6 @@ function loadScript(src: string): Promise<void> {
 let jssipUA: any = null;
 let currentSession: any = null;
 let remoteAudioElement: HTMLAudioElement | null = null;
-let isInitializingUA = false;
-let currentSipCredentials: ZadarmaSIPCredentials | null = null;
 let currentCallState: WebPhoneCallState = "idle";
 const stateListeners: Set<(state: WebPhoneCallState) => void> = new Set();
 
@@ -280,92 +272,17 @@ function ensureRemoteAudio(): HTMLAudioElement {
 }
 
 /**
- * Inicializa el motor SIP WebRTC de Zadarma mediante JsSIP sin scripts de widgets de terceros
+ * Inicializa previamente la librería JsSIP en la ventana
  */
-export async function initZadarmaEngine(sip = ZADARMA_CONFIG.DEFAULT_SIP): Promise<boolean> {
+export async function initZadarmaEngine(): Promise<boolean> {
   const w = window as any;
-
-  if (jssipUA && jssipUA.isRegistered && jssipUA.isRegistered()) {
-    updateCallState("registered");
-    return true;
-  }
-
-  if (isInitializingUA) {
-    for (let i = 0; i < 30; i++) {
-      await new Promise((r) => setTimeout(r, 200));
-      if (jssipUA && jssipUA.isRegistered && jssipUA.isRegistered()) return true;
-    }
-  }
-
-  isInitializingUA = true;
-  updateCallState("connecting");
-
   try {
-    // 1. Cargar JsSIP oficial provisto por Zadarma
     if (!w.JsSIP) {
       await loadScript("https://my.zadarma.com/webphoneWebRTCWidget/v8/js/jssip.min.js?v=7");
     }
-
-    if (!w.JsSIP) {
-      throw new Error("JsSIP no disponible en la ventana.");
-    }
-
-    // 2. Obtener credenciales SIP seguras (a través de Supabase RPC para bypass de CORS)
-    const creds = await getZadarmaSIPCredentials(sip);
-    currentSipCredentials = creds;
-
-    // 3. Crear socket WebSocket hacia el gateway de Zadarma
-    const socketUrl = `wss://${creds.domain}:4443`;
-    const socket = new w.JsSIP.WebSocketInterface(socketUrl);
-
-    // 4. Configurar User Agent SIP con todos los parámetros oficiales de Zadarma
-    w.JsSIP.C.USER_AGENT = "Zadarma webRTC";
-
-    const configuration = {
-      sockets: [socket],
-      uri: `sip:${creds.username}@${creds.domain}`,
-      password: creds.pass,
-      authorization_user: creds.username, // Requerido por Zadarma para autenticar INVITE/REGISTER
-      display_name: creds.username,
-      register: true,
-      register_expires: 580,
-      session_timers: false,
-      connection_recovery_min_interval: 2,
-      connection_recovery_max_interval: 30,
-    };
-
-    if (jssipUA) {
-      try {
-        jssipUA.stop();
-      } catch {}
-    }
-
-    const ua = new w.JsSIP.UA(configuration);
-    (ua as any).__zadarmaDomain = creds.domain;
-
-    ua.on("registered", () => {
-      console.log("DOXA WebPhone registrado con Zadarma WebRTC exitosamente.");
-      updateCallState("registered");
-    });
-
-    ua.on("registrationFailed", (e: any) => {
-      console.warn("Fallo de registro WebRTC Zadarma:", e);
-      updateCallState("error");
-    });
-
-    ua.on("disconnected", () => {
-      if (currentCallState !== "in-call" && currentCallState !== "calling") {
-        updateCallState("idle");
-      }
-    });
-
-    ua.start();
-    jssipUA = ua;
-    isInitializingUA = false;
+    updateCallState("registered");
     return true;
-  } catch (error) {
-    console.error("Error inicializando Zadarma WebRTC:", error);
-    isInitializingUA = false;
+  } catch {
     updateCallState("error");
     return false;
   }
@@ -373,6 +290,7 @@ export async function initZadarmaEngine(sip = ZADARMA_CONFIG.DEFAULT_SIP): Promi
 
 /**
  * Inicia una llamada WebRTC directa desde el navegador (micrófono + altavoces del PC/celular)
+ * Crea una sesión SIP fresca y autenticada en el momento exacto de llamar
  */
 export async function startBrowserCall(
   rawPhone: string,
@@ -388,98 +306,175 @@ export async function startBrowserCall(
     throw new Error("Ingresa un número telefónico válido (mínimo 7 dígitos)");
   }
 
-  // 1. Asegurar motor WebRTC inicializado
-  if (!jssipUA || !jssipUA.isRegistered || !jssipUA.isRegistered()) {
-    const ready = await initZadarmaEngine();
-    if (!ready || !jssipUA) {
-      throw new Error("No se pudo conectar con el servidor telefónico de Zadarma.");
-    }
-  }
+  updateCallState("connecting");
 
-  // 2. Solicitar permisos de micrófono en el navegador
+  // 1. Solicitar permisos de micrófono en el navegador
   try {
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    // Detener tracks temporales para que JsSIP cree la sesión limpia
     stream.getTracks().forEach((t) => t.stop());
   } catch (err: any) {
+    updateCallState("error");
     throw new Error("Permiso de micrófono denegado en el navegador.");
   }
 
-  const audio = ensureRemoteAudio();
-  const domain = currentSipCredentials?.domain || (jssipUA as any).__zadarmaDomain || "pbxny1.zadarma.com";
-  const targetUri = `sip:${targetPhone}@${domain}`;
-
-  updateCallState("calling");
-
-  const eventHandlers = {
-    progress: (e: any) => {
-      updateCallState("ringing");
-      if (callbacks?.onRinging) callbacks.onRinging();
-
-      if (currentSession && currentSession.connection) {
-        currentSession.connection.addEventListener("track", (evt: any) => {
-          if (evt.streams && evt.streams[0]) {
-            audio.srcObject = evt.streams[0];
-            audio.play().catch(() => {});
-          }
-        });
-      }
-    },
-    confirmed: () => {
-      updateCallState("in-call");
-      if (callbacks?.onConfirmed) callbacks.onConfirmed();
-
-      if (currentSession && currentSession.connection) {
-        currentSession.connection.addEventListener("track", (evt: any) => {
-          if (evt.streams && evt.streams[0]) {
-            audio.srcObject = evt.streams[0];
-            audio.play().catch(() => {});
-          }
-        });
-
-        const receivers = currentSession.connection.getReceivers();
-        if (receivers && receivers.length > 0) {
-          const stream = new MediaStream();
-          receivers.forEach((r: any) => {
-            if (r.track) stream.addTrack(r.track);
-          });
-          audio.srcObject = stream;
-          audio.play().catch(() => {});
-        }
-      }
-    },
-    ended: () => {
-      currentSession = null;
-      updateCallState("ended");
-      if (callbacks?.onEnded) callbacks.onEnded();
-      setTimeout(() => updateCallState("registered"), 1500);
-    },
-    failed: (e: any) => {
-      const cause = e?.cause || "Llamada finalizada";
-      currentSession = null;
-      updateCallState("error");
-      if (callbacks?.onFailed) callbacks.onFailed(cause);
-      setTimeout(() => updateCallState("registered"), 2000);
-    },
-  };
-
-  const callOptions = {
-    eventHandlers,
-    mediaConstraints: { audio: true, video: false },
-    pcConfig: { rtcpMuxPolicy: "negotiate" },
-    rtcOfferConstraints: {
-      offerToReceiveAudio: true,
-      offerToReceiveVideo: false,
-    },
-  };
-
-  try {
-    currentSession = jssipUA.call(targetUri, callOptions);
-    return true;
-  } catch (err: any) {
-    updateCallState("error");
-    throw new Error(`Error al iniciar llamada: ${err.message || "desconocido"}`);
+  const w = window as any;
+  if (!w.JsSIP) {
+    await loadScript("https://my.zadarma.com/webphoneWebRTCWidget/v8/js/jssip.min.js?v=7");
   }
+
+  // 2. Obtener credenciales SIP EFÍMERAS inmediatamente antes de cursar la llamada
+  const creds = await getZadarmaSIPCredentials(ZADARMA_CONFIG.PRIMARY_SIP);
+
+  // 3. Detener sesión previa si existía
+  if (jssipUA) {
+    try {
+      jssipUA.stop();
+    } catch {}
+    jssipUA = null;
+  }
+
+  // 4. Conectar WebSocket directo al servidor SIP de Zadarma
+  const socketUrl = `wss://${creds.domain}:4443`;
+  const socket = new w.JsSIP.WebSocketInterface(socketUrl);
+
+  w.JsSIP.C.USER_AGENT = "Zadarma webRTC";
+
+  const configuration = {
+    sockets: [socket],
+    uri: `sip:${creds.username}@${creds.domain}`,
+    password: creds.pass,
+    authorization_user: creds.username,
+    display_name: creds.username,
+    register: true,
+    register_expires: 300,
+    session_timers: false,
+    connection_recovery_min_interval: 2,
+    connection_recovery_max_interval: 30,
+  };
+
+  const ua = new w.JsSIP.UA(configuration);
+  jssipUA = ua;
+
+  const audio = ensureRemoteAudio();
+  const targetUri = `sip:${targetPhone}@${creds.domain}`;
+
+  return new Promise<boolean>((resolve, reject) => {
+    let callDispatched = false;
+
+    const executeCall = () => {
+      if (callDispatched) return;
+      callDispatched = true;
+      updateCallState("calling");
+
+      const eventHandlers = {
+        progress: (e: any) => {
+          updateCallState("ringing");
+          if (callbacks?.onRinging) callbacks.onRinging();
+
+          if (currentSession && currentSession.connection) {
+            currentSession.connection.addEventListener("track", (evt: any) => {
+              if (evt.streams && evt.streams[0]) {
+                audio.srcObject = evt.streams[0];
+                audio.play().catch(() => {});
+              }
+            });
+          }
+        },
+        confirmed: () => {
+          updateCallState("in-call");
+          if (callbacks?.onConfirmed) callbacks.onConfirmed();
+
+          if (currentSession && currentSession.connection) {
+            currentSession.connection.addEventListener("track", (evt: any) => {
+              if (evt.streams && evt.streams[0]) {
+                audio.srcObject = evt.streams[0];
+                audio.play().catch(() => {});
+              }
+            });
+
+            const receivers = currentSession.connection.getReceivers();
+            if (receivers && receivers.length > 0) {
+              const stream = new MediaStream();
+              receivers.forEach((r: any) => {
+                if (r.track) stream.addTrack(r.track);
+              });
+              audio.srcObject = stream;
+              audio.play().catch(() => {});
+            }
+          }
+        },
+        ended: () => {
+          currentSession = null;
+          updateCallState("ended");
+          if (callbacks?.onEnded) callbacks.onEnded();
+          setTimeout(() => updateCallState("registered"), 1500);
+        },
+        failed: (e: any) => {
+          const cause = e?.cause || "Llamada finalizada";
+          currentSession = null;
+          updateCallState("error");
+          if (callbacks?.onFailed) callbacks.onFailed(cause);
+          setTimeout(() => updateCallState("registered"), 2000);
+        },
+      };
+
+      const callOptions = {
+        eventHandlers,
+        mediaConstraints: { audio: true, video: false },
+        pcConfig: {
+          iceServers: [
+            { urls: ["stun:stun.zadarma.com:3478", "stun:stun.l.google.com:19302"] }
+          ],
+          rtcpMuxPolicy: "negotiate",
+        },
+        rtcOfferConstraints: {
+          offerToReceiveAudio: true,
+          offerToReceiveVideo: false,
+        },
+      };
+
+      try {
+        currentSession = ua.call(targetUri, callOptions);
+        resolve(true);
+      } catch (err: any) {
+        updateCallState("error");
+        reject(err);
+      }
+    };
+
+    ua.on("registered", () => {
+      console.log("DOXA: Registrado con Zadarma WebRTC. Iniciando llamada...");
+      clearTimeout(regTimeout);
+      executeCall();
+    });
+
+    ua.on("registrationFailed", (e: any) => {
+      console.warn("DOXA: Fallo de registro SIP:", e);
+      clearTimeout(regTimeout);
+      updateCallState("error");
+      const reason = e?.cause || e?.response?.reason_phrase || "Error de autenticación con el servidor telefónico";
+      reject(new Error(`Fallo de conexión telefónica: ${reason}`));
+    });
+
+    ua.on("disconnected", (e: any) => {
+      if (!callDispatched) {
+        console.warn("DOXA: Desconectado del WebSocket de Zadarma:", e);
+      }
+    });
+
+    const regTimeout = setTimeout(() => {
+      if (!callDispatched) {
+        console.warn("DOXA: Tiempo de espera agotado esperando registro SIP");
+        updateCallState("error");
+        try {
+          ua.stop();
+        } catch {}
+        reject(new Error("Tiempo de espera agotado al conectar con el servidor telefónico de Zadarma"));
+      }
+    }, 12000);
+
+    ua.start();
+  });
 }
 
 /**
@@ -492,7 +487,7 @@ export function hangupBrowserCall(): void {
     } catch {}
     currentSession = null;
   }
-  updateCallState(jssipUA && jssipUA.isRegistered && jssipUA.isRegistered() ? "registered" : "idle");
+  updateCallState("registered");
 }
 
 /**
