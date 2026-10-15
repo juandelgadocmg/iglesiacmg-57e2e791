@@ -233,10 +233,10 @@ export const DoxaWebPhone: React.FC<DoxaWebPhoneProps> = ({
     const destFormatted = formatZadarmaNumber(clean);
     const destName = matchedDiscipulo?.full_name || clean;
 
-    toast.loading(`Llamando a ${destName} por Zadarma VoIP...`, { id: "doxa-call" });
+    toast.loading(`Llamando a ${destName} (${destFormatted})...`, { id: "doxa-call" });
 
     try {
-      await startBrowserCall(clean, {
+      await startBrowserCall(destFormatted, {
         onRinging: () => {
           toast.info(`Timbrando teléfono de ${destName}...`, { id: "doxa-call" });
         },

@@ -196,33 +196,58 @@ export async function getZadarmaSIPCredentials(sip = ZADARMA_CONFIG.PRIMARY_SIP)
 }
 
 /**
- * Formatea un número de teléfono para que Zadarma lo enrute correctamente hacia Colombia
+ * Formatea un número de teléfono para que Zadarma lo enrute correctamente en llamadas WebRTC JsSIP.
+ * Asterisk PBX de Zadarma exige estándar E.164 con el signo '+' para llamadas a números externos
+ * (ej: +573163848499). Sin el '+', Asterisk lo interpreta como una extensión interna PBX inexistente (404 Not Found).
  */
 export function formatZadarmaNumber(raw: string): string {
-  const clean = raw.replace(/\D/g, "");
-  if (!clean) return "";
+  if (!raw) return "";
+  const trimmed = raw.trim();
+  const digits = trimmed.replace(/\D/g, "");
+  if (!digits) return "";
 
-  // Si ya incluye código de país Colombia (57) y tiene al menos 12 dígitos
-  if (clean.startsWith("57") && clean.length >= 12) {
-    return clean;
+  // 1. Si es extensión interna corta de la PBX (3 o 4 dígitos, ej. 100, 101, etc.)
+  if (digits.length <= 4) {
+    return digits;
   }
 
-  // Si es número celular colombiano de 10 dígitos (ej. 3163848499)
-  if (clean.length === 10 && clean.startsWith("3")) {
-    return `57${clean}`;
+  // 2. Si empieza por '00' (prefijo internacional común), remover 00 y anteponer '+'
+  if (digits.startsWith("00")) {
+    return `+${digits.substring(2)}`;
   }
 
-  // Si es número fijo nacional de 10 dígitos (ej. 6019179246)
-  if (clean.length === 10 && clean.startsWith("60")) {
-    return `57${clean}`;
+  // 3. Si ya incluye código de país Colombia '57' y tiene al menos 12 dígitos (ej. 573163848499 o 576019179246)
+  if (digits.startsWith("57") && digits.length >= 12) {
+    return `+${digits}`;
   }
 
-  // Si es número fijo local de Bogotá (7 u 8 dígitos)
-  if (clean.length === 7 || clean.length === 8) {
-    return `57601${clean}`;
+  // 4. Si es número celular colombiano de 10 dígitos (ej. 3163848499)
+  if (digits.length === 10 && digits.startsWith("3")) {
+    return `+57${digits}`;
   }
 
-  return clean;
+  // 5. Si es número fijo nacional de 10 dígitos con indicativo (ej. 6019179246)
+  if (digits.length === 10 && digits.startsWith("60")) {
+    return `+57${digits}`;
+  }
+
+  // 6. Si es número fijo local de Bogotá (7 u 8 dígitos, ej. 9179246)
+  if (digits.length === 7 || digits.length === 8) {
+    return `+57601${digits}`;
+  }
+
+  // 7. Si es cualquier otro número nacional colombiano de 10 dígitos
+  if (digits.length === 10) {
+    return `+57${digits}`;
+  }
+
+  // 8. Si originalmente venía con '+'
+  if (trimmed.startsWith("+")) {
+    return `+${digits}`;
+  }
+
+  // 9. Cualquier otro número internacional externo
+  return `+${digits}`;
 }
 
 /**
@@ -429,7 +454,18 @@ export async function startBrowserCall(
           setTimeout(() => updateCallState("registered"), 1500);
         },
         failed: (e: any) => {
-          const cause = e?.cause || "Llamada finalizada";
+          let cause = e?.cause || "Llamada finalizada";
+          if (cause === "Not Found") {
+            cause = "Número no encontrado o fuera de servicio";
+          } else if (cause === "Busy") {
+            cause = "Línea ocupada";
+          } else if (cause === "Rejected") {
+            cause = "Llamada rechazada";
+          } else if (cause === "Unavailable") {
+            cause = "Usuario no disponible o sin señal";
+          } else if (cause === "User Denied Media Access") {
+            cause = "Permiso de micrófono denegado";
+          }
           currentSession = null;
           updateCallState("error");
           if (callbacks?.onFailed) callbacks.onFailed(cause);
@@ -453,6 +489,21 @@ export async function startBrowserCall(
 
       try {
         currentSession = ua.call(targetUri, callOptions);
+
+        if (currentSession) {
+          currentSession.on("peerconnection", (data: any) => {
+            const pc = data?.peerconnection;
+            if (pc) {
+              pc.addEventListener("track", (evt: any) => {
+                if (evt.streams && evt.streams[0]) {
+                  audio.srcObject = evt.streams[0];
+                  audio.play().catch(() => {});
+                }
+              });
+            }
+          });
+        }
+
         resolve(true);
       } catch (err: any) {
         updateCallState("error");
@@ -465,6 +516,11 @@ export async function startBrowserCall(
       clearTimeout(regTimeout);
       executeCall();
     });
+
+    if (ua.isRegistered && ua.isRegistered()) {
+      clearTimeout(regTimeout);
+      executeCall();
+    }
 
     ua.on("registrationFailed", (e: any) => {
       console.warn("DOXA: Fallo de registro SIP:", e);
@@ -532,13 +588,14 @@ export async function triggerZadarmaCallback(
   toPhone: string,
   fromPhone?: string
 ): Promise<{ status: string; from?: string; to?: string; message?: string }> {
-  const cleanTo = formatZadarmaNumber(toPhone);
+  // Para la API REST de callback de Zadarma, se envían únicamente dígitos sin '+'
+  const cleanTo = formatZadarmaNumber(toPhone).replace(/^\+/, "");
   if (!cleanTo || cleanTo.length < 7) {
     throw new Error("Número de destino inválido (mínimo 7 dígitos)");
   }
 
   // Si no se especifica número de origen, usar el SIP principal 301311 de CMG o el número del líder
-  const cleanFrom = fromPhone ? formatZadarmaNumber(fromPhone) : ZADARMA_CONFIG.PRIMARY_SIP;
+  const cleanFrom = fromPhone ? formatZadarmaNumber(fromPhone).replace(/^\+/, "") : ZADARMA_CONFIG.PRIMARY_SIP;
 
   const params: Record<string, string> = {
     from: cleanFrom,

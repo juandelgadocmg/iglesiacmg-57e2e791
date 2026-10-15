@@ -27,7 +27,8 @@ import {
 import { 
   startBrowserCall, 
   hangupBrowserCall, 
-  toggleMuteBrowserCall 
+  toggleMuteBrowserCall,
+  formatZadarmaNumber
 } from "@/services/zadarmaService";
 
 interface LlamarDiscipuloModalProps {
@@ -81,11 +82,12 @@ export function LlamarDiscipuloModal({
 
   // 1. Llamar por Internet (VoIP Web Directo con micrófono y audio del navegador)
   const handleVoIPDirecto = async () => {
+    const formattedPhone = formatZadarmaNumber(cleanPhone);
     setCallingState("ringing");
-    toast.loading(`Iniciando llamada VoIP con ${discipulo.full_name}...`, { id: "modal-call" });
+    toast.loading(`Iniciando llamada VoIP a ${discipulo.full_name} (${formattedPhone})...`, { id: "modal-call" });
 
     try {
-      await startBrowserCall(cleanPhone, {
+      await startBrowserCall(formattedPhone, {
         onRinging: () => {
           setCallingState("ringing");
           toast.info(`Timbrando teléfono de ${discipulo.full_name}...`, { id: "modal-call" });
