@@ -18,6 +18,7 @@ import {
   Check,
   Settings,
   PhoneForwarded,
+  RefreshCw,
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -440,6 +441,34 @@ export const DoxaWebPhone: React.FC<DoxaWebPhoneProps> = ({
               </span>
             </div>
             <div className="flex items-center gap-1">
+              <button
+                type="button"
+                onClick={async () => {
+                  toast.info("Actualizando conexión telefónica y limpiando caché...");
+                  if ("caches" in window) {
+                    try {
+                      const keys = await caches.keys();
+                      await Promise.all(keys.map((k) => caches.delete(k)));
+                    } catch {}
+                  }
+                  if ("serviceWorker" in navigator) {
+                    try {
+                      const regs = await navigator.serviceWorker.getRegistrations();
+                      await Promise.all(regs.map((r) => r.unregister()));
+                    } catch {}
+                  }
+                  for (let key in localStorage) {
+                    if (key.startsWith("zadarma_webrtc_cache_")) {
+                      localStorage.removeItem(key);
+                    }
+                  }
+                  window.location.reload();
+                }}
+                className="text-slate-400 hover:text-emerald-400 p-1 rounded-lg transition-colors"
+                title="Actualizar teléfono a la última versión"
+              >
+                <RefreshCw className="w-3.5 h-3.5" />
+              </button>
               <button
                 type="button"
                 onClick={() => setShowCallbackModal(true)}
