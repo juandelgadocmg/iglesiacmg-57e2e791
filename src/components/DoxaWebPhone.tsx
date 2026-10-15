@@ -253,22 +253,7 @@ export const DoxaWebPhone: React.FC<DoxaWebPhoneProps> = ({
       });
     } catch (err: any) {
       console.warn("Error WebRTC:", err);
-      const myPhone = leaderPhone || localStorage.getItem("doxa_leader_phone") || "";
-      if (myPhone && myPhone.replace(/\D/g, "").length >= 7) {
-        toast.info(
-          "El navegador no pudo conectar VoIP directo. Enlazando llamada por la centralita de Zadarma a tu celular...",
-          { id: "doxa-call", duration: 5000 }
-        );
-        setTimeout(() => {
-          handleTriggerCallback();
-        }, 1000);
-      } else {
-        toast.error(
-          `VoIP directo no disponible (${err.message || "desconocido"}). Configura tu celular abajo para conectar por la centralita de la iglesia.`,
-          { id: "doxa-call", duration: 7000 }
-        );
-        setShowCallbackModal(true);
-      }
+      toast.error(`Error al conectar VoIP en navegador: ${err.message || "desconocido"}`, { id: "doxa-call", duration: 6000 });
     }
   };
 

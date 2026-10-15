@@ -104,12 +104,12 @@ export async function getZadarmaWebRTCKey(sip = ZADARMA_CONFIG.PRIMARY_SIP): Pro
   const targetSip = ZADARMA_CONFIG.PRIMARY_SIP;
   const cacheKey = `zadarma_webrtc_cache_v5_${targetSip}`;
 
-  // 1. Revisar caché local (máximo 12h para asegurar frescura)
+  // 1. Revisar caché local (máximo 10 minutos para asegurar frescura total)
   try {
     const cached = localStorage.getItem(cacheKey);
     if (cached) {
       const parsed = JSON.parse(cached);
-      if (parsed.timestamp && Date.now() - parsed.timestamp < 12 * 3600 * 1000 && parsed.key) {
+      if (parsed.timestamp && Date.now() - parsed.timestamp < 10 * 60 * 1000 && parsed.key) {
         return parsed.key;
       }
     }
@@ -444,7 +444,6 @@ export async function startBrowserCall(
           iceServers: [
             { urls: ["stun:stun.zadarma.com:3478", "stun:stun.l.google.com:19302"] }
           ],
-          rtcpMuxPolicy: "negotiate",
         },
         rtcOfferConstraints: {
           offerToReceiveAudio: true,
