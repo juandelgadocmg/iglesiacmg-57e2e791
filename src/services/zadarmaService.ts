@@ -102,7 +102,7 @@ export async function callZadarmaViaProxy(
  */
 export async function getZadarmaWebRTCKey(sip = ZADARMA_CONFIG.PRIMARY_SIP): Promise<string> {
   const targetSip = ZADARMA_CONFIG.PRIMARY_SIP;
-  const cacheKey = `zadarma_webrtc_cache_v4_${targetSip}`;
+  const cacheKey = `zadarma_webrtc_cache_v5_${targetSip}`;
 
   // 1. Revisar caché local (máximo 12h para asegurar frescura)
   try {
@@ -355,16 +355,17 @@ export async function startBrowserCall(
   const socketUrl = `wss://${creds.domain}:4443`;
   const socket = new w.JsSIP.WebSocketInterface(socketUrl);
 
-  w.JsSIP.C.USER_AGENT = "Zadarma CallmeButton Widget";
+  w.JsSIP.C.USER_AGENT = "Zadarma webRTC";
 
   const configuration = {
     sockets: [socket],
     uri: `sip:${creds.username}@${creds.domain}`,
     password: creds.pass,
     authorization_user: creds.username,
+    user_agent: "Zadarma webRTC",
     display_name: creds.username,
     register: true,
-    register_expires: 580,
+    register_expires: 300,
     session_timers: false,
     connection_recovery_min_interval: 2,
     connection_recovery_max_interval: 30,
