@@ -48,3 +48,4 @@ CREATE TABLE IF NOT EXISTS public.infantil_seguimientos (
 ALTER TABLE public.infantil_seguimientos ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Permitir todo en infantil_seguimientos a autenticados" ON public.infantil_seguimientos;
 CREATE POLICY "Permitir todo en infantil_seguimientos a autenticados" ON public.infantil_seguimientos FOR ALL TO authenticated USING (true);
+

@@ -37,16 +37,10 @@ export default function ReportesInfantilView() {
       const todayStr = format(new Date(), "yyyy-MM-dd");
 
       if (reportId === "asistencia_mensual") {
-        // Consultar asistencias
+        // Consultar asistencias en la tabla real infantil_asistencia_checkin
         let query = supabase
-          .from("infantil_asistencias")
-          .select(`
-            id, fecha, hora_entrada, hora_salida, observaciones,
-            nino:nino_id(id, nombres, apellidos, documento),
-            grupo:grupo_id(id, nombre),
-            entregado_por:entregado_por_id(id, nombres, apellidos),
-            recibido_por:recibido_por_id(id, nombres, apellidos)
-          `)
+          .from("infantil_asistencia_checkin")
+          .select("*")
           .order("fecha", { ascending: false });
 
         if (selectedGrupoId !== "todos") {
@@ -56,27 +50,36 @@ export default function ReportesInfantilView() {
         const { data: asistencias, error } = await query;
         if (error) throw error;
 
-        const tableData = (asistencias || []).map((a: any) => ({
-          fecha: a.fecha || "-",
-          nino: a.nino ? `${a.nino.nombres} ${a.nino.apellidos}` : "No especificado",
-          documento: a.nino?.documento || "N/A",
-          grupo: a.grupo?.nombre || "Infantil",
-          hora_entrada: a.hora_entrada ? format(new Date(a.hora_entrada), "HH:mm") : "-",
-          hora_salida: a.hora_salida ? format(new Date(a.hora_salida), "HH:mm") : "En clase",
-          entregado_por: a.entregado_por ? `${a.entregado_por.nombres} ${a.entregado_por.apellidos}` : "-",
-          recibido_por: a.recibido_por ? `${a.recibido_por.nombres} ${a.recibido_por.apellidos}` : "-",
-          observaciones: a.observaciones || "-"
-        }));
+        const tableData = (asistencias || []).map((a: any) => {
+          const ninoObj = personas.find((p) => p.id === a.nino_id) || ninos.find((n) => n.id === a.nino_id);
+          const grupoObj = grupos.find((g) => g.id === a.grupo_id);
+          const entregadoObj = a.entregado_por_id ? personas.find((p) => p.id === a.entregado_por_id) : null;
+          const recogidoObj = a.recogido_por_id ? personas.find((p) => p.id === a.recogido_por_id) : null;
+
+          return {
+            fecha: a.fecha || "-",
+            nino: ninoObj ? `${ninoObj.nombres} ${ninoObj.apellidos}`.trim() : "No especificado",
+            documento: ninoObj?.documento || "N/A",
+            grupo: grupoObj?.nombre || "Infantil",
+            estado: a.estado || "Presente",
+            hora_entrada: a.hora_entrada ? format(new Date(a.hora_entrada), "HH:mm") : "-",
+            hora_salida: a.hora_salida ? format(new Date(a.hora_salida), "HH:mm") : "En clase",
+            entregado_por: entregadoObj ? `${entregadoObj.nombres} ${entregadoObj.apellidos}`.trim() : "-",
+            recibido_por: recogidoObj ? `${recogidoObj.nombres} ${recogidoObj.apellidos}`.trim() : "-",
+            observaciones: a.observaciones || "-"
+          };
+        });
 
         const columns = [
           { header: "Fecha", key: "fecha" },
           { header: "Niño / Niña", key: "nino" },
           { header: "Documento", key: "documento" },
           { header: "Grupo", key: "grupo" },
+          { header: "Estado", key: "estado" },
           { header: "Entrada", key: "hora_entrada" },
           { header: "Salida", key: "hora_salida" },
           { header: "Entregado Por", key: "entregado_por" },
-          { header: "Recibido Por", key: "recibido_por" }
+          { header: "Recogido Por", key: "recibido_por" }
         ];
 
         const filename = `Reporte_Asistencia_Infantil_${todayStr}`;
