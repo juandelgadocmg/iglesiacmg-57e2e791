@@ -365,7 +365,7 @@ export async function startBrowserCall(
     user_agent: "Zadarma webRTC",
     display_name: creds.username,
     register: true,
-    register_expires: 300,
+    register_expires: 580,
     session_timers: false,
     connection_recovery_min_interval: 2,
     connection_recovery_max_interval: 30,
@@ -469,6 +469,9 @@ export async function startBrowserCall(
 
     ua.on("registrationFailed", (e: any) => {
       console.warn("DOXA: Fallo de registro SIP:", e);
+      try {
+        localStorage.removeItem(`zadarma_webrtc_cache_v5_${ZADARMA_CONFIG.PRIMARY_SIP}`);
+      } catch {}
       clearTimeout(regTimeout);
       updateCallState("error");
       const reason = e?.cause || e?.response?.reason_phrase || "Error de autenticación con el servidor telefónico";
