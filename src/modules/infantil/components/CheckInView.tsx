@@ -74,24 +74,54 @@ export default function CheckInView() {
     return (asistencias || []).filter(a => !!a.hora_salida);
   }, [asistencias]);
 
-  // Buscar niño por código QR o texto
+  // Helper de normalización para ignorar tildes y mayúsculas
+  const normalizeText = (str: string) =>
+    (str || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+
+  // Sugerencias en tiempo real mientras el usuario escribe
+  const liveSuggestions = useMemo(() => {
+    const raw = searchCode.trim();
+    if (raw.length < 2) return [];
+    const clean = normalizeText(raw);
+    const tokens = clean.split(/\s+/).filter(Boolean);
+    const pool = (ninos && ninos.length > 0 ? ninos : personas || []);
+
+    return pool.filter(x => {
+      const full = normalizeText(`${x.nombres ?? ""} ${x.apellidos ?? ""}`);
+      const doc = normalizeText(x.documento ?? "");
+      return tokens.every(t => full.includes(t) || doc.includes(t));
+    }).slice(0, 6);
+  }, [searchCode, ninos, personas]);
+
+  // Buscar niño por código QR, ID, documento o palabras en el nombre
   const findChild = (codeOrId: string) => {
-    const clean = codeOrId.trim().toLowerCase();
+    const raw = codeOrId.trim();
+    if (!raw) return null;
+    const clean = normalizeText(raw);
+
     // 1. Coincidencia exacta por ID o qr_code
-    let n = (ninos || []).find(p => p.id.toLowerCase() === clean || (p.detalles?.qr_codigo && p.detalles.qr_codigo.toLowerCase() === clean));
+    let n = (ninos || []).find(p => p.id.toLowerCase() === raw.toLowerCase() || (p.detalles?.qr_codigo && p.detalles.qr_codigo.toLowerCase() === raw.toLowerCase()));
     if (n) return n;
 
-    let p = (personas || []).find(x => x.id.toLowerCase() === clean || (x as any).qr_code?.toLowerCase() === clean);
+    let p = (personas || []).find(x => x.id.toLowerCase() === raw.toLowerCase() || (x as any).qr_code?.toLowerCase() === raw.toLowerCase());
     if (p) return p;
 
-    // 2. Coincidencia por documento
-    n = (ninos || []).find(x => x.documento && x.documento.toLowerCase() === clean);
+    // 2. Coincidencia por documento (exacta o limpia)
+    n = (ninos || []).find(x => x.documento && normalizeText(x.documento) === clean);
     if (n) return n;
 
-    // 3. Coincidencia por nombre completo
-    const matches = (ninos && ninos.length > 0 ? ninos : personas || []).filter(x =>
-      `${x.nombres ?? ""} ${x.apellidos ?? ""}`.toLowerCase().includes(clean)
-    );
+    p = (personas || []).find(x => x.documento && normalizeText(x.documento) === clean);
+    if (p) return p;
+
+    // 3. Coincidencia por palabras del nombre (ej. "Samuel Gomez" coincide con "Samuel David Gomez Espinel")
+    const tokens = clean.split(/\s+/).filter(Boolean);
+    const pool = (ninos && ninos.length > 0 ? ninos : personas || []);
+    const matches = pool.filter(x => {
+      const full = normalizeText(`${x.nombres ?? ""} ${x.apellidos ?? ""}`);
+      const doc = normalizeText(x.documento ?? "");
+      return tokens.every(t => full.includes(t) || doc.includes(t));
+    });
+
     return matches[0] || null;
   };
 
@@ -308,11 +338,11 @@ export default function CheckInView() {
                 </div>
               )}
 
-              <div className="space-y-1.5">
+              <div className="space-y-1.5 relative">
                 <label className="text-xs font-bold text-slate-600 uppercase tracking-wider">Nombre, ID o Documento:</label>
                 <div className="flex gap-2">
                   <Input
-                    placeholder="Ej. Juan Pérez o documento..."
+                    placeholder="Ej. Samuel Gomez, documento o ID..."
                     value={searchCode}
                     onChange={(e) => setSearchCode(e.target.value)}
                     onKeyDown={(e) => e.key === "Enter" && handleManualSearch()}
@@ -326,6 +356,33 @@ export default function CheckInView() {
                     {mode === "entrada" ? "Registrar" : "Validar"}
                   </Button>
                 </div>
+
+                {/* Dropdown de sugerencias en vivo */}
+                {liveSuggestions.length > 0 && (
+                  <div className="absolute z-30 left-0 right-0 top-full mt-1.5 bg-white border border-slate-200 rounded-xl shadow-2xl overflow-hidden divide-y divide-slate-100 max-h-64 overflow-y-auto">
+                    {liveSuggestions.map((child: any) => (
+                      <button
+                        key={child.id}
+                        type="button"
+                        onClick={() => processChildAction(child.id)}
+                        className="w-full text-left p-3 hover:bg-blue-50/70 flex items-center justify-between transition-colors group"
+                      >
+                        <div className="min-w-0 pr-2">
+                          <p className="text-sm font-bold text-navy group-hover:text-coral transition-colors truncate">
+                            {child.nombres} {child.apellidos}
+                          </p>
+                          <p className="text-xs text-slate-500">
+                            {child.documento ? `Doc: ${child.documento} · ` : ""}
+                            {grupos?.find(g => g.id === child.grupo_id)?.nombre || "Infantil"}
+                          </p>
+                        </div>
+                        <Badge variant="outline" className="text-[10px] bg-slate-50 text-navy font-semibold shrink-0 group-hover:bg-navy group-hover:text-white transition-colors">
+                          {mode === "entrada" ? "Registrar Entrada" : "Registrar Salida"}
+                        </Badge>
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
 
               {/* Protocolo de seguridad */}

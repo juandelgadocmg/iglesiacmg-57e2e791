@@ -28,6 +28,7 @@ export default function ClasesProgramacionView() {
   const [form, setForm] = useState({
     grupo_id: "",
     maestro_id: "",
+    maestro_auxiliar_id: "",
     fecha: format(new Date(), "yyyy-MM-dd"),
     tema: "",
     versiculo: "",
@@ -42,6 +43,7 @@ export default function ClasesProgramacionView() {
     setForm({
       grupo_id: "",
       maestro_id: "",
+      maestro_auxiliar_id: "",
       fecha: format(new Date(), "yyyy-MM-dd"),
       tema: "",
       versiculo: "",
@@ -58,6 +60,7 @@ export default function ClasesProgramacionView() {
     setForm({
       grupo_id: clase.grupo_id || "",
       maestro_id: clase.maestro_id || "",
+      maestro_auxiliar_id: clase.maestro_auxiliar_id || "",
       fecha: clase.fecha || format(new Date(), "yyyy-MM-dd"),
       tema: clase.tema || "",
       versiculo: clase.versiculo || "",
@@ -76,7 +79,11 @@ export default function ClasesProgramacionView() {
       return;
     }
 
-    const payload = { ...form, maestro_id: form.maestro_id || null };
+    const payload = {
+      ...form,
+      maestro_id: form.maestro_id || null,
+      maestro_auxiliar_id: form.maestro_auxiliar_id || null
+    };
     try {
       if (editingId) {
         await updateClase.mutateAsync({ id: editingId, ...payload });
@@ -169,9 +176,19 @@ export default function ClasesProgramacionView() {
                     {c.maestro && (
                       <div className="flex items-center gap-2 text-sm text-slate-600 font-medium">
                         <div className="p-1.5 bg-slate-100 rounded-md text-slate-500"><UserRound className="h-4 w-4" /></div>
-                        Maestro: <span className="text-navy">{c.maestro.nombres} {c.maestro.apellidos}</span>
+                        <span>Maestro: <strong className="text-navy">{c.maestro.nombres} {c.maestro.apellidos}</strong></span>
                       </div>
                     )}
+                    {(c.maestro_auxiliar || c.maestro_auxiliar_id) && (() => {
+                      const aux = c.maestro_auxiliar || personas?.find(p => p.id === c.maestro_auxiliar_id);
+                      if (!aux) return null;
+                      return (
+                        <div className="flex items-center gap-2 text-sm text-slate-600 font-medium">
+                          <div className="p-1.5 bg-blue-50 rounded-md text-blue-600"><Users className="h-4 w-4" /></div>
+                          <span>Auxiliar: <strong className="text-blue-900">{aux.nombres} {aux.apellidos}</strong></span>
+                        </div>
+                      );
+                    })()}
                     {c.versiculo && (
                       <div className="mt-3 p-3 bg-gradient-to-br from-slate-50 to-slate-100/50 border border-slate-100 rounded-xl text-xs italic text-slate-600 line-clamp-2 relative">
                         <span className="text-3xl text-slate-200 absolute top-1 left-2 font-serif leading-none">"</span>
@@ -239,17 +256,32 @@ export default function ClasesProgramacionView() {
               </div>
             </div>
 
-            <div className="space-y-2">
-              <Label>Maestro Asignado</Label>
-              <SearchableSelect
-                options={maestroOptions}
-                value={form.maestro_id}
-                onChange={(v) => setForm({ ...form, maestro_id: v })}
-                placeholder="Seleccionar maestro (opcional)"
-                searchPlaceholder="Buscar maestro..."
-                emptyText="No hay maestros. Nómbralos en Gestión Maestros."
-                allowClear
-              />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Maestro Principal</Label>
+                <SearchableSelect
+                  options={maestroOptions}
+                  value={form.maestro_id}
+                  onChange={(v) => setForm({ ...form, maestro_id: v })}
+                  placeholder="Seleccionar maestro (opcional)"
+                  searchPlaceholder="Buscar maestro principal..."
+                  emptyText="No hay maestros. Nómbralos en Gestión Maestros."
+                  allowClear
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Maestro Auxiliar (Co-docente)</Label>
+                <SearchableSelect
+                  options={maestroOptions.filter(m => m.value !== form.maestro_id)}
+                  value={form.maestro_auxiliar_id}
+                  onChange={(v) => setForm({ ...form, maestro_auxiliar_id: v })}
+                  placeholder="Seleccionar maestro auxiliar"
+                  searchPlaceholder="Buscar maestro auxiliar..."
+                  emptyText="No hay maestros disponibles."
+                  allowClear
+                />
+              </div>
             </div>
 
             <div className="space-y-2">
