@@ -375,11 +375,7 @@ export default function DiscipuladoPage() {
             <span className="hidden sm:inline">Agregar</span>
           </Button>
           <Button 
-            onClick={() => {
-              window.dispatchEvent(
-                new CustomEvent("doxa-call-number", { detail: {} })
-              );
-            }}
+            onClick={() => setIsRegistrarLlamadaOpen(true)}
             className="bg-blue-600 hover:bg-blue-700 text-white font-bold shadow-md shadow-blue-200"
           >
             <PhoneCall className="w-4 h-4 sm:mr-2" />
@@ -645,15 +641,13 @@ export default function DiscipuladoPage() {
         onSuccess={loadData}
       />
       
-      {lider && (
-        <RegistrarLlamadaModal
-          open={isRegistrarLlamadaOpen}
-          onOpenChange={setIsRegistrarLlamadaOpen}
-          discipulos={discipulos}
-          liderId={lider.id}
-          onSuccess={loadData}
-        />
-      )}
+      <RegistrarLlamadaModal
+        open={isRegistrarLlamadaOpen}
+        onOpenChange={setIsRegistrarLlamadaOpen}
+        discipulos={discipulos}
+        liderId={lider?.id || session?.user?.id || ""}
+        onSuccess={loadData}
+      />
       
       {lider && (
         <ImportarDiscipulosModal
