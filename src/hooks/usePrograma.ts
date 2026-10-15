@@ -50,7 +50,10 @@ function useUpsert<T>(table: string, invalidate: string[][]) {
       if (error) throw error;
       return data as T;
     },
-    onSuccess: () => invalidate.forEach((k) => qc.invalidateQueries({ queryKey: k })),
+    onSuccess: () => {
+      invalidate.forEach((k) => qc.invalidateQueries({ queryKey: k }));
+      qc.invalidateQueries({ queryKey: ["prog_reuniones_infantil"] });
+    },
   });
 }
 function useDelete(table: string, invalidate: string[][]) {
@@ -60,7 +63,10 @@ function useDelete(table: string, invalidate: string[][]) {
       const { error } = await supabase.from(table as any).delete().eq("id", id);
       if (error) throw error;
     },
-    onSuccess: () => invalidate.forEach((k) => qc.invalidateQueries({ queryKey: k })),
+    onSuccess: () => {
+      invalidate.forEach((k) => qc.invalidateQueries({ queryKey: k }));
+      qc.invalidateQueries({ queryKey: ["prog_reuniones_infantil"] });
+    },
   });
 }
 

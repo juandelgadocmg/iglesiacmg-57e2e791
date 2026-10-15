@@ -240,6 +240,7 @@ export const ISO_TEMPLATES: IsoMinisterioTemplate[] = [
     fechaVigencia: "18/07/2024",
     titulo: "FORMATO PROGRAMACIÓN MINISTERIO INFANTIL",
     estaciones: ["Maestro", "Apoyo", "Tema", "Material", "Recepción", "Aseo"],
+    estacionesTexto: ["Tema", "Material"],
     importante:
       "Preparar material didáctico y dinámicas con anticipación. Llegar 45 min antes del servicio. " +
       "Cumplir con el protocolo de cuidado del menor.",

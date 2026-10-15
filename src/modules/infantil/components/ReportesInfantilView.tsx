@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { useNinos } from "../hooks/useNinos";
-import { useInfantilGrupos, useInfantilClases, useInfantilAcudientes } from "@/hooks/useInfantil";
+import { useInfantilGrupos, useInfantilClases, useInfantilAcudientes, useProgramacionReunionesInfantil } from "@/hooks/useInfantil";
 import { usePersonas } from "@/hooks/useDatabase";
 import { exportToExcel, exportToPDF } from "@/lib/exportUtils";
 import { supabase } from "@/integrations/supabase/client";
@@ -21,6 +21,7 @@ export default function ReportesInfantilView() {
   const { ninos = [], isLoading: isLoadingNinos } = useNinos();
   const { data: grupos = [] } = useInfantilGrupos();
   const { data: clases = [] } = useInfantilClases();
+  const { data: serviciosReuniones = [] } = useProgramacionReunionesInfantil();
   const { data: acudientes = [] } = useInfantilAcudientes();
   const { data: personas = [] } = usePersonas();
 
@@ -201,13 +202,14 @@ export default function ReportesInfantilView() {
         toast.success(`Reporte Médico descargado (${formatType.toUpperCase()})`);
 
       } else if (reportId === "curriculo_clases") {
-        // Cumplimiento de currículo y clases
+        // Cumplimiento de currículo y clases (incluyendo las sincronizadas desde Reuniones)
         let clasesPool = clases;
         if (selectedGrupoId !== "todos") {
           clasesPool = clases.filter(c => c.grupo_id === selectedGrupoId);
         }
 
-        const tableData = clasesPool.map((c: any) => {
+        const fechasYaIncluidas = new Set(clasesPool.map((c: any) => c.fecha));
+        const desdeClases = clasesPool.map((c: any) => {
           const aux = c.maestro_auxiliar || personas.find(p => p.id === c.maestro_auxiliar_id);
           return {
             fecha: c.fecha || "-",
@@ -219,6 +221,20 @@ export default function ReportesInfantilView() {
             estado: c.estado || "Programada"
           };
         });
+
+        const desdeReuniones = serviciosReuniones
+          .filter(s => s.tiene_programacion_infantil && !fechasYaIncluidas.has(s.fecha))
+          .map(s => ({
+            fecha: s.fecha || "-",
+            grupo: s.grupo_texto || s.ministerio_nombre || "Infantil",
+            tema: s.tema || s.evento_titulo || "-",
+            maestro_principal: s.maestro ? `${s.maestro.nombres} ${s.maestro.apellidos}` : "Sin asignar",
+            maestro_auxiliar: s.maestro_auxiliar ? `${s.maestro_auxiliar.nombres} ${s.maestro_auxiliar.apellidos}` : "Sin auxiliar",
+            versiculo: s.versiculo || "-",
+            estado: "Programada (Reuniones)"
+          }));
+
+        const tableData = [...desdeClases, ...desdeReuniones];
 
         const columns = [
           { header: "Fecha", key: "fecha" },

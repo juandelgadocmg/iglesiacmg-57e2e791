@@ -86,6 +86,7 @@ export function useProgTextos(ministerio_id: string | null | undefined) {
             { onConflict: "ministerio_id,evento_id,campo" }
           );
           qc.invalidateQueries({ queryKey: KEY(ministerio_id) });
+          qc.invalidateQueries({ queryKey: ["prog_reuniones_infantil"] });
         }, 500)
       );
     },
