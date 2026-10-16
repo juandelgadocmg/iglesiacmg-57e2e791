@@ -574,16 +574,7 @@ function normInfKey(s: string | null | undefined): string {
 export function isMinisterioInfantilNombre(nombre: string | null | undefined): boolean {
   const n = normInfKey(nombre);
   if (!n) return false;
-  return (
-    n.includes("infantil") ||
-    n.includes("kings army") ||
-    n.includes("king's army") ||
-    n.includes("kings") ||
-    n.includes("kabod") ||
-    n.includes("nino") ||
-    n.includes("kids") ||
-    n.includes("escuela dominical")
-  );
+  return n === "infantil" || n.includes("infantil");
 }
 
 export interface ServidorAsignadoReunion {

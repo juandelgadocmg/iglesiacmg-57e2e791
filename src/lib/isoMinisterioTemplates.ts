@@ -339,5 +339,10 @@ function norm(s: string): string {
 /** Busca la plantilla ISO de un ministerio por nombre. */
 export function findIsoTemplate(nombreMinisterio: string): IsoMinisterioTemplate | null {
   const n = norm(nombreMinisterio);
-  return ISO_TEMPLATES.find((t) => norm(t.nombreMinisterio) === n) || null;
+  const exact = ISO_TEMPLATES.find((t) => norm(t.nombreMinisterio) === n);
+  if (exact) return exact;
+  if (n.includes("infantil")) {
+    return ISO_TEMPLATES.find((t) => norm(t.nombreMinisterio) === "infantil") || null;
+  }
+  return null;
 }

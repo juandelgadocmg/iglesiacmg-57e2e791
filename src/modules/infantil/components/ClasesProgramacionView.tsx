@@ -415,7 +415,7 @@ export default function ClasesProgramacionView() {
                     </h3>
                     <p className="text-xs text-slate-500 max-w-md mt-1">
                       Cuando asignes maestros, auxiliares o temas en el módulo{" "}
-                      <strong>Reuniones → Programación</strong> (para Infantil, Kings Army o Kabod), aparecerán aquí
+                      <strong>Reuniones → Programación</strong> (para el Ministerio Infantil), aparecerán aquí
                       automáticamente.
                     </p>
                   </CardContent>

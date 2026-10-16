@@ -15,6 +15,7 @@ import CheckInView from "@/modules/infantil/components/CheckInView";
 import CentroAtencionView from "@/modules/infantil/components/CentroAtencionView";
 import PanelMaestroView from "@/modules/infantil/components/PanelMaestroView";
 import ClasesProgramacionView from "@/modules/infantil/components/ClasesProgramacionView";
+import ProgramacionIsoInfantilView from "@/modules/infantil/components/ProgramacionIsoInfantilView";
 import PadresView from "@/modules/infantil/components/PadresView";
 import GruposInfantilesView from "@/modules/infantil/components/GruposInfantilesView";
 import MaestrosInfantilesView from "@/modules/infantil/components/MaestrosInfantilesView";
@@ -118,7 +119,7 @@ export default function InfantilPage() {
           <Route path="/grupos" element={<GruposInfantilesView />} />
           <Route path="/maestros" element={<MaestrosInfantilesView />} />
           <Route path="/clases" element={<ClasesProgramacionView />} />
-          <Route path="/programacion" element={<ClasesProgramacionView />} />
+          <Route path="/programacion" element={<ProgramacionIsoInfantilView />} />
           <Route path="/seguimiento" element={<SeguimientoInfantilView />} />
           <Route path="/notificaciones" element={<NotificacionesInfantilView />} />
           <Route path="/estadisticas" element={<EstadisticasInfantilView />} />
