@@ -15,6 +15,38 @@ export const getTiposPersona = (p: any): string[] =>
 export const isMaestroInfantil = (p: any) => getTiposPersona(p).includes(TIPO_MAESTRO_INFANTIL);
 export const isNino = (p: any) => getTiposPersona(p).includes("Niño");
 
+function normInfKey(s: string | null | undefined): string {
+  return (s || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+/**
+ * Devuelve true si un nombre/texto pertenece a Kings Army o Kabod,
+ * los cuales NO deben incluirse ni exportarse en el módulo Infantil.
+ */
+export function isExcluidoDeInfantil(texto: string | null | undefined): boolean {
+  const n = normInfKey(texto);
+  if (!n) return false;
+  return (
+    n.includes("kings army") ||
+    n.includes("king's army") ||
+    n.includes("kingsarmy") ||
+    n.includes("kings") ||
+    n.includes("kabod")
+  );
+}
+
+export function isMinisterioInfantilNombre(nombre: string | null | undefined): boolean {
+  const n = normInfKey(nombre);
+  if (!n) return false;
+  if (isExcluidoDeInfantil(n)) return false;
+  return n === "infantil" || n.includes("infantil");
+}
+
 export function useInfantilGrupos() {
   return useQuery({
     queryKey: ["infantil_grupos"],
@@ -25,16 +57,18 @@ export function useInfantilGrupos() {
         .eq("tipo", TIPO_GRUPO_INFANTIL)
         .order("nombre", { ascending: true });
       if (error) throw error;
-      return (data || []).map((g: any) => ({
-        ...g,
-        edades: g.descripcion,
-        // 1:1 relation may come back as object or array depending on PostgREST
-        infantil_grupos_detalles: Array.isArray(g.infantil_grupos_detalles)
-          ? g.infantil_grupos_detalles
-          : g.infantil_grupos_detalles
-            ? [g.infantil_grupos_detalles]
-            : [],
-      }));
+      return (data || [])
+        .filter((g: any) => !isExcluidoDeInfantil(g.nombre) && !isExcluidoDeInfantil(g.descripcion))
+        .map((g: any) => ({
+          ...g,
+          edades: g.descripcion,
+          // 1:1 relation may come back as object or array depending on PostgREST
+          infantil_grupos_detalles: Array.isArray(g.infantil_grupos_detalles)
+            ? g.infantil_grupos_detalles
+            : g.infantil_grupos_detalles
+              ? [g.infantil_grupos_detalles]
+              : [],
+        }));
     },
   });
 }
@@ -112,6 +146,7 @@ export function useInfantilClases(grupoId?: string) {
     queryKey: ["infantil_clases", grupoId],
     queryFn: async () => {
       // 1. Intentar con relación maestro_auxiliar
+      let rawClases: any[] = [];
       let query = supabase
         .from("infantil_clases")
         .select("*, maestro:maestro_id(id, nombres, apellidos), maestro_auxiliar:maestro_auxiliar_id(id, nombres, apellidos), grupo:grupo_id(id, nombre)")
@@ -120,19 +155,114 @@ export function useInfantilClases(grupoId?: string) {
         query = query.eq("grupo_id", grupoId);
       }
       const { data, error } = await query;
-      if (!error && data) return data;
-
-      // 2. Fallback seguro si la FK aún no está en caché de PostgREST
-      let fallbackQuery = supabase
-        .from("infantil_clases")
-        .select("*, maestro:maestro_id(id, nombres, apellidos), grupo:grupo_id(id, nombre)")
-        .order("fecha", { ascending: false });
-      if (grupoId) {
-        fallbackQuery = fallbackQuery.eq("grupo_id", grupoId);
+      if (!error && data) {
+        rawClases = data;
+      } else {
+        // 2. Fallback seguro si la FK aún no está en caché de PostgREST
+        let fallbackQuery = supabase
+          .from("infantil_clases")
+          .select("*, maestro:maestro_id(id, nombres, apellidos), grupo:grupo_id(id, nombre)")
+          .order("fecha", { ascending: false });
+        if (grupoId) {
+          fallbackQuery = fallbackQuery.eq("grupo_id", grupoId);
+        }
+        const { data: fallbackData, error: fallbackError } = await fallbackQuery;
+        if (fallbackError) throw fallbackError;
+        rawClases = fallbackData || [];
       }
-      const { data: fallbackData, error: fallbackError } = await fallbackQuery;
-      if (fallbackError) throw fallbackError;
-      return fallbackData;
+
+      // 3. Detectar y excluir cualquier clase que provenga de Kings Army / Kabod
+      const [
+        { data: ministerios = [] },
+        { data: eventos = [] },
+        { data: asignaciones = [] },
+        { data: textos = [] },
+      ] = await Promise.all([
+        supabase.from("prog_ministerios" as any).select("id, nombre"),
+        supabase.from("prog_eventos" as any).select("id, fecha, titulo"),
+        supabase.from("prog_asignaciones" as any).select("evento_id, ministerio_id, persona_id"),
+        supabase.from("prog_evento_textos" as any).select("evento_id, ministerio_id, campo, valor"),
+      ]);
+
+      const minExcluidosIds = new Set<string>(
+        (ministerios || []).filter((m: any) => isExcluidoDeInfantil(m.nombre)).map((m: any) => m.id)
+      );
+      const minInfantilIds = new Set<string>(
+        (ministerios || []).filter((m: any) => isMinisterioInfantilNombre(m.nombre)).map((m: any) => m.id)
+      );
+      const evFechaMap = new Map<string, string>((eventos || []).map((e: any) => [e.id, e.fecha]));
+
+      // Recolectar huellas de eventos de Kings Army / Kabod (fecha + texto o fecha + maestro)
+      const fechasExcluidasTextos = new Set<string>();
+      const fechasExcluidasMaestros = new Set<string>();
+      const fechasConInfantilReal = new Set<string>();
+
+      (asignaciones || []).forEach((a: any) => {
+        const f = evFechaMap.get(a.evento_id);
+        if (!f) return;
+        if (minInfantilIds.has(a.ministerio_id)) {
+          fechasConInfantilReal.add(f);
+        } else if (minExcluidosIds.has(a.ministerio_id) && a.persona_id) {
+          fechasExcluidasMaestros.add(`${f}::${a.persona_id}`);
+        }
+      });
+
+      (textos || []).forEach((t: any) => {
+        const f = evFechaMap.get(t.evento_id);
+        const val = normInfKey(t.valor);
+        if (!f || !val) return;
+        if (minInfantilIds.has(t.ministerio_id)) {
+          fechasConInfantilReal.add(f);
+        } else if (minExcluidosIds.has(t.ministerio_id)) {
+          fechasExcluidasTextos.add(`${f}::${val}`);
+        }
+      });
+
+      const idsParaLimpiar: string[] = [];
+      const clasesFiltradas = rawClases.filter((c: any) => {
+        if (
+          isExcluidoDeInfantil(c.grupo?.nombre) ||
+          isExcluidoDeInfantil(c.tema) ||
+          isExcluidoDeInfantil(c.objetivo) ||
+          isExcluidoDeInfantil(c.versiculo) ||
+          isExcluidoDeInfantil(c.actividad) ||
+          isExcluidoDeInfantil(c.materiales)
+        ) {
+          idsParaLimpiar.push(c.id);
+          return false;
+        }
+
+        const f = c.fecha;
+        const matchTextoExcluido =
+          (c.tema && fechasExcluidasTextos.has(`${f}::${normInfKey(c.tema)}`)) ||
+          (c.objetivo && fechasExcluidasTextos.has(`${f}::${normInfKey(c.objetivo)}`)) ||
+          (c.versiculo && fechasExcluidasTextos.has(`${f}::${normInfKey(c.versiculo)}`)) ||
+          (c.actividad && fechasExcluidasTextos.has(`${f}::${normInfKey(c.actividad)}`)) ||
+          (c.materiales && fechasExcluidasTextos.has(`${f}::${normInfKey(c.materiales)}`));
+
+        const matchMaestroExcluido =
+          !fechasConInfantilReal.has(f) &&
+          ((c.maestro_id && fechasExcluidasMaestros.has(`${f}::${c.maestro_id}`)) ||
+            (c.maestro_auxiliar_id && fechasExcluidasMaestros.has(`${f}::${c.maestro_auxiliar_id}`)));
+
+        if (matchTextoExcluido || matchMaestroExcluido) {
+          idsParaLimpiar.push(c.id);
+          return false;
+        }
+
+        return true;
+      });
+
+      // Limpiar silenciosamente de infantil_clases los registros que se habían migrado desde Kings Army
+      if (idsParaLimpiar.length > 0) {
+        supabase
+          .from("infantil_clases")
+          .delete()
+          .in("id", idsParaLimpiar)
+          .then(() => {});
+      }
+
+      return clasesFiltradas;
     },
   });
 }
@@ -562,21 +692,6 @@ export function useUpdateInfantilSeguimiento() {
 // INTEGRACIÓN Y MIGRACIÓN CON EL MÓDULO DE REUNIONES (prog_*)
 // ============================================================================
 
-function normInfKey(s: string | null | undefined): string {
-  return (s || "")
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
-export function isMinisterioInfantilNombre(nombre: string | null | undefined): boolean {
-  const n = normInfKey(nombre);
-  if (!n) return false;
-  return n === "infantil" || n.includes("infantil");
-}
-
 export interface ServidorAsignadoReunion {
   id: string;
   persona_id: string;
@@ -633,7 +748,7 @@ export function useProgramacionReunionesInfantil() {
         { data: asignaciones = [] },
         { data: textos = [] },
         { data: personas = [] },
-        { data: gruposInf = [] },
+        { data: rawGruposInf = [] },
       ] = await Promise.all([
         supabase.from("prog_ministerios" as any).select("*").order("nombre", { ascending: true }),
         supabase.from("prog_eventos" as any).select("*").order("fecha", { ascending: false }),
@@ -641,20 +756,27 @@ export function useProgramacionReunionesInfantil() {
         supabase.from("prog_asignaciones" as any).select("*"),
         supabase.from("prog_evento_textos" as any).select("*"),
         supabase.from("personas").select("id, nombres, apellidos, telefono, whatsapp"),
-        supabase.from("grupos").select("id, nombre, tipo, edades").eq("tipo", "Infantil"),
+        supabase.from("grupos").select("id, nombre, tipo, descripcion").eq("tipo", TIPO_GRUPO_INFANTIL),
       ]);
+
+      const gruposInf = (rawGruposInf || []).filter(
+        (g: any) => !isExcluidoDeInfantil(g.nombre) && !isExcluidoDeInfantil(g.descripcion)
+      );
 
       const personasMap = new Map<string, any>((personas || []).map((p: any) => [p.id, p]));
       const cargosMap = new Map<string, any>((cargos || []).map((c: any) => [c.id, c]));
       const minMap = new Map<string, any>((ministerios || []).map((m: any) => [m.id, m]));
 
       const ministeriosInfantil = (ministerios || []).filter((m: any) => isMinisterioInfantilNombre(m.nombre));
+      if (ministeriosInfantil.length === 0) return [];
       const minInfantilIds = new Set<string>(ministeriosInfantil.map((m: any) => m.id));
 
-      // Agrupar textos por (evento_id, ministerio_id) y por evento_id general
+      // Agrupar textos únicamente de ministerios infantiles válidos (excluyendo Kings Army / Kabod)
       const textosByEvMin = new Map<string, Record<string, string>>();
       (textos || []).forEach((t: any) => {
+        if (!minInfantilIds.has(t.ministerio_id)) return;
         if (!t.valor || !String(t.valor).trim()) return;
+        if (isExcluidoDeInfantil(t.valor)) return;
         const k = `${t.evento_id}::${t.ministerio_id}`;
         const cur = textosByEvMin.get(k) || {};
         cur[t.campo] = String(t.valor).trim();
@@ -664,9 +786,11 @@ export function useProgramacionReunionesInfantil() {
       const result: ServicioReunionInfantil[] = [];
 
       for (const ev of (eventos || []) as any[]) {
-        // Todas las asignaciones de este servicio (todos los ministerios)
+        if (isExcluidoDeInfantil(ev.titulo)) continue;
+
+        // Solo asignaciones del Ministerio Infantil (jamás Kings Army ni otros ministerios)
         const asigsServicio: ServidorAsignadoReunion[] = (asignaciones || [])
-          .filter((a: any) => a.evento_id === ev.id)
+          .filter((a: any) => a.evento_id === ev.id && minInfantilIds.has(a.ministerio_id))
           .map((a: any) => {
             const p = personasMap.get(a.persona_id);
             const c = a.cargo_id ? cargosMap.get(a.cargo_id) : null;
@@ -680,7 +804,7 @@ export function useProgramacionReunionesInfantil() {
               cargo_id: a.cargo_id,
               cargo_nombre: c?.nombre || "Servidor",
               ministerio_id: a.ministerio_id,
-              ministerio_nombre: m?.nombre || "Ministerio",
+              ministerio_nombre: m?.nombre || "Infantil",
               estado: a.estado || "pendiente",
               asistencia: a.asistencia || null,
             };
@@ -694,25 +818,16 @@ export function useProgramacionReunionesInfantil() {
           return tieneAsigs || tieneTextos;
         });
 
-        // Si el evento no tiene aún ministerio infantil específico pero existe al menos un ministerio infantil,
-        // igual generamos una entrada base del servicio para poder "llamarlo" desde Programación Infantil
-        const minsTarget = minsConDatos.length > 0 ? minsConDatos : [ministeriosInfantil[0] || null];
+        const minsTarget = minsConDatos.length > 0 ? minsConDatos : [ministeriosInfantil[0]];
 
         for (const minInf of minsTarget) {
-          const minId = minInf?.id || null;
-          const equipoInfantil = minId
-            ? asigsServicio.filter((a) => a.ministerio_id === minId)
-            : asigsServicio.filter((a) => minInfantilIds.has(a.ministerio_id));
+          if (!minInf) continue;
+          const minId = minInf.id;
+          const equipoInfantil = asigsServicio.filter((a) => a.ministerio_id === minId);
 
-          // Recolectar textos de este ministerio infantil (o de todos los ministerios infantiles en este evento)
           const txMap: Record<string, string> = {};
-          if (minId && textosByEvMin.has(`${ev.id}::${minId}`)) {
+          if (textosByEvMin.has(`${ev.id}::${minId}`)) {
             Object.assign(txMap, textosByEvMin.get(`${ev.id}::${minId}`));
-          } else {
-            ministeriosInfantil.forEach((m: any) => {
-              const t = textosByEvMin.get(`${ev.id}::${m.id}`);
-              if (t) Object.assign(txMap, t);
-            });
           }
 
           const getTxt = (...keys: string[]): string => {
@@ -722,7 +837,6 @@ export function useProgramacionReunionesInfantil() {
               if (txMap[nk]) return txMap[nk];
               if (txMap[k]) return txMap[k];
             }
-            // Búsqueda parcial en claves de estación
             for (const [fullKey, val] of Object.entries(txMap)) {
               if (!val) continue;
               const cleanK = normInfKey(fullKey.replace(/^estacion:/, ""));
@@ -733,7 +847,7 @@ export function useProgramacionReunionesInfantil() {
             return "";
           };
 
-          // Identificar Maestro Principal y Maestro Auxiliar según el cargo asignado en Reuniones
+          // Identificar Maestro Principal y Apoyo según el cargo asignado en Ministerio Infantil
           let maestroAsig = equipoInfantil.find((a) => {
             const cn = normInfKey(a.cargo_nombre);
             return (
@@ -756,30 +870,26 @@ export function useProgramacionReunionesInfantil() {
           }
 
           const grupoTexto = getTxt("grupo", "salon", "edad");
-          let grupoSugerido = (gruposInf || [])[0]?.id || null;
-          if (grupoTexto && (gruposInf || []).length > 0) {
+          let grupoSugerido = gruposInf[0]?.id || null;
+          if (grupoTexto && gruposInf.length > 0 && !isExcluidoDeInfantil(grupoTexto)) {
             const normG = normInfKey(grupoTexto);
-            const foundG = (gruposInf || []).find(
+            const foundG = gruposInf.find(
               (g: any) => normInfKey(g.nombre).includes(normG) || normG.includes(normInfKey(g.nombre))
             );
             if (foundG) grupoSugerido = foundG.id;
           }
 
-          const temaExtraido =
-            getTxt("tema", "tema 3-6 anos", "tema 7-11 anos", "leccion") ||
-            getTxt("objetivo") ||
-            ev.titulo ||
-            "Servicio Infantil";
-          const versiculoExtraido = getTxt("texto biblico", "versiculo", "cita biblica");
+          const temaExtraido = getTxt("tema", "leccion") || ev.titulo || "Servicio Infantil";
+          const versiculoExtraido = getTxt("versiculo", "cita biblica");
           const objetivoExtraido = getTxt("objetivo");
-          const materialesExtraidos = getTxt("material didactico", "material", "materiales");
-          const actividadExtraida = getTxt("dinamica", "actividad");
+          const materialesExtraidos = getTxt("material", "materiales");
+          const actividadExtraida = getTxt("actividad");
           const uniformeExtraido = txMap["uniforme"] || ev.uniforme || "";
           const observacionExtraida = txMap["observacion"] || ev.descripcion || "";
 
           const estacionesTextoLimpio: Record<string, string> = {};
           Object.entries(txMap).forEach(([k, v]) => {
-            if (k.startsWith("estacion:") && v) {
+            if (k.startsWith("estacion:") && v && !isExcluidoDeInfantil(v)) {
               estacionesTextoLimpio[k.replace(/^estacion:/, "")] = v;
             }
           });
@@ -787,7 +897,7 @@ export function useProgramacionReunionesInfantil() {
           const tieneProg = equipoInfantil.length > 0 || Object.keys(txMap).length > 0;
 
           result.push({
-            key: `${ev.id}_${minId || "general"}`,
+            key: `${ev.id}_${minId}`,
             evento_id: ev.id,
             evento_titulo: ev.titulo || "Reunión",
             evento_tipo: ev.tipo || "Servicio",
@@ -796,10 +906,10 @@ export function useProgramacionReunionesInfantil() {
             lugar: ev.lugar || null,
             estado_evento: ev.estado || "borrador",
             ministerio_id: minId,
-            ministerio_nombre: minInf?.nombre || "Ministerio Infantil",
-            ministerio_color: minInf?.color || "#2563eb",
+            ministerio_nombre: "Infantil",
+            ministerio_color: minInf.color || "#2563eb",
             grupo_sugerido_id: grupoSugerido,
-            grupo_texto: grupoTexto,
+            grupo_texto: isExcluidoDeInfantil(grupoTexto) ? "" : grupoTexto,
             maestro_id: maestroAsig?.persona_id || null,
             maestro: maestroAsig
               ? {
@@ -827,7 +937,7 @@ export function useProgramacionReunionesInfantil() {
             observacion: observacionExtraida,
             estaciones_texto: estacionesTextoLimpio,
             equipo_infantil: equipoInfantil,
-            todas_asignaciones_servicio: asigsServicio,
+            todas_asignaciones_servicio: equipoInfantil,
             tiene_programacion_infantil: tieneProg,
           });
         }
@@ -842,21 +952,31 @@ export function useMigrarProgramacionReuniones() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (servicios: ServicioReunionInfantil[]) => {
-      const programados = servicios.filter((s) => s.tiene_programacion_infantil);
+      const programados = servicios.filter(
+        (s) =>
+          s.tiene_programacion_infantil &&
+          isMinisterioInfantilNombre(s.ministerio_nombre) &&
+          !isExcluidoDeInfantil(s.ministerio_nombre) &&
+          !isExcluidoDeInfantil(s.tema) &&
+          !isExcluidoDeInfantil(s.grupo_texto)
+      );
       if (programados.length === 0) return { creados: 0, actualizados: 0 };
 
-      // 1. Obtener o asegurar un grupo infantil por defecto si no existe ninguno
-      let { data: gruposInf } = await supabase.from("grupos").select("id, nombre").eq("tipo", "Infantil");
-      let defaultGrupoId = gruposInf?.[0]?.id || null;
+      // 1. Obtener un grupo infantil válido (tipo "Niños", nunca Kings Army)
+      const { data: rawGruposInf } = await supabase
+        .from("grupos")
+        .select("id, nombre, descripcion")
+        .eq("tipo", TIPO_GRUPO_INFANTIL);
+      const gruposInfValidos = (rawGruposInf || []).filter(
+        (g: any) => !isExcluidoDeInfantil(g.nombre) && !isExcluidoDeInfantil(g.descripcion)
+      );
+      const defaultGrupoId = gruposInfValidos[0]?.id || null;
 
       if (!defaultGrupoId) {
-        const { data: cualquierGrupo } = await supabase.from("grupos").select("id, nombre").limit(1);
-        defaultGrupoId = cualquierGrupo?.[0]?.id || null;
+        return { creados: 0, actualizados: 0 };
       }
 
-      if (!defaultGrupoId) {
-        throw new Error("Crea primero al menos un Grupo Infantil para poder asociar las clases migradas.");
-      }
+      const validGrupoIds = new Set(gruposInfValidos.map((g: any) => g.id));
 
       // 2. Obtener clases actuales en infantil_clases
       const { data: clasesActuales = [] } = await supabase.from("infantil_clases").select("*");
@@ -865,16 +985,22 @@ export function useMigrarProgramacionReuniones() {
       let actualizados = 0;
 
       for (const srv of programados) {
-        const targetGrupoId = srv.grupo_sugerido_id || defaultGrupoId;
-        // Buscar si ya existe una clase para esa misma fecha y grupo (o mismo tema en esa fecha)
+        const targetGrupoId =
+          srv.grupo_sugerido_id && validGrupoIds.has(srv.grupo_sugerido_id)
+            ? srv.grupo_sugerido_id
+            : defaultGrupoId;
+
         const existente = (clasesActuales || []).find(
           (c: any) =>
             c.fecha === srv.fecha &&
             (c.grupo_id === targetGrupoId || normInfKey(c.tema) === normInfKey(srv.tema))
         );
 
+        const existingGrupoValid =
+          existente?.grupo_id && validGrupoIds.has(existente.grupo_id) ? existente.grupo_id : targetGrupoId;
+
         const payloadBase: any = {
-          grupo_id: existingOrTargetGrupo(existente?.grupo_id, targetGrupoId),
+          grupo_id: existingGrupoValid,
           fecha: srv.fecha,
           maestro_id: srv.maestro_id || existente?.maestro_id || null,
           maestro_auxiliar_id: srv.maestro_auxiliar_id || existente?.maestro_auxiliar_id || null,
@@ -910,10 +1036,6 @@ export function useMigrarProgramacionReuniones() {
       qc.invalidateQueries({ queryKey: ["prog_reuniones_infantil"] });
     },
   });
-}
-
-function existingOrTargetGrupo(existingId: string | null | undefined, targetId: string): string {
-  return existingId || targetId;
 }
 
 

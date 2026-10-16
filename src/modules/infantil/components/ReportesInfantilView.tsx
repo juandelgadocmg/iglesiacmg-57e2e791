@@ -10,7 +10,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { useNinos } from "../hooks/useNinos";
-import { useInfantilGrupos, useInfantilClases, useInfantilAcudientes, useProgramacionReunionesInfantil } from "@/hooks/useInfantil";
+import {
+  useInfantilGrupos,
+  useInfantilClases,
+  useInfantilAcudientes,
+  useProgramacionReunionesInfantil,
+  isExcluidoDeInfantil,
+} from "@/hooks/useInfantil";
 import { usePersonas } from "@/hooks/useDatabase";
 import { exportToExcel, exportToPDF } from "@/lib/exportUtils";
 import { supabase } from "@/integrations/supabase/client";
@@ -51,25 +57,27 @@ export default function ReportesInfantilView() {
         const { data: asistencias, error } = await query;
         if (error) throw error;
 
-        const tableData = (asistencias || []).map((a: any) => {
-          const ninoObj = personas.find((p) => p.id === a.nino_id) || ninos.find((n) => n.id === a.nino_id);
-          const grupoObj = grupos.find((g) => g.id === a.grupo_id);
-          const entregadoObj = a.entregado_por_id ? personas.find((p) => p.id === a.entregado_por_id) : null;
-          const recogidoObj = a.recogido_por_id ? personas.find((p) => p.id === a.recogido_por_id) : null;
+        const tableData = (asistencias || [])
+          .map((a: any) => {
+            const ninoObj = personas.find((p) => p.id === a.nino_id) || ninos.find((n) => n.id === a.nino_id);
+            const grupoObj = grupos.find((g) => g.id === a.grupo_id);
+            const entregadoObj = a.entregado_por_id ? personas.find((p) => p.id === a.entregado_por_id) : null;
+            const recogidoObj = a.recogido_por_id ? personas.find((p) => p.id === a.recogido_por_id) : null;
 
-          return {
-            fecha: a.fecha || "-",
-            nino: ninoObj ? `${ninoObj.nombres} ${ninoObj.apellidos}`.trim() : "No especificado",
-            documento: ninoObj?.documento || "N/A",
-            grupo: grupoObj?.nombre || "Infantil",
-            estado: a.estado || "Presente",
-            hora_entrada: a.hora_entrada ? format(new Date(a.hora_entrada), "HH:mm") : "-",
-            hora_salida: a.hora_salida ? format(new Date(a.hora_salida), "HH:mm") : "En clase",
-            entregado_por: entregadoObj ? `${entregadoObj.nombres} ${entregadoObj.apellidos}`.trim() : "-",
-            recibido_por: recogidoObj ? `${recogidoObj.nombres} ${recogidoObj.apellidos}`.trim() : "-",
-            observaciones: a.observaciones || "-"
-          };
-        });
+            return {
+              fecha: a.fecha || "-",
+              nino: ninoObj ? `${ninoObj.nombres} ${ninoObj.apellidos}`.trim() : "No especificado",
+              documento: ninoObj?.documento || "N/A",
+              grupo: grupoObj?.nombre || "Infantil",
+              estado: a.estado || "Presente",
+              hora_entrada: a.hora_entrada ? format(new Date(a.hora_entrada), "HH:mm") : "-",
+              hora_salida: a.hora_salida ? format(new Date(a.hora_salida), "HH:mm") : "En clase",
+              entregado_por: entregadoObj ? `${entregadoObj.nombres} ${entregadoObj.apellidos}`.trim() : "-",
+              recibido_por: recogidoObj ? `${recogidoObj.nombres} ${recogidoObj.apellidos}`.trim() : "-",
+              observaciones: a.observaciones || "-"
+            };
+          })
+          .filter((row) => !isExcluidoDeInfantil(row.grupo) && !isExcluidoDeInfantil(row.observaciones));
 
         const columns = [
           { header: "Fecha", key: "fecha" },
@@ -108,23 +116,25 @@ export default function ReportesInfantilView() {
           ninosPool = ninos.filter(n => n.grupo_id === selectedGrupoId);
         }
 
-        const tableData = ninosPool.map((n) => {
-          const rels = acudientes.filter(a => a.nino_id === n.id);
-          const principalRel = rels.find(a => a.es_principal) || rels[0];
-          const acudientePersona = principalRel ? personas.find(p => p.id === principalRel.acudiente_id) : null;
-          const grupoNombre = grupos.find(g => g.id === n.grupo_id)?.nombre || "Infantil";
+        const tableData = ninosPool
+          .map((n) => {
+            const rels = acudientes.filter(a => a.nino_id === n.id);
+            const principalRel = rels.find(a => a.es_principal) || rels[0];
+            const acudientePersona = principalRel ? personas.find(p => p.id === principalRel.acudiente_id) : null;
+            const grupoNombre = grupos.find(g => g.id === n.grupo_id)?.nombre || "Infantil";
 
-          return {
-            nino: `${n.nombres} ${n.apellidos}`.trim(),
-            documento: n.documento || "N/A",
-            fecha_nacimiento: n.fecha_nacimiento || "N/A",
-            grupo: grupoNombre,
-            acudiente: acudientePersona ? `${acudientePersona.nombres} ${acudientePersona.apellidos}` : "No registrado",
-            parentesco: principalRel?.relacion || "Acudiente",
-            telefono: acudientePersona?.telefono || n.detalles?.contacto_emergencia || "N/A",
-            direccion: n.direccion || acudientePersona?.direccion || "N/A"
-          };
-        });
+            return {
+              nino: `${n.nombres} ${n.apellidos}`.trim(),
+              documento: n.documento || "N/A",
+              fecha_nacimiento: n.fecha_nacimiento || "N/A",
+              grupo: grupoNombre,
+              acudiente: acudientePersona ? `${acudientePersona.nombres} ${acudientePersona.apellidos}` : "No registrado",
+              parentesco: principalRel?.relacion || "Acudiente",
+              telefono: acudientePersona?.telefono || n.detalles?.contacto_emergencia || "N/A",
+              direccion: n.direccion || acudientePersona?.direccion || "N/A"
+            };
+          })
+          .filter((row) => !isExcluidoDeInfantil(row.grupo));
 
         const columns = [
           { header: "Niño / Niña", key: "nino" },
@@ -162,17 +172,19 @@ export default function ReportesInfantilView() {
           ninosPool = ninos.filter(n => n.grupo_id === selectedGrupoId);
         }
 
-        const tableData = ninosPool.map((n) => {
-          const grupoNombre = grupos.find(g => g.id === n.grupo_id)?.nombre || "Infantil";
-          return {
-            nino: `${n.nombres} ${n.apellidos}`.trim(),
-            documento: n.documento || "N/A",
-            grupo: grupoNombre,
-            alergias: n.detalles?.alergias || "Ninguna reportada",
-            info_medica: n.detalles?.info_medica || "Sin condiciones reportadas",
-            contacto_emergencia: n.detalles?.contacto_emergencia || "N/A"
-          };
-        });
+        const tableData = ninosPool
+          .map((n) => {
+            const grupoNombre = grupos.find(g => g.id === n.grupo_id)?.nombre || "Infantil";
+            return {
+              nino: `${n.nombres} ${n.apellidos}`.trim(),
+              documento: n.documento || "N/A",
+              grupo: grupoNombre,
+              alergias: n.detalles?.alergias || "Ninguna reportada",
+              info_medica: n.detalles?.info_medica || "Sin condiciones reportadas",
+              contacto_emergencia: n.detalles?.contacto_emergencia || "N/A"
+            };
+          })
+          .filter((row) => !isExcluidoDeInfantil(row.grupo));
 
         const columns = [
           { header: "Niño / Niña", key: "nino" },
@@ -202,10 +214,15 @@ export default function ReportesInfantilView() {
         toast.success(`Reporte Médico descargado (${formatType.toUpperCase()})`);
 
       } else if (reportId === "curriculo_clases") {
-        // Cumplimiento de currículo y clases (incluyendo las sincronizadas desde Reuniones)
-        let clasesPool = clases;
+        // Cumplimiento de currículo y clases (únicamente del Ministerio Infantil, sin Kings Army)
+        let clasesPool = clases.filter(
+          (c: any) =>
+            !isExcluidoDeInfantil(c.grupo?.nombre) &&
+            !isExcluidoDeInfantil(c.tema) &&
+            !isExcluidoDeInfantil(c.objetivo)
+        );
         if (selectedGrupoId !== "todos") {
-          clasesPool = clases.filter(c => c.grupo_id === selectedGrupoId);
+          clasesPool = clasesPool.filter(c => c.grupo_id === selectedGrupoId);
         }
 
         const fechasYaIncluidas = new Set(clasesPool.map((c: any) => c.fecha));
@@ -213,7 +230,7 @@ export default function ReportesInfantilView() {
           const aux = c.maestro_auxiliar || personas.find(p => p.id === c.maestro_auxiliar_id);
           return {
             fecha: c.fecha || "-",
-            grupo: c.grupo?.nombre || "Infantil",
+            grupo: c.grupo?.nombre && !isExcluidoDeInfantil(c.grupo.nombre) ? c.grupo.nombre : "Infantil",
             tema: c.tema || "-",
             maestro_principal: c.maestro ? `${c.maestro.nombres} ${c.maestro.apellidos}` : "Sin asignar",
             maestro_auxiliar: aux ? `${aux.nombres} ${aux.apellidos}` : "Sin auxiliar",
@@ -223,15 +240,22 @@ export default function ReportesInfantilView() {
         });
 
         const desdeReuniones = serviciosReuniones
-          .filter(s => s.tiene_programacion_infantil && !fechasYaIncluidas.has(s.fecha))
+          .filter(
+            (s) =>
+              s.tiene_programacion_infantil &&
+              !fechasYaIncluidas.has(s.fecha) &&
+              !isExcluidoDeInfantil(s.ministerio_nombre) &&
+              !isExcluidoDeInfantil(s.grupo_texto) &&
+              !isExcluidoDeInfantil(s.tema)
+          )
           .map(s => ({
             fecha: s.fecha || "-",
-            grupo: s.grupo_texto || s.ministerio_nombre || "Infantil",
+            grupo: s.grupo_texto && !isExcluidoDeInfantil(s.grupo_texto) ? s.grupo_texto : "Infantil",
             tema: s.tema || s.evento_titulo || "-",
             maestro_principal: s.maestro ? `${s.maestro.nombres} ${s.maestro.apellidos}` : "Sin asignar",
             maestro_auxiliar: s.maestro_auxiliar ? `${s.maestro_auxiliar.nombres} ${s.maestro_auxiliar.apellidos}` : "Sin auxiliar",
             versiculo: s.versiculo || "-",
-            estado: "Programada (Reuniones)"
+            estado: "Programada (Infantil)"
           }));
 
         const tableData = [...desdeClases, ...desdeReuniones];

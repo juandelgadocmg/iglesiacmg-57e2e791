@@ -63,6 +63,7 @@ import {
 } from "@/lib/isoHistorial";
 import {
   isMinisterioInfantilNombre,
+  isExcluidoDeInfantil,
   useProgramacionReunionesInfantil,
   useMigrarProgramacionReuniones,
   useInfantilGrupos,
@@ -89,15 +90,23 @@ export default function ProgramacionIsoInfantilView() {
 
   // Resolver únicamente el ministerio "Infantil" (excluyendo Kings Army, Kabod, etc.)
   const ministerioInfantil: ProgMinisterio | null = useMemo(() => {
-    const exact = ministerios.find((m) => normKey(m.nombre) === "infantil");
+    const exact = ministerios.find(
+      (m) => normKey(m.nombre) === "infantil" && !isExcluidoDeInfantil(m.nombre)
+    );
     if (exact) return exact;
-    return ministerios.find((m) => isMinisterioInfantilNombre(m.nombre)) || null;
+    return (
+      ministerios.find(
+        (m) => isMinisterioInfantilNombre(m.nombre) && !isExcluidoDeInfantil(m.nombre)
+      ) || null
+    );
   }, [ministerios]);
 
   const template: IsoMinisterioTemplate = useMemo(() => {
     if (ministerioInfantil) {
       const eff = getEffectiveIsoTemplate(ministerioInfantil.id, ministerioInfantil.nombre, overrides);
-      if (eff) return eff;
+      if (eff && !isExcluidoDeInfantil(eff.nombreMinisterio) && !isExcluidoDeInfantil(eff.titulo)) {
+        return eff;
+      }
     }
     return findIsoTemplate("Infantil")!;
   }, [ministerioInfantil, overrides]);
@@ -132,7 +141,14 @@ export default function ProgramacionIsoInfantilView() {
 
   // Auto-sincronizar a infantil_clases cuando hay programación infantil en Reuniones
   const serviciosInfantilProgramados = useMemo(
-    () => serviciosReuniones.filter((s) => s.tiene_programacion_infantil),
+    () =>
+      serviciosReuniones.filter(
+        (s) =>
+          s.tiene_programacion_infantil &&
+          !isExcluidoDeInfantil(s.ministerio_nombre) &&
+          !isExcluidoDeInfantil(s.tema) &&
+          !isExcluidoDeInfantil(s.grupo_texto)
+      ),
     [serviciosReuniones]
   );
   const autoSyncedRef = useRef<string>("");
@@ -164,12 +180,18 @@ export default function ProgramacionIsoInfantilView() {
       }
     });
     (textos.rows || []).forEach((r) => {
-      if (r.ministerio_id === ministerioInfantil.id && r.valor && r.valor.trim()) {
+      if (
+        r.ministerio_id === ministerioInfantil.id &&
+        r.valor &&
+        r.valor.trim() &&
+        !isExcluidoDeInfantil(r.valor)
+      ) {
         eventosConDatosInfantil.add(r.evento_id);
       }
     });
 
     return eventos
+      .filter((e) => !isExcluidoDeInfantil(e.titulo))
       .filter((e) => fechasConfiguradas.has(e.fecha) || eventosConDatosInfantil.has(e.id))
       .filter((e) => !tipos || tipos.has(e.tipo))
       .sort((a, b) => a.fecha.localeCompare(b.fecha));
@@ -232,7 +254,7 @@ export default function ProgramacionIsoInfantilView() {
   const eventosDisponiblesItems = useMemo(() => {
     const idsYaMostrados = new Set(proxEventos.map((e) => e.id));
     return eventos
-      .filter((e) => !idsYaMostrados.has(e.id))
+      .filter((e) => !idsYaMostrados.has(e.id) && !isExcluidoDeInfantil(e.titulo))
       .sort((a, b) => b.fecha.localeCompare(a.fecha))
       .map((e) => ({
         id: e.id,
