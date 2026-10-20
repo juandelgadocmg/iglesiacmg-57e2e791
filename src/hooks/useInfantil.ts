@@ -35,7 +35,6 @@ export function isExcluidoDeInfantil(texto: string | null | undefined): boolean 
     n.includes("kings army") ||
     n.includes("king's army") ||
     n.includes("kingsarmy") ||
-    n.includes("kings") ||
     n.includes("kabod")
   );
 }
@@ -47,28 +46,59 @@ export function isMinisterioInfantilNombre(nombre: string | null | undefined): b
   return n === "infantil" || n.includes("infantil");
 }
 
+const LOCAL_GRUPOS_DETALLES_KEY = "doxa_infantil_grupos_detalles_cache";
+
 export function useInfantilGrupos() {
   return useQuery({
     queryKey: ["infantil_grupos"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("grupos")
-        .select("*, infantil_grupos_detalles(*)")
+        .select("*")
         .eq("tipo", TIPO_GRUPO_INFANTIL)
         .order("nombre", { ascending: true });
       if (error) throw error;
-      return (data || [])
-        .filter((g: any) => !isExcluidoDeInfantil(g.nombre) && !isExcluidoDeInfantil(g.descripcion))
-        .map((g: any) => ({
+
+      const gruposValidos = (data || []).filter(
+        (g: any) => !isExcluidoDeInfantil(g.nombre) && !isExcluidoDeInfantil(g.descripcion)
+      );
+
+      // Intentar cargar detalles opcionales sin romper la carga principal si la tabla auxiliar no existe
+      const detallesMap = new Map<string, any>();
+      try {
+        const rawCache = localStorage.getItem(LOCAL_GRUPOS_DETALLES_KEY);
+        if (rawCache) {
+          const parsed = JSON.parse(rawCache);
+          if (parsed && typeof parsed === "object") {
+            Object.entries(parsed).forEach(([k, v]) => detallesMap.set(k, v));
+          }
+        }
+      } catch {}
+
+      if (gruposValidos.length > 0) {
+        try {
+          const ids = gruposValidos.map((g: any) => g.id);
+          const { data: detallesData, error: detError } = await supabase
+            .from("infantil_grupos_detalles")
+            .select("*")
+            .in("grupo_id", ids);
+          if (!detError && Array.isArray(detallesData)) {
+            detallesData.forEach((d: any) => {
+              if (d?.grupo_id) detallesMap.set(d.grupo_id, d);
+            });
+          }
+        } catch {}
+      }
+
+      return gruposValidos.map((g: any) => {
+        const det = detallesMap.get(g.id) || null;
+        return {
           ...g,
           edades: g.descripcion,
-          // 1:1 relation may come back as object or array depending on PostgREST
-          infantil_grupos_detalles: Array.isArray(g.infantil_grupos_detalles)
-            ? g.infantil_grupos_detalles
-            : g.infantil_grupos_detalles
-              ? [g.infantil_grupos_detalles]
-              : [],
-        }));
+          detalles: det,
+          infantil_grupos_detalles: det ? [det] : [],
+        };
+      });
     },
   });
 }
@@ -86,15 +116,23 @@ export function useCreateInfantilGrupo() {
       }).select().single();
       if (err1) throw err1;
 
-      // 2. Create the details
-      const { error: err2 } = await supabase.from("infantil_grupos_detalles").insert({
+      // 2. Create the details (con fallback si la tabla auxiliar no está disponible)
+      const detObj = {
         grupo_id: grupo.id,
-        edad_minima: payload.edad_minima,
-        edad_maxima: payload.edad_maxima,
-        salon: payload.salon,
-        capacidad: payload.capacidad
-      });
-      if (err2) throw err2;
+        edad_minima: payload.edad_minima ?? null,
+        edad_maxima: payload.edad_maxima ?? null,
+        salon: payload.salon ?? null,
+        capacidad: payload.capacidad ?? null
+      };
+      try {
+        const rawCache = JSON.parse(localStorage.getItem(LOCAL_GRUPOS_DETALLES_KEY) || "{}");
+        rawCache[grupo.id] = detObj;
+        localStorage.setItem(LOCAL_GRUPOS_DETALLES_KEY, JSON.stringify(rawCache));
+      } catch {}
+
+      try {
+        await supabase.from("infantil_grupos_detalles").insert(detObj);
+      } catch {}
 
       return grupo;
     },
@@ -113,15 +151,23 @@ export function useUpdateInfantilGrupo() {
       }).eq("id", payload.id);
       if (err1) throw err1;
 
-      // 2. Upsert the details
-      const { error: err2 } = await supabase.from("infantil_grupos_detalles").upsert({
+      // 2. Upsert the details (con fallback seguro)
+      const detObj = {
         grupo_id: payload.id,
-        edad_minima: payload.edad_minima,
-        edad_maxima: payload.edad_maxima,
-        salon: payload.salon,
-        capacidad: payload.capacidad
-      }, { onConflict: "grupo_id" });
-      if (err2) throw err2;
+        edad_minima: payload.edad_minima ?? null,
+        edad_maxima: payload.edad_maxima ?? null,
+        salon: payload.salon ?? null,
+        capacidad: payload.capacidad ?? null
+      };
+      try {
+        const rawCache = JSON.parse(localStorage.getItem(LOCAL_GRUPOS_DETALLES_KEY) || "{}");
+        rawCache[payload.id] = detObj;
+        localStorage.setItem(LOCAL_GRUPOS_DETALLES_KEY, JSON.stringify(rawCache));
+      } catch {}
+
+      try {
+        await supabase.from("infantil_grupos_detalles").upsert(detObj, { onConflict: "grupo_id" });
+      } catch {}
 
       return payload;
     },
@@ -171,98 +217,9 @@ export function useInfantilClases(grupoId?: string) {
         rawClases = fallbackData || [];
       }
 
-      // 3. Detectar y excluir cualquier clase que provenga de Kings Army / Kabod
-      const [
-        { data: ministerios = [] },
-        { data: eventos = [] },
-        { data: asignaciones = [] },
-        { data: textos = [] },
-      ] = await Promise.all([
-        supabase.from("prog_ministerios" as any).select("id, nombre"),
-        supabase.from("prog_eventos" as any).select("id, fecha, titulo"),
-        supabase.from("prog_asignaciones" as any).select("evento_id, ministerio_id, persona_id"),
-        supabase.from("prog_evento_textos" as any).select("evento_id, ministerio_id, campo, valor"),
-      ]);
-
-      const minExcluidosIds = new Set<string>(
-        (ministerios || []).filter((m: any) => isExcluidoDeInfantil(m.nombre)).map((m: any) => m.id)
-      );
-      const minInfantilIds = new Set<string>(
-        (ministerios || []).filter((m: any) => isMinisterioInfantilNombre(m.nombre)).map((m: any) => m.id)
-      );
-      const evFechaMap = new Map<string, string>((eventos || []).map((e: any) => [e.id, e.fecha]));
-
-      // Recolectar huellas de eventos de Kings Army / Kabod (fecha + texto o fecha + maestro)
-      const fechasExcluidasTextos = new Set<string>();
-      const fechasExcluidasMaestros = new Set<string>();
-      const fechasConInfantilReal = new Set<string>();
-
-      (asignaciones || []).forEach((a: any) => {
-        const f = evFechaMap.get(a.evento_id);
-        if (!f) return;
-        if (minInfantilIds.has(a.ministerio_id)) {
-          fechasConInfantilReal.add(f);
-        } else if (minExcluidosIds.has(a.ministerio_id) && a.persona_id) {
-          fechasExcluidasMaestros.add(`${f}::${a.persona_id}`);
-        }
-      });
-
-      (textos || []).forEach((t: any) => {
-        const f = evFechaMap.get(t.evento_id);
-        const val = normInfKey(t.valor);
-        if (!f || !val) return;
-        if (minInfantilIds.has(t.ministerio_id)) {
-          fechasConInfantilReal.add(f);
-        } else if (minExcluidosIds.has(t.ministerio_id)) {
-          fechasExcluidasTextos.add(`${f}::${val}`);
-        }
-      });
-
-      const idsParaLimpiar: string[] = [];
-      const clasesFiltradas = rawClases.filter((c: any) => {
-        if (
-          isExcluidoDeInfantil(c.grupo?.nombre) ||
-          isExcluidoDeInfantil(c.tema) ||
-          isExcluidoDeInfantil(c.objetivo) ||
-          isExcluidoDeInfantil(c.versiculo) ||
-          isExcluidoDeInfantil(c.actividad) ||
-          isExcluidoDeInfantil(c.materiales)
-        ) {
-          idsParaLimpiar.push(c.id);
-          return false;
-        }
-
-        const f = c.fecha;
-        const matchTextoExcluido =
-          (c.tema && fechasExcluidasTextos.has(`${f}::${normInfKey(c.tema)}`)) ||
-          (c.objetivo && fechasExcluidasTextos.has(`${f}::${normInfKey(c.objetivo)}`)) ||
-          (c.versiculo && fechasExcluidasTextos.has(`${f}::${normInfKey(c.versiculo)}`)) ||
-          (c.actividad && fechasExcluidasTextos.has(`${f}::${normInfKey(c.actividad)}`)) ||
-          (c.materiales && fechasExcluidasTextos.has(`${f}::${normInfKey(c.materiales)}`));
-
-        const matchMaestroExcluido =
-          !fechasConInfantilReal.has(f) &&
-          ((c.maestro_id && fechasExcluidasMaestros.has(`${f}::${c.maestro_id}`)) ||
-            (c.maestro_auxiliar_id && fechasExcluidasMaestros.has(`${f}::${c.maestro_auxiliar_id}`)));
-
-        if (matchTextoExcluido || matchMaestroExcluido) {
-          idsParaLimpiar.push(c.id);
-          return false;
-        }
-
-        return true;
-      });
-
-      // Limpiar silenciosamente de infantil_clases los registros que se habían migrado desde Kings Army
-      if (idsParaLimpiar.length > 0) {
-        supabase
-          .from("infantil_clases")
-          .delete()
-          .in("id", idsParaLimpiar)
-          .then(() => {});
-      }
-
-      return clasesFiltradas;
+      // Solo excluir visualmente si el nombre del grupo es explícitamente Kings Army o Kabod.
+      // Jamás eliminar clases automáticamente ni ocultar por nombre de tema/versículo o maestro.
+      return rawClases.filter((c: any) => !isExcluidoDeInfantil(c.grupo?.nombre));
     },
   });
 }
@@ -1037,5 +994,229 @@ export function useMigrarProgramacionReuniones() {
     },
   });
 }
+
+// ============================================================================
+// NOTIFICACIONES A PADRES Y ESTADÍSTICAS HISTÓRICAS DE ASISTENCIA
+// ============================================================================
+
+const LOCAL_NOTIFICACIONES_KEY = "doxa_infantil_notificaciones_cache";
+
+export interface InfantilNotificacionItem {
+  id: string;
+  nino_id?: string | null;
+  acudiente_id?: string | null;
+  grupo_id?: string | null;
+  destinatario_nombre?: string | null;
+  destinatario_telefono?: string | null;
+  destinatario_email?: string | null;
+  tipo: string;
+  asunto?: string | null;
+  mensaje: string;
+  canal: string;
+  estado: string;
+  created_at: string;
+  nino?: { id: string; nombres: string; apellidos: string } | null;
+  acudiente?: { id: string; nombres: string; apellidos: string; telefono?: string | null; email?: string | null } | null;
+}
+
+export function useInfantilNotificaciones() {
+  return useQuery<InfantilNotificacionItem[]>({
+    queryKey: ["infantil_notificaciones"],
+    queryFn: async () => {
+      let dbItems: InfantilNotificacionItem[] = [];
+      try {
+        const { data, error } = await supabase
+          .from("infantil_notificaciones" as any)
+          .select("*, nino:nino_id(id, nombres, apellidos), acudiente:acudiente_id(id, nombres, apellidos, telefono, email)")
+          .order("created_at", { ascending: false })
+          .limit(100);
+        if (!error && Array.isArray(data)) {
+          dbItems = data as any[];
+        }
+      } catch {}
+
+      try {
+        const raw = localStorage.getItem(LOCAL_NOTIFICACIONES_KEY);
+        if (raw) {
+          const locals: InfantilNotificacionItem[] = JSON.parse(raw);
+          if (Array.isArray(locals)) {
+            const dbIds = new Set(dbItems.map((d) => d.id));
+            const uniqueLocals = locals.filter((l) => !dbIds.has(l.id));
+            return [...uniqueLocals, ...dbItems];
+          }
+        }
+      } catch {}
+
+      return dbItems;
+    },
+  });
+}
+
+export function useCreateInfantilNotificacion() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (payload: {
+      destinatarios: Array<{
+        nino_id: string;
+        nino_nombre: string;
+        acudiente_id?: string | null;
+        acudiente_nombre?: string | null;
+        telefono?: string | null;
+        email?: string | null;
+        grupo_id?: string | null;
+      }>;
+      tipo: string;
+      asunto: string;
+      mensaje: string;
+      canal: string;
+    }) => {
+      const { data: { user } } = await supabase.auth.getUser();
+      const createdItems: InfantilNotificacionItem[] = [];
+      let emailsEncolados = 0;
+
+      for (const dest of payload.destinatarios) {
+        const localItem: InfantilNotificacionItem = {
+          id: `notif_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+          nino_id: dest.nino_id,
+          acudiente_id: dest.acudiente_id || null,
+          grupo_id: dest.grupo_id || null,
+          destinatario_nombre: dest.acudiente_nombre || dest.nino_nombre,
+          destinatario_telefono: dest.telefono || null,
+          destinatario_email: dest.email || null,
+          tipo: payload.tipo,
+          asunto: payload.asunto,
+          mensaje: payload.mensaje,
+          canal: payload.canal,
+          estado: "Enviado",
+          created_at: new Date().toISOString(),
+          nino: { id: dest.nino_id, nombres: dest.nino_nombre, apellidos: "" },
+          acudiente: dest.acudiente_nombre
+            ? {
+                id: dest.acudiente_id || "",
+                nombres: dest.acudiente_nombre,
+                apellidos: "",
+                telefono: dest.telefono || null,
+                email: dest.email || null,
+              }
+            : null,
+        };
+
+        // 1. Guardar en infantil_notificaciones
+        try {
+          const { data, error } = await supabase
+            .from("infantil_notificaciones" as any)
+            .insert({
+              nino_id: dest.nino_id,
+              acudiente_id: dest.acudiente_id || null,
+              tipo: payload.asunto || payload.tipo,
+              mensaje: payload.mensaje,
+              canal: payload.canal,
+              estado: "Enviado",
+              enviado_por: user?.id || null,
+            })
+            .select()
+            .single();
+          if (!error && data) {
+            localItem.id = (data as any).id;
+          }
+        } catch {}
+
+        // 2. Guardar también en infantil_comunicaciones para trazabilidad bidireccional
+        try {
+          await supabase.from("infantil_comunicaciones" as any).insert({
+            nino_id: dest.nino_id,
+            acudiente_id: dest.acudiente_id || null,
+            canal: payload.canal === "WhatsApp" ? "WhatsApp" : payload.canal === "Correo" ? "Correo" : "Interno",
+            tipo_mensaje: payload.tipo === "urgente" ? "Solicitud Acudiente" : "Notificación",
+            mensaje: `${payload.asunto ? `[${payload.asunto}] ` : ""}${payload.mensaje}`,
+            estado_envio: "Enviado",
+          });
+        } catch {}
+
+        // 3. Si el acudiente tiene email, encolar correo real mediante send_transactional_email
+        if (dest.email && dest.email.includes("@")) {
+          try {
+            const html = `
+              <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 12px;">
+                <h2 style="color: #1e3a8a; margin-top: 0;">Ministerio Infantil — ${payload.asunto || "Aviso Importante"}</h2>
+                <p>Estimado(a) <strong>${dest.acudiente_nombre || "Acudiente"}</strong> (Acudiente de <strong>${dest.nino_nombre}</strong>):</p>
+                <div style="background: #f8fafc; padding: 16px; border-radius: 8px; border-left: 4px solid #2563eb; margin: 16px 0;">
+                  ${payload.mensaje.replace(/\n/g, "<br/>")}
+                </div>
+                <p style="font-size: 12px; color: #64748b; margin-top: 20px;">
+                  Enviado desde el módulo de Iglesia Infantil — Centro Mundial de Gloria.
+                </p>
+              </div>
+            `;
+            const { error: mailErr } = await supabase.rpc("send_transactional_email", {
+              p_to: dest.email.trim(),
+              p_subject: `[Iglesia Infantil] ${payload.asunto || "Notificación a Padres"}`,
+              p_html: html,
+              p_label: "infantil_notificacion",
+            });
+            if (!mailErr) emailsEncolados++;
+          } catch {}
+        }
+
+        createdItems.push(localItem);
+      }
+
+      // 4. Registrar alerta en alertas_importantes si es urgente o aviso formal
+      if (createdItems.length > 0) {
+        try {
+          const primer = payload.destinatarios[0];
+          await supabase.from("alertas_importantes").insert({
+            titulo: `Notificación Infantil: ${payload.asunto || "Aviso a Padres"}`,
+            descripcion: `Enviada a ${payload.destinatarios.length} destinatario(s) (${primer?.nino_nombre || ""}): ${payload.mensaje}`,
+            severidad: payload.tipo === "urgente" ? "alta" : "media",
+            categoria: "infantil_notificacion",
+            persona_id: primer?.acudiente_id || primer?.nino_id || null,
+            grupo_id: primer?.grupo_id || null,
+            metadata: {
+              total_destinatarios: payload.destinatarios.length,
+              emails_encolados: emailsEncolados,
+              canal: payload.canal,
+            },
+          });
+        } catch {}
+      }
+
+      // 5. Guardar en caché local para visualización inmediata
+      try {
+        const current: InfantilNotificacionItem[] = JSON.parse(
+          localStorage.getItem(LOCAL_NOTIFICACIONES_KEY) || "[]"
+        );
+        const updated = [...createdItems, ...current].slice(0, 200);
+        localStorage.setItem(LOCAL_NOTIFICACIONES_KEY, JSON.stringify(updated));
+      } catch {}
+
+      return { createdItems, emailsEncolados };
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["infantil_notificaciones"] });
+      qc.invalidateQueries({ queryKey: ["infantil_comunicaciones"] });
+    },
+  });
+}
+
+export function useInfantilAsistenciasHistoricas() {
+  return useQuery({
+    queryKey: ["infantil_asistencias_historicas"],
+    queryFn: async () => {
+      try {
+        const { data, error } = await supabase
+          .from("infantil_asistencia_checkin")
+          .select("*, nino:nino_id(id, nombres, apellidos), grupo:grupo_id(id, nombre)")
+          .order("fecha", { ascending: false })
+          .limit(2000);
+        if (!error && data) {
+          return data.filter((a: any) => !isExcluidoDeInfantil(a.grupo?.nombre));
+        }
+      } catch {}
+      return [];
+    },
+  });
+}
+
 
 

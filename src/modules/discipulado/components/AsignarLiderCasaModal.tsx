@@ -84,7 +84,7 @@ export function AsignarLiderCasaModal({
     setIsSubmitting(true);
     try {
       if (lider.is_from_personas) {
-        // Upsert a la tabla leaders usando el ID de la persona
+        // Upsert a la tabla leaders usando el ID del usuario/persona
         const { error: upsertError } = await supabase
           .from('leaders')
           .upsert({
@@ -97,16 +97,22 @@ export function AsignarLiderCasaModal({
           
         if (upsertError) throw upsertError;
       } else {
-        // Actualizar el líder existente SOLO si no tiene una casa_de_paz_id asignada
-        // Esto permite que el líder pueda pertenecer a múltiples casas (una en 'leaders' y otras en 'grupos')
-        if (!lider.casa_de_paz_id) {
-          const { error } = await supabase
-            .from('leaders')
-            .update({ casa_de_paz_id: casaId })
-            .eq('id', lider.id);
-            
-          if (error) throw error;
-        }
+        const { error } = await supabase
+          .from('leaders')
+          .update({ casa_de_paz_id: casaId })
+          .eq('id', lider.id);
+          
+        if (error) throw error;
+      }
+
+      // Actualizar también el registro del grupo (Casa de Paz) con el lider_id asignado
+      const { error: grupoError } = await supabase
+        .from('grupos')
+        .update({ lider_id: lider.id })
+        .eq('id', casaId);
+
+      if (grupoError) {
+        console.warn("Aviso al actualizar lider_id en grupos:", grupoError.message);
       }
       
       // Insert into the junction table to support many-to-many Casas
@@ -116,8 +122,14 @@ export function AsignarLiderCasaModal({
         
       if (errorJunction) {
         console.error("Error updating leaders_grupos:", errorJunction);
-        throw errorJunction;
       }
+
+      // Asociar discípulos de esta Casa de Paz que aún no tengan líder asignado
+      await supabase
+        .from('discipulos')
+        .update({ lider_id: lider.id })
+        .eq('casa_de_paz_id', casaId)
+        .is('lider_id', null);
       
       toast.success("Líder asignado exitosamente");
       onSuccess();
@@ -145,6 +157,13 @@ export function AsignarLiderCasaModal({
         if (error) throw error;
       }
       
+      // Limpiar también lider_id en el registro del grupo si coincide
+      await supabase
+        .from('grupos')
+        .update({ lider_id: null })
+        .eq('id', casaId)
+        .eq('lider_id', liderId);
+
       // Remover de junction table también
       await supabase
         .from('leaders_grupos')

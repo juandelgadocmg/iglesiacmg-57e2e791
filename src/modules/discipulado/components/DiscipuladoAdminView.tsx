@@ -33,6 +33,7 @@ import { ImportarGlobalDiscipulosModal } from "@/modules/discipulado/components/
 import { DiscipuladoDashboard } from "@/modules/discipulado/components/DiscipuladoDashboard";
 import { ListadoProcesosTable } from "@/modules/discipulado/components/ListadoProcesosTable";
 import { ListadoInteraccionesTable } from "@/modules/discipulado/components/ListadoInteraccionesTable";
+import { KpiDetailsModal, KpiDetailType } from "@/modules/discipulado/components/KpiDetailsModal";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { UploadCloud, PieChart as PieChartIcon, ClipboardList, PhoneCall } from "lucide-react";
 
@@ -45,6 +46,8 @@ export function DiscipuladoAdminView() {
   const [importarModalOpen, setImportarModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("directorio");
   const [listFilter, setListFilter] = useState("Todos");
+  const [interactionFilter, setInteractionFilter] = useState("Todos");
+  const [kpiDetailModal, setKpiDetailModal] = useState<KpiDetailType>(null);
 
   useEffect(() => {
     loadData();
@@ -126,8 +129,12 @@ export function DiscipuladoAdminView() {
       const parsedCasas = redCasas.map(casa => {
         const rawLideres = lideres.filter(l => {
           if (casa.id !== 'no-casa') {
-            // Líder asignado explícitamente a la Casa en la tabla `leaders`, o es en la tabla `leaders_grupos`
-            return l.casa_de_paz_id === casa.id || (leadersGrupos || []).some(lg => lg.leader_id === l.id && lg.grupo_id === casa.id);
+            // Líder asignado explícitamente a la Casa en la tabla `leaders`, en `grupos.lider_id`, o en `leaders_grupos`
+            return (
+              l.casa_de_paz_id === casa.id ||
+              casa.lider_id === l.id ||
+              (leadersGrupos || []).some(lg => lg.leader_id === l.id && lg.grupo_id === casa.id)
+            );
           } else {
             // "Sin casa": Solo si no tiene casa_de_paz_id Y tampoco figura en la junction table
             return !l.casa_de_paz_id && !(leadersGrupos || []).some(lg => lg.leader_id === l.id);
@@ -246,7 +253,7 @@ export function DiscipuladoAdminView() {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <Card 
             className="bg-white border-0 shadow-sm cursor-pointer hover:shadow-md transition-shadow"
-            onClick={() => { setActiveTab('listado'); setListFilter('Todos'); }}
+            onClick={() => setKpiDetailModal("discipulos")}
           >
             <CardContent className="p-4 flex flex-col items-center justify-center text-center">
               <Users className="w-6 h-6 text-red-500 mb-2" />
@@ -256,7 +263,7 @@ export function DiscipuladoAdminView() {
           </Card>
           <Card 
             className="bg-white border-0 shadow-sm cursor-pointer hover:shadow-md transition-shadow"
-            onClick={() => { setActiveTab('listado'); setListFilter('Todos'); }}
+            onClick={() => setKpiDetailModal("lideres")}
           >
             <CardContent className="p-4 flex flex-col items-center justify-center text-center">
               <UserCheck className="w-6 h-6 text-red-500 mb-2" />
@@ -266,7 +273,7 @@ export function DiscipuladoAdminView() {
           </Card>
           <Card 
             className="bg-white border-0 shadow-sm cursor-pointer hover:shadow-md transition-shadow"
-            onClick={() => { setActiveTab('listado'); setListFilter('Todos'); }}
+            onClick={() => setKpiDetailModal("visitas")}
           >
             <CardContent className="p-4 flex flex-col items-center justify-center text-center">
               <History className="w-6 h-6 text-red-500 mb-2" />
@@ -276,7 +283,7 @@ export function DiscipuladoAdminView() {
           </Card>
           <Card 
             className="bg-red-600 border-0 shadow-sm text-white cursor-pointer hover:bg-red-700 transition-colors"
-            onClick={() => { setActiveTab('listado'); setListFilter('Consolidados'); }}
+            onClick={() => setKpiDetailModal("consolidados")}
           >
             <CardContent className="p-4 flex flex-col items-center justify-center text-center">
               <Activity className="w-6 h-6 text-red-200 mb-2" />
@@ -502,6 +509,24 @@ export function DiscipuladoAdminView() {
           }}
         />
       )}
+
+      <KpiDetailsModal
+        open={!!kpiDetailModal}
+        onClose={() => setKpiDetailModal(null)}
+        type={kpiDetailModal}
+        discipulos={discipulos}
+        lideres={lideres}
+        visitas={visitas}
+        casasDict={casasDict}
+        lideresDict={lideresDict}
+        discipulosDict={discipulosDict}
+        onSelectDiscipulo={(d) => setSelectedDiscipulo(d)}
+        onOpenFullTab={(tab, filter) => {
+          setActiveTab(tab);
+          if (tab === "listado" && filter) setListFilter(filter);
+          if (tab === "interacciones" && filter) setInteractionFilter(filter);
+        }}
+      />
           </TabsContent>
 
           <TabsContent value="listado" className="mt-0 w-full max-w-full overflow-x-auto">
@@ -528,6 +553,7 @@ export function DiscipuladoAdminView() {
               casasRaw={casasDePaz}
               discipulosRaw={discipulos}
               lideresRaw={lideres}
+              initialTipoFilter={interactionFilter}
               onDeleteInteraction={handleDeleteInteraction}
             />
           </TabsContent>

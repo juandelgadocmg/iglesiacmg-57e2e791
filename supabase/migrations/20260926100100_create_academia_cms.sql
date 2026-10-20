@@ -1,12 +1,12 @@
 
-CREATE TABLE public.academy_facultades (
+CREATE TABLE IF NOT EXISTS public.academy_facultades (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   nombre TEXT NOT NULL,
   orden INTEGER NOT NULL DEFAULT 0,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-CREATE TABLE public.academy_diplomados (
+CREATE TABLE IF NOT EXISTS public.academy_diplomados (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   facultad_id UUID REFERENCES public.academy_facultades(id) ON DELETE SET NULL,
   numero TEXT NOT NULL,
@@ -23,7 +23,7 @@ CREATE TABLE public.academy_diplomados (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-CREATE TABLE public.academy_modulos (
+CREATE TABLE IF NOT EXISTS public.academy_modulos (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   diplomado_id UUID REFERENCES public.academy_diplomados(id) ON DELETE CASCADE,
   nombre TEXT NOT NULL,
@@ -112,17 +112,27 @@ ALTER TABLE public.academy_diplomados ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.academy_modulos ENABLE ROW LEVEL SECURITY;
 
 -- Allow public read access
+DROP POLICY IF EXISTS "Allow public read access for academy_facultades" ON public.academy_facultades;
 CREATE POLICY "Allow public read access for academy_facultades" ON public.academy_facultades FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Allow public read access for academy_diplomados" ON public.academy_diplomados;
 CREATE POLICY "Allow public read access for academy_diplomados" ON public.academy_diplomados FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Allow public read access for academy_modulos" ON public.academy_modulos;
 CREATE POLICY "Allow public read access for academy_modulos" ON public.academy_modulos FOR SELECT USING (true);
 
 -- Allow admins full access
+DROP POLICY IF EXISTS "Allow admins full access for academy_facultades" ON public.academy_facultades;
 CREATE POLICY "Allow admins full access for academy_facultades" ON public.academy_facultades FOR ALL USING (
-  exists (select 1 from roles where user_id = auth.uid() and role = 'Admin')
+  public.has_role(auth.uid(), 'admin'::public.app_role) OR public.has_role(auth.uid(), 'super_admin'::public.app_role)
 );
+
+DROP POLICY IF EXISTS "Allow admins full access for academy_diplomados" ON public.academy_diplomados;
 CREATE POLICY "Allow admins full access for academy_diplomados" ON public.academy_diplomados FOR ALL USING (
-  exists (select 1 from roles where user_id = auth.uid() and role = 'Admin')
+  public.has_role(auth.uid(), 'admin'::public.app_role) OR public.has_role(auth.uid(), 'super_admin'::public.app_role)
 );
+
+DROP POLICY IF EXISTS "Allow admins full access for academy_modulos" ON public.academy_modulos;
 CREATE POLICY "Allow admins full access for academy_modulos" ON public.academy_modulos FOR ALL USING (
-  exists (select 1 from roles where user_id = auth.uid() and role = 'Admin')
+  public.has_role(auth.uid(), 'admin'::public.app_role) OR public.has_role(auth.uid(), 'super_admin'::public.app_role)
 );

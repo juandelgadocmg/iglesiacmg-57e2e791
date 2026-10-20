@@ -59,28 +59,35 @@ export function useCreatePersona() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (persona: TablesInsert<"personas">) => {
-      // 1. Try direct Supabase table insert first
+      // 1. Try SECURITY DEFINER RPC first so row-level security policies on personas
+      // never block legitimate staff or form creations.
+      const { data: rpcData, error: rpcErr } = await (supabase.rpc as any)("create_persona_with_permission", {
+        _payload: persona,
+      });
+
+      if (!rpcErr && rpcData) {
+        const created = Array.isArray(rpcData) ? rpcData[0] : rpcData;
+        if (created?.id && (persona as any).barrio && !created.barrio) {
+          await supabase
+            .from("personas")
+            .update({ barrio: (persona as any).barrio })
+            .eq("id", created.id);
+          created.barrio = (persona as any).barrio;
+        }
+        return created;
+      }
+
+      // 2. Fallback to direct table insert if RPC is unavailable
       const { data: directData, error: directErr } = await supabase
         .from("personas")
         .insert(persona)
         .select()
         .single();
 
-      if (!directErr && directData) {
-        return directData;
+      if (directErr) {
+        throw directErr || rpcErr;
       }
-
-      console.warn("Direct insert into personas failed, attempting RPC fallback:", directErr?.message);
-
-      // 2. Try RPC fallback if direct insert fails
-      const { data, error } = await (supabase.rpc as any)("create_persona_with_permission", {
-        _payload: persona,
-      });
-
-      if (error) {
-        throw directErr || error;
-      }
-      return Array.isArray(data) ? data[0] : data;
+      return directData;
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["personas"] });

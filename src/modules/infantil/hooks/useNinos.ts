@@ -91,23 +91,34 @@ export const useNinos = () => {
         personaData = updated;
       } else {
         // 1. Crear la persona con tipos_persona: ["Niño"] exclusivamente
-        const { data: created, error: personaError } = await supabase
-          .from("personas")
-          .insert({
-            nombres: nuevoNino.nombres,
-            apellidos: nuevoNino.apellidos,
-            fecha_nacimiento: nuevoNino.fecha_nacimiento,
-            sexo: nuevoNino.sexo,
-            direccion: nuevoNino.direccion,
-            documento: nuevoNino.documento || null,
-            tipos_persona: ["Niño"],
-            estado_iglesia: "Activo"
-          })
-          .select()
-          .single();
+        const payload = {
+          nombres: nuevoNino.nombres,
+          apellidos: nuevoNino.apellidos,
+          fecha_nacimiento: nuevoNino.fecha_nacimiento,
+          sexo: nuevoNino.sexo,
+          direccion: nuevoNino.direccion,
+          documento: nuevoNino.documento || null,
+          tipos_persona: ["Niño"],
+          estado_iglesia: "Activo"
+        };
 
-        if (personaError) throw personaError;
-        personaData = created;
+        const { data: rpcCreated, error: rpcError } = await (supabase.rpc as any)(
+          "create_persona_with_permission",
+          { _payload: payload }
+        );
+
+        if (!rpcError && rpcCreated) {
+          personaData = Array.isArray(rpcCreated) ? rpcCreated[0] : rpcCreated;
+        } else {
+          const { data: created, error: personaError } = await supabase
+            .from("personas")
+            .insert(payload)
+            .select()
+            .single();
+
+          if (personaError) throw personaError;
+          personaData = created;
+        }
       }
 
       // 2. Crear o actualizar los detalles infantiles si existen

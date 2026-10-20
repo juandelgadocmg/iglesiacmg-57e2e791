@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { lovable } from "@/integrations/lovable/index";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -75,10 +76,13 @@ export default function CheckInPage() {
   }, [servicioId, token, doCheckIn]);
 
   const handleLogin = async () => {
-    await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: { redirectTo: window.location.href },
+    const result = await lovable.auth.signInWithOAuth("google", {
+      redirect_uri: window.location.href,
     });
+    if (!result.error && !result.redirected) {
+      setAuthed(true);
+      await doCheckIn();
+    }
   };
 
   if (loading) {

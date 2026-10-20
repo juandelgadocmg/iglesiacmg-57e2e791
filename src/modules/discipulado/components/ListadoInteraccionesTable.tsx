@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -18,6 +18,7 @@ interface ListadoInteraccionesTableProps {
   casasRaw: any[];
   discipulosRaw: any[];
   lideresRaw: any[];
+  initialTipoFilter?: string;
   onDeleteInteraction?: (id: string, tipo: string) => void;
 }
 
@@ -31,12 +32,17 @@ export function ListadoInteraccionesTable({
   casasRaw = [],
   discipulosRaw = [],
   lideresRaw = [],
+  initialTipoFilter = "Todos",
   onDeleteInteraction
 }: ListadoInteraccionesTableProps) {
   const [searchTerm, setSearchTerm] = useState("");
-  const [tipoFilter, setTipoFilter] = useState<string>("Todos");
+  const [tipoFilter, setTipoFilter] = useState<string>(initialTipoFilter);
   const [redFilter, setRedFilter] = useState<string>("Todas");
   const [casaFilter, setCasaFilter] = useState<string>("Todas");
+
+  useEffect(() => {
+    setTipoFilter(initialTipoFilter);
+  }, [initialTipoFilter]);
 
   // Derive Red mapping
   const redByCasa = useMemo(() => {

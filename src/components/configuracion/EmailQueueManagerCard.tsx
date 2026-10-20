@@ -44,8 +44,8 @@ export default function EmailQueueManagerCard() {
         list = (directData || []) as EmailLogItem[];
       }
 
-      // Deduplicar registros con el mismo message_id prefiriendo el estado más reciente (evita mostrar 'pending' cuando ya fue 'sent')
-      const map = new Map<string, EmailLogItem>();
+      // 1. Deduplicar registros con el mismo message_id prefiriendo el estado final ('sent', 'failed', etc.) sobre 'pending'
+      const byMessageId = new Map<string, EmailLogItem>();
       const unkeyed: EmailLogItem[] = [];
 
       for (const item of list) {
@@ -53,15 +53,36 @@ export default function EmailQueueManagerCard() {
           unkeyed.push(item);
           continue;
         }
-        const existing = map.get(item.message_id);
+        const existing = byMessageId.get(item.message_id);
         if (!existing) {
-          map.set(item.message_id, item);
+          byMessageId.set(item.message_id, item);
         } else if (existing.status === "pending" && item.status !== "pending") {
-          map.set(item.message_id, item);
+          byMessageId.set(item.message_id, item);
         }
       }
 
-      const deduplicated = Array.from(map.values()).concat(unkeyed);
+      const combined = Array.from(byMessageId.values()).concat(unkeyed);
+      const nonPendingByRecipient = combined.filter((item) => item.status !== "pending");
+
+      // 2. Ocultar filas 'pending' obsoletas cuando ya existe un registro procesado ('sent'/'failed'/etc.)
+      // para el mismo destinatario en la misma ventana de envío
+      const deduplicated = combined.filter((item) => {
+        if (item.status !== "pending") return true;
+        const emailNorm = (item.recipient_email || "").trim().toLowerCase();
+        const itemTime = new Date(item.created_at).getTime();
+        const hasProcessedMatch = nonPendingByRecipient.some((other) => {
+          if (other.id === item.id) return false;
+          if (item.message_id && other.message_id && item.message_id === other.message_id) {
+            return true;
+          }
+          const otherEmail = (other.recipient_email || "").trim().toLowerCase();
+          if (!emailNorm || emailNorm !== otherEmail) return false;
+          const otherTime = new Date(other.created_at).getTime();
+          return Math.abs(otherTime - itemTime) <= 24 * 60 * 60 * 1000;
+        });
+        return !hasProcessedMatch;
+      });
+
       return deduplicated.sort(
         (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
       );

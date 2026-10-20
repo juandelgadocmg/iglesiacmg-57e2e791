@@ -153,10 +153,13 @@ export function DiscipuladoDashboard({
 
     let exportData = filteredDiscipulos.map(d => {
       // Find related entities
-      const lider = lideres.find(l => l.id === d.lider_id);
+      let casa = casasDePaz.find(c => c.id === d.casa_de_paz_id);
+      let lider = lideres.find(l => l.id === d.lider_id);
+      if (!lider && casa) {
+        lider = lideres.find(l => l.id === casa.lider_id || l.casa_de_paz_id === casa.id);
+      }
       
       // Intentar obtener la casa del discípulo, sino fallback a la del líder
-      let casa = casasDePaz.find(c => c.id === d.casa_de_paz_id);
       if (!casa && lider && lider.casa_de_paz_id) {
          casa = casasDePaz.find(c => c.id === lider.casa_de_paz_id);
       }

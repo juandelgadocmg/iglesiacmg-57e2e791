@@ -18,18 +18,23 @@ export function ImportarGlobalDiscipulosModal({ isOpen, onClose, onSuccess }: Im
   const [loading, setLoading] = useState(false);
   const [parsedData, setParsedData] = useState<any[]>([]);
   const [grupos, setGrupos] = useState<any[]>([]);
+  const [leaders, setLeaders] = useState<any[]>([]);
+  const [leadersGrupos, setLeadersGrupos] = useState<any[]>([]);
 
-  // Cargar casas de paz para poder mapear los nombres del Excel a IDs reales
+  // Cargar casas de paz y líderes para poder mapear los nombres del Excel a IDs reales
   useEffect(() => {
     if (isOpen) {
-      const fetchGrupos = async () => {
-        const { data } = await supabase
-          .from('grupos')
-          .select('id, nombre, red, lider_id')
-          .eq('estado', 'Activo');
-        if (data) setGrupos(data);
+      const fetchGruposAndLeaders = async () => {
+        const [{ data: gData }, { data: lData }, { data: lgData }] = await Promise.all([
+          supabase.from('grupos').select('id, nombre, red, lider_id').eq('estado', 'Activo'),
+          supabase.from('leaders').select('id, full_name, casa_de_paz_id'),
+          supabase.from('leaders_grupos').select('leader_id, grupo_id'),
+        ]);
+        if (gData) setGrupos(gData);
+        if (lData) setLeaders(lData);
+        if (lgData) setLeadersGrupos(lgData);
       };
-      fetchGrupos();
+      fetchGruposAndLeaders();
     }
   }, [isOpen]);
 
@@ -112,7 +117,13 @@ export function ImportarGlobalDiscipulosModal({ isOpen, onClose, onSuccess }: Im
 
           if (matchedGrupo) {
             casaDePazId = matchedGrupo.id;
-            liderId = matchedGrupo.lider_id;
+            const leaderByCasa = leaders.find((l) => l.casa_de_paz_id === matchedGrupo.id);
+            const leaderByJunction = leadersGrupos.find((lg) => lg.grupo_id === matchedGrupo.id);
+            liderId =
+              matchedGrupo.lider_id ||
+              leaderByCasa?.id ||
+              leaderByJunction?.leader_id ||
+              null;
           } else {
             unmappedCdps.add(cdpName);
           }

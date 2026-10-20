@@ -78,13 +78,19 @@ export default function LoginPage() {
 
   const handleGoogleLogin = async () => {
     setGoogleLoading(true);
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: {
-        redirectTo: postAuthAbsolute,
-      },
-    });
-    if (error) {
+    try {
+      const result = await lovable.auth.signInWithOAuth("google", {
+        redirect_uri: postAuthAbsolute,
+      });
+      if (result.error) {
+        toast.error("Error al iniciar sesión con Google");
+        setGoogleLoading(false);
+        return;
+      }
+      if (!result.redirected) {
+        navigate(postAuthTarget, { replace: true });
+      }
+    } catch {
       toast.error("Error al iniciar sesión con Google");
       setGoogleLoading(false);
     }

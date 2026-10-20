@@ -4,14 +4,16 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 export const CODIFICACIONES_LLAMADA = [
-  "Fuera de servicio",
   "Contestó y atendió",
+  "No contestó",
+  "Buzón de mensajes",
+  "Fuera de servicio",
   "Número equivocado",
   "Llamada no efectiva",
   "Otro",
 ] as const;
 
-export type CodificacionLlamada = (typeof CODIFICACIONES_LLAMADA)[number] | "Buzón de mensajes" | "No contestó";
+export type CodificacionLlamada = (typeof CODIFICACIONES_LLAMADA)[number];
 
 export interface RegistroLlamadaConsolidacion {
   id: string;

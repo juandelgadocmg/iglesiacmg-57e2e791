@@ -46,25 +46,44 @@ BEGIN
       -- No sobrescribimos created_at para mantener la fecha original de encolado
   WHERE message_id = p_message_id;
 
-  -- 2. Registrar el evento en la tabla de historial vinculada
-  INSERT INTO public.email_send_events (message_id, status, error_message)
-  VALUES (p_message_id, p_status, p_error_message);
-
-  -- 3. Si no existe el registro principal (p.ej. webhook de un mensaje no registrado), lo creamos
+  -- 2. Si no existe el registro principal por message_id, buscar el 'pending' reciente del mismo destinatario
   IF NOT FOUND THEN
-    -- Intentar buscar por recipient si message_id no cruza (opcional, pero ayuda a evitar duplicados si el ID de resend es distinto)
     UPDATE public.email_send_log
     SET status = p_status,
         error_message = COALESCE(p_error_message, error_message),
-        message_id = p_message_id -- actualizamos con el ID nuevo
-    WHERE recipient_email = p_recipient_email 
-      AND status IN ('pending', 'sent') 
-      AND created_at >= now() - interval '1 hour';
-      
+        message_id = p_message_id
+    WHERE id = (
+      SELECT id
+      FROM public.email_send_log
+      WHERE lower(recipient_email) = lower(COALESCE(p_recipient_email, ''))
+        AND status IN ('pending', 'sent')
+        AND created_at >= now() - interval '24 hours'
+      ORDER BY (status = 'pending') DESC, created_at DESC
+      LIMIT 1
+    );
+
     IF NOT FOUND THEN
       INSERT INTO public.email_send_log (message_id, template_name, recipient_email, status, error_message)
       VALUES (p_message_id, COALESCE(p_template_name, 'transactional'), COALESCE(p_recipient_email, ''), p_status, p_error_message);
     END IF;
   END IF;
+
+  -- 3. Eliminar cualquier fila duplicada en estado 'pending' que haya quedado para el mismo message_id o destinatario
+  IF p_status <> 'pending' THEN
+    DELETE FROM public.email_send_log
+    WHERE status = 'pending'
+      AND (
+        message_id = p_message_id
+        OR (
+          p_recipient_email IS NOT NULL
+          AND lower(recipient_email) = lower(p_recipient_email)
+          AND created_at >= now() - interval '24 hours'
+        )
+      );
+  END IF;
+
+  -- 4. Registrar el evento en la tabla de historial vinculada
+  INSERT INTO public.email_send_events (message_id, status, error_message)
+  VALUES (p_message_id, p_status, p_error_message);
 END;
 $$;

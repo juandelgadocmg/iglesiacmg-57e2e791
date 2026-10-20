@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -43,6 +43,10 @@ export function ListadoProcesosTable({
   const [redFilter, setRedFilter] = useState<string>("Todas");
   const [casaFilter, setCasaFilter] = useState<string>("Todas");
   const [etapaFilter, setEtapaFilter] = useState<string>("Todas");
+
+  useEffect(() => {
+    setFilter(initialFilter);
+  }, [initialFilter]);
 
   // Derive Red mapping
   const redByCasa = useMemo(() => {
@@ -104,10 +108,19 @@ export function ListadoProcesosTable({
       
       casaName = casaName || 'Sin casa';
       redName = redName || 'Sin Red';
+
+      let resolvedLiderName = d.lider_id ? lideresDict[d.lider_id] : null;
+      if (!resolvedLiderName && d.casa_de_paz_id) {
+        const casaObj = casasRaw?.find((c) => c.id === d.casa_de_paz_id);
+        const lidByCasa =
+          (casaObj?.lider_id && lideresDict[casaObj.lider_id]) ||
+          lideresRaw?.find((l) => l.casa_de_paz_id === d.casa_de_paz_id)?.full_name;
+        if (lidByCasa) resolvedLiderName = lidByCasa;
+      }
       
       return {
         ...d,
-        liderName: lideresDict[d.lider_id] || 'Sin asignar',
+        liderName: resolvedLiderName || 'Sin asignar',
         casaName,
         redName,
         progressMap: pMap
