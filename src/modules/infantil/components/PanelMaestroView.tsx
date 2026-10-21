@@ -28,7 +28,7 @@ export default function PanelMaestroView() {
 
   // Buscar el acudiente asociado al niño seleccionado
   const acudienteInfo = selectedNino ? (() => {
-    const rels = (acudientes || []).filter((a: any) => a.nino_id === selectedNino.id);
+    const rels = ((acudientes || []) as any[]).filter((a: any) => a.nino_id === selectedNino.id);
     const rel = rels.find((a: any) => a.es_principal) || rels[0];
     const rawPhone = rel?.acudiente?.whatsapp || rel?.acudiente?.telefono || selectedNino.detalles?.contacto_emergencia || selectedNino.telefono || "";
     const cleanPhone = rawPhone.replace(/\D/g, "");
