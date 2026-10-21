@@ -942,19 +942,19 @@ export function useAcademyCMS() {
     queryKey: ["academy_cms_data"],
     queryFn: async () => {
       try {
-        const { data: facultades, error: fError } = await supabase
+        const { data: facultades, error: fError } = await (supabase as any)
           .from("academy_facultades")
           .select("*")
           .order("orden", { ascending: true });
         if (fError) throw fError;
 
-        const { data: diplomados, error: dError } = await supabase
+        const { data: diplomados, error: dError } = await (supabase as any)
           .from("academy_diplomados")
           .select("*")
           .order("orden", { ascending: true });
         if (dError) throw dError;
 
-        const { data: modulos, error: mError } = await supabase
+        const { data: modulos, error: mError } = await (supabase as any)
           .from("academy_modulos")
           .select("*")
           .order("orden", { ascending: true });

@@ -393,7 +393,7 @@ export function useInfantilAtenciones() {
     queryFn: async () => {
       let dbData: any[] = [];
       try {
-        const { data, error } = await supabase
+        const { data, error } = await (supabase as any)
           .from("infantil_atenciones")
           .select("*, nino:nino_id(id, nombres, apellidos), maestro:maestro_id(id, nombres, apellidos), responsable:responsable_id(id, nombres, apellidos)")
           .order("hora_creacion", { ascending: false });
@@ -452,7 +452,7 @@ export function useCreateInfantilAtencion() {
       };
 
       try {
-        const { data, error } = await supabase.from("infantil_atenciones").insert({
+        const { data, error } = await (supabase as any).from("infantil_atenciones").insert({
           nino_id: payload.nino_id,
           tipo_solicitud: payload.tipo_solicitud as any,
           prioridad: payload.prioridad || "Normal",
@@ -489,7 +489,7 @@ export function useUpdateInfantilAtencion() {
   return useMutation({
     mutationFn: async ({ id, ...updates }: { id: string; [key: string]: any }) => {
       try {
-        const { data, error } = await supabase.from("infantil_atenciones").update(updates).eq("id", id).select().single();
+        const { data, error } = await (supabase as any).from("infantil_atenciones").update(updates).eq("id", id).select().single();
         if (!error && data) return data;
       } catch {}
 
@@ -536,7 +536,7 @@ export function useInfantilSeguimientos(ninoId?: string) {
     queryFn: async (): Promise<InfantilSeguimientoItem[]> => {
       let dbData: any[] = [];
       try {
-        let q = supabase
+        let q = (supabase as any)
           .from("infantil_seguimientos")
           .select("*, nino:nino_id(id, nombres, apellidos, telefono)")
           .order("fecha", { ascending: false });
@@ -593,7 +593,7 @@ export function useCreateInfantilSeguimiento() {
       };
 
       try {
-        const { data, error } = await supabase.from("infantil_seguimientos").insert({
+        const { data, error } = await (supabase as any).from("infantil_seguimientos").insert({
           nino_id: payload.nino_id,
           lider_id: payload.lider_id || null,
           tipo: payload.tipo,
@@ -625,7 +625,7 @@ export function useUpdateInfantilSeguimiento() {
   return useMutation({
     mutationFn: async ({ id, ...updates }: { id: string; [key: string]: any }) => {
       try {
-        const { data, error } = await supabase.from("infantil_seguimientos").update(updates).eq("id", id).select().single();
+        const { data, error } = await (supabase as any).from("infantil_seguimientos").update(updates).eq("id", id).select().single();
         if (!error && data) return data;
       } catch {}
 
@@ -724,7 +724,7 @@ export function useProgramacionReunionesInfantil() {
       const cargosMap = new Map<string, any>((cargos || []).map((c: any) => [c.id, c]));
       const minMap = new Map<string, any>((ministerios || []).map((m: any) => [m.id, m]));
 
-      const ministeriosInfantil = (ministerios || []).filter((m: any) => isMinisterioInfantilNombre(m.nombre));
+      const ministeriosInfantil = ((ministerios || []) as any[]).filter((m: any) => isMinisterioInfantilNombre(m.nombre));
       if (ministeriosInfantil.length === 0) return [];
       const minInfantilIds = new Set<string>(ministeriosInfantil.map((m: any) => m.id));
 
@@ -947,7 +947,7 @@ export function useMigrarProgramacionReuniones() {
             ? srv.grupo_sugerido_id
             : defaultGrupoId;
 
-        const existente = (clasesActuales || []).find(
+        const existente = ((clasesActuales || []) as any[]).find(
           (c: any) =>
             c.fecha === srv.fecha &&
             (c.grupo_id === targetGrupoId || normInfKey(c.tema) === normInfKey(srv.tema))
@@ -1148,7 +1148,7 @@ export function useCreateInfantilNotificacion() {
                 </p>
               </div>
             `;
-            const { error: mailErr } = await supabase.rpc("send_transactional_email", {
+            const { error: mailErr } = await (supabase as any).rpc("send_transactional_email", {
               p_to: dest.email.trim(),
               p_subject: `[Iglesia Infantil] ${payload.asunto || "Notificación a Padres"}`,
               p_html: html,
