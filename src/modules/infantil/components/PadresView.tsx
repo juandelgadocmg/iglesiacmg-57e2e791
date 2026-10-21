@@ -145,7 +145,7 @@ export default function PadresView() {
                 </div>
               ) : (
                 <div className="divide-y divide-slate-100">
-                  {acudientes?.map((a) => (
+                  {acudientes?.map((a: any) => (
                     <div key={a.id} className="p-5 flex flex-col sm:flex-row gap-4 justify-between hover:bg-slate-50/80 transition-colors">
                       <div className="flex gap-4">
                         <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center font-bold text-lg shrink-0">

@@ -179,7 +179,7 @@ export default function ProgramacionIsoInfantilView() {
         eventosConDatosInfantil.add(a.evento_id);
       }
     });
-    (textos.rows || []).forEach((r) => {
+    ((textos as any).rows || []).forEach((r: any) => {
       if (
         r.ministerio_id === ministerioInfantil.id &&
         r.valor &&
@@ -195,7 +195,7 @@ export default function ProgramacionIsoInfantilView() {
       .filter((e) => fechasConfiguradas.has(e.fecha) || eventosConDatosInfantil.has(e.id))
       .filter((e) => !tipos || tipos.has(e.tipo))
       .sort((a, b) => a.fecha.localeCompare(b.fecha));
-  }, [eventos, template.tiposEvento, template.fechasIncluidas, asignaciones, textos.rows, ministerioInfantil]);
+  }, [eventos, template.tiposEvento, template.fechasIncluidas, asignaciones, (textos as any).rows, ministerioInfantil]);
 
   const personasMap = useMemo(() => new Map(personas.map((p: any) => [p.id, p])), [personas]);
 

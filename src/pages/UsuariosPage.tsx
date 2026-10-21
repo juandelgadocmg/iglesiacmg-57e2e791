@@ -40,6 +40,8 @@ const ROLE_LABELS: Record<AppRole, string> = {
   seminario_admin: "Seminario · Admin",
   seminario_docente: "Seminario · Docente",
   seminario_estudiante: "Seminario · Estudiante",
+  coordinador_infantil: "Coordinador Infantil",
+  recepcion_infantil: "Recepción Infantil",
 };
 
 const ROLE_COLORS: Record<AppRole, string> = {
