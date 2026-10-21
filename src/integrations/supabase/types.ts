@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.5"
+    PostgrestVersion: "14.1"
   }
   public: {
     Tables: {
@@ -1893,6 +1893,404 @@ export type Database = {
           },
         ]
       }
+      infantil_acudientes: {
+        Row: {
+          acudiente_id: string
+          autorizado_recoger: boolean
+          created_at: string
+          es_principal: boolean
+          id: string
+          nino_id: string
+          relacion: string
+        }
+        Insert: {
+          acudiente_id: string
+          autorizado_recoger?: boolean
+          created_at?: string
+          es_principal?: boolean
+          id?: string
+          nino_id: string
+          relacion: string
+        }
+        Update: {
+          acudiente_id?: string
+          autorizado_recoger?: boolean
+          created_at?: string
+          es_principal?: boolean
+          id?: string
+          nino_id?: string
+          relacion?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "infantil_acudientes_acudiente_id_fkey"
+            columns: ["acudiente_id"]
+            isOneToOne: false
+            referencedRelation: "personas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "infantil_acudientes_nino_id_fkey"
+            columns: ["nino_id"]
+            isOneToOne: false
+            referencedRelation: "personas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      infantil_asistencia_checkin: {
+        Row: {
+          clase_id: string | null
+          created_at: string
+          entregado_por_id: string | null
+          estado: string
+          fecha: string
+          grupo_id: string
+          hora_entrada: string | null
+          hora_salida: string | null
+          id: string
+          nino_id: string
+          observaciones: string | null
+          recogido_por_id: string | null
+          registrado_entrada_por: string | null
+          registrado_salida_por: string | null
+          servicio_id: string | null
+        }
+        Insert: {
+          clase_id?: string | null
+          created_at?: string
+          entregado_por_id?: string | null
+          estado?: string
+          fecha: string
+          grupo_id: string
+          hora_entrada?: string | null
+          hora_salida?: string | null
+          id?: string
+          nino_id: string
+          observaciones?: string | null
+          recogido_por_id?: string | null
+          registrado_entrada_por?: string | null
+          registrado_salida_por?: string | null
+          servicio_id?: string | null
+        }
+        Update: {
+          clase_id?: string | null
+          created_at?: string
+          entregado_por_id?: string | null
+          estado?: string
+          fecha?: string
+          grupo_id?: string
+          hora_entrada?: string | null
+          hora_salida?: string | null
+          id?: string
+          nino_id?: string
+          observaciones?: string | null
+          recogido_por_id?: string | null
+          registrado_entrada_por?: string | null
+          registrado_salida_por?: string | null
+          servicio_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "infantil_asistencia_checkin_clase_id_fkey"
+            columns: ["clase_id"]
+            isOneToOne: false
+            referencedRelation: "infantil_clases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "infantil_asistencia_checkin_entregado_por_id_fkey"
+            columns: ["entregado_por_id"]
+            isOneToOne: false
+            referencedRelation: "personas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "infantil_asistencia_checkin_grupo_id_fkey"
+            columns: ["grupo_id"]
+            isOneToOne: false
+            referencedRelation: "grupos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "infantil_asistencia_checkin_nino_id_fkey"
+            columns: ["nino_id"]
+            isOneToOne: false
+            referencedRelation: "personas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "infantil_asistencia_checkin_recogido_por_id_fkey"
+            columns: ["recogido_por_id"]
+            isOneToOne: false
+            referencedRelation: "personas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "infantil_asistencia_checkin_servicio_id_fkey"
+            columns: ["servicio_id"]
+            isOneToOne: false
+            referencedRelation: "servicios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      infantil_clases: {
+        Row: {
+          actividad: string | null
+          created_at: string
+          estado: string
+          fecha: string
+          grupo_id: string
+          id: string
+          maestro_id: string | null
+          materiales: string | null
+          objetivo: string | null
+          observaciones: string | null
+          tema: string | null
+          updated_at: string
+          versiculo: string | null
+        }
+        Insert: {
+          actividad?: string | null
+          created_at?: string
+          estado?: string
+          fecha: string
+          grupo_id: string
+          id?: string
+          maestro_id?: string | null
+          materiales?: string | null
+          objetivo?: string | null
+          observaciones?: string | null
+          tema?: string | null
+          updated_at?: string
+          versiculo?: string | null
+        }
+        Update: {
+          actividad?: string | null
+          created_at?: string
+          estado?: string
+          fecha?: string
+          grupo_id?: string
+          id?: string
+          maestro_id?: string | null
+          materiales?: string | null
+          objetivo?: string | null
+          observaciones?: string | null
+          tema?: string | null
+          updated_at?: string
+          versiculo?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "infantil_clases_grupo_id_fkey"
+            columns: ["grupo_id"]
+            isOneToOne: false
+            referencedRelation: "grupos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "infantil_clases_maestro_id_fkey"
+            columns: ["maestro_id"]
+            isOneToOne: false
+            referencedRelation: "personas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      infantil_detalles: {
+        Row: {
+          alergias: string | null
+          codigo_interno: string | null
+          contacto_emergencia: string | null
+          created_at: string
+          fecha_primera_asistencia: string | null
+          info_medica: string | null
+          observaciones: string | null
+          persona_id: string
+          qr_codigo: string | null
+          updated_at: string
+        }
+        Insert: {
+          alergias?: string | null
+          codigo_interno?: string | null
+          contacto_emergencia?: string | null
+          created_at?: string
+          fecha_primera_asistencia?: string | null
+          info_medica?: string | null
+          observaciones?: string | null
+          persona_id: string
+          qr_codigo?: string | null
+          updated_at?: string
+        }
+        Update: {
+          alergias?: string | null
+          codigo_interno?: string | null
+          contacto_emergencia?: string | null
+          created_at?: string
+          fecha_primera_asistencia?: string | null
+          info_medica?: string | null
+          observaciones?: string | null
+          persona_id?: string
+          qr_codigo?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "infantil_detalles_persona_id_fkey"
+            columns: ["persona_id"]
+            isOneToOne: true
+            referencedRelation: "personas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      infantil_grupos_detalles: {
+        Row: {
+          capacidad: number | null
+          created_at: string
+          edad_maxima: number | null
+          edad_minima: number | null
+          grupo_id: string
+          salon: string | null
+          updated_at: string
+        }
+        Insert: {
+          capacidad?: number | null
+          created_at?: string
+          edad_maxima?: number | null
+          edad_minima?: number | null
+          grupo_id: string
+          salon?: string | null
+          updated_at?: string
+        }
+        Update: {
+          capacidad?: number | null
+          created_at?: string
+          edad_maxima?: number | null
+          edad_minima?: number | null
+          grupo_id?: string
+          salon?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "infantil_grupos_detalles_grupo_id_fkey"
+            columns: ["grupo_id"]
+            isOneToOne: true
+            referencedRelation: "grupos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      infantil_notificaciones: {
+        Row: {
+          acudiente_id: string | null
+          canal: string
+          created_at: string
+          enviado_por: string | null
+          estado: string
+          id: string
+          mensaje: string
+          nino_id: string
+          tipo: string
+        }
+        Insert: {
+          acudiente_id?: string | null
+          canal?: string
+          created_at?: string
+          enviado_por?: string | null
+          estado?: string
+          id?: string
+          mensaje: string
+          nino_id: string
+          tipo: string
+        }
+        Update: {
+          acudiente_id?: string | null
+          canal?: string
+          created_at?: string
+          enviado_por?: string | null
+          estado?: string
+          id?: string
+          mensaje?: string
+          nino_id?: string
+          tipo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "infantil_notificaciones_acudiente_id_fkey"
+            columns: ["acudiente_id"]
+            isOneToOne: false
+            referencedRelation: "personas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "infantil_notificaciones_nino_id_fkey"
+            columns: ["nino_id"]
+            isOneToOne: false
+            referencedRelation: "personas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      infantil_seguimiento: {
+        Row: {
+          created_at: string
+          fecha: string
+          fecha_proximo_seguimiento: string | null
+          id: string
+          motivo: string | null
+          nino_id: string
+          observaciones: string | null
+          proxima_accion: string | null
+          responsable_id: string | null
+          resultado: string | null
+          tipo_contacto: string
+        }
+        Insert: {
+          created_at?: string
+          fecha: string
+          fecha_proximo_seguimiento?: string | null
+          id?: string
+          motivo?: string | null
+          nino_id: string
+          observaciones?: string | null
+          proxima_accion?: string | null
+          responsable_id?: string | null
+          resultado?: string | null
+          tipo_contacto: string
+        }
+        Update: {
+          created_at?: string
+          fecha?: string
+          fecha_proximo_seguimiento?: string | null
+          id?: string
+          motivo?: string | null
+          nino_id?: string
+          observaciones?: string | null
+          proxima_accion?: string | null
+          responsable_id?: string | null
+          resultado?: string | null
+          tipo_contacto?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "infantil_seguimiento_nino_id_fkey"
+            columns: ["nino_id"]
+            isOneToOne: false
+            referencedRelation: "personas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "infantil_seguimiento_responsable_id_fkey"
+            columns: ["responsable_id"]
+            isOneToOne: false
+            referencedRelation: "personas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       inscripciones: {
         Row: {
           confirmado: boolean | null
@@ -2029,6 +2427,42 @@ export type Database = {
             columns: ["casa_de_paz_id"]
             isOneToOne: false
             referencedRelation: "grupos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      leaders_grupos: {
+        Row: {
+          created_at: string
+          grupo_id: string
+          id: string
+          leader_id: string
+        }
+        Insert: {
+          created_at?: string
+          grupo_id: string
+          id?: string
+          leader_id: string
+        }
+        Update: {
+          created_at?: string
+          grupo_id?: string
+          id?: string
+          leader_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "leaders_grupos_grupo_id_fkey"
+            columns: ["grupo_id"]
+            isOneToOne: false
+            referencedRelation: "grupos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leaders_grupos_leader_id_fkey"
+            columns: ["leader_id"]
+            isOneToOne: false
+            referencedRelation: "leaders"
             referencedColumns: ["id"]
           },
         ]
@@ -6116,10 +6550,7 @@ export type Database = {
           user_id: string
         }[]
       }
-      get_zadarma_webrtc_key: {
-        Args: { p_sip_extension: string }
-        Returns: string
-      }
+      get_zadarma_webrtc_key: { Args: { p_sip: string }; Returns: string }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -6505,6 +6936,8 @@ export type Database = {
         | "seminario_admin"
         | "seminario_docente"
         | "seminario_estudiante"
+        | "coordinador_infantil"
+        | "recepcion_infantil"
       cert_template_tipo:
         | "lideres_cdp"
         | "bautismo"
@@ -6707,6 +7140,8 @@ export const Constants = {
         "seminario_admin",
         "seminario_docente",
         "seminario_estudiante",
+        "coordinador_infantil",
+        "recepcion_infantil",
       ],
       cert_template_tipo: [
         "lideres_cdp",
