@@ -78,8 +78,10 @@ export default function InfantilPage() {
       {/* Sidebar Navigation for Module */}
       <div className="w-full md:w-64 flex-shrink-0 flex flex-col gap-1 overflow-y-auto pr-2 pb-10 custom-scrollbar border-r md:border-r-0 md:pr-4">
         <div className="mb-4 px-2">
-          <h1 className="text-xl font-black bg-gradient-to-r from-blue-600 to-indigo-500 bg-clip-text text-transparent">DOXA Infantil</h1>
-          <p className="text-xs text-muted-foreground mt-1">Ministerio de Niños</p>
+          <h1 className="text-xl font-black bg-gradient-to-r from-blue-600 to-indigo-500 bg-clip-text text-transparent leading-tight">
+            DOXA Kabod y Kings Army
+          </h1>
+          <p className="text-xs text-muted-foreground mt-1">Ministerio Infantil y Adolescentes</p>
         </div>
         
         {TABS.map((tab) => {

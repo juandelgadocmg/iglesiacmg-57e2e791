@@ -63,6 +63,7 @@ import {
 } from "@/lib/isoHistorial";
 import {
   isMinisterioInfantilNombre,
+  isKabodNombre,
   isKingsArmyNombre,
   isExcluidoDeInfantil,
   useProgramacionReunionesInfantil,
@@ -71,7 +72,7 @@ import {
 } from "@/hooks/useInfantil";
 
 type ConfirmAction = "pdf" | "png" | "jpg";
-type ModoMinisterioIso = "infantil" | "kings_army";
+type ModoMinisterioIso = "kabod" | "kings_army" | "infantil";
 
 export default function ProgramacionIsoInfantilView() {
   const { data: ministerios = [], isLoading: loadingMin } = useProgMinisterios();
@@ -90,13 +91,21 @@ export default function ProgramacionIsoInfantilView() {
   const upMin = useUpsertMinisterio();
   const upIsoTpl = useUpsertIsoTemplate();
 
-  const [modoMin, setModoMin] = useState<ModoMinisterioIso>("infantil");
+  const [modoMin, setModoMin] = useState<ModoMinisterioIso>("kabod");
   const autoSelectedMinRef = useRef(false);
 
-  // Resolver tanto el ministerio "Infantil" (FO-EC-PIN01) como "Kings Army" (FO-EC-PKA01)
+  // Resolver los ministerios de este módulo: "Kabod" (FO-EC-PK01), "Kings Army" (FO-EC-PKA01) e "Infantil" (FO-EC-PIN01)
+  const minKabodObj: ProgMinisterio | null = useMemo(() => {
+    return ministerios.find((m) => isKabodNombre(m.nombre)) || null;
+  }, [ministerios]);
+
+  const minKingsArmyObj: ProgMinisterio | null = useMemo(() => {
+    return ministerios.find((m) => isKingsArmyNombre(m.nombre)) || null;
+  }, [ministerios]);
+
   const minInfantilObj: ProgMinisterio | null = useMemo(() => {
     const exact = ministerios.find(
-      (m) => normKey(m.nombre) === "infantil" && !isKingsArmyNombre(m.nombre) && !isExcluidoDeInfantil(m.nombre)
+      (m) => normKey(m.nombre) === "infantil" && !isKingsArmyNombre(m.nombre) && !isKabodNombre(m.nombre)
     );
     if (exact) return exact;
     return (
@@ -104,38 +113,41 @@ export default function ProgramacionIsoInfantilView() {
         (m) =>
           isMinisterioInfantilNombre(m.nombre) &&
           !isKingsArmyNombre(m.nombre) &&
-          !isExcluidoDeInfantil(m.nombre)
+          !isKabodNombre(m.nombre)
       ) || null
     );
   }, [ministerios]);
 
-  const minKingsArmyObj: ProgMinisterio | null = useMemo(() => {
-    return ministerios.find((m) => isKingsArmyNombre(m.nombre) && !isExcluidoDeInfantil(m.nombre)) || null;
-  }, [ministerios]);
-
-  // Si Kings Army existe o tiene asignaciones y Infantil no, seleccionar Kings Army automáticamente al inicio
+  // Auto-seleccionar el ministerio que exista o tenga asignaciones en Reuniones
   useEffect(() => {
     if (autoSelectedMinRef.current) return;
     if (ministerios.length === 0) return;
-    if (!minInfantilObj && minKingsArmyObj) {
+
+    if (minKabodObj) {
+      setModoMin("kabod");
+      autoSelectedMinRef.current = true;
+      return;
+    }
+    if (minKingsArmyObj) {
       setModoMin("kings_army");
       autoSelectedMinRef.current = true;
       return;
     }
-    if (minInfantilObj && minKingsArmyObj && asignaciones.length > 0) {
-      const countInf = asignaciones.filter((a) => a.ministerio_id === minInfantilObj.id).length;
-      const countKings = asignaciones.filter((a) => a.ministerio_id === minKingsArmyObj.id).length;
-      if (countInf === 0 && countKings > 0) {
-        setModoMin("kings_army");
-      }
+    if (minInfantilObj) {
+      setModoMin("infantil");
       autoSelectedMinRef.current = true;
     }
-  }, [ministerios, minInfantilObj, minKingsArmyObj, asignaciones]);
+  }, [ministerios, minKabodObj, minKingsArmyObj, minInfantilObj]);
 
   const ministerioInfantil: ProgMinisterio | null =
-    modoMin === "kings_army" ? minKingsArmyObj : minInfantilObj;
+    modoMin === "kabod"
+      ? minKabodObj
+      : modoMin === "kings_army"
+      ? minKingsArmyObj
+      : minInfantilObj;
 
-  const defaultTemplateName = modoMin === "kings_army" ? "Kings Army" : "Infantil";
+  const defaultTemplateName =
+    modoMin === "kabod" ? "Kabod" : modoMin === "kings_army" ? "Kings Army" : "Infantil";
 
   const template: IsoMinisterioTemplate = useMemo(() => {
     if (ministerioInfantil) {
@@ -327,9 +339,12 @@ export default function ProgramacionIsoInfantilView() {
 
   const crearMinisterioInfantil = async (targetModo: ModoMinisterioIso = modoMin) => {
     const esKings = targetModo === "kings_army";
-    const nombreMin = esKings ? "Kings Army" : "Infantil";
-    const colorMin = esKings ? "#7c3aed" : "#2563eb";
-    const descMin = esKings
+    const esKabod = targetModo === "kabod";
+    const nombreMin = esKabod ? "Kabod" : esKings ? "Kings Army" : "Infantil";
+    const colorMin = esKabod ? "#2563eb" : esKings ? "#7c3aed" : "#0284c7";
+    const descMin = esKabod
+      ? "Ministerio Kabod (FO-EC-PK01)"
+      : esKings
       ? "Ministerio Kings Army (FO-EC-PKA01)"
       : "Ministerio Infantil (FO-EC-PIN01)";
     try {
@@ -651,20 +666,23 @@ export default function ProgramacionIsoInfantilView() {
 
   if (!ministerioInfantil) {
     const esKings = modoMin === "kings_army";
+    const esKabod = modoMin === "kabod";
+    const labelMin = esKabod ? "Kabod" : esKings ? "Kings Army" : "Infantil";
+    const codigoMin = esKabod ? "FO-EC-PK01" : esKings ? "FO-EC-PKA01" : "FO-EC-PIN01";
     return (
       <div className="p-6 space-y-6">
-        {/* Selector de Ministerio en Iglesia Infantil */}
+        {/* Selector de Ministerio en DOXA Kabod y Kings Army */}
         <div className="flex flex-wrap items-center gap-2 bg-background p-2 rounded-xl border w-fit shadow-sm">
           <button
             type="button"
-            onClick={() => setModoMin("infantil")}
+            onClick={() => setModoMin("kabod")}
             className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${
-              modoMin === "infantil"
+              modoMin === "kabod"
                 ? "bg-blue-600 text-white shadow-sm"
                 : "text-slate-600 hover:bg-slate-100"
             }`}
           >
-            Ministerio Infantil (FO-EC-PIN01)
+            Kabod · Infantil (FO-EC-PK01)
           </button>
           <button
             type="button"
@@ -675,22 +693,33 @@ export default function ProgramacionIsoInfantilView() {
                 : "text-slate-600 hover:bg-slate-100"
             }`}
           >
-            Kings Army (FO-EC-PKA01)
+            Kings Army · Adolescentes (FO-EC-PKA01)
           </button>
+          {minInfantilObj && (
+            <button
+              type="button"
+              onClick={() => setModoMin("infantil")}
+              className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${
+                modoMin === "infantil"
+                  ? "bg-sky-600 text-white shadow-sm"
+                  : "text-slate-600 hover:bg-slate-100"
+              }`}
+            >
+              Infantil (FO-EC-PIN01)
+            </button>
+          )}
         </div>
 
         <div className="p-8 flex flex-col items-center justify-center text-center space-y-4 bg-background border rounded-xl">
           <h2 className="text-xl font-bold text-navy">
-            Ministerio {esKings ? "Kings Army" : "Infantil"} no encontrado en Reuniones
+            Ministerio {labelMin} no encontrado en Reuniones
           </h2>
           <p className="text-sm text-muted-foreground max-w-md">
-            Para usar el formato ISO de programación (
-            <strong>{esKings ? "FO-EC-PKA01" : "FO-EC-PIN01"}</strong>), inicializa el{" "}
-            <strong>Ministerio {esKings ? "Kings Army" : "Infantil"}</strong> en la base de datos de programación.
+            Para usar el formato ISO de programación (<strong>{codigoMin}</strong>), inicializa el{" "}
+            <strong>Ministerio {labelMin}</strong> en la base de datos de programación.
           </p>
           <Button onClick={() => crearMinisterioInfantil(modoMin)} disabled={upMin.isPending}>
-            <Plus className="h-4 w-4 mr-1" /> Inicializar Ministerio{" "}
-            {esKings ? "Kings Army (FO-EC-PKA01)" : "Infantil (FO-EC-PIN01)"}
+            <Plus className="h-4 w-4 mr-1" /> Inicializar Ministerio {labelMin} ({codigoMin})
           </Button>
         </div>
       </div>
@@ -701,21 +730,21 @@ export default function ProgramacionIsoInfantilView() {
     <div className="p-3 md:p-6 space-y-4 bg-muted/20 min-h-full">
       {/* Barra superior de acciones y conexión con Reuniones */}
       <div className="bg-background border rounded-xl p-3 md:p-4 shadow-sm flex flex-col gap-3">
-        {/* Selector entre Ministerio Infantil y Kings Army */}
+        {/* Selector entre Kabod (Infantil) y Kings Army (Adolescentes) */}
         <div className="flex flex-wrap items-center justify-between gap-2 pb-2 border-b">
           <div className="flex flex-wrap items-center gap-2">
             <span className="text-xs font-semibold text-muted-foreground">Formato ISO activo:</span>
-            <div className="flex items-center gap-1.5 bg-muted/60 p-1 rounded-lg border">
+            <div className="flex flex-wrap items-center gap-1.5 bg-muted/60 p-1 rounded-lg border">
               <button
                 type="button"
-                onClick={() => setModoMin("infantil")}
+                onClick={() => setModoMin("kabod")}
                 className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all ${
-                  modoMin === "infantil"
+                  modoMin === "kabod"
                     ? "bg-blue-600 text-white shadow-sm"
                     : "text-slate-600 hover:bg-background"
                 }`}
               >
-                Ministerio Infantil (FO-EC-PIN01)
+                Kabod · Infantil (FO-EC-PK01)
               </button>
               <button
                 type="button"
@@ -726,8 +755,21 @@ export default function ProgramacionIsoInfantilView() {
                     : "text-slate-600 hover:bg-background"
                 }`}
               >
-                Kings Army (FO-EC-PKA01)
+                Kings Army · Adolescentes (FO-EC-PKA01)
               </button>
+              {minInfantilObj && (
+                <button
+                  type="button"
+                  onClick={() => setModoMin("infantil")}
+                  className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all ${
+                    modoMin === "infantil"
+                      ? "bg-sky-600 text-white shadow-sm"
+                      : "text-slate-600 hover:bg-background"
+                  }`}
+                >
+                  Infantil (FO-EC-PIN01)
+                </button>
+              )}
             </div>
           </div>
           <Badge variant="secondary" className="text-[11px]">

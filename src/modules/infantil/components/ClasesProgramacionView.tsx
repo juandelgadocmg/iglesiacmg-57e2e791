@@ -354,7 +354,7 @@ export default function ClasesProgramacionView() {
             Programación de Clases y Servicios
           </h2>
           <p className="text-slate-500 mt-1 font-medium">
-            Sincronizado automáticamente con la programación del Ministerio Infantil y Kings Army en el módulo de Reuniones.
+            Sincronizado automáticamente con la programación de Kabod y Kings Army (Ministerio Infantil y Adolescentes) en el módulo de Reuniones.
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2.5">

@@ -341,6 +341,9 @@ export function findIsoTemplate(nombreMinisterio: string): IsoMinisterioTemplate
   const n = norm(nombreMinisterio);
   const exact = ISO_TEMPLATES.find((t) => norm(t.nombreMinisterio) === n);
   if (exact) return exact;
+  if (n.includes("kabod")) {
+    return ISO_TEMPLATES.find((t) => norm(t.nombreMinisterio) === "kabod") || null;
+  }
   if (n.includes("kings army") || n.includes("king's army") || n.includes("kingsarmy")) {
     return ISO_TEMPLATES.find((t) => norm(t.nombreMinisterio) === "kings army") || null;
   }

@@ -25,11 +25,15 @@ function normInfKey(s: string | null | undefined): string {
 }
 
 /**
- * Devuelve true si un nombre/texto pertenece a Kabod,
- * el cual no hace parte del módulo Infantil / Kings Army.
+ * El módulo DOXA Kabod y Kings Army (Ministerio Infantil y Adolescentes)
+ * incluye Kabod, Kings Army e Infantil; no excluye ninguno de ellos.
  */
-export function isExcluidoDeInfantil(texto: string | null | undefined): boolean {
-  const n = normInfKey(texto);
+export function isExcluidoDeInfantil(_texto: string | null | undefined): boolean {
+  return false;
+}
+
+export function isKabodNombre(nombre: string | null | undefined): boolean {
+  const n = normInfKey(nombre);
   if (!n) return false;
   return n.includes("kabod");
 }
@@ -43,8 +47,12 @@ export function isKingsArmyNombre(nombre: string | null | undefined): boolean {
 export function isMinisterioInfantilNombre(nombre: string | null | undefined): boolean {
   const n = normInfKey(nombre);
   if (!n) return false;
-  if (isExcluidoDeInfantil(n)) return false;
-  return n === "infantil" || n.includes("infantil") || isKingsArmyNombre(n);
+  return (
+    n === "infantil" ||
+    n.includes("infantil") ||
+    isKabodNombre(n) ||
+    isKingsArmyNombre(n)
+  );
 }
 
 const LOCAL_GRUPOS_DETALLES_KEY = "doxa_infantil_grupos_detalles_cache";
@@ -844,12 +852,19 @@ export function useProgramacionReunionesInfantil() {
           }
 
           const esKings = isKingsArmyNombre(minInf.nombre);
+          const esKabod = isKabodNombre(minInf.nombre);
           const grupoTextoRaw = getTxt("grupo", "salon", "edad");
-          const grupoTexto = grupoTextoRaw || (esKings ? "Kings Army" : "");
+          const grupoTexto =
+            grupoTextoRaw || (esKings ? "Kings Army" : esKabod ? "Kabod (3-11 años)" : "");
 
           let grupoSugerido = gruposInf[0]?.id || null;
           if (gruposInf.length > 0) {
-            const searchTerms = [grupoTextoRaw, esKings ? "kings army" : "", minInf.nombre].filter(Boolean);
+            const searchTerms = [
+              grupoTextoRaw,
+              esKings ? "kings army" : "",
+              esKabod ? "kabod" : "",
+              minInf.nombre,
+            ].filter(Boolean);
             for (const term of searchTerms) {
               const normG = normInfKey(term);
               if (!normG) continue;
@@ -866,16 +881,26 @@ export function useProgramacionReunionesInfantil() {
             }
           }
 
+          const tema36 = getTxt("tema 3-6 anos", "tema 3-6");
+          const tema711 = getTxt("tema 7-11 anos", "tema 7-11");
+          const temaKabodCombinado = [
+            tema36 ? `3-6 años: ${tema36}` : "",
+            tema711 ? `7-11 años: ${tema711}` : "",
+          ]
+            .filter(Boolean)
+            .join(" · ");
+
           const objetivoExtraido = getTxt("objetivo");
           const versiculoExtraido = getTxt("versiculo", "texto biblico", "cita biblica");
           const materialesExtraidos = getTxt("material", "materiales", "material didactico");
           const actividadExtraida = getTxt("actividad", "dinamica", "dinamicas");
           const temaExtraido =
+            temaKabodCombinado ||
             getTxt("tema", "leccion") ||
             objetivoExtraido ||
             versiculoExtraido ||
             ev.titulo ||
-            (esKings ? "Servicio Kings Army" : "Servicio Infantil");
+            (esKings ? "Servicio Kings Army" : esKabod ? "Servicio Kabod" : "Servicio Infantil");
           const uniformeExtraido = txMap["uniforme"] || ev.uniforme || "";
           const observacionExtraida = txMap["observacion"] || ev.descripcion || "";
 
