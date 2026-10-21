@@ -161,6 +161,8 @@ async function generateBackupClientFallback(): Promise<{ sqlContent: string; tab
 export default function MigracionBackupManager() {
   const { isAdmin, isLoading: isLoadingRoles } = useUserRoles();
   const [generating, setGenerating] = useState(false);
+  const [migratingDirect, setMigratingDirect] = useState(false);
+  const [targetDbUrl, setTargetDbUrl] = useState("");
   const [lastGeneratedAt, setLastGeneratedAt] = useState<string | null>(null);
   const [stats, setStats] = useState<{ tables: number; source: "server" | "client" } | null>(null);
 
@@ -221,6 +223,34 @@ export default function MigracionBackupManager() {
     }
   };
 
+  const handleDirectMigration = async () => {
+    if (!targetDbUrl.trim().startsWith("postgres")) {
+      toast.error("Ingresa una URI de conexión PostgreSQL válida (postgresql://...)");
+      return;
+    }
+    setMigratingDirect(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("db-backup", {
+        method: "POST",
+        body: { targetDbUrl: targetDbUrl.trim() },
+      });
+      if (error) {
+        throw new Error(await extractFunctionErrorMessage(error));
+      }
+      if (data?.error) {
+        throw new Error(data.error);
+      }
+      toast.success(
+        `¡Migración completada! Se transfirieron ${data?.tables || "todas las"} tablas y ${data?.rows || ""} registros a tu nuevo Supabase.`
+      );
+      setTargetDbUrl("");
+    } catch (e: any) {
+      toast.error(e?.message || "Error al ejecutar la migración directa");
+    } finally {
+      setMigratingDirect(false);
+    }
+  };
+
   if (!isLoadingRoles && !isAdmin) {
     return (
       <Card>
@@ -236,56 +266,95 @@ export default function MigracionBackupManager() {
     <Card className="border shadow-sm">
       <CardHeader>
         <CardTitle className="text-base flex items-center gap-2">
-          <DatabaseZap className="h-4 w-4 text-primary" /> Migración y Backup SQL
+          <DatabaseZap className="h-4 w-4 text-primary" /> Migración Completa de Lovable Cloud a tu Supabase
         </CardTitle>
         <CardDescription>
-          Genera un único archivo <code>migracion_completa.sql</code> con la estructura
-          (CREATE TABLE IF NOT EXISTS de las 115+ tablas) y todos los datos actuales (INSERT INTO) de la base de datos,
-          listo para ejecutarse en cualquier servidor PostgreSQL.
+          Extrae automáticamente desde Lovable Cloud todo el esquema (tablas, tipos ENUM, funciones, triggers, políticas RLS),
+          los usuarios con sus contraseñas encriptadas (<code>auth.users</code> y <code>auth.identities</code>) y todos los datos.
         </CardDescription>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-5">
         <div className="flex items-start gap-2 rounded-md border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-700 dark:text-amber-400">
           <ShieldAlert className="h-4 w-4 shrink-0 mt-0.5" />
           <p>
-            El archivo generado contiene <strong>todas las 115+ tablas del sistema</strong> y los datos reales
-            de la aplicación (personas, usuarios, mensajes, tesorería, etc.). Guárdalo en un
-            lugar seguro y no lo compartas fuera del equipo autorizado.
+            <strong>No necesitas la contraseña de Lovable Cloud:</strong> este módulo se conecta internamente a tu base de datos actual en Lovable Cloud y extrae absolutamente todo en un solo clic.
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-3">
-          <Button onClick={handleDownload} disabled={generating || isLoadingRoles} className="gap-2">
-            {generating ? (
-              <>
-                <Loader2 className="h-4 w-4 animate-spin" />
-                Generando migración de {Object.keys(TABLE_SCHEMAS).length} tablas...
-              </>
-            ) : (
-              <>
-                <Download className="h-4 w-4" />
-                Descargar migracion_completa.sql
-              </>
-            )}
-          </Button>
-
-          {lastGeneratedAt && (
-            <span className="text-xs text-muted-foreground flex items-center gap-1.5 bg-muted/50 px-2.5 py-1 rounded-md">
-              <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
-              Última descarga: {lastGeneratedAt}
-              {stats && (
-                <span className="text-[11px] text-muted-foreground ml-1">
-                  ({stats.tables} tablas · {stats.source === "server" ? "Servidor" : "Cliente"})
-                </span>
+        {/* OPCIÓN A: Descargar el archivo SQL completo */}
+        <div className="space-y-2 rounded-xl border p-4 bg-muted/20">
+          <h4 className="text-sm font-bold flex items-center gap-2">
+            <Download className="h-4 w-4 text-primary" /> Opción 1: Descargar archivo SQL completo (<code>migracion_completa.sql</code>)
+          </h4>
+          <p className="text-xs text-muted-foreground">
+            Descarga el script unificado y ejecútalo en el SQL Editor o por terminal (<code>psql</code>) en tu nuevo proyecto de Supabase.
+          </p>
+          <div className="flex flex-wrap items-center gap-3 pt-1">
+            <Button onClick={handleDownload} disabled={generating || isLoadingRoles} className="gap-2">
+              {generating ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Extrayendo esquema, políticas RLS, usuarios y datos...
+                </>
+              ) : (
+                <>
+                  <Download className="h-4 w-4" />
+                  Descargar migracion_completa.sql
+                </>
               )}
-            </span>
-          )}
+            </Button>
+
+            {lastGeneratedAt && (
+              <span className="text-xs text-muted-foreground flex items-center gap-1.5 bg-muted/50 px-2.5 py-1 rounded-md">
+                <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
+                Última descarga: {lastGeneratedAt}
+                {stats && (
+                  <span className="text-[11px] text-muted-foreground ml-1">
+                    ({stats.tables} tablas · {stats.source === "server" ? "Servidor Completo" : "Cliente"})
+                  </span>
+                )}
+              </span>
+            )}
+          </div>
         </div>
 
-        <p className="text-xs text-muted-foreground">
-          Procesa las 115 tablas del esquema (incluyendo tablas de usuarios y auth).
-          Las tablas sin registros también son creadas con sus columnas y tipos de datos correctos para asegurar la migración completa.
-        </p>
+        {/* OPCIÓN B: Migrar directamente pegando la URI del nuevo Supabase */}
+        <div className="space-y-2.5 rounded-xl border p-4 bg-muted/20">
+          <h4 className="text-sm font-bold flex items-center gap-2">
+            <Server className="h-4 w-4 text-primary" /> Opción 2: Migrar en 1 clic directamente a tu nuevo Supabase
+          </h4>
+          <p className="text-xs text-muted-foreground">
+            Pega aquí el <strong>Connection String (URI)</strong> de tu <strong>nuevo</strong> proyecto de Supabase
+            (en tu nuevo Supabase ve a <em>Project Settings → Database → Connection string → URI</em>) y el servidor transferirá todo automáticamente:
+          </p>
+          <div className="flex flex-col sm:flex-row gap-2">
+            <input
+              type="password"
+              value={targetDbUrl}
+              onChange={(e) => setTargetDbUrl(e.target.value)}
+              placeholder="postgresql://postgres.[NUEVO_REF]:[PASSWORD]@aws-0-us-east-1.pooler.supabase.com:5432/postgres"
+              className="flex-1 h-10 rounded-md border border-input bg-background px-3 py-2 text-xs font-mono"
+            />
+            <Button
+              onClick={handleDirectMigration}
+              disabled={migratingDirect || !targetDbUrl.trim()}
+              variant="secondary"
+              className="gap-2 font-bold shrink-0"
+            >
+              {migratingDirect ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Migrando al nuevo Supabase...
+                </>
+              ) : (
+                <>
+                  <Database className="h-4 w-4" />
+                  Migrar Directamente Ahora
+                </>
+              )}
+            </Button>
+          </div>
+        </div>
       </CardContent>
     </Card>
   );

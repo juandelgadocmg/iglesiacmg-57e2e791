@@ -276,47 +276,379 @@ Deno.serve(async (req: Request) => {
   // --- Conexión directa a Postgres para introspección y lectura completa ---
   const sql = postgres(dbUrl, { prepare: false });
 
+  let bodyPayload: { targetDbUrl?: string } = {};
   try {
+    const text = await req.text();
+    if (text) bodyPayload = JSON.parse(text);
+  } catch {
+    // Sin body JSON
+  }
+
+  try {
+    const out: string[] = [];
+    out.push("-- ============================================================");
+    out.push("-- MIGRACIÓN COMPLETA DE LOVABLE CLOUD A SUPABASE INDEPENDIENTE");
+    out.push(`-- Generado automáticamente el ${new Date().toISOString()}`);
+    out.push("-- Incluye: ENUMs, Secuencias, Tablas, Constraints, Índices,");
+    out.push("-- Vistas, Funciones RPC, Triggers, Políticas RLS,");
+    out.push("-- Usuarios (auth.users + auth.identities con hashes de clave)");
+    out.push("-- y todos los datos de las tablas públicas.");
+    out.push("-- ============================================================");
+    out.push("");
+    out.push("SET statement_timeout = 0;");
+    out.push("SET client_min_messages TO WARNING;");
+    out.push("CREATE EXTENSION IF NOT EXISTS \"pgcrypto\";");
+    out.push("CREATE EXTENSION IF NOT EXISTS \"uuid-ossp\";");
+    out.push("");
+
+    // -------------------------------------------------------------------------
+    // 1. TIPOS ENUM PERSONALIZADOS EN PUBLIC
+    // -------------------------------------------------------------------------
+    const enums = await sql<{ enum_name: string; enum_values: string[] }[]>`
+      SELECT
+        t.typname AS enum_name,
+        array_agg(e.enumlabel ORDER BY e.enumsortorder) AS enum_values
+      FROM pg_type t
+      JOIN pg_enum e ON t.oid = e.enumtypid
+      JOIN pg_namespace n ON n.oid = t.typnamespace
+      WHERE n.nspname = 'public'
+      GROUP BY t.typname
+      ORDER BY t.typname
+    `;
+
+    if (enums.length > 0) {
+      out.push("-- ------------------------------------------------------------");
+      out.push("-- 1. TIPOS ENUM PERSONALIZADOS");
+      out.push("-- ------------------------------------------------------------");
+      for (const en of enums) {
+        const vals = (en.enum_values || []).map((v) => escapeStringLiteral(String(v))).join(", ");
+        out.push(`DO $$ BEGIN
+  CREATE TYPE public.${escapeIdent(en.enum_name)} AS ENUM (${vals});
+EXCEPTION
+  WHEN duplicate_object THEN NULL;
+END $$;`);
+      }
+      out.push("");
+    }
+
+    // -------------------------------------------------------------------------
+    // 2. SECUENCIAS EN PUBLIC
+    // -------------------------------------------------------------------------
+    const sequences = await sql<{
+      sequence_name: string;
+      start_value: string;
+      minimum_value: string;
+      maximum_value: string;
+      increment: string;
+    }[]>`
+      SELECT sequence_name, start_value, minimum_value, maximum_value, increment
+      FROM information_schema.sequences
+      WHERE sequence_schema = 'public'
+      ORDER BY sequence_name
+    `;
+
+    if (sequences.length > 0) {
+      out.push("-- ------------------------------------------------------------");
+      out.push("-- 2. SECUENCIAS");
+      out.push("-- ------------------------------------------------------------");
+      for (const seq of sequences) {
+        out.push(
+          `CREATE SEQUENCE IF NOT EXISTS public.${escapeIdent(seq.sequence_name)} INCREMENT ${seq.increment} MINVALUE ${seq.minimum_value} MAXVALUE ${seq.maximum_value} START ${seq.start_value};`,
+        );
+      }
+      out.push("");
+    }
+
+    // -------------------------------------------------------------------------
+    // 3. ESTRUCTURA DE TABLAS PÚBLICAS
+    // -------------------------------------------------------------------------
+    const publicTables = await sql<{
+      table_name: string;
+      table_oid: number;
+      relrowsecurity: boolean;
+      relforcerowsecurity: boolean;
+    }[]>`
+      SELECT c.relname AS table_name, c.oid::int AS table_oid, c.relrowsecurity, c.relforcerowsecurity
+      FROM pg_class c
+      JOIN pg_namespace n ON n.oid = c.relnamespace
+      WHERE n.nspname = 'public' AND c.relkind = 'r'
+      ORDER BY c.relname
+    `;
+
+    out.push("-- ------------------------------------------------------------");
+    out.push("-- 3. TABLAS PÚBLICAS");
+    out.push("-- ------------------------------------------------------------");
+
+    for (const tbl of publicTables) {
+      const attrCols = await sql<{
+        column_name: string;
+        formatted_type: string;
+        not_null: boolean;
+        generated_kind: string;
+        column_default: string | null;
+      }[]>`
+        SELECT
+          a.attname AS column_name,
+          pg_catalog.format_type(a.atttypid, a.atttypmod) AS formatted_type,
+          a.attnotnull AS not_null,
+          a.attgenerated AS generated_kind,
+          pg_catalog.pg_get_expr(d.adbin, d.adrelid) AS column_default
+        FROM pg_catalog.pg_attribute a
+        LEFT JOIN pg_catalog.pg_attrdef d ON (a.attrelid, a.attnum) = (d.adrelid, d.adnum)
+        WHERE a.attrelid = ${tbl.table_oid}
+          AND a.attnum > 0
+          AND NOT a.attisdropped
+        ORDER BY a.attnum
+      `;
+
+      const colDefs = attrCols.map((col) => {
+        let def = `  ${escapeIdent(col.column_name)} ${col.formatted_type}`;
+        if (col.generated_kind === "s" && col.column_default) {
+          def += ` GENERATED ALWAYS AS (${col.column_default}) STORED`;
+        } else if (col.column_default !== null && col.column_default !== undefined) {
+          def += ` DEFAULT ${col.column_default}`;
+        }
+        if (col.not_null) {
+          def += " NOT NULL";
+        }
+        return def;
+      });
+
+      out.push(`CREATE TABLE IF NOT EXISTS public.${escapeIdent(tbl.table_name)} (`);
+      out.push(colDefs.join(",\n"));
+      out.push(");");
+      out.push("");
+    }
+
+    // -------------------------------------------------------------------------
+    // 4. CONSTRAINTS (PRIMARY KEY, UNIQUE, CHECK, FOREIGN KEY) E ÍNDICES
+    // -------------------------------------------------------------------------
+    const constraints = await sql<{
+      table_name: string;
+      constraint_name: string;
+      contype: string;
+      constraint_def: string;
+    }[]>`
+      SELECT
+        cl.relname AS table_name,
+        con.conname AS constraint_name,
+        con.contype AS contype,
+        pg_get_constraintdef(con.oid, true) AS constraint_def
+      FROM pg_constraint con
+      JOIN pg_class cl ON cl.oid = con.conrelid
+      JOIN pg_namespace n ON n.oid = cl.relnamespace
+      WHERE n.nspname = 'public'
+        AND con.contype IN ('p', 'u', 'c', 'f')
+      ORDER BY
+        CASE con.contype WHEN 'p' THEN 1 WHEN 'u' THEN 2 WHEN 'c' THEN 3 ELSE 4 END,
+        cl.relname,
+        con.conname
+    `;
+
+    if (constraints.length > 0) {
+      out.push("-- ------------------------------------------------------------");
+      out.push("-- 4. CONSTRAINTS (PK, UNIQUE, CHECK, FK)");
+      out.push("-- ------------------------------------------------------------");
+      for (const c of constraints) {
+        out.push(`DO $$ BEGIN
+  ALTER TABLE public.${escapeIdent(c.table_name)} ADD CONSTRAINT ${escapeIdent(c.constraint_name)} ${c.constraint_def};
+EXCEPTION
+  WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $$;`);
+      }
+      out.push("");
+    }
+
+    const indexes = await sql<{ indexdef: string }[]>`
+      SELECT indexdef
+      FROM pg_indexes
+      WHERE schemaname = 'public'
+        AND indexname NOT IN (
+          SELECT conname FROM pg_constraint con
+          JOIN pg_namespace n ON n.oid = con.connamespace
+          WHERE n.nspname = 'public'
+        )
+      ORDER BY tablename, indexname
+    `;
+
+    if (indexes.length > 0) {
+      out.push("-- ------------------------------------------------------------");
+      out.push("-- 5. ÍNDICES");
+      out.push("-- ------------------------------------------------------------");
+      for (const idx of indexes) {
+        const safeIdx = idx.indexdef
+          .replace(/^CREATE INDEX /i, "CREATE INDEX IF NOT EXISTS ")
+          .replace(/^CREATE UNIQUE INDEX /i, "CREATE UNIQUE INDEX IF NOT EXISTS ");
+        out.push(`${safeIdx};`);
+      }
+      out.push("");
+    }
+
+    // -------------------------------------------------------------------------
+    // 5. VISTAS, FUNCIONES RPC Y TRIGGERS
+    // -------------------------------------------------------------------------
+    const views = await sql<{ table_name: string; view_definition: string }[]>`
+      SELECT table_name, view_definition
+      FROM information_schema.views
+      WHERE table_schema = 'public'
+      ORDER BY table_name
+    `;
+
+    if (views.length > 0) {
+      out.push("-- ------------------------------------------------------------");
+      out.push("-- 6. VISTAS");
+      out.push("-- ------------------------------------------------------------");
+      for (const v of views) {
+        out.push(`CREATE OR REPLACE VIEW public.${escapeIdent(v.table_name)} AS\n${v.view_definition};\n`);
+      }
+    }
+
+    const funcs = await sql<{ func_name: string; func_def: string }[]>`
+      SELECT
+        p.proname AS func_name,
+        pg_get_functiondef(p.oid) AS func_def
+      FROM pg_proc p
+      JOIN pg_namespace n ON n.oid = p.pronamespace
+      LEFT JOIN pg_depend d ON d.objid = p.oid AND d.deptype = 'e'
+      WHERE n.nspname = 'public'
+        AND p.prokind IN ('f', 'p')
+        AND d.objid IS NULL
+      ORDER BY p.proname
+    `;
+
+    if (funcs.length > 0) {
+      out.push("-- ------------------------------------------------------------");
+      out.push("-- 7. FUNCIONES Y PROCEDIMIENTOS (RPCs Y TRIGGERS)");
+      out.push("-- ------------------------------------------------------------");
+      for (const fn of funcs) {
+        out.push(`${fn.func_def};\n`);
+      }
+    }
+
+    const triggers = await sql<{
+      table_schema: string;
+      table_name: string;
+      trigger_name: string;
+      trigger_def: string;
+    }[]>`
+      SELECT
+        n.nspname AS table_schema,
+        c.relname AS table_name,
+        t.tgname AS trigger_name,
+        pg_get_triggerdef(t.oid, true) AS trigger_def
+      FROM pg_trigger t
+      JOIN pg_class c ON c.oid = t.tgrelid
+      JOIN pg_namespace n ON n.oid = c.relnamespace
+      WHERE NOT t.tgisinternal
+        AND (
+          n.nspname = 'public'
+          OR (n.nspname = 'auth' AND c.relname = 'users' AND t.tgname = 'on_auth_user_created')
+        )
+      ORDER BY n.nspname, c.relname, t.tgname
+    `;
+
+    if (triggers.length > 0) {
+      out.push("-- ------------------------------------------------------------");
+      out.push("-- 8. TRIGGERS");
+      out.push("-- ------------------------------------------------------------");
+      for (const tg of triggers) {
+        out.push(`DROP TRIGGER IF EXISTS ${escapeIdent(tg.trigger_name)} ON ${escapeTableIdent(tg.table_schema, tg.table_name)};`);
+        out.push(`${tg.trigger_def};\n`);
+      }
+    }
+
+    // -------------------------------------------------------------------------
+    // 6. POLÍTICAS RLS (ROW LEVEL SECURITY) Y PERMISOS
+    // -------------------------------------------------------------------------
+    out.push("-- ------------------------------------------------------------");
+    out.push("-- 9. ROW LEVEL SECURITY (RLS) Y POLÍTICAS");
+    out.push("-- ------------------------------------------------------------");
+    for (const tbl of publicTables) {
+      if (tbl.relrowsecurity) {
+        out.push(`ALTER TABLE public.${escapeIdent(tbl.table_name)} ENABLE ROW LEVEL SECURITY;`);
+      }
+      if (tbl.relforcerowsecurity) {
+        out.push(`ALTER TABLE public.${escapeIdent(tbl.table_name)} FORCE ROW LEVEL SECURITY;`);
+      }
+    }
+    out.push("");
+
+    const policies = await sql<{
+      schemaname: string;
+      tablename: string;
+      policyname: string;
+      permissive: string;
+      roles: string[] | string;
+      cmd: string;
+      qual: string | null;
+      with_check: string | null;
+    }[]>`
+      SELECT schemaname, tablename, policyname, permissive, roles, cmd, qual, with_check
+      FROM pg_policies
+      WHERE schemaname IN ('public', 'storage')
+      ORDER BY schemaname, tablename, policyname
+    `;
+
+    for (const pol of policies) {
+      const roleList = Array.isArray(pol.roles)
+        ? pol.roles.join(", ")
+        : String(pol.roles).replace(/^\{|\}$/g, "");
+      let stmt = `DROP POLICY IF EXISTS ${escapeIdent(pol.policyname)} ON ${escapeTableIdent(pol.schemaname, pol.tablename)};\n`;
+      stmt += `CREATE POLICY ${escapeIdent(pol.policyname)} ON ${escapeTableIdent(pol.schemaname, pol.tablename)}\n`;
+      stmt += `  AS ${pol.permissive}\n`;
+      stmt += `  FOR ${pol.cmd}\n`;
+      stmt += `  TO ${roleList}`;
+      if (pol.qual) stmt += `\n  USING (${pol.qual})`;
+      if (pol.with_check) stmt += `\n  WITH CHECK (${pol.with_check})`;
+      stmt += ";\n";
+      out.push(stmt);
+    }
+
+    out.push("GRANT USAGE ON SCHEMA public TO postgres, anon, authenticated, service_role;");
+    out.push("GRANT ALL ON ALL TABLES IN SCHEMA public TO postgres, anon, authenticated, service_role;");
+    out.push("GRANT ALL ON ALL FUNCTIONS IN SCHEMA public TO postgres, anon, authenticated, service_role;");
+    out.push("GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO postgres, anon, authenticated, service_role;\n");
+
+    // -------------------------------------------------------------------------
+    // 7. DATOS: USUARIOS AUTH (auth.users, auth.identities) Y TABLAS PÚBLICAS
+    // -------------------------------------------------------------------------
     const tables = await sql<TableInfo[]>`
       select table_schema, table_name
       from information_schema.tables
       where (
         table_schema = 'public' 
-        or (table_schema = 'auth' and table_name in ('users', 'identities', 'mfa_factors', 'mfa_challenges', 'mfa_amr_claims', 'sessions', 'refresh_tokens', 'sso_providers', 'sso_domains', 'saml_providers', 'saml_relay_states', 'flow_state', 'one_time_tokens'))
+        or (table_schema = 'auth' and table_name in ('users', 'identities'))
+        or (table_schema = 'storage' and table_name in ('buckets'))
       ) and table_type = 'BASE TABLE'
-      order by case when table_schema = 'auth' then 0 else 1 end, table_name
+      order by
+        case
+          when table_schema = 'auth' and table_name = 'users' then 0
+          when table_schema = 'auth' then 1
+          when table_schema = 'storage' then 2
+          else 3
+        end,
+        table_name
     `;
 
-    if (tables.length === 0) {
-      return jsonResponse(
-        { error: "No se encontraron tablas para exportar." },
-        404,
-      );
-    }
-
-    const columns = await sql<ColumnInfo[]>`
-      select table_schema, table_name, column_name, ordinal_position, data_type, udt_name,
-             is_nullable, character_maximum_length, numeric_precision, numeric_scale
-      from information_schema.columns
+    // Excluir columnas GENERATED ALWAYS (como auth.users.confirmed_at y auth.identities.email)
+    const columns = await sql<(ColumnInfo & { is_generated?: string; attgenerated?: string })[]>`
+      select c.table_schema, c.table_name, c.column_name, c.ordinal_position, c.data_type, c.udt_name,
+             c.is_nullable, c.character_maximum_length, c.numeric_precision, c.numeric_scale,
+             c.is_generated, a.attgenerated
+      from information_schema.columns c
+      join pg_catalog.pg_namespace n on n.nspname = c.table_schema
+      join pg_catalog.pg_class cl on cl.relnamespace = n.oid and cl.relname = c.table_name
+      join pg_catalog.pg_attribute a on a.attrelid = cl.oid and a.attname = c.column_name
       where (
-        table_schema = 'public' 
-        or (table_schema = 'auth' and table_name in ('users', 'identities', 'mfa_factors', 'mfa_challenges', 'mfa_amr_claims', 'sessions', 'refresh_tokens', 'sso_providers', 'sso_domains', 'saml_providers', 'saml_relay_states', 'flow_state', 'one_time_tokens'))
+        c.table_schema = 'public' 
+        or (c.table_schema = 'auth' and c.table_name in ('users', 'identities'))
+        or (c.table_schema = 'storage' and c.table_name in ('buckets'))
       )
-      order by table_schema, table_name, ordinal_position
-    `;
-
-    const pkRows = await sql<{ table_schema: string; table_name: string; column_name: string }[]>`
-      select tc.table_schema, tc.table_name, kcu.column_name
-      from information_schema.table_constraints tc
-      join information_schema.key_column_usage kcu
-        on tc.constraint_name = kcu.constraint_name
-       and tc.table_schema = kcu.table_schema
-      where tc.constraint_type = 'PRIMARY KEY' 
-        and (
-          tc.table_schema = 'public' 
-          or (tc.table_schema = 'auth' and tc.table_name in ('users', 'identities', 'mfa_factors', 'mfa_challenges', 'mfa_amr_claims', 'sessions', 'refresh_tokens', 'sso_providers', 'sso_domains', 'saml_providers', 'saml_relay_states', 'flow_state', 'one_time_tokens'))
-        )
-      order by tc.table_schema, tc.table_name, kcu.ordinal_position
+        and a.attnum > 0
+        and not a.attisdropped
+        and coalesce(c.is_generated, 'NEVER') <> 'ALWAYS'
+        and coalesce(a.attgenerated, '') = ''
+      order by c.table_schema, c.table_name, c.ordinal_position
     `;
 
     const columnsByTable = new Map<string, ColumnInfo[]>();
@@ -326,57 +658,9 @@ Deno.serve(async (req: Request) => {
       columnsByTable.get(key)!.push(c);
     }
 
-    const pksByTable = new Map<string, string[]>();
-    for (const p of pkRows) {
-      const key = `${p.table_schema}.${p.table_name}`;
-      if (!pksByTable.has(key)) pksByTable.set(key, []);
-      pksByTable.get(key)!.push(p.column_name);
-    }
-
-    const out: string[] = [];
-    out.push("-- ============================================================");
-    out.push("-- MIGRACIÓN COMPLETA DE BASE DE DATOS (Incluye Usuarios Auth)");
-    out.push(`-- Generado automáticamente el ${new Date().toISOString()}`);
-    out.push("-- Compatible con PostgreSQL. Incluye estructura (CREATE TABLE)");
-    out.push("-- y datos (INSERT INTO) de los esquemas auth y public.");
-    out.push("-- ============================================================");
-    out.push("");
-    out.push("SET client_min_messages TO WARNING;");
-    out.push("BEGIN;");
-    out.push("CREATE SCHEMA IF NOT EXISTS auth;");
-    out.push("");
     out.push("-- ------------------------------------------------------------");
-    out.push("-- 1. ESTRUCTURA");
+    out.push("-- 10. DATOS (AUTH.USERS, AUTH.IDENTITIES, STORAGE Y PUBLIC)");
     out.push("-- ------------------------------------------------------------");
-    out.push("");
-
-    for (const t of tables) {
-      const key = `${t.table_schema}.${t.table_name}`;
-      const cols = columnsByTable.get(key) || [];
-      if (cols.length === 0) continue;
-      const pk = pksByTable.get(key) || [];
-
-      const colDefs = cols.map((c) => {
-        const type = columnSqlType(c);
-        const notNull = c.is_nullable === "NO" ? " NOT NULL" : "";
-        return `  ${escapeIdent(c.column_name)} ${type}${notNull}`;
-      });
-      if (pk.length > 0) {
-        colDefs.push(`  PRIMARY KEY (${pk.map(escapeIdent).join(", ")})`);
-      }
-
-      out.push(`CREATE TABLE IF NOT EXISTS ${escapeTableIdent(t.table_schema, t.table_name)} (`);
-      out.push(colDefs.join(",\n"));
-      out.push(");");
-      out.push("");
-    }
-
-    out.push("-- ------------------------------------------------------------");
-    out.push("-- 2. DATOS");
-    out.push("-- ------------------------------------------------------------");
-    out.push("-- Se desactivan temporalmente los triggers (incluidas las FK)");
-    out.push("-- para poder insertar los datos sin depender del orden entre tablas.");
-    out.push("");
     out.push("SET session_replication_role = 'replica';");
     out.push("");
 
@@ -398,7 +682,7 @@ Deno.serve(async (req: Request) => {
       const flushPending = () => {
         if (pendingRows.length === 0) return;
         out.push(`INSERT INTO ${tableIdent} (${identCols}) VALUES`);
-        out.push(pendingRows.join(",\n") + ";");
+        out.push(pendingRows.join(",\n") + "\nON CONFLICT DO NOTHING;");
         out.push("");
         pendingRows = [];
       };
@@ -406,7 +690,7 @@ Deno.serve(async (req: Request) => {
       // deno-lint-ignore no-constant-condition
       while (true) {
         const rows = await sql.unsafe(
-          `SELECT * FROM ${tableIdent} ORDER BY ctid LIMIT ${BATCH_SIZE} OFFSET ${offset}`,
+          `SELECT ${identCols} FROM ${tableIdent} ORDER BY ctid LIMIT ${BATCH_SIZE} OFFSET ${offset}`,
         );
         if (rows.length === 0) break;
 
@@ -429,13 +713,30 @@ Deno.serve(async (req: Request) => {
 
     out.push("SET session_replication_role = 'origin';");
     out.push("");
-    out.push("COMMIT;");
-    out.push("");
     out.push(
       `-- Fin del script. Tablas: ${tables.length} · Filas totales: ${totalRows}`,
     );
 
     const sqlScript = out.join("\n");
+
+    // Si el usuario envió `targetDbUrl`, ejecutar la migración directamente contra su nuevo Supabase
+    if (bodyPayload?.targetDbUrl && bodyPayload.targetDbUrl.trim().startsWith("postgres")) {
+      const targetSql = postgres(bodyPayload.targetDbUrl.trim(), { prepare: false, ssl: "require" });
+      try {
+        await targetSql.unsafe(sqlScript);
+      } finally {
+        await targetSql.end({ timeout: 5 });
+      }
+      return jsonResponse(
+        {
+          success: true,
+          tables: tables.length,
+          rows: totalRows,
+          message: "Migración aplicada directamente en tu nuevo servidor de Supabase.",
+        },
+        200,
+      );
+    }
 
     return new Response(sqlScript, {
       status: 200,
