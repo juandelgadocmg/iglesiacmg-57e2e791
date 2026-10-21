@@ -158,7 +158,7 @@ export const ALL_ROLES: AppRole[] = [
   "super_admin", "admin", "pastor", "lider", "secretaria", "tesoreria",
   "maestro", "consolidador_lider", "consolidador", "lider_intercesion",
   "lider_red", "lider_casa_paz", "seminario_admin", "seminario_docente",
-  "seminario_estudiante", "consulta",
+  "seminario_estudiante", "consulta", "coordinador_infantil", "recepcion_infantil",
 ];
 
 export const ROLE_LABELS: Record<AppRole, string> = {
@@ -178,6 +178,8 @@ export const ROLE_LABELS: Record<AppRole, string> = {
   seminario_docente: "Docente Seminario",
   seminario_estudiante: "Estudiante Seminario",
   consulta: "Consulta",
+  coordinador_infantil: "Coordinador Infantil",
+  recepcion_infantil: "Recepción Infantil",
 };
 
 /** Grouped action catalog for the admin permissions matrix. */

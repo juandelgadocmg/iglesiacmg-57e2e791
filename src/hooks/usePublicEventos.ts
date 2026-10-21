@@ -27,7 +27,7 @@ export function useRegisterPublicEvent() {
       telefono: string;
       documento: string;
     }) => {
-      const { data, error } = await supabase.rpc("register_public_event", {
+      const { data, error } = await (supabase as any).rpc("register_public_event", {
         p_evento_id: payload.evento_id,
         p_nombre: payload.nombre,
         p_apellidos: payload.apellidos,

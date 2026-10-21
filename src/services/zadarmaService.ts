@@ -317,7 +317,7 @@ function ensureRemoteAudio(): HTMLAudioElement {
 /**
  * Inicializa previamente la librería JsSIP en la ventana
  */
-export async function initZadarmaEngine(): Promise<boolean> {
+export async function initZadarmaEngine(_sip?: string): Promise<boolean> {
   const w = window as any;
   try {
     if (!w.JsSIP) {

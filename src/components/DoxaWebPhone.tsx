@@ -197,7 +197,7 @@ export const DoxaWebPhone: React.FC<DoxaWebPhoneProps> = ({
       timerRef.current = setInterval(() => {
         setCallDuration((prev) => prev + 1);
       }, 1000);
-    } else if (callState !== "in-call") {
+    } else {
       if (timerRef.current) clearInterval(timerRef.current);
     }
     return () => {
