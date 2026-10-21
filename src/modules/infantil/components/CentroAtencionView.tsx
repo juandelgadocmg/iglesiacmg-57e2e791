@@ -79,7 +79,7 @@ export default function CentroAtencionView() {
   /** Busca el acudiente (principal primero) del niño del caso para precargar su WhatsApp. */
   const openNotify = (caso: any) => {
     const nombre = normalizeName(caso?.nino_nombre);
-    const rels = (acudientes || []).filter((a: any) =>
+    const rels = ((acudientes || []) as any[]).filter((a: any) =>
       (caso?.nino_id && a.nino_id === caso.nino_id) ||
       normalizeName(`${a.nino?.nombres ?? ""} ${a.nino?.apellidos ?? ""}`) === nombre
     );

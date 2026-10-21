@@ -40,6 +40,8 @@ const ROLE_LABELS: Record<AppRole, string> = {
   seminario_admin: "Seminario · Admin",
   seminario_docente: "Seminario · Docente",
   seminario_estudiante: "Seminario · Estudiante",
+  coordinador_infantil: "Coordinador Infantil",
+  recepcion_infantil: "Recepción Infantil",
 };
 
 const ROLE_COLORS: Record<AppRole, string> = {
@@ -58,6 +60,8 @@ const ROLE_COLORS: Record<AppRole, string> = {
   consulta: "bg-muted text-muted-foreground border-border",
   seminario_admin: "bg-primary/10 text-primary border-primary/20",
   seminario_docente: "bg-chart-5/10 text-chart-5 border-chart-5/20",
+  coordinador_infantil: "bg-chart-2/10 text-chart-2 border-chart-2/20",
+  recepcion_infantil: "bg-chart-4/10 text-chart-4 border-chart-4/20",
   seminario_estudiante: "bg-chart-2/10 text-chart-2 border-chart-2/20",
 };
 

@@ -70,7 +70,7 @@ export function useCreatePersona() {
         if (created?.id && (persona as any).barrio && !created.barrio) {
           await supabase
             .from("personas")
-            .update({ barrio: (persona as any).barrio })
+            .update({ barrio: (persona as any).barrio } as any)
             .eq("id", created.id);
           created.barrio = (persona as any).barrio;
         }

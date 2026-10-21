@@ -481,7 +481,7 @@ export default function CheckInView() {
                     <div key={a.id} className="p-4 flex items-center justify-between hover:bg-slate-50 transition-colors">
                       <div className="min-w-0 pr-3">
                         <p className="text-sm font-bold text-slate-900 truncate">
-                          {a.nino?.nombres} {a.nino?.apellidos}
+                          {(a.nino as any)?.nombres} {(a.nino as any)?.apellidos}
                         </p>
                         <p className="text-xs text-slate-500">
                           {grp?.nombre || a.grupo?.nombre || "Infantil"} · In: {a.hora_entrada ? format(new Date(a.hora_entrada), "HH:mm") : "-"}
@@ -611,7 +611,7 @@ export default function CheckInView() {
                     ) : (
                       acudientesCheckOut.map((a) => (
                         <SelectItem key={a.acudiente_id} value={a.acudiente_id}>
-                          {a.acudiente?.nombres} {a.acudiente?.apellidos} ({a.relacion}) {a.autorizado_recoger ? "✓ Autorizado" : "⚠️ NO Autorizado"}
+                          {(a.acudiente as any)?.nombres} {(a.acudiente as any)?.apellidos} ({a.relacion}) {a.autorizado_recoger ? "✓ Autorizado" : "⚠️ NO Autorizado"}
                         </SelectItem>
                       ))
                     )}

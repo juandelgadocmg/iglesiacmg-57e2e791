@@ -162,7 +162,7 @@ export default function DashboardInfantil() {
               <div className="space-y-2">
                 {(asistencias || []).slice(0, 5).map((a) => (
                   <div key={a.id} className="flex items-center justify-between p-2 rounded-lg bg-slate-50 border border-slate-100 text-xs">
-                    <span className="font-bold text-slate-800">{a.nino?.nombres} {a.nino?.apellidos}</span>
+                    <span className="font-bold text-slate-800">{(a.nino as any)?.nombres} {(a.nino as any)?.apellidos}</span>
                     <Badge variant={a.hora_salida ? "outline" : "default"} className={!a.hora_salida ? "bg-emerald-500 text-white" : ""}>
                       {a.hora_salida ? "Retirado" : "En Clase"}
                     </Badge>

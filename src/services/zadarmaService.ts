@@ -317,7 +317,7 @@ function ensureRemoteAudio(): HTMLAudioElement {
 /**
  * Inicializa previamente la librería JsSIP en la ventana
  */
-export async function initZadarmaEngine(): Promise<boolean> {
+export async function initZadarmaEngine(_sip?: string): Promise<boolean> {
   const w = window as any;
   try {
     if (!w.JsSIP) {
@@ -511,6 +511,17 @@ export async function startBrowserCall(
       }
     };
 
+    const regTimeout = setTimeout(() => {
+      if (!callDispatched) {
+        console.warn("DOXA: Tiempo de espera agotado esperando registro SIP");
+        updateCallState("error");
+        try {
+          ua.stop();
+        } catch {}
+        reject(new Error("Tiempo de espera agotado al conectar con el servidor telefónico de Zadarma"));
+      }
+    }, 12000);
+
     ua.on("registered", () => {
       console.log("DOXA: Registrado con Zadarma WebRTC. Iniciando llamada...");
       clearTimeout(regTimeout);
@@ -538,17 +549,6 @@ export async function startBrowserCall(
         console.warn("DOXA: Desconectado del WebSocket de Zadarma:", e);
       }
     });
-
-    const regTimeout = setTimeout(() => {
-      if (!callDispatched) {
-        console.warn("DOXA: Tiempo de espera agotado esperando registro SIP");
-        updateCallState("error");
-        try {
-          ua.stop();
-        } catch {}
-        reject(new Error("Tiempo de espera agotado al conectar con el servidor telefónico de Zadarma"));
-      }
-    }, 12000);
 
     ua.start();
   });

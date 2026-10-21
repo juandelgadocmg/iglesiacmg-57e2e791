@@ -30,6 +30,8 @@ const ROLE_LABELS: Record<AppRole, string> = {
   seminario_admin: "Seminario · Admin",
   seminario_docente: "Seminario · Docente",
   seminario_estudiante: "Seminario · Estudiante",
+  coordinador_infantil: "Coordinador Infantil",
+  recepcion_infantil: "Recepción Infantil",
 };
 
 const ROLE_DESCRIPTIONS: Record<AppRole, string> = {
@@ -49,6 +51,8 @@ const ROLE_DESCRIPTIONS: Record<AppRole, string> = {
   seminario_admin: "Administra programas, pensum, materias y matrículas del Seminario",
   seminario_docente: "Gestiona materias asignadas, calificaciones y asistencia",
   seminario_estudiante: "Acceso a su kárdex, materias inscritas y biblioteca",
+  coordinador_infantil: "Gestión del módulo Iglesia Infantil",
+  recepcion_infantil: "Check-in y recepción de Iglesia Infantil",
 };
 
 // Roles que requieren seleccionar un grupo asignado

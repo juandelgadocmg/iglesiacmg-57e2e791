@@ -584,7 +584,7 @@ export default function CarnesView() {
 
                         {/* Acudientes autorizados */}
                         <div className="w-full space-y-2">
-                          {acudientesNino.map((a) => (
+                          {acudientesNino.map((a: any) => (
                             <div key={a.id} className="bg-slate-50 p-2 rounded-lg text-xs flex justify-between items-center border border-slate-100">
                               <div>
                                 <p className="font-bold text-navy">{a.acudiente?.nombres} {a.acudiente?.apellidos}</p>
