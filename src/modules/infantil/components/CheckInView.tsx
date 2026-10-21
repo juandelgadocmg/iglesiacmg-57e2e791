@@ -1,8 +1,9 @@
-import { useState, useMemo } from "react";
+import { useEffect, useRef, useState, useMemo } from "react";
 import {
-  QrCode, Search, UserCheck, Clock, ShieldCheck, AlertTriangle,
-  LogIn, LogOut, Printer, Shirt, CheckCircle2, User, X
+  QrCode, Search, UserCheck, ShieldCheck, AlertTriangle,
+  LogIn, LogOut, Printer, Shirt, CheckCircle2, X
 } from "lucide-react";
+import { useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -17,17 +18,20 @@ import {
   useInfantilAcudientes
 } from "@/hooks/useInfantil";
 import { usePersonas } from "@/hooks/useDatabase";
-import { useNinos } from "../hooks/useNinos";
-import { ShirtStickerComponent, ParentClaimTagComponent } from "./CarnesView";
+import { useNinos, matchInfantilGrupoByAge, getSavedInfantilGrupoMap, saveInfantilGrupoForNino } from "../hooks/useNinos";
+import { ShirtStickerComponent, extractNinoIdentifierFromQr } from "./CarnesView";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import QrEventoScanner from "@/components/attendance/QrEventoScanner";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 
 export default function CheckInView() {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [mode, setMode] = useState<"entrada" | "salida">("entrada");
   const [showScanner, setShowScanner] = useState(false);
   const [searchCode, setSearchCode] = useState("");
+  const handledUrlQrRef = useRef<string | null>(null);
 
   const today = useMemo(() => new Date().toISOString().split("T")[0], []);
   const fechaHoyTexto = useMemo(() => {
@@ -49,6 +53,7 @@ export default function CheckInView() {
 
   // Modal de confirmación tras Check-In para imprimir Sticker de Camiseta
   const [checkedInNino, setCheckedInNino] = useState<any | null>(null);
+  const [checkedInGrupo, setCheckedInGrupo] = useState<any | null>(null);
   const [checkInDialogOpen, setCheckInDialogOpen] = useState(false);
 
   // Modal de confirmación para Check-Out
@@ -65,13 +70,29 @@ export default function CheckInView() {
     return grupos?.[0] || null;
   }, [selectedGrupoId, grupos]);
 
+  // Resolver el grupo infantil real de un niño (ignorando grupo_id de Casa de Paz si vino de membresía)
+  const resolveChildInfantilGrupo = (child: any) => {
+    if (!grupos || grupos.length === 0) return null;
+    if (child?.grupo_id) {
+      const direct = grupos.find(g => g.id === child.grupo_id);
+      if (direct) return direct;
+    }
+    const savedMap = getSavedInfantilGrupoMap();
+    const savedId = child?.id ? savedMap[child.id] : undefined;
+    if (savedId) {
+      const fromSaved = grupos.find(g => g.id === savedId);
+      if (fromSaved) return fromSaved;
+    }
+    if (selectedGrupoId) {
+      const fromSelected = grupos.find(g => g.id === selectedGrupoId);
+      if (fromSelected) return fromSelected;
+    }
+    return matchInfantilGrupoByAge(child?.fecha_nacimiento, grupos) || grupoActivo || grupos[0] || null;
+  };
+
   // Lista de niños activos en clase hoy
   const ninosEnClase = useMemo(() => {
     return (asistencias || []).filter(a => !a.hora_salida);
-  }, [asistencias]);
-
-  const ninosRetirados = useMemo(() => {
-    return (asistencias || []).filter(a => !!a.hora_salida);
   }, [asistencias]);
 
   // Helper de normalización para ignorar tildes y mayúsculas
@@ -89,21 +110,33 @@ export default function CheckInView() {
     return pool.filter(x => {
       const full = normalizeText(`${x.nombres ?? ""} ${x.apellidos ?? ""}`);
       const doc = normalizeText(x.documento ?? "");
-      return tokens.every(t => full.includes(t) || doc.includes(t));
+      const shortHex = x.id.replace(/-/g, "").toLowerCase();
+      return tokens.every(t => full.includes(t) || doc.includes(t) || shortHex.startsWith(t.replace(/^#/, "")));
     }).slice(0, 6);
   }, [searchCode, ninos, personas]);
 
-  // Buscar niño por código QR, ID, documento o palabras en el nombre
+  // Buscar niño por código QR (URL o ID o código corto #XXXX), documento o palabras en el nombre
   const findChild = (codeOrId: string) => {
-    const raw = codeOrId.trim();
+    const extracted = extractNinoIdentifierFromQr(codeOrId);
+    const raw = (extracted || codeOrId || "").trim();
     if (!raw) return null;
     const clean = normalizeText(raw);
+    const cleanHex = raw.replace(/^#/, "").replace(/-/g, "").toLowerCase();
 
-    // 1. Coincidencia exacta por ID o qr_code
-    let n = (ninos || []).find(p => p.id.toLowerCase() === raw.toLowerCase() || (p.detalles?.qr_codigo && p.detalles.qr_codigo.toLowerCase() === raw.toLowerCase()));
+    // 1. Coincidencia exacta o por prefijo de ID / código QR (#0548 o 0548ef30)
+    let n = (ninos || []).find(p =>
+      p.id.toLowerCase() === raw.toLowerCase() ||
+      (cleanHex.length >= 4 && p.id.replace(/-/g, "").toLowerCase().startsWith(cleanHex)) ||
+      (p.detalles?.qr_codigo && p.detalles.qr_codigo.toLowerCase() === raw.toLowerCase()) ||
+      (p.detalles?.codigo_interno && p.detalles.codigo_interno.toLowerCase() === raw.toLowerCase())
+    );
     if (n) return n;
 
-    let p = (personas || []).find(x => x.id.toLowerCase() === raw.toLowerCase() || (x as any).qr_code?.toLowerCase() === raw.toLowerCase());
+    let p = (personas || []).find(x =>
+      x.id.toLowerCase() === raw.toLowerCase() ||
+      (cleanHex.length >= 4 && x.id.replace(/-/g, "").toLowerCase().startsWith(cleanHex)) ||
+      (x as any).qr_code?.toLowerCase() === raw.toLowerCase()
+    );
     if (p) return p;
 
     // 2. Coincidencia por documento (exacta o limpia)
@@ -130,19 +163,26 @@ export default function CheckInView() {
 
     if (!child) {
       toast.error("Niño no encontrado", {
-        description: "No se encontró ningún registro con ese código o nombre."
+        description: "No se encontró ningún registro con ese código QR, documento o nombre."
       });
       return;
     }
 
     if (mode === "entrada") {
-      // ENTRADA: Registrar check-in y ofrecer imprimir sticker de camiseta
-      const grupoTargetId = child.grupo_id || grupoActivo?.id;
+      // ENTRADA: Resolver siempre un grupo infantil válido (nunca usar el grupo_id de Casa de Paz de membresía)
+      const targetGrupo = resolveChildInfantilGrupo(child);
+      const grupoTargetId = targetGrupo?.id;
       if (!grupoTargetId) {
         toast.error("No hay grupos infantiles configurados", {
           description: "Crea primero un grupo en la sección 'Grupos por Edad'."
         });
         return;
+      }
+
+      // Guardar la asignación del niño al grupo infantil si aún no la tenía
+      saveInfantilGrupoForNino(child.id, grupoTargetId);
+      if (child.grupo_id !== grupoTargetId) {
+        supabase.from("personas").update({ grupo_id: grupoTargetId }).eq("id", child.id).then(() => {});
       }
 
       // Buscar acudiente principal
@@ -157,8 +197,9 @@ export default function CheckInView() {
           observaciones: "Check-in rápido"
         });
 
-        toast.success(`✓ Check-in registrado: ${child.nombres} ${child.apellidos}`);
-        setCheckedInNino(child);
+        toast.success(`✓ Check-in registrado: ${child.nombres} ${child.apellidos} (${targetGrupo?.nombre || "Infantil"})`);
+        setCheckedInNino({ ...child, grupo_id: grupoTargetId });
+        setCheckedInGrupo(targetGrupo);
         setCheckInDialogOpen(true);
         setSearchCode("");
       } catch (err: any) {
@@ -182,6 +223,23 @@ export default function CheckInView() {
       setSearchCode("");
     }
   };
+
+  // Soportar escaneo directo con cámara nativa del celular (?c=XXXX o ?qr=XXXX)
+  useEffect(() => {
+    const qrParam = searchParams.get("c") || searchParams.get("qr") || searchParams.get("code");
+    if (!qrParam) return;
+    if (handledUrlQrRef.current === qrParam) return;
+    if ((!ninos || ninos.length === 0) && (!personas || personas.length === 0)) return;
+    if (!grupos || grupos.length === 0) return;
+
+    handledUrlQrRef.current = qrParam;
+    const nextParams = new URLSearchParams(searchParams);
+    nextParams.delete("c");
+    nextParams.delete("qr");
+    nextParams.delete("code");
+    setSearchParams(nextParams, { replace: true });
+    processChildAction(qrParam);
+  }, [searchParams, ninos, personas, grupos]);
 
   const handleManualSearch = () => {
     if (!searchCode.trim()) return;
@@ -373,7 +431,7 @@ export default function CheckInView() {
                           </p>
                           <p className="text-xs text-slate-500">
                             {child.documento ? `Doc: ${child.documento} · ` : ""}
-                            {grupos?.find(g => g.id === child.grupo_id)?.nombre || "Infantil"}
+                            {resolveChildInfantilGrupo(child)?.nombre || "Infantil"}
                           </p>
                         </div>
                         <Badge variant="outline" className="text-[10px] bg-slate-50 text-navy font-semibold shrink-0 group-hover:bg-navy group-hover:text-white transition-colors">
@@ -417,14 +475,16 @@ export default function CheckInView() {
                 </div>
               ) : (
                 <div className="divide-y divide-slate-100">
-                  {asistencias?.map((a) => (
+                  {asistencias?.map((a) => {
+                    const grp = grupos?.find(g => g.id === a.grupo_id) || resolveChildInfantilGrupo(a.nino);
+                    return (
                     <div key={a.id} className="p-4 flex items-center justify-between hover:bg-slate-50 transition-colors">
                       <div className="min-w-0 pr-3">
                         <p className="text-sm font-bold text-slate-900 truncate">
                           {a.nino?.nombres} {a.nino?.apellidos}
                         </p>
                         <p className="text-xs text-slate-500">
-                          {a.grupo?.nombre || "Infantil"} · In: {a.hora_entrada ? format(new Date(a.hora_entrada), "HH:mm") : "-"}
+                          {grp?.nombre || a.grupo?.nombre || "Infantil"} · In: {a.hora_entrada ? format(new Date(a.hora_entrada), "HH:mm") : "-"}
                           {a.hora_salida && ` · Salida: ${format(new Date(a.hora_salida), "HH:mm")}`}
                         </p>
                       </div>
@@ -455,7 +515,8 @@ export default function CheckInView() {
                         )}
                       </div>
                     </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </CardContent>
@@ -485,7 +546,7 @@ export default function CheckInView() {
                 <ShirtStickerComponent
                   nino={checkedInNino}
                   acudiente={(acudientes || []).find(a => a.nino_id === checkedInNino.id)}
-                  grupo={grupoActivo}
+                  grupo={checkedInGrupo || grupoActivo}
                   fecha={fechaHoyTexto}
                   compact
                 />
@@ -586,7 +647,7 @@ export default function CheckInView() {
           <ShirtStickerComponent
             nino={checkedInNino}
             acudiente={(acudientes || []).find(a => a.nino_id === checkedInNino.id)}
-            grupo={grupoActivo}
+            grupo={checkedInGrupo || grupoActivo}
             fecha={fechaHoyTexto}
           />
         )}

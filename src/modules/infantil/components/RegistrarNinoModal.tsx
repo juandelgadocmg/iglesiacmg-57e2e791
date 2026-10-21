@@ -6,8 +6,9 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { AlertCircle, UserCheck, Link as LinkIcon, UserPlus } from "lucide-react";
-import { useNinos } from "../hooks/useNinos";
+import { AlertCircle, UserCheck, Link as LinkIcon, UserPlus, Users } from "lucide-react";
+import { useNinos, matchInfantilGrupoByAge } from "../hooks/useNinos";
+import { useInfantilGrupos } from "@/hooks/useInfantil";
 import { usePersonas } from "@/hooks/useDatabase";
 import { SearchableSelect } from "./SearchableSelect";
 
@@ -22,6 +23,7 @@ interface Props {
 
 export function RegistrarNinoModal({ open, onOpenChange, onCreated, initialName }: Props) {
   const { registrarNino } = useNinos();
+  const { data: grupos = [] } = useInfantilGrupos();
   const { data: personas = [] } = usePersonas();
   const [tab, setTab] = useState<"nuevo" | "vincular">("nuevo");
   const [loading, setLoading] = useState(false);
@@ -33,6 +35,7 @@ export function RegistrarNinoModal({ open, onOpenChange, onCreated, initialName 
     documento: "",
     fecha_nacimiento: "",
     sexo: "M" as "M" | "F",
+    grupo_id: "",
     alergias: "",
     info_medica: "",
     contacto_emergencia: "",
@@ -45,8 +48,27 @@ export function RegistrarNinoModal({ open, onOpenChange, onCreated, initialName 
     }
   }, [open, initialName]);
 
+  // Preseleccionar grupo infantil automáticamente cuando hay grupos disponibles
+  useEffect(() => {
+    if (open && grupos.length > 0 && !formData.grupo_id) {
+      const matched = matchInfantilGrupoByAge(formData.fecha_nacimiento, grupos);
+      if (matched?.id) {
+        setFormData(prev => ({ ...prev, grupo_id: matched.id }));
+      }
+    }
+  }, [open, grupos, formData.fecha_nacimiento, formData.grupo_id]);
+
   const handleChange = (field: string, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    setFormData(prev => {
+      const next = { ...prev, [field]: value };
+      if (field === "fecha_nacimiento" && grupos.length > 0) {
+        const matched = matchInfantilGrupoByAge(value, grupos);
+        if (matched?.id) {
+          next.grupo_id = matched.id;
+        }
+      }
+      return next;
+    });
   };
 
   // Detectar duplicados en tiempo real si el usuario escribe nombre o documento similar
@@ -70,6 +92,14 @@ export function RegistrarNinoModal({ open, onOpenChange, onCreated, initialName 
     setSelectedPersonaId(personaId);
     const p = personas.find(x => x.id === personaId);
     if (!p) return;
+
+    // Verificar si el grupo_id actual de la persona es realmente un grupo infantil;
+    // si viene de membresía general (ej. Casa de Paz o null), asignarle el grupo infantil según su edad
+    const isExistingInfantilGrupo = p.grupo_id && grupos.some(g => g.id === p.grupo_id);
+    const suggestedGrupoId = isExistingInfantilGrupo
+      ? p.grupo_id!
+      : (matchInfantilGrupoByAge(p.fecha_nacimiento, grupos)?.id || formData.grupo_id || grupos[0]?.id || "");
+
     setFormData(prev => ({
       ...prev,
       nombres: p.nombres || "",
@@ -77,6 +107,7 @@ export function RegistrarNinoModal({ open, onOpenChange, onCreated, initialName 
       documento: p.documento || "",
       fecha_nacimiento: p.fecha_nacimiento || "",
       sexo: (p.sexo === "F" ? "F" : "M") as "M" | "F",
+      grupo_id: suggestedGrupoId,
       contacto_emergencia: p.telefono || prev.contacto_emergencia
     }));
   };
@@ -92,6 +123,12 @@ export function RegistrarNinoModal({ open, onOpenChange, onCreated, initialName 
 
     try {
       const isLinking = tab === "vincular" && !!selectedPersonaId;
+      const effectiveGrupoId =
+        formData.grupo_id ||
+        matchInfantilGrupoByAge(formData.fecha_nacimiento, grupos)?.id ||
+        grupos[0]?.id ||
+        undefined;
+
       const created = await registrarNino.mutateAsync({
         ...(isLinking ? { id: selectedPersonaId } : {}),
         nombres: formData.nombres,
@@ -99,6 +136,7 @@ export function RegistrarNinoModal({ open, onOpenChange, onCreated, initialName 
         documento: formData.documento || undefined,
         fecha_nacimiento: formData.fecha_nacimiento || undefined,
         sexo: formData.sexo,
+        grupo_id: effectiveGrupoId,
         detalles: {
           alergias: formData.alergias,
           info_medica: formData.info_medica,
@@ -113,6 +151,7 @@ export function RegistrarNinoModal({ open, onOpenChange, onCreated, initialName 
       setTab("nuevo");
       setFormData({
         nombres: "", apellidos: "", documento: "", fecha_nacimiento: "", sexo: "M",
+        grupo_id: grupos[0]?.id || "",
         alergias: "", info_medica: "", contacto_emergencia: ""
       });
     } catch (error) {
@@ -255,6 +294,34 @@ export function RegistrarNinoModal({ open, onOpenChange, onCreated, initialName 
                   </SelectContent>
                 </Select>
               </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold flex items-center gap-1.5">
+                <Users className="w-3.5 h-3.5 text-blue-600" /> Grupo Infantil Asignado *
+              </Label>
+              <Select
+                value={formData.grupo_id || grupos[0]?.id || ""}
+                onValueChange={(value) => handleChange("grupo_id", value)}
+              >
+                <SelectTrigger className="h-10 text-sm rounded-lg bg-blue-50/40 border-blue-200 font-semibold text-navy">
+                  <SelectValue placeholder="Seleccionar grupo infantil..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {grupos.length === 0 ? (
+                    <SelectItem value="none" disabled>No hay grupos infantiles creados</SelectItem>
+                  ) : (
+                    grupos.map((g: any) => (
+                      <SelectItem key={g.id} value={g.id}>
+                        {g.nombre}{g.edades ? ` (${g.edades})` : ""}
+                      </SelectItem>
+                    ))
+                  )}
+                </SelectContent>
+              </Select>
+              <p className="text-[11px] text-slate-500">
+                Se sugiere automáticamente según la fecha de nacimiento, pero puedes elegir cualquier grupo creado.
+              </p>
             </div>
 
             <div className="space-y-1.5">

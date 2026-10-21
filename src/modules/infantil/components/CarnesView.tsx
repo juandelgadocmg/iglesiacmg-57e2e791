@@ -1,13 +1,15 @@
-import { useState, useMemo } from "react";
+import { useEffect, useState, useMemo } from "react";
 import {
-  QrCode, Printer, Shield, User, AlertCircle, Shirt, Tag,
-  AlertTriangle, CheckCircle2, Layers, Search, Download, Check
+  QrCode, Printer, Shield, User, Shirt, Tag,
+  AlertTriangle, CheckCircle2, Layers, Search, ScanLine, LogIn
 } from "lucide-react";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import { usePersonas } from "@/hooks/useDatabase";
-import { useInfantilAcudientes, useInfantilGrupos } from "@/hooks/useInfantil";
-import { useNinos } from "../hooks/useNinos";
+import { useInfantilAcudientes, useInfantilGrupos, useInfantilCheckIn } from "@/hooks/useInfantil";
+import { useNinos, matchInfantilGrupoByAge, getSavedInfantilGrupoMap } from "../hooks/useNinos";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -15,27 +17,72 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { QRCodeSVG } from "qrcode.react";
+import QrEventoScanner from "@/components/attendance/QrEventoScanner";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 
 type PrintMode = "sticker" | "duo" | "planilla" | "carne";
 
+/**
+ * Construye una URL corta y escaneable tanto por cámaras nativas de celular (iOS/Android)
+ * como por el lector QR interno del sistema.
+ */
+export function getInfantilQrValue(nino: any): string {
+  const shortId = (nino?.id || "").replace(/-/g, "").slice(0, 8);
+  const origin = typeof window !== "undefined" ? window.location.origin : "";
+  if (origin && shortId) {
+    return `${origin}/infantil/checkin?c=${shortId}`;
+  }
+  return nino?.qr_code || nino?.detalles?.qr_codigo || nino?.id || "";
+}
+
+/**
+ * Extrae el código o identificador del niño desde un texto QR (sea URL con ?c= / ?qr= o ID directo).
+ */
+export function extractNinoIdentifierFromQr(raw: string): string {
+  const trimmed = (raw || "").trim();
+  if (!trimmed) return "";
+  try {
+    if (trimmed.startsWith("http://") || trimmed.startsWith("https://") || trimmed.includes("?c=") || trimmed.includes("?qr=")) {
+      const url = new URL(trimmed, typeof window !== "undefined" ? window.location.origin : "https://localhost");
+      const param = url.searchParams.get("c") || url.searchParams.get("qr") || url.searchParams.get("code") || url.searchParams.get("nino");
+      if (param) return param.trim();
+    }
+  } catch {}
+  return trimmed.replace(/^#/, "").trim();
+}
+
 export default function CarnesView() {
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   const { data: personas, isLoading: isLoadingPersonas } = usePersonas();
   const { ninos, isLoading: isLoadingNinos } = useNinos();
-  const { data: acudientes, isLoading: isLoadingAcudientes, isError: isErrorAcudientes } = useInfantilAcudientes();
+  const { data: acudientes } = useInfantilAcudientes();
   const { data: grupos } = useInfantilGrupos();
+  const checkIn = useInfantilCheckIn();
 
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedNinoId, setSelectedNinoId] = useState<string>("");
   const [printMode, setPrintMode] = useState<PrintMode>("sticker");
   const [selectedGrupoFiltro, setSelectedGrupoFiltro] = useState<string>("all");
 
+  // Modal de escáner QR directo desde Stickers & Carnés QR
+  const [scannerOpen, setScannerOpen] = useState(false);
+  const [manualQrCode, setManualQrCode] = useState("");
+  const [scannedNinoModal, setScannedNinoModal] = useState<any | null>(null);
+
   // Opciones de personalización de la etiqueta
   const [mostrarAlergias, setMostrarAlergias] = useState(true);
   const [mostrarTelefono, setMostrarTelefono] = useState(true);
   const [mostrarTalonAcudiente, setMostrarTalonAcudiente] = useState(true);
+
+  useEffect(() => {
+    const paramNino = searchParams.get("nino");
+    if (paramNino) {
+      setSelectedNinoId(paramNino);
+    }
+  }, [searchParams]);
 
   const fechaHoy = useMemo(() => {
     try {
@@ -57,6 +104,20 @@ export default function CarnesView() {
     });
   }, [ninos, personas]);
 
+  // Resolver grupo infantil de cualquier niño (incluyendo vinculados desde membresía)
+  const resolveGrupoForNino = (nino: any) => {
+    if (!nino || !grupos || grupos.length === 0) return null;
+    const savedMap = getSavedInfantilGrupoMap();
+    const savedId = savedMap[nino.id];
+    return (
+      grupos.find(g => g.id === nino.grupo_id) ||
+      (savedId ? grupos.find(g => g.id === savedId) : undefined) ||
+      matchInfantilGrupoByAge(nino.fecha_nacimiento, grupos) ||
+      grupos[0] ||
+      null
+    );
+  };
+
   // Si la lista está vacía (ej. nueva instalación), permitir buscar en todas las personas
   const personasDisponibles = useMemo(() => {
     const fuente = listaNinos.length > 0 ? listaNinos : (personas || []);
@@ -64,7 +125,8 @@ export default function CarnesView() {
     const q = searchTerm.toLowerCase().trim();
     return fuente.filter(p =>
       `${p.nombres ?? ""} ${p.apellidos ?? ""}`.toLowerCase().includes(q) ||
-      (p.documento && p.documento.includes(q))
+      (p.documento && p.documento.includes(q)) ||
+      p.id.replace(/-/g, "").toLowerCase().startsWith(q.replace(/^#/, ""))
     ).slice(0, 40);
   }, [listaNinos, personas, searchTerm]);
 
@@ -90,14 +152,68 @@ export default function CarnesView() {
 
   // Grupo asignado al niño
   const grupoNino = useMemo(() => {
-    if (!selectedNino?.grupo_id) return null;
-    return (grupos || []).find(g => g.id === selectedNino.grupo_id);
+    return resolveGrupoForNino(selectedNino);
   }, [selectedNino, grupos]);
 
   // Generar código de seguridad corto (ej. #DK-481)
   const getSecurityCode = (id?: string) => {
     if (!id) return "000";
     return id.replace(/-/g, "").slice(0, 4).toUpperCase();
+  };
+
+  // Buscar niño al escanear un código QR desde este módulo
+  const findNinoByScannedCode = (rawText: string) => {
+    const code = extractNinoIdentifierFromQr(rawText).toLowerCase();
+    if (!code) return null;
+    const cleanHex = code.replace(/-/g, "");
+    const pool = [...(ninos || []), ...(personas || [])];
+
+    return (
+      pool.find(p =>
+        p.id.toLowerCase() === code ||
+        (cleanHex.length >= 4 && p.id.replace(/-/g, "").toLowerCase().startsWith(cleanHex)) ||
+        (p as any).qr_code?.toLowerCase() === code ||
+        (p as any).detalles?.qr_codigo?.toLowerCase() === code ||
+        (p.documento && p.documento.toLowerCase() === code)
+      ) || null
+    );
+  };
+
+  const handleQrScannedInCarnes = (rawText: string) => {
+    const found = findNinoByScannedCode(rawText);
+    if (!found) {
+      toast.error("Código QR no encontrado", {
+        description: "No se encontró ningún niño asociado a este código QR."
+      });
+      return;
+    }
+    setScannerOpen(false);
+    setManualQrCode("");
+    setSelectedNinoId(found.id);
+    setScannedNinoModal(found);
+    toast.success(`✓ Código QR leído: ${found.nombres} ${found.apellidos}`);
+  };
+
+  const handleQuickCheckInFromScan = async (ninoTarget: any) => {
+    const grp = resolveGrupoForNino(ninoTarget);
+    if (!grp?.id) {
+      toast.error("Configura primero un grupo infantil");
+      return;
+    }
+    const rels = (acudientes || []).filter(a => a.nino_id === ninoTarget.id);
+    const acu = rels.find(a => a.es_principal) || rels[0] || null;
+    try {
+      await checkIn.mutateAsync({
+        nino_id: ninoTarget.id,
+        grupo_id: grp.id,
+        entregado_por_id: acu?.acudiente_id || undefined,
+        observaciones: "Check-in vía lector QR en Stickers y Carnés"
+      });
+      toast.success(`✓ Asistencia registrada para ${ninoTarget.nombres} ${ninoTarget.apellidos} en ${grp.nombre}`);
+      setScannedNinoModal(null);
+    } catch (err: any) {
+      toast.error("Error al registrar check-in", { description: err?.message });
+    }
   };
 
   const handlePrint = (mode: PrintMode) => {
@@ -114,8 +230,8 @@ export default function CarnesView() {
   const ninosPlanilla = useMemo(() => {
     const fuente = listaNinos.length > 0 ? listaNinos : (personas || []);
     if (selectedGrupoFiltro === "all") return fuente.slice(0, 24);
-    return fuente.filter(n => n.grupo_id === selectedGrupoFiltro).slice(0, 24);
-  }, [listaNinos, personas, selectedGrupoFiltro]);
+    return fuente.filter(n => resolveGrupoForNino(n)?.id === selectedGrupoFiltro).slice(0, 24);
+  }, [listaNinos, personas, selectedGrupoFiltro, grupos]);
 
   return (
     <div className="p-4 md:p-8 space-y-8 animate-fade-in bg-slate-50/50 min-h-full">
@@ -133,7 +249,13 @@ export default function CarnesView() {
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2.5">
+          <Button
+            onClick={() => setScannerOpen(true)}
+            className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl h-11 px-4 font-bold shadow-lg shadow-emerald-500/20"
+          >
+            <ScanLine className="w-4 h-4 mr-2" /> Leer Código QR
+          </Button>
           <Button
             onClick={() => handlePrint("sticker")}
             className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl h-11 px-5 font-bold shadow-lg shadow-blue-500/20"
@@ -394,7 +516,7 @@ export default function CarnesView() {
                   {ninosPlanilla.map((n) => {
                     const rels = (acudientes || []).filter(a => a.nino_id === n.id);
                     const acu = rels.find(a => a.es_principal) || rels[0] || null;
-                    const grp = (grupos || []).find(g => g.id === n.grupo_id);
+                    const grp = resolveGrupoForNino(n);
                     return (
                       <div key={n.id} className="batch-sticker-item">
                         <ShirtStickerComponent
@@ -438,21 +560,26 @@ export default function CarnesView() {
                           <br />
                           {selectedNino.apellidos}
                         </h2>
+                        {grupoNino && (
+                          <Badge variant="secondary" className="mt-1 bg-blue-50 text-blue-700 font-bold text-xs">
+                            {grupoNino.nombre}
+                          </Badge>
+                        )}
 
                         <div className="w-full h-px bg-slate-100 my-4" />
 
                         {/* QR Code */}
-                        <div className="bg-white p-2 rounded-xl shadow-inner border border-slate-100 mb-4">
+                        <div className="bg-white p-2.5 rounded-xl shadow-inner border border-slate-200 mb-4">
                           <QRCodeSVG
-                            value={selectedNino.qr_code || selectedNino.id}
-                            size={140}
-                            level="H"
+                            value={getInfantilQrValue(selectedNino)}
+                            size={156}
+                            level="M"
                             includeMargin={true}
                           />
                         </div>
 
                         <p className="text-[10px] text-slate-400 font-mono tracking-widest mb-4">
-                          ID: {getSecurityCode(selectedNino.id)}
+                          ID: #{getSecurityCode(selectedNino.id)}
                         </p>
 
                         {/* Acudientes autorizados */}
@@ -500,6 +627,129 @@ export default function CarnesView() {
         </div>
       </div>
 
+      {/* MODAL PARA ESCANEAR / LEER CÓDIGO QR DIRECTAMENTE DESDE STICKERS & CARNÉS */}
+      <Dialog open={scannerOpen} onOpenChange={setScannerOpen}>
+        <DialogContent className="sm:max-w-md rounded-3xl overflow-hidden border-0 shadow-2xl print:hidden">
+          <div className="h-2 w-full bg-gradient-to-r from-emerald-500 to-blue-600" />
+          <DialogHeader className="p-6 pb-2">
+            <DialogTitle className="text-xl font-bold text-navy flex items-center gap-2">
+              <ScanLine className="w-5 h-5 text-emerald-600" /> Lector de Stickers y Carnés QR
+            </DialogTitle>
+            <p className="text-xs text-slate-500">
+              Apunta la cámara al sticker adhesivo o carné QR, o ingresa el código de 4 caracteres (#{selectedNino ? getSecurityCode(selectedNino.id) : "0548"}).
+            </p>
+          </DialogHeader>
+
+          <div className="px-6 py-2 space-y-4">
+            <div className="rounded-2xl overflow-hidden border-2 border-emerald-500 shadow-md">
+              <QrEventoScanner
+                onScan={handleQrScannedInCarnes}
+                onClose={() => setScannerOpen(false)}
+              />
+            </div>
+
+            <div className="space-y-1.5 pt-1 border-t border-slate-100">
+              <Label className="text-xs font-bold text-slate-600">
+                ¿Cámara no disponible? Ingresa el código del sticker (#XXXX) o documento:
+              </Label>
+              <div className="flex gap-2">
+                <Input
+                  placeholder="Ej. 0548 o número de documento..."
+                  value={manualQrCode}
+                  onChange={(e) => setManualQrCode(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && manualQrCode.trim() && handleQrScannedInCarnes(manualQrCode)}
+                  className="h-10 rounded-xl text-sm"
+                />
+                <Button
+                  type="button"
+                  onClick={() => manualQrCode.trim() && handleQrScannedInCarnes(manualQrCode)}
+                  className="bg-navy hover:bg-navy/90 text-white rounded-xl font-bold"
+                >
+                  Buscar
+                </Button>
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter className="p-6 pt-2">
+            <Button variant="outline" onClick={() => setScannerOpen(false)} className="rounded-xl w-full">
+              Cerrar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* MODAL DE RESULTADO AL ESCANEAR UN NIÑO */}
+      <Dialog open={!!scannedNinoModal} onOpenChange={(open) => !open && setScannedNinoModal(null)}>
+        <DialogContent className="sm:max-w-md rounded-3xl overflow-hidden border-0 shadow-2xl print:hidden">
+          <div className="h-2 w-full bg-gradient-to-r from-emerald-400 to-blue-600" />
+          <DialogHeader className="p-6 pb-2 text-center">
+            <div className="mx-auto w-12 h-12 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mb-2">
+              <CheckCircle2 className="w-7 h-7" />
+            </div>
+            <DialogTitle className="text-2xl font-black text-navy">
+              ¡Código QR Verificado!
+            </DialogTitle>
+          </DialogHeader>
+
+          {scannedNinoModal && (
+            <div className="px-6 py-2 space-y-3">
+              <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-lg font-black text-navy">
+                    {scannedNinoModal.nombres} {scannedNinoModal.apellidos}
+                  </h3>
+                  <Badge className="bg-blue-100 text-blue-800 border-0 font-mono text-xs">
+                    #{getSecurityCode(scannedNinoModal.id)}
+                  </Badge>
+                </div>
+                <p className="text-xs font-bold text-slate-600">
+                  Grupo: <span className="text-blue-700">{resolveGrupoForNino(scannedNinoModal)?.nombre || "Infantil"}</span>
+                </p>
+                {scannedNinoModal.detalles?.alergias && (
+                  <p className="text-xs font-bold text-amber-800 bg-amber-50 p-2 rounded-lg border border-amber-200">
+                    ⚠️ Alergias: {scannedNinoModal.detalles.alergias}
+                  </p>
+                )}
+              </div>
+
+              <div className="flex flex-col gap-2 pt-2">
+                <Button
+                  onClick={() => handleQuickCheckInFromScan(scannedNinoModal)}
+                  disabled={checkIn.isPending}
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl h-11 font-bold"
+                >
+                  <LogIn className="w-4 h-4 mr-2" /> Registrar Entrada (Check-In Hoy)
+                </Button>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      const id = scannedNinoModal.id;
+                      setScannedNinoModal(null);
+                      navigate(`/infantil/checkin?c=${id.replace(/-/g, "").slice(0, 8)}`);
+                    }}
+                    className="flex-1 rounded-xl text-xs font-bold"
+                  >
+                    Ir a Control Check-In/Out
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setScannedNinoModal(null);
+                      handlePrint("sticker");
+                    }}
+                    className="flex-1 rounded-xl text-xs font-bold"
+                  >
+                    <Printer className="w-3.5 h-3.5 mr-1.5" /> Imprimir Sticker
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
       {/* ÁREA DE IMPRESIÓN FÍSICA PURA (Solo visible en @media print) */}
       <div className="hidden print:block printable-area">
         {printMode === "sticker" && selectedNino && (
@@ -540,7 +790,7 @@ export default function CarnesView() {
             {ninosPlanilla.map((n) => {
               const rels = (acudientes || []).filter(a => a.nino_id === n.id);
               const acu = rels.find(a => a.es_principal) || rels[0] || null;
-              const grp = (grupos || []).find(g => g.id === n.grupo_id);
+              const grp = resolveGrupoForNino(n);
               return (
                 <div key={n.id} className="print-sheet-item">
                   <ShirtStickerComponent
@@ -572,13 +822,14 @@ export default function CarnesView() {
               </h2>
               <div className="my-4 flex justify-center">
                 <QRCodeSVG
-                  value={selectedNino.qr_code || selectedNino.id}
-                  size={140}
-                  level="H"
+                  value={getInfantilQrValue(selectedNino)}
+                  size={156}
+                  level="M"
+                  includeMargin={true}
                 />
               </div>
               <p className="font-mono text-xs font-bold text-slate-500">
-                ID: {getSecurityCode(selectedNino.id)}
+                ID: #{getSecurityCode(selectedNino.id)}
               </p>
               {selectedNino.detalles?.alergias && (
                 <div className="mt-3 bg-red-50 border border-red-200 text-red-700 text-xs font-bold p-1 rounded">
@@ -676,7 +927,7 @@ export function ShirtStickerComponent({
   return (
     <div
       className={`shirt-sticker-box bg-white rounded-2xl border-2 border-dashed border-slate-300 p-4 shadow-sm relative text-slate-900 font-sans transition-all ${
-        compact ? "w-full max-w-[320px]" : "w-full max-w-[360px]"
+        compact ? "w-full max-w-[330px]" : "w-full max-w-[375px]"
       }`}
     >
       {/* Indicador visual de etiqueta adhesiva despegable */}
@@ -708,7 +959,7 @@ export function ShirtStickerComponent({
         </div>
       </div>
 
-      {/* Cuerpo principal: Nombre en tamaño grande + QR */}
+      {/* Cuerpo principal: Nombre en tamaño grande + QR con zona de silencio (quiet zone) */}
       <div className="flex items-start justify-between gap-3 my-2">
         <div className="flex-1 min-w-0">
           <h2 className="text-2xl sm:text-3xl font-black uppercase text-slate-950 leading-tight tracking-tight break-words">
@@ -725,16 +976,16 @@ export function ShirtStickerComponent({
           </div>
         </div>
 
-        {/* Código QR */}
-        <div className="bg-white p-1 rounded-xl border-2 border-slate-200 shadow-sm shrink-0 flex flex-col items-center">
+        {/* Código QR con margen blanco obligatorio (includeMargin=true) para lectura instantánea */}
+        <div className="bg-white p-1.5 rounded-xl border border-slate-200 shadow-sm shrink-0 flex flex-col items-center">
           <QRCodeSVG
-            value={nino.qr_code || nino.id}
-            size={compact ? 80 : 92}
-            level="M"
-            includeMargin={false}
+            value={getInfantilQrValue(nino)}
+            size={compact ? 96 : 112}
+            level="L"
+            includeMargin={true}
           />
-          <span className="text-[8px] font-mono font-black text-slate-400 mt-0.5">
-            {securityCode}
+          <span className="text-[9px] font-mono font-black text-slate-500 mt-0.5 tracking-wider">
+            #{securityCode}
           </span>
         </div>
       </div>
@@ -792,7 +1043,7 @@ export function ParentClaimTagComponent({
   const securityCode = (nino?.id || "0000").replace(/-/g, "").slice(0, 4).toUpperCase();
 
   return (
-    <div className="shirt-sticker-box w-full max-w-[360px] bg-amber-50/70 rounded-2xl border-2 border-dashed border-amber-300 p-3 shadow-sm relative text-slate-900 font-sans">
+    <div className="shirt-sticker-box w-full max-w-[375px] bg-amber-50/70 rounded-2xl border-2 border-dashed border-amber-300 p-3 shadow-sm relative text-slate-900 font-sans">
       <div className="flex items-center justify-between border-b border-amber-200 pb-1.5 mb-1.5">
         <div className="flex items-center gap-1.5">
           <Shield className="w-4 h-4 text-amber-700 shrink-0" />
@@ -817,7 +1068,12 @@ export function ParentClaimTagComponent({
         </div>
 
         <div className="shrink-0 bg-white p-1 rounded-lg border border-amber-300">
-          <QRCodeSVG value={nino.qr_code || nino.id} size={58} level="M" />
+          <QRCodeSVG
+            value={getInfantilQrValue(nino)}
+            size={76}
+            level="L"
+            includeMargin={true}
+          />
         </div>
       </div>
     </div>

@@ -1,39 +1,113 @@
-import { useState } from "react";
-import { ClipboardCheck, Calendar, Users, Filter, CheckCircle2, XCircle, Clock } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { ClipboardCheck, CheckCircle2, XCircle, Clock } from "lucide-react";
 import { useInfantilClases, useInfantilGrupos } from "@/hooks/useInfantil";
 import { usePersonas } from "@/hooks/useDatabase";
+import { useNinos, matchInfantilGrupoByAge, getSavedInfantilGrupoMap, saveInfantilGrupoForNino } from "../hooks/useNinos";
 import { supabase } from "@/integrations/supabase/client";
-import { useQuery } from "@tanstack/react-query";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { toast } from "sonner";
 
 export default function AsistenciaInfantilView() {
-  const { data: grupos, isLoading: isLoadingGrupos } = useInfantilGrupos();
+  const queryClient = useQueryClient();
+  const { data: grupos } = useInfantilGrupos();
   const { data: clases } = useInfantilClases();
   const { data: personas } = usePersonas();
+  const { ninos } = useNinos();
   
   const [selectedGrupoId, setSelectedGrupoId] = useState<string>("all");
   const [selectedClaseId, setSelectedClaseId] = useState<string>("all");
 
-  const { data: asistencias, isLoading: isLoadingAsistencia } = useQuery({
-    queryKey: ["infantil_asistencias_lista", selectedGrupoId, selectedClaseId],
+  const { data: rawAsistencias, isLoading: isLoadingAsistencia } = useQuery({
+    queryKey: ["infantil_asistencias_lista", selectedClaseId],
     queryFn: async () => {
       let q = supabase.from("infantil_asistencia_checkin").select("*").order("fecha", { ascending: false });
-      
-      if (selectedGrupoId && selectedGrupoId !== "all") {
-        q = q.eq("grupo_id", selectedGrupoId);
-      }
       if (selectedClaseId && selectedClaseId !== "all") {
         q = q.eq("clase_id", selectedClaseId);
       }
-      
       const { data, error } = await q;
       if (error) throw error;
       return data;
     }
   });
+
+  // Resolver el niño y su grupo infantil real (incluso si fue vinculado desde membresía con grupo_id de Casa de Paz)
+  const resolveNinoAndGrupo = (asis: any) => {
+    const nino =
+      ninos?.find(n => n.id === asis.nino_id) ||
+      personas?.find(p => p.id === asis.nino_id) ||
+      null;
+
+    const savedMap = getSavedInfantilGrupoMap();
+    const savedGrupoId = savedMap[asis.nino_id];
+
+    const grupo =
+      grupos?.find(g => g.id === asis.grupo_id) ||
+      (savedGrupoId ? grupos?.find(g => g.id === savedGrupoId) : undefined) ||
+      grupos?.find(g => g.id === nino?.grupo_id) ||
+      matchInfantilGrupoByAge(nino?.fecha_nacimiento, grupos) ||
+      null;
+
+    return { nino, grupo };
+  };
+
+  // Auto-reparar en base de datos cualquier asistencia cuyo grupo_id no sea un grupo infantil válido
+  useEffect(() => {
+    if (!rawAsistencias || !grupos || grupos.length === 0) return;
+    const infantilIds = new Set(grupos.map(g => g.id));
+    const toFix = rawAsistencias.filter(a => !a.grupo_id || !infantilIds.has(a.grupo_id));
+    if (toFix.length === 0) return;
+
+    Promise.allSettled(
+      toFix.map(async (asis) => {
+        const { grupo } = resolveNinoAndGrupo(asis);
+        if (!grupo?.id) return;
+        saveInfantilGrupoForNino(asis.nino_id, grupo.id);
+        await supabase
+          .from("infantil_asistencia_checkin")
+          .update({ grupo_id: grupo.id })
+          .eq("id", asis.id);
+        await supabase
+          .from("personas")
+          .update({ grupo_id: grupo.id })
+          .eq("id", asis.nino_id);
+      })
+    ).then(() => {
+      queryClient.invalidateQueries({ queryKey: ["infantil_asistencias_lista"] });
+      queryClient.invalidateQueries({ queryKey: ["infantil_ninos"] });
+    });
+  }, [rawAsistencias, grupos]);
+
+  const asistencias = useMemo(() => {
+    if (!rawAsistencias) return [];
+    if (!selectedGrupoId || selectedGrupoId === "all") return rawAsistencias;
+    return rawAsistencias.filter(asis => {
+      const { grupo } = resolveNinoAndGrupo(asis);
+      return (grupo?.id || asis.grupo_id) === selectedGrupoId;
+    });
+  }, [rawAsistencias, selectedGrupoId, grupos, ninos, personas]);
+
+  const handleChangeAsistenciaGrupo = async (asis: any, nuevoGrupoId: string) => {
+    try {
+      saveInfantilGrupoForNino(asis.nino_id, nuevoGrupoId);
+      await supabase
+        .from("infantil_asistencia_checkin")
+        .update({ grupo_id: nuevoGrupoId })
+        .eq("id", asis.id);
+      await supabase
+        .from("personas")
+        .update({ grupo_id: nuevoGrupoId })
+        .eq("id", asis.nino_id);
+      toast.success("Grupo actualizado correctamente");
+      queryClient.invalidateQueries({ queryKey: ["infantil_asistencias_lista"] });
+      queryClient.invalidateQueries({ queryKey: ["infantil_asistencia"] });
+      queryClient.invalidateQueries({ queryKey: ["infantil_ninos"] });
+    } catch (e: any) {
+      toast.error("No se pudo actualizar el grupo");
+    }
+  };
 
   const filteredClases = clases?.filter(c => selectedGrupoId === "all" || c.grupo_id === selectedGrupoId) || [];
 
@@ -106,8 +180,7 @@ export default function AsistenciaInfantilView() {
                   </tr>
                 ) : (
                   asistencias?.map((asis) => {
-                    const nino = personas?.find(p => p.id === asis.nino_id);
-                    const grupo = grupos?.find(g => g.id === asis.grupo_id);
+                    const { nino, grupo } = resolveNinoAndGrupo(asis);
                     
                     return (
                       <tr key={asis.id} className="hover:bg-slate-50/50 transition-colors">
@@ -115,7 +188,25 @@ export default function AsistenciaInfantilView() {
                           {nino ? `${nino.nombres} ${nino.apellidos}` : "Desconocido"}
                         </td>
                         <td className="px-6 py-4 text-slate-600">
-                          {grupo?.nombre || "Sin grupo"}
+                          {grupos && grupos.length > 0 ? (
+                            <Select
+                              value={grupo?.id || ""}
+                              onValueChange={(val) => handleChangeAsistenciaGrupo(asis, val)}
+                            >
+                              <SelectTrigger className="h-8 w-[200px] text-xs font-semibold rounded-lg bg-slate-50 border-slate-200 text-slate-700">
+                                <SelectValue placeholder={grupo?.nombre || "Seleccionar grupo"} />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {grupos.map(g => (
+                                  <SelectItem key={g.id} value={g.id} className="text-xs">
+                                    {g.nombre}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          ) : (
+                            grupo?.nombre || "Sin grupo"
+                          )}
                         </td>
                         <td className="px-6 py-4 text-slate-600 font-medium">
                           {asis.fecha}
