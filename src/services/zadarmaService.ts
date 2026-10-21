@@ -511,6 +511,17 @@ export async function startBrowserCall(
       }
     };
 
+    const regTimeout = setTimeout(() => {
+      if (!callDispatched) {
+        console.warn("DOXA: Tiempo de espera agotado esperando registro SIP");
+        updateCallState("error");
+        try {
+          ua.stop();
+        } catch {}
+        reject(new Error("Tiempo de espera agotado al conectar con el servidor telefónico de Zadarma"));
+      }
+    }, 12000);
+
     ua.on("registered", () => {
       console.log("DOXA: Registrado con Zadarma WebRTC. Iniciando llamada...");
       clearTimeout(regTimeout);
