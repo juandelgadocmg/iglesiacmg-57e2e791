@@ -319,24 +319,31 @@ export default function ClasesProgramacionView() {
     [serviciosReuniones]
   );
 
-  // Mapa rápido por fecha para enriquecer las tarjetas de clases con el equipo de Reuniones
-  const reunionPorFechaMap = useMemo(() => {
-    const m = new Map<string, ServicioReunionInfantil>();
-    serviciosReuniones.forEach((s) => {
-      if (s.tiene_programacion_infantil || !m.has(s.fecha)) {
-        m.set(s.fecha, s);
-      }
-    });
-    return m;
-  }, [serviciosReuniones]);
+  // Mapa rápido por fecha/tema para enriquecer las tarjetas de clases con el equipo de Reuniones (Infantil y Kings Army)
+  const findReunionParaClase = (c: any): ServicioReunionInfantil | undefined => {
+    const candidatos = serviciosReuniones.filter((s) => s.fecha === c.fecha);
+    if (candidatos.length === 0) return undefined;
+    return (
+      candidatos.find((s) => s.tema && c.tema && s.tema.toLowerCase() === c.tema.toLowerCase()) ||
+      candidatos.find((s) => s.grupo_sugerido_id && s.grupo_sugerido_id === c.grupo_id) ||
+      candidatos.find((s) => s.tiene_programacion_infantil) ||
+      candidatos[0]
+    );
+  };
 
-  // Fechas ya cubiertas por infantil_clases
-  const fechasEnClases = useMemo(() => new Set((clases || []).map((c: any) => c.fecha)), [clases]);
-
-  // Servicios programados en Reuniones que aún no tienen fila en infantil_clases (se muestran directo igualmente)
+  // Servicios programados en Reuniones (Infantil y Kings Army) que aún no tienen fila equivalente en infantil_clases
   const reunionesSinClaseEnBd = useMemo(
-    () => serviciosInfantilProgramados.filter((s) => !fechasEnClases.has(s.fecha)),
-    [serviciosInfantilProgramados, fechasEnClases]
+    () =>
+      serviciosInfantilProgramados.filter(
+        (s) =>
+          !(clases || []).some(
+            (c: any) =>
+              c.fecha === s.fecha &&
+              ((c.tema && s.tema && c.tema.toLowerCase() === s.tema.toLowerCase()) ||
+                (s.grupo_sugerido_id && c.grupo_id === s.grupo_sugerido_id))
+          )
+      ),
+    [serviciosInfantilProgramados, clases]
   );
 
   return (
@@ -347,7 +354,7 @@ export default function ClasesProgramacionView() {
             Programación de Clases y Servicios
           </h2>
           <p className="text-slate-500 mt-1 font-medium">
-            Sincronizado automáticamente con la programación del Ministerio Infantil en el módulo de Reuniones.
+            Sincronizado automáticamente con la programación del Ministerio Infantil y Kings Army en el módulo de Reuniones.
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2.5">
@@ -585,7 +592,7 @@ export default function ClasesProgramacionView() {
               ) : (
                 <div className="grid sm:grid-cols-2 gap-6">
                   {clases?.map((c: any) => {
-                    const srvReunion = reunionPorFechaMap.get(c.fecha);
+                    const srvReunion = findReunionParaClase(c);
                     return (
                       <Card
                         key={c.id}

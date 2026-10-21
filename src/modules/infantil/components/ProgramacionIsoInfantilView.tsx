@@ -63,6 +63,7 @@ import {
 } from "@/lib/isoHistorial";
 import {
   isMinisterioInfantilNombre,
+  isKingsArmyNombre,
   isExcluidoDeInfantil,
   useProgramacionReunionesInfantil,
   useMigrarProgramacionReuniones,
@@ -70,6 +71,7 @@ import {
 } from "@/hooks/useInfantil";
 
 type ConfirmAction = "pdf" | "png" | "jpg";
+type ModoMinisterioIso = "infantil" | "kings_army";
 
 export default function ProgramacionIsoInfantilView() {
   const { data: ministerios = [], isLoading: loadingMin } = useProgMinisterios();
@@ -88,18 +90,52 @@ export default function ProgramacionIsoInfantilView() {
   const upMin = useUpsertMinisterio();
   const upIsoTpl = useUpsertIsoTemplate();
 
-  // Resolver únicamente el ministerio "Infantil" (excluyendo Kings Army, Kabod, etc.)
-  const ministerioInfantil: ProgMinisterio | null = useMemo(() => {
+  const [modoMin, setModoMin] = useState<ModoMinisterioIso>("infantil");
+  const autoSelectedMinRef = useRef(false);
+
+  // Resolver tanto el ministerio "Infantil" (FO-EC-PIN01) como "Kings Army" (FO-EC-PKA01)
+  const minInfantilObj: ProgMinisterio | null = useMemo(() => {
     const exact = ministerios.find(
-      (m) => normKey(m.nombre) === "infantil" && !isExcluidoDeInfantil(m.nombre)
+      (m) => normKey(m.nombre) === "infantil" && !isKingsArmyNombre(m.nombre) && !isExcluidoDeInfantil(m.nombre)
     );
     if (exact) return exact;
     return (
       ministerios.find(
-        (m) => isMinisterioInfantilNombre(m.nombre) && !isExcluidoDeInfantil(m.nombre)
+        (m) =>
+          isMinisterioInfantilNombre(m.nombre) &&
+          !isKingsArmyNombre(m.nombre) &&
+          !isExcluidoDeInfantil(m.nombre)
       ) || null
     );
   }, [ministerios]);
+
+  const minKingsArmyObj: ProgMinisterio | null = useMemo(() => {
+    return ministerios.find((m) => isKingsArmyNombre(m.nombre) && !isExcluidoDeInfantil(m.nombre)) || null;
+  }, [ministerios]);
+
+  // Si Kings Army existe o tiene asignaciones y Infantil no, seleccionar Kings Army automáticamente al inicio
+  useEffect(() => {
+    if (autoSelectedMinRef.current) return;
+    if (ministerios.length === 0) return;
+    if (!minInfantilObj && minKingsArmyObj) {
+      setModoMin("kings_army");
+      autoSelectedMinRef.current = true;
+      return;
+    }
+    if (minInfantilObj && minKingsArmyObj && asignaciones.length > 0) {
+      const countInf = asignaciones.filter((a) => a.ministerio_id === minInfantilObj.id).length;
+      const countKings = asignaciones.filter((a) => a.ministerio_id === minKingsArmyObj.id).length;
+      if (countInf === 0 && countKings > 0) {
+        setModoMin("kings_army");
+      }
+      autoSelectedMinRef.current = true;
+    }
+  }, [ministerios, minInfantilObj, minKingsArmyObj, asignaciones]);
+
+  const ministerioInfantil: ProgMinisterio | null =
+    modoMin === "kings_army" ? minKingsArmyObj : minInfantilObj;
+
+  const defaultTemplateName = modoMin === "kings_army" ? "Kings Army" : "Infantil";
 
   const template: IsoMinisterioTemplate = useMemo(() => {
     if (ministerioInfantil) {
@@ -108,8 +144,8 @@ export default function ProgramacionIsoInfantilView() {
         return eff;
       }
     }
-    return findIsoTemplate("Infantil")!;
-  }, [ministerioInfantil, overrides]);
+    return findIsoTemplate(defaultTemplateName) || findIsoTemplate("Infantil")!;
+  }, [ministerioInfantil, overrides, defaultTemplateName]);
 
   const textos = useProgTextos(ministerioInfantil?.id || null);
 
@@ -165,14 +201,15 @@ export default function ProgramacionIsoInfantilView() {
 
   // Eventos mostrados en el formato ISO:
   // 1) Fechas incluidas en la plantilla ISO (prog_iso_templates.fechas_incluidas), MÁS
-  // 2) Cualquier servicio de Reuniones (prog_eventos) que ya tenga asignaciones o textos diligenciados para el Ministerio Infantil
+  // 2) Cualquier servicio de Reuniones (prog_eventos) que ya tenga asignaciones o textos diligenciados para el ministerio activo (Infantil o Kings Army), MÁS
+  // 3) Si aún no hay fechas filtradas en plantilla ni asignaciones específicas, mostrar los servicios de Reuniones dentro del rango (o todos los disponibles)
   const proxEventos = useMemo(() => {
     if (!ministerioInfantil) return [];
     const tipos =
       template.tiposEvento && template.tiposEvento.length > 0 ? new Set(template.tiposEvento) : null;
     const fechasConfiguradas = new Set((template.fechasIncluidas || []).filter(Boolean));
 
-    // Eventos que ya tienen asignaciones o textos en el Ministerio Infantil
+    // Eventos que ya tienen asignaciones o textos en el ministerio activo (Infantil o Kings Army)
     const eventosConDatosInfantil = new Set<string>();
     asignaciones.forEach((a) => {
       if (a.ministerio_id === ministerioInfantil.id) {
@@ -190,12 +227,37 @@ export default function ProgramacionIsoInfantilView() {
       }
     });
 
-    return eventos
+    const baseValidos = eventos
       .filter((e) => !isExcluidoDeInfantil(e.titulo))
-      .filter((e) => fechasConfiguradas.has(e.fecha) || eventosConDatosInfantil.has(e.id))
-      .filter((e) => !tipos || tipos.has(e.tipo))
-      .sort((a, b) => a.fecha.localeCompare(b.fecha));
-  }, [eventos, template.tiposEvento, template.fechasIncluidas, asignaciones, (textos as any).rows, ministerioInfantil]);
+      .filter((e) => !tipos || tipos.has(e.tipo));
+
+    if (fechasConfiguradas.size > 0 || eventosConDatosInfantil.size > 0) {
+      return baseValidos
+        .filter((e) => fechasConfiguradas.has(e.fecha) || eventosConDatosInfantil.has(e.id))
+        .sort((a, b) => a.fecha.localeCompare(b.fecha));
+    }
+
+    if (template.fechaInicio || template.fechaFin) {
+      return baseValidos
+        .filter((e) => {
+          if (template.fechaInicio && e.fecha < template.fechaInicio) return false;
+          if (template.fechaFin && e.fecha > template.fechaFin) return false;
+          return true;
+        })
+        .sort((a, b) => a.fecha.localeCompare(b.fecha));
+    }
+
+    return [...baseValidos].sort((a, b) => a.fecha.localeCompare(b.fecha));
+  }, [
+    eventos,
+    template.tiposEvento,
+    template.fechasIncluidas,
+    template.fechaInicio,
+    template.fechaFin,
+    asignaciones,
+    (textos as any).rows,
+    ministerioInfantil,
+  ]);
 
   const personasMap = useMemo(() => new Map(personas.map((p: any) => [p.id, p])), [personas]);
 
@@ -263,15 +325,21 @@ export default function ProgramacionIsoInfantilView() {
       }));
   }, [eventos, proxEventos]);
 
-  const crearMinisterioInfantil = async () => {
+  const crearMinisterioInfantil = async (targetModo: ModoMinisterioIso = modoMin) => {
+    const esKings = targetModo === "kings_army";
+    const nombreMin = esKings ? "Kings Army" : "Infantil";
+    const colorMin = esKings ? "#7c3aed" : "#2563eb";
+    const descMin = esKings
+      ? "Ministerio Kings Army (FO-EC-PKA01)"
+      : "Ministerio Infantil (FO-EC-PIN01)";
     try {
       const created = await upMin.mutateAsync({
-        nombre: "Infantil",
-        color: "#2563eb",
-        descripcion: "Ministerio Infantil (FO-EC-PIN01)",
+        nombre: nombreMin,
+        color: colorMin,
+        descripcion: descMin,
         activo: true,
       });
-      const baseTpl = findIsoTemplate("Infantil")!;
+      const baseTpl = findIsoTemplate(nombreMin)!;
       for (let i = 0; i < baseTpl.estaciones.length; i++) {
         await upCargo.mutateAsync({
           ministerio_id: (created as any).id,
@@ -280,9 +348,9 @@ export default function ProgramacionIsoInfantilView() {
           cupo: 1,
         });
       }
-      toast.success("Ministerio Infantil y estaciones ISO inicializados");
+      toast.success(`Ministerio ${nombreMin} y estaciones ISO inicializados`);
     } catch (e: any) {
-      toast.error(e.message || "Error al inicializar Ministerio Infantil");
+      toast.error(e.message || `Error al inicializar ${nombreMin}`);
     }
   };
 
@@ -409,8 +477,10 @@ export default function ProgramacionIsoInfantilView() {
       const inner = new Map<string, string>();
       template.estaciones.forEach((est) => {
         const key = normKey(est);
-        if (!estacionesTextoSet.has(key)) return;
-        inner.set(key, textos.get(e.id, `estacion:${key}`));
+        const val = textos.get(e.id, `estacion:${key}`);
+        if (estacionesTextoSet.has(key) || (val && val.trim())) {
+          inner.set(key, val);
+        }
       });
       m.set(e.id, inner);
     });
@@ -580,16 +650,49 @@ export default function ProgramacionIsoInfantilView() {
   }
 
   if (!ministerioInfantil) {
+    const esKings = modoMin === "kings_army";
     return (
-      <div className="p-8 flex flex-col items-center justify-center text-center space-y-4">
-        <h2 className="text-xl font-bold text-navy">Ministerio Infantil no encontrado en Reuniones</h2>
-        <p className="text-sm text-muted-foreground max-w-md">
-          Para usar el formato ISO de programación (<strong>FO-EC-PIN01</strong>), inicializa el{" "}
-          <strong>Ministerio Infantil</strong> en la base de datos de programación.
-        </p>
-        <Button onClick={crearMinisterioInfantil} disabled={upMin.isPending}>
-          <Plus className="h-4 w-4 mr-1" /> Inicializar Ministerio Infantil (FO-EC-PIN01)
-        </Button>
+      <div className="p-6 space-y-6">
+        {/* Selector de Ministerio en Iglesia Infantil */}
+        <div className="flex flex-wrap items-center gap-2 bg-background p-2 rounded-xl border w-fit shadow-sm">
+          <button
+            type="button"
+            onClick={() => setModoMin("infantil")}
+            className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${
+              modoMin === "infantil"
+                ? "bg-blue-600 text-white shadow-sm"
+                : "text-slate-600 hover:bg-slate-100"
+            }`}
+          >
+            Ministerio Infantil (FO-EC-PIN01)
+          </button>
+          <button
+            type="button"
+            onClick={() => setModoMin("kings_army")}
+            className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${
+              modoMin === "kings_army"
+                ? "bg-purple-600 text-white shadow-sm"
+                : "text-slate-600 hover:bg-slate-100"
+            }`}
+          >
+            Kings Army (FO-EC-PKA01)
+          </button>
+        </div>
+
+        <div className="p-8 flex flex-col items-center justify-center text-center space-y-4 bg-background border rounded-xl">
+          <h2 className="text-xl font-bold text-navy">
+            Ministerio {esKings ? "Kings Army" : "Infantil"} no encontrado en Reuniones
+          </h2>
+          <p className="text-sm text-muted-foreground max-w-md">
+            Para usar el formato ISO de programación (
+            <strong>{esKings ? "FO-EC-PKA01" : "FO-EC-PIN01"}</strong>), inicializa el{" "}
+            <strong>Ministerio {esKings ? "Kings Army" : "Infantil"}</strong> en la base de datos de programación.
+          </p>
+          <Button onClick={() => crearMinisterioInfantil(modoMin)} disabled={upMin.isPending}>
+            <Plus className="h-4 w-4 mr-1" /> Inicializar Ministerio{" "}
+            {esKings ? "Kings Army (FO-EC-PKA01)" : "Infantil (FO-EC-PIN01)"}
+          </Button>
+        </div>
       </div>
     );
   }
@@ -598,6 +701,40 @@ export default function ProgramacionIsoInfantilView() {
     <div className="p-3 md:p-6 space-y-4 bg-muted/20 min-h-full">
       {/* Barra superior de acciones y conexión con Reuniones */}
       <div className="bg-background border rounded-xl p-3 md:p-4 shadow-sm flex flex-col gap-3">
+        {/* Selector entre Ministerio Infantil y Kings Army */}
+        <div className="flex flex-wrap items-center justify-between gap-2 pb-2 border-b">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-xs font-semibold text-muted-foreground">Formato ISO activo:</span>
+            <div className="flex items-center gap-1.5 bg-muted/60 p-1 rounded-lg border">
+              <button
+                type="button"
+                onClick={() => setModoMin("infantil")}
+                className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all ${
+                  modoMin === "infantil"
+                    ? "bg-blue-600 text-white shadow-sm"
+                    : "text-slate-600 hover:bg-background"
+                }`}
+              >
+                Ministerio Infantil (FO-EC-PIN01)
+              </button>
+              <button
+                type="button"
+                onClick={() => setModoMin("kings_army")}
+                className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all ${
+                  modoMin === "kings_army"
+                    ? "bg-purple-600 text-white shadow-sm"
+                    : "text-slate-600 hover:bg-background"
+                }`}
+              >
+                Kings Army (FO-EC-PKA01)
+              </button>
+            </div>
+          </div>
+          <Badge variant="secondary" className="text-[11px]">
+            {proxEventos.length} servicio(s) cargado(s) desde Reuniones
+          </Badge>
+        </div>
+
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div>
             <div className="flex items-center gap-2">
@@ -607,7 +744,8 @@ export default function ProgramacionIsoInfantilView() {
               </Badge>
             </div>
             <p className="text-xs text-muted-foreground">
-              Sincronizado en tiempo real con <strong>Reuniones → Programación → Ministerio Infantil</strong>.
+              Sincronizado en tiempo real con{" "}
+              <strong>Reuniones → Programación → {ministerioInfantil.nombre}</strong>.
             </p>
           </div>
 
@@ -861,11 +999,12 @@ export default function ProgramacionIsoInfantilView() {
                       const isTexto = estacionesTextoSet.has(key);
                       const arr: Cell[] = cells.get(key) || [];
                       const isAdding = adding?.eventoId === e.id && adding?.estacion === est;
+                      const textoEst = textos.get(e.id, `estacion:${key}`);
                       if (isTexto) {
                         return (
                           <td key={est} className="border border-black p-1 align-top">
                             <textarea
-                              value={textos.get(e.id, `estacion:${key}`)}
+                              value={textoEst}
                               onChange={(ev) =>
                                 textos.setValor(e.id, `estacion:${key}`, ev.target.value)
                               }
@@ -878,6 +1017,16 @@ export default function ProgramacionIsoInfantilView() {
                       return (
                         <td key={est} className="border border-black px-1.5 py-1">
                           <div className="flex flex-col gap-1">
+                            {(key === "grupo" || Boolean(textoEst)) && (
+                              <Input
+                                value={textoEst}
+                                onChange={(ev) =>
+                                  textos.setValor(e.id, `estacion:${key}`, ev.target.value)
+                                }
+                                className="h-6 text-[10px] px-1.5"
+                                placeholder={`${est} (texto)…`}
+                              />
+                            )}
                             {arr.map((c) => (
                               <Badge
                                 key={c.id}
