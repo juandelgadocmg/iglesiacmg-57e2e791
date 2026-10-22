@@ -26,15 +26,15 @@ export default function QRSystemView() {
             <div className="w-16 h-16 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center mb-4">
               <Shirt className="w-8 h-8" />
             </div>
-            <h3 className="text-lg font-bold text-navy mb-2">Stickers de Camiseta</h3>
+            <h3 className="text-lg font-bold text-navy mb-2">Stickers de Camiseta (Check-In)</h3>
             <p className="text-xs text-slate-500 mb-6 flex-1">
-              Imprime etiquetas adhesivas individuales o en planillas con el nombre grande, grupo, alergias y QR para pegar en la ropa de los niños.
+              Al imprimir el sticker adhesivo del niño, la plataforma registra automáticamente su Check-In sin necesidad de leer el código QR.
             </p>
             <Button 
               onClick={() => navigate('/infantil/carnes')}
               className="w-full bg-blue-600 hover:bg-blue-700 text-white rounded-xl h-11 shadow-lg shadow-blue-500/20 font-bold text-xs"
             >
-              Imprimir Stickers
+              Imprimir Stickers (Check-In)
             </Button>
           </CardContent>
         </Card>
@@ -44,15 +44,15 @@ export default function QRSystemView() {
             <div className="w-16 h-16 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center mb-4">
               <ScanLine className="w-8 h-8" />
             </div>
-            <h3 className="text-lg font-bold text-navy mb-2">Escanear Check-in</h3>
+            <h3 className="text-lg font-bold text-navy mb-2">Leer QR para Check-Out (Salida)</h3>
             <p className="text-xs text-slate-500 mb-6 flex-1">
-              Activa la cámara del dispositivo para registrar la entrada o salida escaneando el carné o sticker de la camiseta del menor.
+              Activa la cámara para leer el código QR del sticker del niño o del talón del padre y autorizar la entrega segura (Check-Out).
             </p>
             <Button 
               onClick={() => navigate('/infantil/checkin')}
               className="w-full bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl h-11 shadow-lg shadow-emerald-500/20 font-bold text-xs"
             >
-              Ir a Check-in
+              Ir a Check-In / Check-Out
             </Button>
           </CardContent>
         </Card>

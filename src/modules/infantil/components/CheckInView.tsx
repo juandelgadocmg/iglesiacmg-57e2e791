@@ -19,10 +19,11 @@ import {
 } from "@/hooks/useInfantil";
 import { usePersonas } from "@/hooks/useDatabase";
 import { useNinos, matchInfantilGrupoByAge, getSavedInfantilGrupoMap, saveInfantilGrupoForNino } from "../hooks/useNinos";
-import { ShirtStickerComponent, extractNinoIdentifierFromQr } from "./CarnesView";
+import { ShirtStickerComponent, ParentClaimTagComponent, extractNinoIdentifierFromQr } from "./CarnesView";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import QrEventoScanner from "@/components/attendance/QrEventoScanner";
+import { Switch } from "@/components/ui/switch";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 
@@ -31,6 +32,7 @@ export default function CheckInView() {
   const [mode, setMode] = useState<"entrada" | "salida">("entrada");
   const [showScanner, setShowScanner] = useState(false);
   const [searchCode, setSearchCode] = useState("");
+  const [incluirTalonPadre, setIncluirTalonPadre] = useState(true);
   const handledUrlQrRef = useRef<string | null>(null);
 
   const today = useMemo(() => new Date().toISOString().split("T")[0], []);
@@ -158,7 +160,75 @@ export default function CheckInView() {
     return matches[0] || null;
   };
 
-  const processChildAction = async (childIdOrCode: string) => {
+  // Realizar Check-In automático al imprimir el sticker (sin necesidad de leer código QR)
+  const realizarCheckInConImpresion = async (child: any, autoPrint = true) => {
+    const targetGrupo = resolveChildInfantilGrupo(child);
+    const grupoTargetId = targetGrupo?.id;
+    if (!grupoTargetId) {
+      toast.error("No hay grupos infantiles configurados", {
+        description: "Crea primero un grupo en la sección 'Grupos'."
+      });
+      return;
+    }
+
+    saveInfantilGrupoForNino(child.id, grupoTargetId);
+    if (child.grupo_id !== grupoTargetId) {
+      supabase.from("personas").update({ grupo_id: grupoTargetId }).eq("id", child.id).then(() => {});
+    }
+
+    const rels = (acudientes || []).filter(a => a.nino_id === child.id);
+    const acuPrincipal = rels.find(a => a.es_principal) || rels[0] || null;
+
+    try {
+      await checkIn.mutateAsync({
+        nino_id: child.id,
+        grupo_id: grupoTargetId,
+        entregado_por_id: acuPrincipal?.acudiente_id || undefined,
+        observaciones: "Check-in automático con impresión de sticker"
+      });
+
+      const ninoActualizado = { ...child, grupo_id: grupoTargetId };
+      setCheckedInNino(ninoActualizado);
+      setCheckedInGrupo(targetGrupo);
+      setSearchCode("");
+
+      toast.success(
+        `✓ Check-In registrado: ${child.nombres} ${child.apellidos} (${targetGrupo?.nombre || "Infantil"})`
+      );
+
+      if (autoPrint) {
+        setTimeout(() => {
+          window.print();
+        }, 200);
+      } else {
+        setCheckInDialogOpen(true);
+      }
+    } catch (err: any) {
+      toast.error("Error al registrar check-in", {
+        description: err.message || "Por favor intenta de nuevo."
+      });
+    }
+  };
+
+  // Procesar Check-Out mediante la lectura del código QR
+  const procesarCheckOutConQr = (child: any) => {
+    setMode("salida");
+    const asis = (asistencias || []).find(a => a.nino_id === child.id && !a.hora_salida);
+    if (!asis) {
+      toast.error("Sin entrada activa hoy", {
+        description: `${child.nombres} ${child.apellidos} no tiene un registro de entrada activo hoy para hacer Check-Out.`
+      });
+      return;
+    }
+    setCheckOutNino(child);
+    setSelectedAsistenciaId(asis.id);
+    setRecogidoPorId("");
+    setCheckOutDialogOpen(true);
+    setSearchCode("");
+    toast.success(`✓ Código QR leído: ${child.nombres} ${child.apellidos}`);
+  };
+
+  const processChildAction = async (childIdOrCode: string, fromQrScan = false) => {
     const child = findChild(childIdOrCode);
 
     if (!child) {
@@ -168,63 +238,17 @@ export default function CheckInView() {
       return;
     }
 
-    if (mode === "entrada") {
-      // ENTRADA: Resolver siempre un grupo infantil válido (nunca usar el grupo_id de Casa de Paz de membresía)
-      const targetGrupo = resolveChildInfantilGrupo(child);
-      const grupoTargetId = targetGrupo?.id;
-      if (!grupoTargetId) {
-        toast.error("No hay grupos infantiles configurados", {
-          description: "Crea primero un grupo en la sección 'Grupos por Edad'."
-        });
-        return;
-      }
-
-      // Guardar la asignación del niño al grupo infantil si aún no la tenía
-      saveInfantilGrupoForNino(child.id, grupoTargetId);
-      if (child.grupo_id !== grupoTargetId) {
-        supabase.from("personas").update({ grupo_id: grupoTargetId }).eq("id", child.id).then(() => {});
-      }
-
-      // Buscar acudiente principal
-      const rels = (acudientes || []).filter(a => a.nino_id === child.id);
-      const acuPrincipal = rels.find(a => a.es_principal) || rels[0] || null;
-
-      try {
-        await checkIn.mutateAsync({
-          nino_id: child.id,
-          grupo_id: grupoTargetId,
-          entregado_por_id: acuPrincipal?.acudiente_id || undefined,
-          observaciones: "Check-in rápido"
-        });
-
-        toast.success(`✓ Check-in registrado: ${child.nombres} ${child.apellidos} (${targetGrupo?.nombre || "Infantil"})`);
-        setCheckedInNino({ ...child, grupo_id: grupoTargetId });
-        setCheckedInGrupo(targetGrupo);
-        setCheckInDialogOpen(true);
-        setSearchCode("");
-      } catch (err: any) {
-        toast.error("Error al registrar check-in", {
-          description: err.message || "Por favor intenta de nuevo."
-        });
-      }
-    } else {
-      // SALIDA: Verificar registro de entrada activo
-      const asis = (asistencias || []).find(a => a.nino_id === child.id && !a.hora_salida);
-      if (!asis) {
-        toast.error("Sin entrada activa", {
-          description: `${child.nombres} no tiene un registro de entrada activo hoy.`
-        });
-        return;
-      }
-
-      setCheckOutNino(child);
-      setSelectedAsistenciaId(asis.id);
-      setCheckOutDialogOpen(true);
-      setSearchCode("");
+    // Si proviene de lectura de código QR, siempre ejecuta el Check-Out (Salida)
+    if (fromQrScan || mode === "salida") {
+      procesarCheckOutConQr(child);
+      return;
     }
+
+    // En modo Entrada (Check-In): se hace el Check-In con la impresión del sticker sin necesidad de leer QR
+    await realizarCheckInConImpresion(child, true);
   };
 
-  // Soportar escaneo directo con cámara nativa del celular (?c=XXXX o ?qr=XXXX)
+  // Soportar escaneo directo con cámara nativa del celular (?c=XXXX o ?qr=XXXX) -> Para Check-Out
   useEffect(() => {
     const qrParam = searchParams.get("c") || searchParams.get("qr") || searchParams.get("code");
     if (!qrParam) return;
@@ -238,17 +262,17 @@ export default function CheckInView() {
     nextParams.delete("qr");
     nextParams.delete("code");
     setSearchParams(nextParams, { replace: true });
-    processChildAction(qrParam);
-  }, [searchParams, ninos, personas, grupos]);
+    processChildAction(qrParam, true);
+  }, [searchParams, ninos, personas, grupos, asistencias]);
 
   const handleManualSearch = () => {
     if (!searchCode.trim()) return;
-    processChildAction(searchCode);
+    processChildAction(searchCode, mode === "salida");
   };
 
   const handleQrScan = (data: string) => {
     setShowScanner(false);
-    processChildAction(data);
+    processChildAction(data, true);
   };
 
   const confirmCheckOut = async () => {
@@ -278,19 +302,28 @@ export default function CheckInView() {
     return (acudientes || []).filter(a => a.nino_id === checkOutNino.id);
   }, [checkOutNino, acudientes]);
 
+  // Niño activo en vista previa para Entrada (Check-In por impresión)
+  const previewNinoEntrada = useMemo(() => {
+    if (checkedInNino) return checkedInNino;
+    if (liveSuggestions.length > 0) return liveSuggestions[0];
+    return ninos?.[0] || null;
+  }, [checkedInNino, liveSuggestions, ninos]);
+
   return (
     <div className="p-4 md:p-8 space-y-8 animate-fade-in bg-slate-50/50 min-h-full">
       {/* CABECERA */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 print:hidden">
         <div>
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-100 text-blue-800 text-xs font-bold mb-2">
-            <Shirt className="w-3.5 h-3.5" /> Check-in con Impresión Inmediata de Stickers
+            <Shirt className="w-3.5 h-3.5" /> Check-In al Imprimir Sticker · Check-Out con Lectura QR
           </div>
           <h2 className="text-3xl font-black tracking-tight bg-gradient-to-r from-navy to-blue-500 bg-clip-text text-transparent drop-shadow-sm">
             Control de Acceso Infantil
           </h2>
           <p className="text-slate-500 mt-1 font-medium">
-            Escanea el carné o busca por nombre para imprimir el adhesivo de la camiseta al instante.
+            {mode === "entrada"
+              ? "Selecciona o busca al niño para imprimir su sticker; el Check-In se registra automáticamente al imprimir (sin escanear QR)."
+              : "Escanea el código QR del sticker del niño o del talón del padre para autorizar la salida (Check-Out)."}
           </p>
         </div>
 
@@ -298,44 +331,89 @@ export default function CheckInView() {
         <div className="flex bg-white p-1.5 rounded-2xl shadow-sm border border-slate-200 w-fit">
           <button
             onClick={() => setMode("entrada")}
-            className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center gap-2 ${
+            className={`px-5 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center gap-2 ${
               mode === "entrada"
                 ? "bg-navy text-white shadow-md shadow-navy/20"
                 : "text-slate-500 hover:text-navy hover:bg-slate-50"
             }`}
           >
-            <LogIn className="h-4 w-4" /> Entrada (Check-In)
+            <Printer className="h-4 w-4" /> Entrada (Imprimir Sticker)
           </button>
           <button
             onClick={() => setMode("salida")}
-            className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center gap-2 ${
+            className={`px-5 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center gap-2 ${
               mode === "salida"
                 ? "bg-coral text-white shadow-md shadow-coral/20"
                 : "text-slate-500 hover:text-coral hover:bg-slate-50"
             }`}
           >
-            <LogOut className="h-4 w-4" /> Salida (Check-Out)
+            <QrCode className="h-4 w-4" /> Salida (Leer QR)
           </button>
         </div>
       </div>
 
       {/* CONTENIDO PRINCIPAL (Oculto al imprimir) */}
       <div className="grid lg:grid-cols-2 gap-8 print:hidden">
-        {/* PANEL IZQUIERDO: CÁMARA ESCÁNER QR */}
+        {/* PANEL IZQUIERDO: IMPRESIÓN DE STICKER (ENTRADA) O CÁMARA ESCÁNER QR (SALIDA) */}
         <Card className="border-0 shadow-xl shadow-navy/5 bg-white rounded-3xl overflow-hidden">
           <div className={`h-2 w-full ${mode === "entrada" ? "bg-gradient-to-r from-blue-500 to-navy" : "bg-gradient-to-r from-coral to-orange-500"}`} />
           <CardHeader className="pb-3 pt-6">
-            <CardTitle className="flex items-center gap-3 text-xl font-bold text-navy">
-              <div className={`p-2 rounded-xl ${mode === "entrada" ? "bg-blue-50 text-blue-600" : "bg-coral/10 text-coral"}`}>
-                <QrCode className="w-5 h-5" />
+            <CardTitle className="flex items-center justify-between gap-3 text-xl font-bold text-navy">
+              <div className="flex items-center gap-3">
+                <div className={`p-2 rounded-xl ${mode === "entrada" ? "bg-blue-50 text-blue-600" : "bg-coral/10 text-coral"}`}>
+                  {mode === "entrada" ? <Printer className="w-5 h-5" /> : <QrCode className="w-5 h-5" />}
+                </div>
+                {mode === "entrada"
+                  ? "Imprimir Sticker (Check-In Automático)"
+                  : "Escanear Código QR para Salida (Check-Out)"}
               </div>
-              {mode === "entrada" ? "Escanear Carné o Código QR" : "Escanear QR de Retiro / Salida"}
             </CardTitle>
           </CardHeader>
 
           <CardContent className="flex flex-col items-center justify-center min-h-[300px] p-6">
-            {showScanner ? (
-              <div className="w-full max-w-[320px] overflow-hidden rounded-2xl border-4 border-blue-600 shadow-xl relative">
+            {mode === "entrada" ? (
+              previewNinoEntrada ? (
+                <div className="flex flex-col items-center w-full space-y-4">
+                  <div className="scale-95 origin-top flex flex-col items-center gap-2">
+                    <ShirtStickerComponent
+                      nino={previewNinoEntrada}
+                      acudiente={(acudientes || []).find(a => a.nino_id === previewNinoEntrada.id)}
+                      grupo={resolveChildInfantilGrupo(previewNinoEntrada)}
+                      fecha={fechaHoyTexto}
+                      compact
+                    />
+                  </div>
+
+                  <div className="flex items-center gap-2 bg-slate-50 px-3 py-2 rounded-xl border border-slate-200 text-xs">
+                    <Switch
+                      id="sw-talon-checkin"
+                      checked={incluirTalonPadre}
+                      onCheckedChange={setIncluirTalonPadre}
+                    />
+                    <label htmlFor="sw-talon-checkin" className="font-semibold text-slate-700 cursor-pointer">
+                      Imprimir también talón de retiro con QR para el padre
+                    </label>
+                  </div>
+
+                  <Button
+                    onClick={() => realizarCheckInConImpresion(previewNinoEntrada, true)}
+                    disabled={checkIn.isPending}
+                    className="w-full max-w-[330px] h-12 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold shadow-lg shadow-blue-500/20"
+                  >
+                    <Printer className="w-4 h-4 mr-2" />
+                    {checkIn.isPending
+                      ? "Registrando Check-In..."
+                      : `Imprimir Sticker y Hacer Check-In (${previewNinoEntrada.nombres})`}
+                  </Button>
+                </div>
+              ) : (
+                <div className="text-center text-slate-400 py-8">
+                  <Shirt className="w-12 h-12 mx-auto mb-2 opacity-30" />
+                  <p className="text-sm">Busca o selecciona un niño a la derecha para imprimir su sticker y registrar su entrada.</p>
+                </div>
+              )
+            ) : showScanner ? (
+              <div className="w-full max-w-[320px] overflow-hidden rounded-2xl border-4 border-coral shadow-xl relative">
                 <Button
                   size="icon"
                   variant="ghost"
@@ -351,20 +429,21 @@ export default function CheckInView() {
               </div>
             ) : (
               <div className="flex flex-col items-center text-center">
-                <div className="w-44 h-44 border-4 border-dashed rounded-3xl flex items-center justify-center bg-slate-50 relative group cursor-pointer hover:border-blue-400 transition-colors" onClick={() => setShowScanner(true)}>
-                  <QrCode className="w-16 h-16 text-slate-300 group-hover:scale-110 transition-transform text-blue-500" />
-                  <div className="absolute inset-0 bg-blue-500/5 rounded-3xl" />
-                </div>
-                <p className="mt-5 text-sm text-slate-500 max-w-xs">
-                  {mode === "entrada"
-                    ? "Apunta la cámara al carné o teléfono con QR para registrar la entrada e imprimir el sticker de camiseta."
-                    : "Apunta la cámara al carné del niño o talón del padre para autorizar la entrega segura."}
-                </p>
-                <Button
-                  className="mt-4 px-6 h-11 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold shadow-md shadow-blue-500/20"
+                <div
+                  className="w-44 h-44 border-4 border-dashed rounded-3xl flex items-center justify-center bg-slate-50 relative group cursor-pointer hover:border-coral transition-colors"
                   onClick={() => setShowScanner(true)}
                 >
-                  Activar Cámara QR
+                  <QrCode className="w-16 h-16 group-hover:scale-110 transition-transform text-coral" />
+                  <div className="absolute inset-0 bg-coral/5 rounded-3xl" />
+                </div>
+                <p className="mt-5 text-sm text-slate-500 max-w-xs">
+                  Apunta la cámara al código QR del sticker del niño o del talón del padre para autorizar y registrar la salida (Check-Out).
+                </p>
+                <Button
+                  className="mt-4 px-6 h-11 rounded-xl bg-coral hover:bg-coral/90 text-white font-bold shadow-md shadow-coral/20"
+                  onClick={() => setShowScanner(true)}
+                >
+                  <QrCode className="w-4 h-4 mr-2" /> Activar Lector QR para Salida
                 </Button>
               </div>
             )}
@@ -376,7 +455,10 @@ export default function CheckInView() {
           <Card className="border-0 shadow-lg shadow-slate-200/50 bg-white rounded-3xl overflow-hidden">
             <CardHeader className="bg-slate-50/50 border-b border-slate-100 pb-3">
               <CardTitle className="flex items-center gap-2 text-base font-bold text-slate-800">
-                <Search className="w-4 h-4 text-slate-400" /> Búsqueda Manual / Código
+                <Search className="w-4 h-4 text-slate-400" />
+                {mode === "entrada"
+                  ? "Buscar Niño para Imprimir Sticker (Hace Check-In)"
+                  : "Validar Salida por Código QR (#XXXX) o Nombre"}
               </CardTitle>
             </CardHeader>
             <CardContent className="p-6 space-y-4">
@@ -397,10 +479,16 @@ export default function CheckInView() {
               )}
 
               <div className="space-y-1.5 relative">
-                <label className="text-xs font-bold text-slate-600 uppercase tracking-wider">Nombre, ID o Documento:</label>
+                <label className="text-xs font-bold text-slate-600 uppercase tracking-wider">
+                  {mode === "entrada" ? "Nombre o Documento del Niño:" : "Código del Sticker (#XXXX), Documento o Nombre:"}
+                </label>
                 <div className="flex gap-2">
                   <Input
-                    placeholder="Ej. Samuel Gomez, documento o ID..."
+                    placeholder={
+                      mode === "entrada"
+                        ? "Escribe el nombre del niño para imprimir sticker..."
+                        : "Escanea con lector o escribe #XXXX / nombre..."
+                    }
                     value={searchCode}
                     onChange={(e) => setSearchCode(e.target.value)}
                     onKeyDown={(e) => e.key === "Enter" && handleManualSearch()}
@@ -409,9 +497,17 @@ export default function CheckInView() {
                   <Button
                     onClick={handleManualSearch}
                     disabled={checkIn.isPending || checkOut.isPending}
-                    className="h-12 px-6 rounded-xl bg-navy hover:bg-navy/90 text-white font-bold shrink-0"
+                    className={`h-12 px-5 rounded-xl text-white font-bold shrink-0 ${
+                      mode === "entrada" ? "bg-blue-600 hover:bg-blue-700" : "bg-coral hover:bg-coral/90"
+                    }`}
                   >
-                    {mode === "entrada" ? "Registrar" : "Validar"}
+                    {mode === "entrada" ? (
+                      <>
+                        <Printer className="w-4 h-4 mr-1.5" /> Imprimir + Check-In
+                      </>
+                    ) : (
+                      "Validar Salida"
+                    )}
                   </Button>
                 </div>
 
@@ -422,7 +518,7 @@ export default function CheckInView() {
                       <button
                         key={child.id}
                         type="button"
-                        onClick={() => processChildAction(child.id)}
+                        onClick={() => processChildAction(child.id, mode === "salida")}
                         className="w-full text-left p-3 hover:bg-blue-50/70 flex items-center justify-between transition-colors group"
                       >
                         <div className="min-w-0 pr-2">
@@ -435,7 +531,7 @@ export default function CheckInView() {
                           </p>
                         </div>
                         <Badge variant="outline" className="text-[10px] bg-slate-50 text-navy font-semibold shrink-0 group-hover:bg-navy group-hover:text-white transition-colors">
-                          {mode === "entrada" ? "Registrar Entrada" : "Registrar Salida"}
+                          {mode === "entrada" ? "Imprimir Sticker + Check-In" : "Registrar Salida"}
                         </Badge>
                       </button>
                     ))}
@@ -642,16 +738,60 @@ export default function CheckInView() {
       </Dialog>
 
       {/* ÁREA DE IMPRESIÓN RÁPIDA DE STICKER (Solo visible en @media print) */}
-      <div className="hidden print:block print-single-sticker-container">
-        {checkedInNino && (
-          <ShirtStickerComponent
-            nino={checkedInNino}
-            acudiente={(acudientes || []).find(a => a.nino_id === checkedInNino.id)}
-            grupo={checkedInGrupo || grupoActivo}
-            fecha={fechaHoyTexto}
-          />
+      <div className="hidden print:block printable-area">
+        {(checkedInNino || previewNinoEntrada) && (
+          <div className="print-duo-container space-y-4">
+            <ShirtStickerComponent
+              nino={checkedInNino || previewNinoEntrada}
+              acudiente={(acudientes || []).find(a => a.nino_id === (checkedInNino || previewNinoEntrada).id)}
+              grupo={checkedInGrupo || resolveChildInfantilGrupo(checkedInNino || previewNinoEntrada)}
+              fecha={fechaHoyTexto}
+            />
+            {incluirTalonPadre && (
+              <ParentClaimTagComponent
+                nino={checkedInNino || previewNinoEntrada}
+                acudiente={(acudientes || []).find(a => a.nino_id === (checkedInNino || previewNinoEntrada).id)}
+                fecha={fechaHoyTexto}
+              />
+            )}
+          </div>
         )}
       </div>
+
+      <style dangerouslySetInnerHTML={{__html: `
+        @media print {
+          @page {
+            size: auto;
+            margin: 4mm;
+          }
+          body {
+            background: white !important;
+            color: black !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+          }
+          body * {
+            visibility: hidden !important;
+          }
+          .printable-area, .printable-area * {
+            visibility: visible !important;
+          }
+          .printable-area {
+            position: absolute !important;
+            left: 0 !important;
+            top: 0 !important;
+            width: 100% !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            display: block !important;
+          }
+          .shirt-sticker-box {
+            border: 2px solid #000 !important;
+            box-shadow: none !important;
+            page-break-inside: avoid !important;
+          }
+        }
+      `}} />
     </div>
   );
 }

@@ -1,12 +1,19 @@
 import { useEffect, useState, useMemo } from "react";
 import {
   QrCode, Printer, Shield, User, Shirt, Tag,
-  AlertTriangle, CheckCircle2, Layers, Search, ScanLine, LogIn
+  AlertTriangle, CheckCircle2, Layers, Search, ScanLine, LogIn, LogOut
 } from "lucide-react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { usePersonas } from "@/hooks/useDatabase";
-import { useInfantilAcudientes, useInfantilGrupos, useInfantilCheckIn } from "@/hooks/useInfantil";
-import { useNinos, matchInfantilGrupoByAge, getSavedInfantilGrupoMap } from "../hooks/useNinos";
+import {
+  useInfantilAcudientes,
+  useInfantilGrupos,
+  useInfantilCheckIn,
+  useInfantilCheckOut,
+  useInfantilAsistencias,
+} from "@/hooks/useInfantil";
+import { useNinos, matchInfantilGrupoByAge, getSavedInfantilGrupoMap, saveInfantilGrupoForNino } from "../hooks/useNinos";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
@@ -60,17 +67,21 @@ export default function CarnesView() {
   const { ninos, isLoading: isLoadingNinos } = useNinos();
   const { data: acudientes } = useInfantilAcudientes();
   const { data: grupos } = useInfantilGrupos();
+  const todayIso = useMemo(() => new Date().toISOString().split("T")[0], []);
+  const { data: asistenciasHoy = [] } = useInfantilAsistencias(todayIso);
   const checkIn = useInfantilCheckIn();
+  const checkOut = useInfantilCheckOut();
 
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedNinoId, setSelectedNinoId] = useState<string>("");
   const [printMode, setPrintMode] = useState<PrintMode>("sticker");
   const [selectedGrupoFiltro, setSelectedGrupoFiltro] = useState<string>("all");
 
-  // Modal de escáner QR directo desde Stickers & Carnés QR
+  // Modal de escáner QR directo para Check-Out desde Stickers & Carnés QR
   const [scannerOpen, setScannerOpen] = useState(false);
   const [manualQrCode, setManualQrCode] = useState("");
   const [scannedNinoModal, setScannedNinoModal] = useState<any | null>(null);
+  const [recogidoPorId, setRecogidoPorId] = useState<string>("");
 
   // Opciones de personalización de la etiqueta
   const [mostrarAlergias, setMostrarAlergias] = useState(true);
@@ -190,15 +201,18 @@ export default function CarnesView() {
     setScannerOpen(false);
     setManualQrCode("");
     setSelectedNinoId(found.id);
+    setRecogidoPorId("");
     setScannedNinoModal(found);
-    toast.success(`✓ Código QR leído: ${found.nombres} ${found.apellidos}`);
+    toast.success(`✓ Código QR leído para salida: ${found.nombres} ${found.apellidos}`);
   };
 
-  const handleQuickCheckInFromScan = async (ninoTarget: any) => {
+  const registrarCheckInAutomatico = async (ninoTarget: any, origen = "Check-in automático al imprimir sticker") => {
+    if (!ninoTarget) return;
     const grp = resolveGrupoForNino(ninoTarget);
-    if (!grp?.id) {
-      toast.error("Configura primero un grupo infantil");
-      return;
+    if (!grp?.id) return;
+    saveInfantilGrupoForNino(ninoTarget.id, grp.id);
+    if (ninoTarget.grupo_id !== grp.id) {
+      supabase.from("personas").update({ grupo_id: grp.id }).eq("id", ninoTarget.id).then(() => {});
     }
     const rels = (acudientes || []).filter(a => a.nino_id === ninoTarget.id);
     const acu = rels.find(a => a.es_principal) || rels[0] || null;
@@ -207,19 +221,45 @@ export default function CarnesView() {
         nino_id: ninoTarget.id,
         grupo_id: grp.id,
         entregado_por_id: acu?.acudiente_id || undefined,
-        observaciones: "Check-in vía lector QR en Stickers y Carnés"
+        observaciones: origen,
       });
-      toast.success(`✓ Asistencia registrada para ${ninoTarget.nombres} ${ninoTarget.apellidos} en ${grp.nombre}`);
-      setScannedNinoModal(null);
+      toast.success(
+        `✓ Check-In registrado automáticamente: ${ninoTarget.nombres} ${ninoTarget.apellidos} (${grp.nombre})`
+      );
     } catch (err: any) {
-      toast.error("Error al registrar check-in", { description: err?.message });
+      console.warn("Error registrando check-in automático:", err?.message);
     }
   };
 
-  const handlePrint = (mode: PrintMode) => {
+  const handleCheckOutFromScan = async (ninoTarget: any) => {
+    const asis = (asistenciasHoy || []).find(a => a.nino_id === ninoTarget.id && !a.hora_salida);
+    if (!asis) {
+      toast.error("Sin entrada activa hoy", {
+        description: `${ninoTarget.nombres} no tiene un Check-In activo pendiente de salida.`
+      });
+      return;
+    }
+    try {
+      await checkOut.mutateAsync({
+        asistencia_id: asis.id,
+        recogido_por_id: recogidoPorId && recogidoPorId !== "unregistered" ? recogidoPorId : undefined,
+      });
+      toast.success(`✓ Check-Out (Salida) registrado para ${ninoTarget.nombres} ${ninoTarget.apellidos}`);
+      setScannedNinoModal(null);
+      setRecogidoPorId("");
+    } catch (err: any) {
+      toast.error("Error al registrar salida", { description: err?.message });
+    }
+  };
+
+  const handlePrint = async (mode: PrintMode) => {
     setPrintMode(mode);
+    // Al imprimir el sticker individual o el dúo (Niño + Acudiente), registrar automáticamente el Check-In sin necesidad de leer el QR
+    if ((mode === "sticker" || mode === "duo") && selectedNino) {
+      await registrarCheckInAutomatico(selectedNino, "Check-in automático al imprimir sticker");
+    }
     toast.info("Abriendo diálogo de impresión...", {
-      description: "Asegúrate de seleccionar tu impresora de etiquetas o papel adhesivo."
+      description: "El Check-In ya quedó registrado. Selecciona tu impresora de etiquetas."
     });
     setTimeout(() => {
       window.print();
@@ -252,15 +292,15 @@ export default function CarnesView() {
         <div className="flex flex-wrap items-center gap-2.5">
           <Button
             onClick={() => setScannerOpen(true)}
-            className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl h-11 px-4 font-bold shadow-lg shadow-emerald-500/20"
+            className="bg-coral hover:bg-coral/90 text-white rounded-xl h-11 px-4 font-bold shadow-lg shadow-coral/20"
           >
-            <ScanLine className="w-4 h-4 mr-2" /> Leer Código QR
+            <ScanLine className="w-4 h-4 mr-2" /> Leer QR para Check-Out (Salida)
           </Button>
           <Button
             onClick={() => handlePrint("sticker")}
             className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl h-11 px-5 font-bold shadow-lg shadow-blue-500/20"
           >
-            <Printer className="w-4 h-4 mr-2" /> Imprimir Sticker Individual
+            <Printer className="w-4 h-4 mr-2" /> Imprimir Sticker (Hace Check-In)
           </Button>
           <Button
             onClick={() => handlePrint("planilla")}
@@ -425,7 +465,7 @@ export default function CarnesView() {
                       size="lg"
                       className="bg-navy hover:bg-navy/90 text-white rounded-xl px-8 h-12 shadow-lg shadow-navy/20 font-bold"
                     >
-                      <Printer className="w-5 h-5 mr-2" /> Imprimir Etiqueta Adhesiva
+                      <Printer className="w-5 h-5 mr-2" /> Imprimir Sticker y Hacer Check-In
                     </Button>
                   </div>
                 </div>
@@ -470,7 +510,7 @@ export default function CarnesView() {
                       size="lg"
                       className="bg-navy hover:bg-navy/90 text-white rounded-xl px-8 h-12 shadow-lg shadow-navy/20 font-bold"
                     >
-                      <Printer className="w-5 h-5 mr-2" /> Imprimir Par (Niño + Acudiente)
+                      <Printer className="w-5 h-5 mr-2" /> Imprimir Par y Hacer Check-In
                     </Button>
                   </div>
                 </div>
@@ -679,74 +719,97 @@ export default function CarnesView() {
         </DialogContent>
       </Dialog>
 
-      {/* MODAL DE RESULTADO AL ESCANEAR UN NIÑO */}
+      {/* MODAL DE RESULTADO AL ESCANEAR UN NIÑO (CHECK-OUT CON LECTURA DE CÓDIGO) */}
       <Dialog open={!!scannedNinoModal} onOpenChange={(open) => !open && setScannedNinoModal(null)}>
         <DialogContent className="sm:max-w-md rounded-3xl overflow-hidden border-0 shadow-2xl print:hidden">
-          <div className="h-2 w-full bg-gradient-to-r from-emerald-400 to-blue-600" />
+          <div className="h-2 w-full bg-gradient-to-r from-coral to-orange-500" />
           <DialogHeader className="p-6 pb-2 text-center">
-            <div className="mx-auto w-12 h-12 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mb-2">
-              <CheckCircle2 className="w-7 h-7" />
+            <div className="mx-auto w-12 h-12 bg-coral/15 text-coral rounded-full flex items-center justify-center mb-2">
+              <LogOut className="w-6 h-6" />
             </div>
             <DialogTitle className="text-2xl font-black text-navy">
-              ¡Código QR Verificado!
+              Confirmar Check-Out (Salida)
             </DialogTitle>
+            <p className="text-xs text-slate-500">
+              Código QR verificado. Confirma el acudiente que retira al menor.
+            </p>
           </DialogHeader>
 
-          {scannedNinoModal && (
-            <div className="px-6 py-2 space-y-3">
-              <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-lg font-black text-navy">
-                    {scannedNinoModal.nombres} {scannedNinoModal.apellidos}
-                  </h3>
-                  <Badge className="bg-blue-100 text-blue-800 border-0 font-mono text-xs">
-                    #{getSecurityCode(scannedNinoModal.id)}
-                  </Badge>
-                </div>
-                <p className="text-xs font-bold text-slate-600">
-                  Grupo: <span className="text-blue-700">{resolveGrupoForNino(scannedNinoModal)?.nombre || "Infantil"}</span>
-                </p>
-                {scannedNinoModal.detalles?.alergias && (
-                  <p className="text-xs font-bold text-amber-800 bg-amber-50 p-2 rounded-lg border border-amber-200">
-                    ⚠️ Alergias: {scannedNinoModal.detalles.alergias}
+          {scannedNinoModal && (() => {
+            const relsScanned = (acudientes || []).filter(a => a.nino_id === scannedNinoModal.id);
+            const asisActiva = (asistenciasHoy || []).find(a => a.nino_id === scannedNinoModal.id && !a.hora_salida);
+            return (
+              <div className="px-6 py-2 space-y-3">
+                <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-lg font-black text-navy">
+                      {scannedNinoModal.nombres} {scannedNinoModal.apellidos}
+                    </h3>
+                    <Badge className="bg-blue-100 text-blue-800 border-0 font-mono text-xs">
+                      #{getSecurityCode(scannedNinoModal.id)}
+                    </Badge>
+                  </div>
+                  <p className="text-xs font-bold text-slate-600">
+                    Grupo: <span className="text-blue-700">{resolveGrupoForNino(scannedNinoModal)?.nombre || "Infantil"}</span>
                   </p>
-                )}
-              </div>
+                  {asisActiva ? (
+                    <Badge className="bg-emerald-100 text-emerald-800 border-0 text-[10px]">
+                      ✓ En Clase hoy (Entrada: {asisActiva.hora_entrada ? format(new Date(asisActiva.hora_entrada), "HH:mm") : "Registrada"})
+                    </Badge>
+                  ) : (
+                    <Badge variant="outline" className="text-amber-700 border-amber-300 bg-amber-50 text-[10px]">
+                      Sin entrada activa hoy
+                    </Badge>
+                  )}
+                </div>
 
-              <div className="flex flex-col gap-2 pt-2">
-                <Button
-                  onClick={() => handleQuickCheckInFromScan(scannedNinoModal)}
-                  disabled={checkIn.isPending}
-                  className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl h-11 font-bold"
-                >
-                  <LogIn className="w-4 h-4 mr-2" /> Registrar Entrada (Check-In Hoy)
-                </Button>
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    onClick={() => {
-                      const id = scannedNinoModal.id;
-                      setScannedNinoModal(null);
-                      navigate(`/infantil/checkin?c=${id.replace(/-/g, "").slice(0, 8)}`);
-                    }}
-                    className="flex-1 rounded-xl text-xs font-bold"
-                  >
-                    Ir a Control Check-In/Out
-                  </Button>
-                  <Button
-                    variant="outline"
-                    onClick={() => {
-                      setScannedNinoModal(null);
-                      handlePrint("sticker");
-                    }}
-                    className="flex-1 rounded-xl text-xs font-bold"
-                  >
-                    <Printer className="w-3.5 h-3.5 mr-1.5" /> Imprimir Sticker
-                  </Button>
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-bold text-slate-700 uppercase tracking-wider">
+                    Acudiente que retira al menor:
+                  </Label>
+                  <Select value={recogidoPorId} onValueChange={setRecogidoPorId}>
+                    <SelectTrigger className="h-10 rounded-xl bg-slate-50 border-slate-200 text-xs font-semibold">
+                      <SelectValue placeholder="Seleccionar acudiente autorizado..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {relsScanned.length === 0 ? (
+                        <SelectItem value="unregistered">Acudiente verificado en puerta</SelectItem>
+                      ) : (
+                        relsScanned.map((a) => (
+                          <SelectItem key={a.acudiente_id} value={a.acudiente_id}>
+                            {(a.acudiente as any)?.nombres} {(a.acudiente as any)?.apellidos} ({a.relacion}){" "}
+                            {a.autorizado_recoger ? "✓ Autorizado" : "⚠️ NO Autorizado"}
+                          </SelectItem>
+                        ))
+                      )}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="flex flex-col gap-2 pt-2">
+                  {asisActiva ? (
+                    <Button
+                      onClick={() => handleCheckOutFromScan(scannedNinoModal)}
+                      disabled={checkOut.isPending}
+                      className="bg-coral hover:bg-coral/90 text-white rounded-xl h-11 font-bold shadow-md shadow-coral/20"
+                    >
+                      <LogOut className="w-4 h-4 mr-2" /> Autorizar Salida (Check-Out)
+                    </Button>
+                  ) : (
+                    <Button
+                      onClick={() => {
+                        setScannedNinoModal(null);
+                        handlePrint("sticker");
+                      }}
+                      className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl h-11 font-bold"
+                    >
+                      <Printer className="w-4 h-4 mr-2" /> Imprimir Sticker y Hacer Check-In
+                    </Button>
+                  )}
                 </div>
               </div>
-            </div>
-          )}
+            );
+          })()}
         </DialogContent>
       </Dialog>
 
