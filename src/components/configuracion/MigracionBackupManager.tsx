@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { DatabaseZap, Download, Loader2, ShieldAlert, Lock, CheckCircle2, Server, Database } from "lucide-react";
+import { DatabaseZap, Download, Loader2, ShieldAlert, Lock, CheckCircle2, Server, Database, Users, FileJson, FileSpreadsheet, FileCode2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useUserRoles } from "@/hooks/useUserRoles";
@@ -161,22 +161,222 @@ async function generateBackupClientFallback(): Promise<{ sqlContent: string; tab
 export default function MigracionBackupManager() {
   const { isAdmin, isLoading: isLoadingRoles } = useUserRoles();
   const [generating, setGenerating] = useState(false);
+  const [exportingUsersFormat, setExportingUsersFormat] = useState<"sql" | "json" | "csv" | null>(null);
   const [migratingDirect, setMigratingDirect] = useState(false);
   const [targetDbUrl, setTargetDbUrl] = useState("");
   const [lastGeneratedAt, setLastGeneratedAt] = useState<string | null>(null);
   const [stats, setStats] = useState<{ tables: number; source: "server" | "client" } | null>(null);
 
-  const downloadFile = (sqlContent: string) => {
-    const blob = new Blob([sqlContent], { type: "application/sql;charset=utf-8" });
+  const downloadFile = (content: string, filename = "migracion_completa.sql", mimeType = "application/sql;charset=utf-8") => {
+    const blob = new Blob([content], { type: mimeType });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = "migracion_completa.sql";
+    link.download = filename;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
     setLastGeneratedAt(new Date().toLocaleTimeString());
+  };
+
+  const handleExportUsersOnly = async (format: "sql" | "json" | "csv") => {
+    setExportingUsersFormat(format);
+    try {
+      let content = "";
+      try {
+        const { data, error } = await supabase.functions.invoke("db-backup", {
+          method: "POST",
+          body: { scope: "users", format },
+        });
+        if (error) throw new Error(await extractFunctionErrorMessage(error));
+        content = typeof data === "string" ? data : JSON.stringify(data, null, 2);
+        if (content.trim().startsWith("{") && content.includes('"error"')) {
+          const parsed = JSON.parse(content);
+          if (parsed?.error) throw new Error(parsed.error);
+        }
+      } catch {
+        // Fallback mediante RPC / consultas directas
+        const [
+          { data: exportedUsers },
+          { data: profilesData },
+          { data: rolesData },
+          { data: rolePermsData },
+          { data: personasData },
+          { data: notifPrefsData },
+        ] = await Promise.all([
+          (supabase as any).rpc("get_users_for_export"),
+          supabase.from("profiles").select("*"),
+          supabase.from("user_roles").select("*"),
+          supabase.from("role_permissions").select("*"),
+          supabase.from("personas").select("*"),
+          supabase.from("notification_preferences").select("*"),
+        ]);
+
+        const emailByUserId = new Map<string, string>();
+        for (const u of (exportedUsers || []) as Array<{ user_id: string; email: string }>) {
+          if (u.user_id && u.email) emailByUserId.set(u.user_id, u.email);
+        }
+        const personaById = new Map<string, any>();
+        for (const per of personasData || []) {
+          personaById.set(per.id, per);
+        }
+        const rolesByUser = new Map<string, string[]>();
+        for (const ur of rolesData || []) {
+          const arr = rolesByUser.get(ur.user_id) || [];
+          arr.push(ur.role);
+          rolesByUser.set(ur.user_id, arr);
+        }
+
+        const mergedUsers = (profilesData || []).map((p: any) => {
+          const per = p.persona_id ? personaById.get(p.persona_id) || null : null;
+          const email = emailByUserId.get(p.user_id) || per?.email || null;
+          return {
+            user_id: p.user_id,
+            profile_id: p.id,
+            email,
+            display_name: p.display_name,
+            nombres: per?.nombres || null,
+            apellidos: per?.apellidos || null,
+            tipo_documento: per?.tipo_documento || null,
+            documento: per?.documento || null,
+            telefono: per?.telefono || null,
+            whatsapp: per?.whatsapp || null,
+            avatar_url: p.avatar_url,
+            grupo_id: p.grupo_id,
+            persona_id: p.persona_id,
+            red: p.red,
+            zadarma_extension: p.zadarma_extension,
+            roles: rolesByUser.get(p.user_id) || [],
+            estado_iglesia: per?.estado_iglesia || "Activo",
+            created_at: p.created_at,
+            updated_at: p.updated_at,
+            profile: p,
+            persona: per,
+          };
+        });
+
+        if (format === "json") {
+          content = JSON.stringify(
+            {
+              generated_at: new Date().toISOString(),
+              total_users: mergedUsers.length,
+              users: mergedUsers,
+              profiles: profilesData || [],
+              user_roles: rolesData || [],
+              role_permissions: rolePermsData || [],
+              notification_preferences: notifPrefsData || [],
+            },
+            null,
+            2
+          );
+        } else if (format === "csv") {
+          const headers = [
+            "user_id", "profile_id", "email", "display_name", "nombres", "apellidos",
+            "tipo_documento", "documento", "telefono", "whatsapp", "avatar_url",
+            "grupo_id", "persona_id", "red", "zadarma_extension", "roles",
+            "estado_iglesia", "created_at", "updated_at",
+          ];
+          const esc = (v: any) => {
+            if (v === null || v === undefined) return "";
+            const s = Array.isArray(v) ? v.join("|") : typeof v === "object" ? JSON.stringify(v) : String(v);
+            return `"${s.replace(/"/g, '""')}"`;
+          };
+          content = [
+            headers.map((h) => `"${h}"`).join(","),
+            ...mergedUsers.map((r: any) => headers.map((h) => esc(r[h])).join(",")),
+          ].join("\n");
+        } else {
+          const sqlLit = (v: any) => {
+            if (v === null || v === undefined) return "NULL";
+            if (typeof v === "boolean") return v ? "true" : "false";
+            if (typeof v === "number") return String(v);
+            if (typeof v === "object") return `'${JSON.stringify(v).replace(/'/g, "''")}'::jsonb`;
+            return `'${String(v).replace(/'/g, "''")}'`;
+          };
+          const lines: string[] = [
+            "-- ============================================================================",
+            "-- MIGRACIÓN COMPLETA DE USUARIOS, PERFILES, ROLES Y PERMISOS",
+            `-- Generado el ${new Date().toISOString()}`,
+            "-- ============================================================================",
+            "BEGIN;",
+            "SET session_replication_role = 'replica';",
+            "",
+          ];
+          if (mergedUsers.length > 0) {
+            lines.push(`-- 1. auth.users (${mergedUsers.length} registros)`);
+            lines.push(
+              `INSERT INTO "auth"."users" ("id", "instance_id", "aud", "role", "email", "email_confirmed_at", "raw_app_meta_data", "raw_user_meta_data", "created_at", "updated_at", "is_sso_user", "is_anonymous") VALUES`
+            );
+            lines.push(
+              mergedUsers
+                .map((u: any) =>
+                  `  (${sqlLit(u.user_id)}, '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', ${sqlLit(u.email)}, ${sqlLit(u.created_at)}, '{"provider":"email","providers":["email"]}'::jsonb, ${sqlLit({ display_name: u.display_name, email: u.email })}, ${sqlLit(u.created_at)}, ${sqlLit(u.updated_at)}, false, false)`
+                )
+                .join(",\n") +
+                `\nON CONFLICT ("id") DO UPDATE SET "email" = EXCLUDED."email", "raw_user_meta_data" = EXCLUDED."raw_user_meta_data", "updated_at" = EXCLUDED."updated_at";\n`
+            );
+          }
+          if ((profilesData || []).length > 0) {
+            lines.push(`-- 2. public.profiles (${(profilesData || []).length} registros)`);
+            lines.push(
+              `INSERT INTO "public"."profiles" ("id", "user_id", "display_name", "avatar_url", "grupo_id", "persona_id", "red", "zadarma_extension", "created_at", "updated_at") VALUES`
+            );
+            lines.push(
+              (profilesData || [])
+                .map((p: any) =>
+                  `  (${sqlLit(p.id)}, ${sqlLit(p.user_id)}, ${sqlLit(p.display_name)}, ${sqlLit(p.avatar_url)}, ${sqlLit(p.grupo_id)}, ${sqlLit(p.persona_id)}, ${sqlLit(p.red)}, ${sqlLit(p.zadarma_extension)}, ${sqlLit(p.created_at)}, ${sqlLit(p.updated_at)})`
+                )
+                .join(",\n") +
+                `\nON CONFLICT ("id") DO UPDATE SET "display_name" = EXCLUDED."display_name", "avatar_url" = EXCLUDED."avatar_url", "grupo_id" = EXCLUDED."grupo_id", "persona_id" = EXCLUDED."persona_id", "red" = EXCLUDED."red", "zadarma_extension" = EXCLUDED."zadarma_extension", "updated_at" = EXCLUDED."updated_at";\n`
+            );
+          }
+          if ((rolesData || []).length > 0) {
+            lines.push(`-- 3. public.user_roles (${(rolesData || []).length} registros)`);
+            lines.push(`INSERT INTO "public"."user_roles" ("id", "user_id", "role") VALUES`);
+            lines.push(
+              (rolesData || [])
+                .map((r: any) => `  (${sqlLit(r.id)}, ${sqlLit(r.user_id)}, ${sqlLit(r.role)}::public.app_role)`)
+                .join(",\n") + `\nON CONFLICT ("id") DO UPDATE SET "role" = EXCLUDED."role";\n`
+            );
+          }
+          if ((rolePermsData || []).length > 0) {
+            lines.push(`-- 4. public.role_permissions (${(rolePermsData || []).length} registros)`);
+            lines.push(`INSERT INTO "public"."role_permissions" ("id", "role", "action_key", "allowed", "created_at", "updated_at") VALUES`);
+            lines.push(
+              (rolePermsData || [])
+                .map((rp: any) =>
+                  `  (${sqlLit(rp.id)}, ${sqlLit(rp.role)}::public.app_role, ${sqlLit(rp.action_key)}, ${sqlLit(rp.allowed)}, ${sqlLit(rp.created_at)}, ${sqlLit(rp.updated_at)})`
+                )
+                .join(",\n") + `\nON CONFLICT ("id") DO UPDATE SET "allowed" = EXCLUDED."allowed", "updated_at" = EXCLUDED."updated_at";\n`
+            );
+          }
+          lines.push("SET session_replication_role = 'origin';");
+          lines.push("COMMIT;");
+          content = lines.join("\n");
+        }
+      }
+
+      const filename =
+        format === "json"
+          ? "usuarios_migracion_completo.json"
+          : format === "csv"
+          ? "usuarios_migracion_completo.csv"
+          : "usuarios_migracion_insert.sql";
+      const mime =
+        format === "json"
+          ? "application/json;charset=utf-8"
+          : format === "csv"
+          ? "text/csv;charset=utf-8"
+          : "application/sql;charset=utf-8";
+
+      downloadFile(content, filename, mime);
+      toast.success(`Archivo ${filename} descargado correctamente`);
+    } catch (err: any) {
+      toast.error(err?.message || "No se pudo exportar la migración de usuarios");
+    } finally {
+      setExportingUsersFormat(null);
+    }
   };
 
   const handleDownload = async () => {
@@ -352,6 +552,63 @@ export default function MigracionBackupManager() {
                   Migrar Directamente Ahora
                 </>
               )}
+            </Button>
+          </div>
+        </div>
+
+        {/* OPCIÓN C: Migración exclusiva de Usuarios, Perfiles, Roles y Permisos (SQL / JSON / CSV) */}
+        <div className="space-y-2.5 rounded-xl border border-primary/20 p-4 bg-primary/5">
+          <h4 className="text-sm font-bold flex items-center gap-2">
+            <Users className="h-4 w-4 text-primary" /> Opción 3: Migración Exclusiva de Usuarios, Contraseñas, Perfiles, Roles y Permisos
+          </h4>
+          <p className="text-xs text-muted-foreground">
+            Exporta todas las columnas de <code>auth.users</code> (hashes bcrypt <code>encrypted_password</code>, tokens, metadatos, fechas y estado),
+            <code>auth.identities</code>, <code>public.profiles</code>, <code>public.personas</code>, <code>public.user_roles</code> y <code>public.role_permissions</code> sin truncar ningún campo:
+          </p>
+          <div className="flex flex-wrap items-center gap-2.5 pt-1">
+            <Button
+              onClick={() => handleExportUsersOnly("sql")}
+              disabled={exportingUsersFormat !== null || isLoadingRoles}
+              variant="default"
+              size="sm"
+              className="gap-1.5"
+            >
+              {exportingUsersFormat === "sql" ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <FileCode2 className="h-3.5 w-3.5" />
+              )}
+              Descargar SQL (INSERT INTO)
+            </Button>
+
+            <Button
+              onClick={() => handleExportUsersOnly("json")}
+              disabled={exportingUsersFormat !== null || isLoadingRoles}
+              variant="outline"
+              size="sm"
+              className="gap-1.5"
+            >
+              {exportingUsersFormat === "json" ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <FileJson className="h-3.5 w-3.5" />
+              )}
+              Descargar JSON Estructurado
+            </Button>
+
+            <Button
+              onClick={() => handleExportUsersOnly("csv")}
+              disabled={exportingUsersFormat !== null || isLoadingRoles}
+              variant="outline"
+              size="sm"
+              className="gap-1.5"
+            >
+              {exportingUsersFormat === "csv" ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <FileSpreadsheet className="h-3.5 w-3.5" />
+              )}
+              Descargar CSV Delimitado
             </Button>
           </div>
         </div>

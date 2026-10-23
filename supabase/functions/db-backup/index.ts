@@ -276,7 +276,7 @@ Deno.serve(async (req: Request) => {
   // --- Conexión directa a Postgres para introspección y lectura completa ---
   const sql = postgres(dbUrl, { prepare: false });
 
-  let bodyPayload: { targetDbUrl?: string } = {};
+  let bodyPayload: { targetDbUrl?: string; scope?: "all" | "users"; format?: "sql" | "json" | "csv" } = {};
   try {
     const text = await req.text();
     if (text) bodyPayload = JSON.parse(text);
@@ -285,6 +285,277 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
+    // Modo exclusivo de migración de usuarios (SQL INSERT / JSON / CSV)
+    if (bodyPayload?.scope === "users") {
+      const format = bodyPayload.format || "sql";
+      if (format === "json") {
+        const rows = await sql`
+          SELECT
+            u.id,
+            u.instance_id,
+            u.aud,
+            u.role,
+            u.email,
+            u.encrypted_password,
+            u.email_confirmed_at,
+            u.invited_at,
+            u.confirmation_token,
+            u.confirmation_sent_at,
+            u.recovery_token,
+            u.recovery_sent_at,
+            u.email_change_token_new,
+            u.email_change,
+            u.email_change_sent_at,
+            u.last_sign_in_at,
+            u.raw_app_meta_data,
+            u.raw_user_meta_data,
+            u.is_super_admin,
+            u.created_at,
+            u.updated_at,
+            u.phone,
+            u.phone_confirmed_at,
+            u.phone_change,
+            u.phone_change_token,
+            u.phone_change_sent_at,
+            u.email_change_token_current,
+            u.email_change_confirm_status,
+            u.banned_until,
+            u.reauthentication_token,
+            u.reauthentication_sent_at,
+            u.is_sso_user,
+            u.deleted_at,
+            u.is_anonymous,
+            to_jsonb(p) AS profile,
+            to_jsonb(per) AS persona,
+            COALESCE((
+              SELECT jsonb_agg(ur.role ORDER BY ur.role)
+              FROM public.user_roles ur
+              WHERE ur.user_id = u.id
+            ), '[]'::jsonb) AS roles,
+            COALESCE((
+              SELECT jsonb_agg(to_jsonb(i) - 'email')
+              FROM auth.identities i
+              WHERE i.user_id = u.id
+            ), '[]'::jsonb) AS identities
+          FROM auth.users u
+          LEFT JOIN public.profiles p ON p.user_id = u.id
+          LEFT JOIN public.personas per ON per.id = p.persona_id
+          ORDER BY u.created_at ASC
+        `;
+        const rolePerms = await sql`SELECT * FROM public.role_permissions ORDER BY role, action_key`;
+        return new Response(
+          JSON.stringify(
+            {
+              generated_at: new Date().toISOString(),
+              total_users: rows.length,
+              users: rows,
+              role_permissions: rolePerms,
+            },
+            null,
+            2,
+          ),
+          {
+            status: 200,
+            headers: {
+              ...corsHeaders,
+              "Content-Type": "application/json; charset=utf-8",
+              "Content-Disposition": 'attachment; filename="usuarios_migracion_completo.json"',
+            },
+          },
+        );
+      }
+
+      if (format === "csv") {
+        const rows = await sql<Record<string, unknown>[]>`
+          SELECT
+            u.id AS user_id,
+            u.instance_id,
+            u.aud,
+            u.role AS auth_role,
+            u.email,
+            u.encrypted_password,
+            u.email_confirmed_at,
+            u.invited_at,
+            u.confirmation_token,
+            u.confirmation_sent_at,
+            u.recovery_token,
+            u.recovery_sent_at,
+            u.email_change_token_new,
+            u.email_change,
+            u.email_change_sent_at,
+            u.last_sign_in_at,
+            u.raw_app_meta_data::text AS raw_app_meta_data,
+            u.raw_user_meta_data::text AS raw_user_meta_data,
+            u.is_super_admin,
+            u.created_at AS user_created_at,
+            u.updated_at AS user_updated_at,
+            u.phone,
+            u.phone_confirmed_at,
+            u.banned_until,
+            u.deleted_at,
+            u.is_sso_user,
+            u.is_anonymous,
+            CASE
+              WHEN u.deleted_at IS NOT NULL THEN 'eliminado'
+              WHEN u.banned_until IS NOT NULL AND u.banned_until > now() THEN 'bloqueado'
+              WHEN u.email_confirmed_at IS NULL THEN 'pendiente_confirmacion'
+              ELSE 'activo'
+            END AS estado_cuenta,
+            p.id AS profile_id,
+            p.display_name,
+            p.avatar_url,
+            p.grupo_id,
+            p.persona_id,
+            p.red,
+            p.zadarma_extension,
+            p.created_at AS profile_created_at,
+            p.updated_at AS profile_updated_at,
+            per.nombres,
+            per.apellidos,
+            per.tipo_documento,
+            per.documento,
+            per.telefono AS persona_telefono,
+            per.whatsapp AS persona_whatsapp,
+            per.direccion AS persona_direccion,
+            per.estado_iglesia,
+            per.tipo_persona,
+            COALESCE((
+              SELECT string_agg(ur.role::text, '|' ORDER BY ur.role)
+              FROM public.user_roles ur
+              WHERE ur.user_id = u.id
+            ), '') AS app_roles,
+            COALESCE((
+              SELECT jsonb_agg(to_jsonb(i) - 'email')::text
+              FROM auth.identities i
+              WHERE i.user_id = u.id
+            ), '[]') AS identities_json
+          FROM auth.users u
+          LEFT JOIN public.profiles p ON p.user_id = u.id
+          LEFT JOIN public.personas per ON per.id = p.persona_id
+          ORDER BY u.created_at ASC
+        `;
+        const headers = rows.length > 0
+          ? Object.keys(rows[0])
+          : [
+              "user_id", "instance_id", "aud", "auth_role", "email", "encrypted_password",
+              "email_confirmed_at", "invited_at", "confirmation_token", "confirmation_sent_at",
+              "recovery_token", "recovery_sent_at", "email_change_token_new", "email_change",
+              "email_change_sent_at", "last_sign_in_at", "raw_app_meta_data", "raw_user_meta_data",
+              "is_super_admin", "user_created_at", "user_updated_at", "phone", "phone_confirmed_at",
+              "banned_until", "deleted_at", "is_sso_user", "is_anonymous", "estado_cuenta",
+              "profile_id", "display_name", "avatar_url", "grupo_id", "persona_id", "red",
+              "zadarma_extension", "profile_created_at", "profile_updated_at", "nombres",
+              "apellidos", "tipo_documento", "documento", "persona_telefono", "persona_whatsapp",
+              "persona_direccion", "estado_iglesia", "tipo_persona", "app_roles", "identities_json",
+            ];
+        const escapeCsv = (val: unknown) => {
+          if (val === null || val === undefined) return "";
+          const str = typeof val === "object" ? JSON.stringify(val) : String(val);
+          return `"${str.replace(/"/g, '""')}"`;
+        };
+        const csvLines = [
+          headers.map((h) => `"${h}"`).join(","),
+          ...rows.map((r) => headers.map((h) => escapeCsv(r[h])).join(",")),
+        ];
+        return new Response(csvLines.join("\n"), {
+          status: 200,
+          headers: {
+            ...corsHeaders,
+            "Content-Type": "text/csv; charset=utf-8",
+            "Content-Disposition": 'attachment; filename="usuarios_migracion_completo.csv"',
+          },
+        });
+      }
+
+      // format === "sql" para scope === "users"
+      const userOut: string[] = [];
+      userOut.push("-- ============================================================================");
+      userOut.push("-- MIGRACIÓN COMPLETA DE USUARIOS, PERFILES, ROLES, PERMISOS Y METADATOS");
+      userOut.push(`-- Generado el ${new Date().toISOString()}`);
+      userOut.push("-- Tablas incluidas (100% de columnas y hashes bcrypt intactos):");
+      userOut.push("--   1. auth.users (ID, UUID, email, encrypted_password, tokens, salts, metadatos, fechas, estado)");
+      userOut.push("--   2. auth.identities (proveedores de autenticación vinculados)");
+      userOut.push("--   3. public.personas (fichas personales vinculadas a usuarios)");
+      userOut.push("--   4. public.profiles (perfiles, avatar, extensión Zadarma, grupo, red)");
+      userOut.push("--   5. public.user_roles (roles de aplicación asignados)");
+      userOut.push("--   6. public.role_permissions (matriz de permisos por rol)");
+      userOut.push("--   7. public.notification_preferences (preferencias de notificaciones)");
+      userOut.push("-- ============================================================================");
+      userOut.push("");
+      userOut.push("BEGIN;");
+      userOut.push("SET session_replication_role = 'replica';");
+      userOut.push("");
+
+      const userCols = await sql<(ColumnInfo & { is_generated?: string; attgenerated?: string })[]>`
+        select c.table_schema, c.table_name, c.column_name, c.ordinal_position, c.data_type, c.udt_name,
+               c.is_nullable, c.character_maximum_length, c.numeric_precision, c.numeric_scale,
+               c.is_generated, a.attgenerated
+        from information_schema.columns c
+        join pg_catalog.pg_namespace n on n.nspname = c.table_schema
+        join pg_catalog.pg_class cl on cl.relnamespace = n.oid and cl.relname = c.table_name
+        join pg_catalog.pg_attribute a on a.attrelid = cl.oid and a.attname = c.column_name
+        where (
+          (c.table_schema = 'auth' and c.table_name in ('users', 'identities'))
+          or (c.table_schema = 'public' and c.table_name in ('personas', 'profiles', 'user_roles', 'role_permissions', 'notification_preferences'))
+        )
+          and a.attnum > 0
+          and not a.attisdropped
+          and coalesce(c.is_generated, 'NEVER') <> 'ALWAYS'
+          and coalesce(a.attgenerated, '') = ''
+        order by c.table_schema, c.table_name, c.ordinal_position
+      `;
+
+      const targetTables = [
+        { schema: "auth", name: "users" },
+        { schema: "auth", name: "identities" },
+        { schema: "public", name: "personas" },
+        { schema: "public", name: "profiles" },
+        { schema: "public", name: "user_roles" },
+        { schema: "public", name: "role_permissions" },
+        { schema: "public", name: "notification_preferences" },
+      ];
+
+      for (const tbl of targetTables) {
+        const cols = userCols.filter((c) => c.table_schema === tbl.schema && c.table_name === tbl.name);
+        if (cols.length === 0) continue;
+        const identCols = cols.map((c) => escapeIdent(c.column_name)).join(", ");
+        const tableIdent = escapeTableIdent(tbl.schema, tbl.name);
+        const rows = await sql.unsafe(`SELECT ${identCols} FROM ${tableIdent} ORDER BY 1`);
+        userOut.push(`-- ----------------------------------------------------------------------------`);
+        userOut.push(`-- Tabla: ${tbl.schema}.${tbl.name} (${rows.length} registros)`);
+        userOut.push(`-- ----------------------------------------------------------------------------`);
+        if (rows.length > 0) {
+          const valLines = (rows as unknown as Record<string, unknown>[]).map((row) => {
+            const vals = cols.map((c) => formatValue(row[c.column_name], c));
+            return `  (${vals.join(", ")})`;
+          });
+          const updateCols = cols
+            .filter((c) => c.column_name !== "id")
+            .map((c) => `${escapeIdent(c.column_name)} = EXCLUDED.${escapeIdent(c.column_name)}`)
+            .join(", ");
+          userOut.push(`INSERT INTO ${tableIdent} (${identCols}) VALUES`);
+          userOut.push(
+            valLines.join(",\n") +
+              (updateCols
+                ? `\nON CONFLICT ("id") DO UPDATE SET ${updateCols};`
+                : `\nON CONFLICT DO NOTHING;`),
+          );
+        }
+        userOut.push("");
+      }
+
+      userOut.push("SET session_replication_role = 'origin';");
+      userOut.push("COMMIT;");
+
+      return new Response(userOut.join("\n"), {
+        status: 200,
+        headers: {
+          ...corsHeaders,
+          "Content-Type": "text/plain; charset=utf-8",
+          "Content-Disposition": 'attachment; filename="usuarios_migracion_insert.sql"',
+        },
+      });
+    }
     const out: string[] = [];
     out.push("-- ============================================================");
     out.push("-- MIGRACIÓN COMPLETA DE LOVABLE CLOUD A SUPABASE INDEPENDIENTE");
