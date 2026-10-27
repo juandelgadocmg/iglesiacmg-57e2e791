@@ -382,6 +382,14 @@ export default function CheckInView() {
                       fecha={fechaHoyTexto}
                       compact
                     />
+                    {incluirTalonPadre && (
+                      <ParentClaimTagComponent
+                        nino={previewNinoEntrada}
+                        acudiente={(acudientes || []).find(a => a.nino_id === previewNinoEntrada.id)}
+                        grupo={resolveChildInfantilGrupo(previewNinoEntrada)}
+                        fecha={fechaHoyTexto}
+                      />
+                    )}
                   </div>
 
                   <div className="flex items-center gap-2 bg-slate-50 px-3 py-2 rounded-xl border border-slate-200 text-xs">
@@ -638,7 +646,7 @@ export default function CheckInView() {
 
           {checkedInNino && (
             <div className="px-6 py-2 flex flex-col items-center">
-              <div className="printable-checkin-preview scale-90 -my-2 origin-top">
+              <div className="printable-checkin-preview scale-90 -my-2 origin-top space-y-2">
                 <ShirtStickerComponent
                   nino={checkedInNino}
                   acudiente={(acudientes || []).find(a => a.nino_id === checkedInNino.id)}
@@ -646,6 +654,14 @@ export default function CheckInView() {
                   fecha={fechaHoyTexto}
                   compact
                 />
+                {incluirTalonPadre && (
+                  <ParentClaimTagComponent
+                    nino={checkedInNino}
+                    acudiente={(acudientes || []).find(a => a.nino_id === checkedInNino.id)}
+                    grupo={checkedInGrupo || grupoActivo}
+                    fecha={fechaHoyTexto}
+                  />
+                )}
               </div>
             </div>
           )}
@@ -751,6 +767,7 @@ export default function CheckInView() {
               <ParentClaimTagComponent
                 nino={checkedInNino || previewNinoEntrada}
                 acudiente={(acudientes || []).find(a => a.nino_id === (checkedInNino || previewNinoEntrada).id)}
+                grupo={checkedInGrupo || resolveChildInfantilGrupo(checkedInNino || previewNinoEntrada)}
                 fecha={fechaHoyTexto}
               />
             )}
@@ -762,7 +779,7 @@ export default function CheckInView() {
         @media print {
           @page {
             size: auto;
-            margin: 4mm;
+            margin: 2mm;
           }
           body {
             background: white !important;
@@ -786,9 +803,18 @@ export default function CheckInView() {
             display: block !important;
           }
           .shirt-sticker-box {
-            border: 2px solid #000 !important;
+            width: 10cm !important;
+            min-width: 10cm !important;
+            max-width: 10cm !important;
+            height: 5cm !important;
+            min-height: 5cm !important;
+            max-height: 5cm !important;
+            box-sizing: border-box !important;
+            overflow: hidden !important;
+            border: 1.5px solid #000 !important;
             box-shadow: none !important;
             page-break-inside: avoid !important;
+            break-inside: avoid !important;
           }
         }
       `}} />
