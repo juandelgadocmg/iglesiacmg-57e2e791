@@ -19,7 +19,12 @@ import {
 } from "@/hooks/useInfantil";
 import { usePersonas } from "@/hooks/useDatabase";
 import { useNinos, matchInfantilGrupoByAge, getSavedInfantilGrupoMap, saveInfantilGrupoForNino } from "../hooks/useNinos";
-import { ShirtStickerComponent, ParentClaimTagComponent, extractNinoIdentifierFromQr } from "./CarnesView";
+import {
+  ShirtStickerComponent,
+  ParentClaimTagComponent,
+  extractNinoIdentifierFromQr,
+  printEtiquetas10x5cm
+} from "./CarnesView";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import QrEventoScanner from "@/components/attendance/QrEventoScanner";
@@ -198,7 +203,7 @@ export default function CheckInView() {
 
       if (autoPrint) {
         setTimeout(() => {
-          window.print();
+          printEtiquetas10x5cm();
         }, 200);
       } else {
         setCheckInDialogOpen(true);
@@ -293,7 +298,7 @@ export default function CheckInView() {
   };
 
   const printStickerNow = () => {
-    window.print();
+    printEtiquetas10x5cm();
   };
 
   // Acudientes autorizados para el niño que se retira
@@ -778,10 +783,12 @@ export default function CheckInView() {
       <style dangerouslySetInnerHTML={{__html: `
         @media print {
           @page {
-            size: auto;
-            margin: 2mm;
+            size: 10cm 5cm;
+            margin: 0mm;
           }
-          body {
+          html, body {
+            margin: 0 !important;
+            padding: 0 !important;
             background: white !important;
             color: black !important;
             -webkit-print-color-adjust: exact !important;
@@ -797,7 +804,7 @@ export default function CheckInView() {
             position: absolute !important;
             left: 0 !important;
             top: 0 !important;
-            width: 100% !important;
+            width: 10cm !important;
             margin: 0 !important;
             padding: 0 !important;
             display: block !important;
@@ -815,6 +822,8 @@ export default function CheckInView() {
             box-shadow: none !important;
             page-break-inside: avoid !important;
             break-inside: avoid !important;
+            page-break-after: always !important;
+            break-after: page !important;
           }
         }
       `}} />
