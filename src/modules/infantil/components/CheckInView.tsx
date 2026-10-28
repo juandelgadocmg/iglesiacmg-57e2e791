@@ -761,7 +761,7 @@ export default function CheckInView() {
       {/* ÁREA DE IMPRESIÓN RÁPIDA DE STICKER (Solo visible en @media print) */}
       <div className="hidden print:block printable-area">
         {(checkedInNino || previewNinoEntrada) && (
-          <div className="print-duo-container space-y-4">
+          <div className="print-duo-container">
             <ShirtStickerComponent
               nino={checkedInNino || previewNinoEntrada}
               acudiente={(acudientes || []).find(a => a.nino_id === (checkedInNino || previewNinoEntrada).id)}
@@ -783,8 +783,17 @@ export default function CheckInView() {
       <style dangerouslySetInnerHTML={{__html: `
         @media print {
           @page {
-            size: 10cm 5cm;
-            margin: 0mm;
+            size: 100mm 50mm;
+            margin: 0mm !important;
+          }
+          @page :left {
+            margin: 0mm !important;
+          }
+          @page :right {
+            margin: 0mm !important;
+          }
+          *, *::before, *::after {
+            box-sizing: border-box !important;
           }
           html, body {
             margin: 0 !important;
@@ -793,6 +802,7 @@ export default function CheckInView() {
             color: black !important;
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
+            width: 100mm !important;
           }
           body * {
             visibility: hidden !important;
@@ -804,26 +814,36 @@ export default function CheckInView() {
             position: absolute !important;
             left: 0 !important;
             top: 0 !important;
-            width: 10cm !important;
+            width: 100mm !important;
             margin: 0 !important;
             padding: 0 !important;
             display: block !important;
           }
+          .print-duo-container {
+            display: block !important;
+            margin: 0 !important;
+            padding: 0 !important;
+          }
           .shirt-sticker-box {
-            width: 10cm !important;
-            min-width: 10cm !important;
-            max-width: 10cm !important;
-            height: 5cm !important;
-            min-height: 5cm !important;
-            max-height: 5cm !important;
+            width: 97mm !important;
+            min-width: 97mm !important;
+            max-width: 97mm !important;
+            height: 48mm !important;
+            min-height: 48mm !important;
+            max-height: 48mm !important;
             box-sizing: border-box !important;
             overflow: hidden !important;
             border: 1.5px solid #000 !important;
             box-shadow: none !important;
+            margin: 1mm auto !important;
             page-break-inside: avoid !important;
             break-inside: avoid !important;
             page-break-after: always !important;
             break-after: page !important;
+          }
+          .shirt-sticker-box:last-child {
+            page-break-after: auto !important;
+            break-after: auto !important;
           }
         }
       `}} />

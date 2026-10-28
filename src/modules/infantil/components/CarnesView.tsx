@@ -934,8 +934,17 @@ export default function CarnesView() {
       <style dangerouslySetInnerHTML={{__html: `
         @media print {
           @page {
-            size: 10cm 5cm;
-            margin: 0mm;
+            size: 100mm 50mm;
+            margin: 0mm !important;
+          }
+          @page :left {
+            margin: 0mm !important;
+          }
+          @page :right {
+            margin: 0mm !important;
+          }
+          *, *::before, *::after {
+            box-sizing: border-box !important;
           }
           html, body {
             margin: 0 !important;
@@ -944,6 +953,7 @@ export default function CarnesView() {
             color: black !important;
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
+            width: 100mm !important;
           }
           /* Ocultar todo el sistema de la web */
           body * {
@@ -957,21 +967,19 @@ export default function CarnesView() {
             position: absolute !important;
             left: 0 !important;
             top: 0 !important;
-            width: 10cm !important;
+            width: 100mm !important;
             margin: 0 !important;
             padding: 0 !important;
             display: block !important;
           }
           .print-single-sticker-container, .print-duo-container {
-            display: flex !important;
-            flex-direction: column !important;
-            gap: 2mm !important;
+            display: block !important;
             margin: 0 !important;
             padding: 0 !important;
           }
           .print-sheet-grid {
             display: grid !important;
-            grid-template-columns: repeat(2, 10cm) !important;
+            grid-template-columns: repeat(2, 98mm) !important;
             gap: 2mm !important;
             page-break-inside: avoid !important;
           }
@@ -980,20 +988,25 @@ export default function CarnesView() {
             break-inside: avoid !important;
           }
           .shirt-sticker-box {
-            width: 10cm !important;
-            min-width: 10cm !important;
-            max-width: 10cm !important;
-            height: 5cm !important;
-            min-height: 5cm !important;
-            max-height: 5cm !important;
+            width: 97mm !important;
+            min-width: 97mm !important;
+            max-width: 97mm !important;
+            height: 48mm !important;
+            min-height: 48mm !important;
+            max-height: 48mm !important;
             box-sizing: border-box !important;
             overflow: hidden !important;
             border: 1.5px solid #000 !important;
             box-shadow: none !important;
+            margin: 1mm auto !important;
             page-break-inside: avoid !important;
             break-inside: avoid !important;
             page-break-after: always !important;
             break-after: page !important;
+          }
+          .shirt-sticker-box:last-child {
+            page-break-after: auto !important;
+            break-after: auto !important;
           }
         }
       `}} />
@@ -1003,8 +1016,8 @@ export default function CarnesView() {
 
 // --------------------------------------------------------------------------------
 // UTILIDAD DE IMPRESIÓN AISLADA EN FORMATO EXACTO 10 cm × 5 cm (100 mm × 50 mm)
-// Evita que el navegador imprima la hoja completa de la aplicación y fuerza el
-// tamaño exacto de 10 cm × 5 cm tanto para la etiqueta del niño como la del padre.
+// Evita que el navegador imprima la hoja completa de la aplicación, elimina
+// encabezados/pies de página y garantiza 1 etiqueta completa (10x5 cm) por hoja.
 // --------------------------------------------------------------------------------
 export function printEtiquetas10x5cm() {
   const printableEl = document.querySelector(".printable-area");
@@ -1013,6 +1026,12 @@ export function printEtiquetas10x5cm() {
     return;
   }
 
+  // Extraer individualmente cada caja de etiqueta (.shirt-sticker-box)
+  const stickerElements = Array.from(printableEl.querySelectorAll(".shirt-sticker-box"));
+  const pagesHtml = stickerElements.length > 0
+    ? stickerElements.map((el) => `<div class="print-page">${el.outerHTML}</div>`).join("\n")
+    : `<div class="print-page">${printableEl.innerHTML}</div>`;
+
   const existingIframe = document.getElementById("doxa-print-10x5-iframe");
   if (existingIframe) {
     existingIframe.remove();
@@ -1020,13 +1039,15 @@ export function printEtiquetas10x5cm() {
 
   const iframe = document.createElement("iframe");
   iframe.id = "doxa-print-10x5-iframe";
+  // Ubicación fuera de pantalla pero con dimensiones reales para que el motor de renderizado calcule @page
   iframe.style.position = "fixed";
-  iframe.style.right = "0";
-  iframe.style.bottom = "0";
-  iframe.style.width = "0";
-  iframe.style.height = "0";
-  iframe.style.border = "0";
-  iframe.style.visibility = "hidden";
+  iframe.style.left = "-9999px";
+  iframe.style.top = "-9999px";
+  iframe.style.width = "100mm";
+  iframe.style.height = "50mm";
+  iframe.style.border = "none";
+  iframe.style.opacity = "0";
+  iframe.style.pointerEvents = "none";
   document.body.appendChild(iframe);
 
   const doc = iframe.contentWindow?.document;
@@ -1044,12 +1065,21 @@ export function printEtiquetas10x5cm() {
 <html>
   <head>
     <meta charset="utf-8" />
-    <title>Etiquetas 10cm x 5cm</title>
+    <title></title>
     ${styleNodes}
     <style>
       @page {
-        size: 10cm 5cm;
-        margin: 0mm;
+        size: 100mm 50mm;
+        margin: 0mm !important;
+      }
+      @page :left {
+        margin: 0mm !important;
+      }
+      @page :right {
+        margin: 0mm !important;
+      }
+      *, *::before, *::after {
+        box-sizing: border-box !important;
       }
       html, body {
         margin: 0 !important;
@@ -1058,48 +1088,57 @@ export function printEtiquetas10x5cm() {
         color: #000000 !important;
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
+        width: 100mm !important;
+        height: 50mm !important;
       }
-      .printable-area {
-        display: block !important;
-        visibility: visible !important;
-        position: static !important;
+      .print-page {
+        width: 100mm !important;
+        max-width: 100mm !important;
+        min-width: 100mm !important;
+        height: 50mm !important;
+        max-height: 50mm !important;
+        min-height: 50mm !important;
         margin: 0 !important;
-        padding: 0 !important;
-      }
-      .print-single-sticker-container,
-      .print-duo-container {
-        display: flex !important;
-        flex-direction: column !important;
-        gap: 2mm !important;
-        margin: 0 !important;
-        padding: 0 !important;
-      }
-      .shirt-sticker-box {
-        width: 10cm !important;
-        min-width: 10cm !important;
-        max-width: 10cm !important;
-        height: 5cm !important;
-        min-height: 5cm !important;
-        max-height: 5cm !important;
+        padding: 1mm 1.5mm !important;
         box-sizing: border-box !important;
         overflow: hidden !important;
-        border: 1.5px solid #000 !important;
-        border-radius: 6px !important;
-        box-shadow: none !important;
-        margin: 0 !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
         page-break-inside: avoid !important;
         break-inside: avoid !important;
+        page-break-after: always !important;
+        break-after: page !important;
       }
-      @media print {
-        .shirt-sticker-box + .shirt-sticker-box {
-          page-break-before: always !important;
-          break-before: page !important;
-        }
+      .print-page:last-child {
+        page-break-after: auto !important;
+        break-after: auto !important;
+      }
+      .shirt-sticker-box {
+        width: 97mm !important;
+        min-width: 97mm !important;
+        max-width: 97mm !important;
+        height: 48mm !important;
+        min-height: 48mm !important;
+        max-height: 48mm !important;
+        box-sizing: border-box !important;
+        overflow: hidden !important;
+        border: 1.5px solid #000000 !important;
+        border-radius: 6px !important;
+        padding: 6px 8px !important;
+        margin: 0 auto !important;
+        box-shadow: none !important;
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+        page-break-after: avoid !important;
+        break-after: avoid !important;
+        background: #ffffff !important;
+        color: #000000 !important;
       }
     </style>
   </head>
   <body>
-    <div class="printable-area">${printableEl.innerHTML}</div>
+    ${pagesHtml}
   </body>
 </html>`);
   doc.close();
@@ -1111,7 +1150,7 @@ export function printEtiquetas10x5cm() {
     } catch {
       window.print();
     }
-  }, 250);
+  }, 350);
 }
 
 // --------------------------------------------------------------------------------
@@ -1152,70 +1191,68 @@ function UnifiedLabel10x5cm({
   return (
     <div
       style={{
-        width: "10cm",
-        height: "5cm",
-        minWidth: "10cm",
-        maxWidth: "10cm",
-        minHeight: "5cm",
-        maxHeight: "5cm",
+        width: "97mm",
+        height: "48mm",
+        maxWidth: "97mm",
+        maxHeight: "48mm",
+        minWidth: "97mm",
+        minHeight: "48mm",
         boxSizing: "border-box"
       }}
-      className="shirt-sticker-box box-border overflow-hidden bg-white rounded-xl border-2 border-dashed border-slate-400 px-3 py-2 shadow-sm relative text-slate-900 font-sans flex items-stretch justify-between gap-2.5"
+      className="shirt-sticker-box box-border overflow-hidden bg-white rounded-lg border-2 border-dashed border-slate-400 p-2 shadow-sm relative text-slate-900 font-sans flex items-stretch justify-between gap-2"
     >
       {/* Columna Izquierda: Cabecera + Nombre + Grupo + Alergias + Acudiente */}
-      <div className="flex-1 min-w-0 flex flex-col justify-between h-full pr-1">
+      <div className="flex-1 min-w-0 flex flex-col justify-between h-full pr-1 overflow-hidden">
         {/* Cabecera DOXA Kids */}
-        <div className="flex items-center justify-between border-b border-slate-300 pb-1">
-          <div className="flex items-center gap-1.5 min-w-0">
-            <div className="w-4 h-4 rounded bg-slate-900 flex items-center justify-center text-white font-black text-[8.5px] shrink-0">
+        <div className="flex items-center justify-between border-b border-slate-300 pb-0.5 shrink-0">
+          <div className="flex items-center gap-1 min-w-0">
+            <div className="w-3.5 h-3.5 rounded bg-slate-900 flex items-center justify-center text-white font-black text-[8px] shrink-0">
               DK
             </div>
             <div className="truncate flex items-center gap-1">
-              <span className="font-black text-[9.5px] tracking-wider text-slate-950 uppercase">
+              <span className="font-black text-[9px] tracking-wider text-slate-950 uppercase">
                 DOXA KIDS
               </span>
-              <span className="text-[8.5px] font-black uppercase px-1.5 py-0.2 rounded bg-slate-900 text-white">
+              <span className="text-[7.5px] font-black uppercase px-1 py-0.2 rounded bg-slate-900 text-white shrink-0">
                 {isNino ? "ETIQUETA NIÑO · ROPA" : "ETIQUETA PADRE · RETIRO"}
               </span>
             </div>
           </div>
-          <span className="text-[8.5px] font-bold text-slate-700 shrink-0 ml-1">{fecha}</span>
+          <span className="text-[8px] font-bold text-slate-700 shrink-0 ml-1">{fecha}</span>
         </div>
 
         {/* Nombre del Niño y Grupo (Idéntico en ambas etiquetas) */}
         <div className="my-auto py-0.5 min-w-0">
-          <h2 className="text-lg font-black uppercase text-slate-950 leading-none tracking-tight truncate">
+          <h2 className="text-[15px] font-black uppercase text-slate-950 leading-tight tracking-tight truncate">
             {nino.nombres}
           </h2>
-          <p className="text-xs font-bold text-slate-700 uppercase tracking-wide truncate mt-0.5">
+          <p className="text-[11px] font-bold text-slate-700 uppercase tracking-wide truncate">
             {nino.apellidos}
           </p>
 
-          <div className="mt-1 inline-flex items-center gap-1 px-2 py-0.5 rounded bg-slate-100 border border-slate-300 text-slate-900 text-[9.5px] font-black uppercase max-w-full">
+          <div className="mt-0.5 inline-flex items-center gap-1 px-1.5 py-0.2 rounded bg-slate-100 border border-slate-300 text-slate-900 text-[8.5px] font-black uppercase max-w-full">
             <Tag className="w-2.5 h-2.5 text-slate-800 shrink-0" />
             <span className="truncate">{grupo?.nombre || "Infantil"}</span>
           </div>
         </div>
 
         {/* Alergia + Contacto Acudiente (Idéntico en ambas etiquetas) */}
-        <div className="space-y-1">
+        <div className="space-y-0.5 shrink-0">
           {mostrarAlergias && (
             alergias ? (
-              <div className="bg-amber-50 border border-amber-400 text-amber-950 px-1.5 py-0.5 rounded text-[8.5px] font-black flex items-center gap-1 leading-tight">
+              <div className="bg-amber-50 border border-amber-400 text-amber-950 px-1 py-0.2 rounded text-[8px] font-black flex items-center gap-1 leading-tight truncate">
                 <AlertTriangle className="w-2.5 h-2.5 text-amber-600 shrink-0" />
                 <span className="truncate">ALERGIA: {alergias}</span>
               </div>
             ) : (
-              <div className="bg-slate-50 border border-slate-200 text-slate-700 px-1.5 py-0.5 rounded text-[8px] font-semibold flex items-center gap-1 leading-tight">
+              <div className="bg-slate-50 border border-slate-200 text-slate-700 px-1 py-0.2 rounded text-[7.5px] font-semibold flex items-center gap-1 leading-tight">
                 <CheckCircle2 className="w-2.5 h-2.5 text-emerald-600 shrink-0" />
-                <span>
-                  {isNino ? "Sin alergias registradas" : "Presentar este QR para retirar al niño"}
-                </span>
+                <span>{isNino ? "Sin alergias registradas" : "Presentar QR para retiro"}</span>
               </div>
             )
           )}
 
-          <div className="pt-0.5 border-t border-slate-300 text-[8.5px] flex justify-between items-center gap-1 text-slate-800 leading-none">
+          <div className="pt-0.5 border-t border-slate-300 text-[8px] flex justify-between items-center gap-1 text-slate-800 leading-none">
             <div className="truncate">
               <span className="font-bold text-slate-950">Acudiente: </span>
               <span>{nombreAcudiente}</span>
@@ -1229,20 +1266,20 @@ function UnifiedLabel10x5cm({
         </div>
       </div>
 
-      {/* Columna Derecha: Código QR + Código de Seguridad (Idéntico en ambas etiquetas) */}
-      <div className="shrink-0 flex flex-col items-center justify-center pl-2 border-l border-dashed border-slate-300 h-full">
-        <div className="bg-white p-0.5 rounded-lg border border-slate-300">
+      {/* Columna Derecha: Código QR + Código de Seguridad */}
+      <div className="shrink-0 flex flex-col items-center justify-between pl-1.5 border-l border-dashed border-slate-300 h-full py-0.5">
+        <div className="bg-white p-0.5 rounded border border-slate-300 shrink-0">
           <QRCodeSVG
             value={getInfantilQrValue(nino)}
-            size={92}
+            size={76}
             level="L"
-            includeMargin={true}
+            includeMargin={false}
           />
         </div>
-        <span className="text-[9.5px] font-mono font-black text-slate-950 bg-slate-100 border border-slate-300 px-1.5 py-0.5 rounded mt-1 leading-none tracking-wider">
+        <span className="text-[9px] font-mono font-black text-slate-950 bg-slate-100 border border-slate-300 px-1 py-0.2 rounded leading-none tracking-wider">
           #{securityCode}
         </span>
-        <span className="text-[7px] font-black uppercase tracking-widest text-slate-600 mt-0.5 leading-none">
+        <span className="text-[6.5px] font-black uppercase tracking-widest text-slate-600 leading-none">
           {isNino ? "NIÑO (10×5CM)" : "PADRE (10×5CM)"}
         </span>
       </div>
