@@ -807,6 +807,13 @@ export default function CheckInView() {
           body * {
             visibility: hidden !important;
           }
+          [data-radix-portal],
+          [data-radix-focus-guard],
+          .radix-dialog-overlay,
+          .radix-overlay {
+            display: none !important;
+            visibility: hidden !important;
+          }
           .printable-area, .printable-area * {
             visibility: visible !important;
           }

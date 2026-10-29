@@ -828,30 +828,7 @@ export default function CarnesView() {
 
       {/* ÁREA DE IMPRESIÓN FÍSICA PURA (Solo visible en @media print) */}
       <div className="hidden print:block printable-area">
-        {printMode === "sticker" && selectedNino && (
-          <div className="print-single-sticker-container">
-            <ShirtStickerComponent
-              nino={selectedNino}
-              acudiente={acudientePrincipal}
-              grupo={grupoNino}
-              fecha={fechaHoy}
-              mostrarAlergias={mostrarAlergias}
-              mostrarTelefono={mostrarTelefono}
-            />
-            {mostrarTalonAcudiente && (
-              <ParentClaimTagComponent
-                nino={selectedNino}
-                acudiente={acudientePrincipal}
-                grupo={grupoNino}
-                fecha={fechaHoy}
-                mostrarAlergias={mostrarAlergias}
-                mostrarTelefono={mostrarTelefono}
-              />
-            )}
-          </div>
-        )}
-
-        {printMode === "duo" && selectedNino && (
+        {selectedNino && printMode !== "planilla" && printMode !== "carne" && (
           <div className="print-duo-container">
             <ShirtStickerComponent
               nino={selectedNino}
@@ -949,18 +926,29 @@ export default function CarnesView() {
           html, body {
             margin: 0 !important;
             padding: 0 !important;
-            background: white !important;
-            color: black !important;
+            background: #ffffff !important;
+            color: #000000 !important;
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
             width: 100mm !important;
+            height: 50mm !important;
           }
-          /* Ocultar todo el sistema de la web */
+          /* Ocultar modales, diálogos y el resto de la interfaz web */
           body * {
             visibility: hidden !important;
           }
+          [data-radix-portal],
+          [data-radix-focus-guard],
+          .radix-dialog-overlay,
+          .radix-overlay {
+            display: none !important;
+            visibility: hidden !important;
+          }
           /* Hacer visible únicamente el área designada de impresión */
-          .printable-area, .printable-area * {
+          .printable-area,
+          .printable-area *,
+          .shirt-sticker-box,
+          .shirt-sticker-box * {
             visibility: visible !important;
           }
           .printable-area {
@@ -971,8 +959,10 @@ export default function CarnesView() {
             margin: 0 !important;
             padding: 0 !important;
             display: block !important;
+            background: #ffffff !important;
           }
-          .print-single-sticker-container, .print-duo-container {
+          .print-single-sticker-container,
+          .print-duo-container {
             display: block !important;
             margin: 0 !important;
             padding: 0 !important;
@@ -996,9 +986,12 @@ export default function CarnesView() {
             max-height: 48mm !important;
             box-sizing: border-box !important;
             overflow: hidden !important;
-            border: 1.5px solid #000 !important;
+            border: 1.5px solid #000000 !important;
+            border-radius: 6px !important;
             box-shadow: none !important;
             margin: 1mm auto !important;
+            background: #ffffff !important;
+            color: #000000 !important;
             page-break-inside: avoid !important;
             break-inside: avoid !important;
             page-break-after: always !important;
@@ -1015,142 +1008,28 @@ export default function CarnesView() {
 }
 
 // --------------------------------------------------------------------------------
-// UTILIDAD DE IMPRESIÓN AISLADA EN FORMATO EXACTO 10 cm × 5 cm (100 mm × 50 mm)
-// Evita que el navegador imprima la hoja completa de la aplicación, elimina
-// encabezados/pies de página y garantiza 1 etiqueta completa (10x5 cm) por hoja.
+// UTILIDAD DE IMPRESIÓN DIRECTA EN FORMATO EXACTO 10 cm × 5 cm (100 mm × 50 mm)
+// Abre directamente el diálogo nativo de impresión del navegador de forma
+// confiable e inmediata, sin bloqueos de sandbox ni iframes ocultos.
 // --------------------------------------------------------------------------------
 export function printEtiquetas10x5cm() {
-  const printableEl = document.querySelector(".printable-area");
-  if (!printableEl) {
+  const prevTitle = document.title;
+  try {
+    // Título vacío temporal para que el navegador no imprima el nombre de la página en la cabecera
+    document.title = "";
+  } catch {}
+
+  try {
     window.print();
-    return;
+  } catch (err) {
+    console.error("Error al imprimir etiqueta:", err);
+  } finally {
+    setTimeout(() => {
+      try {
+        document.title = prevTitle;
+      } catch {}
+    }, 1000);
   }
-
-  // Extraer individualmente cada caja de etiqueta (.shirt-sticker-box)
-  const stickerElements = Array.from(printableEl.querySelectorAll(".shirt-sticker-box"));
-  const pagesHtml = stickerElements.length > 0
-    ? stickerElements.map((el) => `<div class="print-page">${el.outerHTML}</div>`).join("\n")
-    : `<div class="print-page">${printableEl.innerHTML}</div>`;
-
-  const existingIframe = document.getElementById("doxa-print-10x5-iframe");
-  if (existingIframe) {
-    existingIframe.remove();
-  }
-
-  const iframe = document.createElement("iframe");
-  iframe.id = "doxa-print-10x5-iframe";
-  // Ubicación fuera de pantalla pero con dimensiones reales para que el motor de renderizado calcule @page
-  iframe.style.position = "fixed";
-  iframe.style.left = "-9999px";
-  iframe.style.top = "-9999px";
-  iframe.style.width = "100mm";
-  iframe.style.height = "50mm";
-  iframe.style.border = "none";
-  iframe.style.opacity = "0";
-  iframe.style.pointerEvents = "none";
-  document.body.appendChild(iframe);
-
-  const doc = iframe.contentWindow?.document;
-  if (!doc) {
-    window.print();
-    return;
-  }
-
-  const styleNodes = Array.from(document.querySelectorAll('link[rel="stylesheet"], style'))
-    .map((el) => el.outerHTML)
-    .join("\n");
-
-  doc.open();
-  doc.write(`<!DOCTYPE html>
-<html>
-  <head>
-    <meta charset="utf-8" />
-    <title></title>
-    ${styleNodes}
-    <style>
-      @page {
-        size: 100mm 50mm;
-        margin: 0mm !important;
-      }
-      @page :left {
-        margin: 0mm !important;
-      }
-      @page :right {
-        margin: 0mm !important;
-      }
-      *, *::before, *::after {
-        box-sizing: border-box !important;
-      }
-      html, body {
-        margin: 0 !important;
-        padding: 0 !important;
-        background: #ffffff !important;
-        color: #000000 !important;
-        -webkit-print-color-adjust: exact !important;
-        print-color-adjust: exact !important;
-        width: 100mm !important;
-        height: 50mm !important;
-      }
-      .print-page {
-        width: 100mm !important;
-        max-width: 100mm !important;
-        min-width: 100mm !important;
-        height: 50mm !important;
-        max-height: 50mm !important;
-        min-height: 50mm !important;
-        margin: 0 !important;
-        padding: 1mm 1.5mm !important;
-        box-sizing: border-box !important;
-        overflow: hidden !important;
-        display: flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        page-break-inside: avoid !important;
-        break-inside: avoid !important;
-        page-break-after: always !important;
-        break-after: page !important;
-      }
-      .print-page:last-child {
-        page-break-after: auto !important;
-        break-after: auto !important;
-      }
-      .shirt-sticker-box {
-        width: 97mm !important;
-        min-width: 97mm !important;
-        max-width: 97mm !important;
-        height: 48mm !important;
-        min-height: 48mm !important;
-        max-height: 48mm !important;
-        box-sizing: border-box !important;
-        overflow: hidden !important;
-        border: 1.5px solid #000000 !important;
-        border-radius: 6px !important;
-        padding: 6px 8px !important;
-        margin: 0 auto !important;
-        box-shadow: none !important;
-        page-break-inside: avoid !important;
-        break-inside: avoid !important;
-        page-break-after: avoid !important;
-        break-after: avoid !important;
-        background: #ffffff !important;
-        color: #000000 !important;
-      }
-    </style>
-  </head>
-  <body>
-    ${pagesHtml}
-  </body>
-</html>`);
-  doc.close();
-
-  setTimeout(() => {
-    try {
-      iframe.contentWindow?.focus();
-      iframe.contentWindow?.print();
-    } catch {
-      window.print();
-    }
-  }, 350);
 }
 
 // --------------------------------------------------------------------------------
