@@ -1,4 +1,5 @@
 import { useEffect, useState, useMemo } from "react";
+import { createPortal } from "react-dom";
 import {
   QrCode, Printer, Shield, User, Shirt, Tag,
   AlertTriangle, CheckCircle2, Layers, Search, ScanLine, LogIn, LogOut
@@ -826,39 +827,43 @@ export default function CarnesView() {
         </DialogContent>
       </Dialog>
 
-      {/* ÁREA DE IMPRESIÓN FÍSICA PURA (Solo visible en @media print) */}
-      <div className="hidden print:block printable-area">
-        {selectedNino && printMode !== "planilla" && printMode !== "carne" && (
-          <div className="print-duo-container">
-            <ShirtStickerComponent
-              nino={selectedNino}
-              acudiente={acudientePrincipal}
-              grupo={grupoNino}
-              fecha={fechaHoy}
-              mostrarAlergias={mostrarAlergias}
-              mostrarTelefono={mostrarTelefono}
-            />
-            {mostrarTalonAcudiente && (
-              <ParentClaimTagComponent
-                nino={selectedNino}
-                acudiente={acudientePrincipal}
-                grupo={grupoNino}
-                fecha={fechaHoy}
-                mostrarAlergias={mostrarAlergias}
-                mostrarTelefono={mostrarTelefono}
-              />
-            )}
-          </div>
-        )}
+      {/* PORTAL DE IMPRESIÓN DIRECTO AL BODY (Evita desbordamiento y división entre etiquetas) */}
+      {typeof document !== "undefined" && createPortal(
+        <div id="doxa-thermal-print-area">
+          {selectedNino && printMode !== "planilla" && printMode !== "carne" && (
+            <>
+              <div className="thermal-label-page">
+                <ShirtStickerComponent
+                  nino={selectedNino}
+                  acudiente={acudientePrincipal}
+                  grupo={grupoNino}
+                  fecha={fechaHoy}
+                  mostrarAlergias={mostrarAlergias}
+                  mostrarTelefono={mostrarTelefono}
+                />
+              </div>
+              {mostrarTalonAcudiente && (
+                <div className="thermal-label-page">
+                  <ParentClaimTagComponent
+                    nino={selectedNino}
+                    acudiente={acudientePrincipal}
+                    grupo={grupoNino}
+                    fecha={fechaHoy}
+                    mostrarAlergias={mostrarAlergias}
+                    mostrarTelefono={mostrarTelefono}
+                  />
+                </div>
+              )}
+            </>
+          )}
 
-        {printMode === "planilla" && (
-          <div className="print-sheet-grid">
-            {ninosPlanilla.map((n) => {
+          {printMode === "planilla" && (
+            ninosPlanilla.map((n) => {
               const rels = (acudientes || []).filter(a => a.nino_id === n.id);
               const acu = rels.find(a => a.es_principal) || rels[0] || null;
               const grp = resolveGrupoForNino(n);
               return (
-                <div key={n.id} className="print-sheet-item">
+                <div key={n.id} className="thermal-label-page">
                   <ShirtStickerComponent
                     nino={n}
                     acudiente={acu}
@@ -870,45 +875,18 @@ export default function CarnesView() {
                   />
                 </div>
               );
-            })}
-          </div>
-        )}
-
-        {printMode === "carne" && selectedNino && (
-          <div className="print-carne-container flex justify-center items-center h-full">
-            <div className="w-[340px] bg-white rounded-2xl border-2 border-slate-300 p-6 text-center">
-              <div className="border-b pb-3 mb-4">
-                <h3 className="font-black text-lg text-slate-900 uppercase">DOXA KIDS</h3>
-                <p className="text-xs text-slate-500">Centro Mundial de Gloria</p>
-              </div>
-              <h2 className="text-2xl font-black text-slate-900 leading-tight">
-                {selectedNino.nombres}
-                <br />
-                {selectedNino.apellidos}
-              </h2>
-              <div className="my-4 flex justify-center">
-                <QRCodeSVG
-                  value={getInfantilQrValue(selectedNino)}
-                  size={156}
-                  level="M"
-                  includeMargin={true}
-                />
-              </div>
-              <p className="font-mono text-xs font-bold text-slate-500">
-                ID: #{getSecurityCode(selectedNino.id)}
-              </p>
-              {selectedNino.detalles?.alergias && (
-                <div className="mt-3 bg-red-50 border border-red-200 text-red-700 text-xs font-bold p-1 rounded">
-                  ALERGIA: {selectedNino.detalles.alergias}
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-      </div>
+            })
+          )}
+        </div>,
+        document.body
+      )}
 
       {/* ESTILOS DE IMPRESIÓN FÍSICA PARA ETIQUETAS ADHESIVAS Y TERMICAS (10 cm × 5 cm) */}
       <style dangerouslySetInnerHTML={{__html: `
+        #doxa-thermal-print-area {
+          display: none;
+        }
+
         @media print {
           @page {
             size: 100mm 50mm;
@@ -931,75 +909,77 @@ export default function CarnesView() {
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
             width: 100mm !important;
-            height: 50mm !important;
+            height: auto !important;
+            min-height: 0 !important;
+            overflow: visible !important;
           }
-          /* Ocultar modales, diálogos y el resto de la interfaz web */
-          body * {
-            visibility: hidden !important;
-          }
+          /* Ocultar TODO #root, diálogos y portales de UI para evitar saltos o páginas fantasma */
+          #root,
           [data-radix-portal],
           [data-radix-focus-guard],
           .radix-dialog-overlay,
           .radix-overlay {
             display: none !important;
             visibility: hidden !important;
+            height: 0 !important;
+            max-height: 0 !important;
+            overflow: hidden !important;
           }
-          /* Hacer visible únicamente el área designada de impresión */
-          .printable-area,
-          .printable-area *,
-          .shirt-sticker-box,
-          .shirt-sticker-box * {
+          /* Mostrar únicamente el área de impresión térmica montada directamente en body */
+          #doxa-thermal-print-area {
+            display: block !important;
             visibility: visible !important;
-          }
-          .printable-area {
-            position: absolute !important;
-            left: 0 !important;
-            top: 0 !important;
+            position: static !important;
             width: 100mm !important;
             margin: 0 !important;
             padding: 0 !important;
-            display: block !important;
             background: #ffffff !important;
           }
-          .print-single-sticker-container,
-          .print-duo-container {
-            display: block !important;
+          /* Cada página de etiqueta física mide exactamente 100mm x 50mm */
+          .thermal-label-page {
+            width: 100mm !important;
+            height: 50mm !important;
+            max-width: 100mm !important;
+            max-height: 50mm !important;
+            min-width: 100mm !important;
+            min-height: 50mm !important;
+            box-sizing: border-box !important;
+            overflow: hidden !important;
             margin: 0 !important;
-            padding: 0 !important;
-          }
-          .print-sheet-grid {
-            display: grid !important;
-            grid-template-columns: repeat(2, 98mm) !important;
-            gap: 2mm !important;
-            page-break-inside: avoid !important;
-          }
-          .print-sheet-item {
+            padding: 1.5mm 2mm !important;
             page-break-inside: avoid !important;
             break-inside: avoid !important;
+            page-break-after: always !important;
+            break-after: page !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            background: #ffffff !important;
+          }
+          .thermal-label-page:last-child {
+            page-break-after: auto !important;
+            break-after: auto !important;
           }
           .shirt-sticker-box {
-            width: 97mm !important;
-            min-width: 97mm !important;
-            max-width: 97mm !important;
-            height: 48mm !important;
-            min-height: 48mm !important;
-            max-height: 48mm !important;
+            width: 96mm !important;
+            min-width: 96mm !important;
+            max-width: 96mm !important;
+            height: 47mm !important;
+            min-height: 47mm !important;
+            max-height: 47mm !important;
             box-sizing: border-box !important;
             overflow: hidden !important;
             border: 1.5px solid #000000 !important;
             border-radius: 6px !important;
             box-shadow: none !important;
-            margin: 1mm auto !important;
+            margin: 0 !important;
+            padding: 4px 6px !important;
             background: #ffffff !important;
             color: #000000 !important;
             page-break-inside: avoid !important;
             break-inside: avoid !important;
-            page-break-after: always !important;
-            break-after: page !important;
-          }
-          .shirt-sticker-box:last-child {
-            page-break-after: auto !important;
-            break-after: auto !important;
+            page-break-after: avoid !important;
+            break-after: avoid !important;
           }
         }
       `}} />
@@ -1070,12 +1050,12 @@ function UnifiedLabel10x5cm({
   return (
     <div
       style={{
-        width: "97mm",
-        height: "48mm",
-        maxWidth: "97mm",
-        maxHeight: "48mm",
-        minWidth: "97mm",
-        minHeight: "48mm",
+        width: "96mm",
+        height: "47mm",
+        maxWidth: "96mm",
+        maxHeight: "47mm",
+        minWidth: "96mm",
+        minHeight: "47mm",
         boxSizing: "border-box"
       }}
       className="shirt-sticker-box box-border overflow-hidden bg-white rounded-lg border-2 border-dashed border-slate-400 p-2 shadow-sm relative text-slate-900 font-sans flex items-stretch justify-between gap-2"

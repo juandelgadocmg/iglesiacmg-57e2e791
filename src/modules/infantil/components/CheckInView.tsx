@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, useMemo } from "react";
+import { createPortal } from "react-dom";
 import {
   QrCode, Search, UserCheck, ShieldCheck, AlertTriangle,
   LogIn, LogOut, Printer, Shirt, CheckCircle2, X
@@ -758,29 +759,36 @@ export default function CheckInView() {
         </DialogContent>
       </Dialog>
 
-      {/* ÁREA DE IMPRESIÓN RÁPIDA DE STICKER (Solo visible en @media print) */}
-      <div className="hidden print:block printable-area">
-        {(checkedInNino || previewNinoEntrada) && (
-          <div className="print-duo-container">
+      {/* PORTAL DE IMPRESIÓN DIRECTO AL BODY (Evita desbordamiento y división entre etiquetas) */}
+      {typeof document !== "undefined" && (checkedInNino || previewNinoEntrada) && createPortal(
+        <div id="doxa-thermal-print-area">
+          <div className="thermal-label-page">
             <ShirtStickerComponent
               nino={checkedInNino || previewNinoEntrada}
               acudiente={(acudientes || []).find(a => a.nino_id === (checkedInNino || previewNinoEntrada).id)}
               grupo={checkedInGrupo || resolveChildInfantilGrupo(checkedInNino || previewNinoEntrada)}
               fecha={fechaHoyTexto}
             />
-            {incluirTalonPadre && (
+          </div>
+          {incluirTalonPadre && (
+            <div className="thermal-label-page">
               <ParentClaimTagComponent
                 nino={checkedInNino || previewNinoEntrada}
                 acudiente={(acudientes || []).find(a => a.nino_id === (checkedInNino || previewNinoEntrada).id)}
                 grupo={checkedInGrupo || resolveChildInfantilGrupo(checkedInNino || previewNinoEntrada)}
                 fecha={fechaHoyTexto}
               />
-            )}
-          </div>
-        )}
-      </div>
+            </div>
+          )}
+        </div>,
+        document.body
+      )}
 
       <style dangerouslySetInnerHTML={{__html: `
+        #doxa-thermal-print-area {
+          display: none;
+        }
+
         @media print {
           @page {
             size: 100mm 50mm;
@@ -798,59 +806,82 @@ export default function CheckInView() {
           html, body {
             margin: 0 !important;
             padding: 0 !important;
-            background: white !important;
-            color: black !important;
+            background: #ffffff !important;
+            color: #000000 !important;
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
             width: 100mm !important;
+            height: auto !important;
+            min-height: 0 !important;
+            overflow: visible !important;
           }
-          body * {
-            visibility: hidden !important;
-          }
+          /* Ocultar TODO #root, diálogos y portales de UI para evitar saltos o páginas fantasma */
+          #root,
           [data-radix-portal],
           [data-radix-focus-guard],
           .radix-dialog-overlay,
           .radix-overlay {
             display: none !important;
             visibility: hidden !important;
+            height: 0 !important;
+            max-height: 0 !important;
+            overflow: hidden !important;
           }
-          .printable-area, .printable-area * {
+          /* Mostrar únicamente el área de impresión térmica montada directamente en body */
+          #doxa-thermal-print-area {
+            display: block !important;
             visibility: visible !important;
-          }
-          .printable-area {
-            position: absolute !important;
-            left: 0 !important;
-            top: 0 !important;
+            position: static !important;
             width: 100mm !important;
             margin: 0 !important;
             padding: 0 !important;
-            display: block !important;
+            background: #ffffff !important;
           }
-          .print-duo-container {
-            display: block !important;
-            margin: 0 !important;
-            padding: 0 !important;
-          }
-          .shirt-sticker-box {
-            width: 97mm !important;
-            min-width: 97mm !important;
-            max-width: 97mm !important;
-            height: 48mm !important;
-            min-height: 48mm !important;
-            max-height: 48mm !important;
+          /* Cada página de etiqueta física mide exactamente 100mm x 50mm */
+          .thermal-label-page {
+            width: 100mm !important;
+            height: 50mm !important;
+            max-width: 100mm !important;
+            max-height: 50mm !important;
+            min-width: 100mm !important;
+            min-height: 50mm !important;
             box-sizing: border-box !important;
             overflow: hidden !important;
-            border: 1.5px solid #000 !important;
-            box-shadow: none !important;
-            margin: 1mm auto !important;
+            margin: 0 !important;
+            padding: 1.5mm 2mm !important;
             page-break-inside: avoid !important;
             break-inside: avoid !important;
             page-break-after: always !important;
             break-after: page !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            background: #ffffff !important;
           }
-          .shirt-sticker-box:last-child {
+          .thermal-label-page:last-child {
             page-break-after: auto !important;
             break-after: auto !important;
+          }
+          .shirt-sticker-box {
+            width: 96mm !important;
+            min-width: 96mm !important;
+            max-width: 96mm !important;
+            height: 47mm !important;
+            min-height: 47mm !important;
+            max-height: 47mm !important;
+            box-sizing: border-box !important;
+            overflow: hidden !important;
+            border: 1.5px solid #000000 !important;
+            border-radius: 6px !important;
+            box-shadow: none !important;
+            margin: 0 !important;
+            padding: 4px 6px !important;
+            background: #ffffff !important;
+            color: #000000 !important;
+            page-break-inside: avoid !important;
+            break-inside: avoid !important;
+            page-break-after: avoid !important;
+            break-after: avoid !important;
           }
         }
       `}} />
