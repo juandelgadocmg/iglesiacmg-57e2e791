@@ -4,12 +4,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useNinos } from "../hooks/useNinos";
-import { useInfantilAsistencias, useInfantilAtenciones } from "@/hooks/useInfantil";
+import { useInfantilAsistencias, useInfantilAtenciones, getLocalTodayDateString } from "@/hooks/useInfantil";
 import { useNavigate } from "react-router-dom";
 
 export default function DashboardInfantil() {
   const navigate = useNavigate();
-  const today = useMemo(() => new Date().toISOString().split("T")[0], []);
+  const today = useMemo(() => getLocalTodayDateString(), []);
 
   const { ninos, isLoading: isLoadingNinos } = useNinos();
   const { data: asistencias } = useInfantilAsistencias(today);

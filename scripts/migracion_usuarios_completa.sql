@@ -611,3 +611,4 @@ FROM auth.users u
 LEFT JOIN public.profiles p ON p.user_id = u.id
 LEFT JOIN public.personas per ON per.id = p.persona_id
 ORDER BY u.created_at ASC;
+

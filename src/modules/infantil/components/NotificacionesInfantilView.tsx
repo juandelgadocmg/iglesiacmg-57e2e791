@@ -24,6 +24,7 @@ import {
   useInfantilGrupos,
   useInfantilAcudientes,
   useInfantilAsistencias,
+  getLocalTodayDateString,
 } from "@/hooks/useInfantil";
 import { useNinos } from "../hooks/useNinos";
 
@@ -44,7 +45,7 @@ function formatWhatsAppPhone(raw?: string | null): string | null {
 }
 
 export default function NotificacionesInfantilView() {
-  const fechaHoy = useMemo(() => new Date().toISOString().split("T")[0], []);
+  const fechaHoy = useMemo(() => getLocalTodayDateString(), []);
   const { data: historial = [], isLoading } = useInfantilNotificaciones();
   const createNotificacion = useCreateInfantilNotificacion();
   const { data: grupos = [] } = useInfantilGrupos();

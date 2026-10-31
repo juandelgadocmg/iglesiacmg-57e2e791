@@ -111,3 +111,4 @@ END;
 $$;
 
 GRANT EXECUTE ON FUNCTION public.export_users_migration_json() TO authenticated, service_role;
+

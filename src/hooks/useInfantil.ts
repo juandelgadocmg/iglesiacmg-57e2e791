@@ -278,6 +278,18 @@ export function useUpdateInfantilClase() {
   });
 }
 
+/**
+ * Retorna la fecha local actual en formato YYYY-MM-DD.
+ * Corrige el desfase de zona horaria UTC donde a partir de las 7:00 p.m. (hora Colombia / UTC-5)
+ * new Date().toISOString() cambiaba erróneamente al día siguiente.
+ */
+export function getLocalTodayDateString(d: Date = new Date()): string {
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
 export function useInfantilCheckIn() {
   const qc = useQueryClient();
   return useMutation({
@@ -286,8 +298,9 @@ export function useInfantilCheckIn() {
       grupo_id: string;
       entregado_por_id?: string;
       observaciones?: string;
+      fecha?: string;
     }) => {
-      const fechaHoy = new Date().toISOString().split("T")[0];
+      const fechaHoy = payload.fecha || getLocalTodayDateString();
       const { data, error } = await supabase.from("infantil_asistencia_checkin").upsert({
         nino_id: payload.nino_id,
         grupo_id: payload.grupo_id,
@@ -328,14 +341,36 @@ export function useInfantilCheckOut() {
   });
 }
 
-export function useInfantilAsistencias(fecha: string) {
+export function useInfantilAsistencias(fecha?: string) {
+  const targetFecha = fecha || getLocalTodayDateString();
   return useQuery({
-    queryKey: ["infantil_asistencia", fecha],
+    queryKey: ["infantil_asistencia", targetFecha],
     queryFn: async () => {
+      // 1. Asistencias de la fecha local
+      // 2. Traer también asistencias activas (sin hora_salida) recientes (últimas 24 horas)
+      //    para garantizar que los niños en clase siempre aparezcan disponibles para Check-Out.
+      const hace24h = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+
+      try {
+        const { data, error } = await supabase
+          .from("infantil_asistencia_checkin")
+          .select("*, nino:nino_id(id, nombres, apellidos, documento), entregado:entregado_por_id(id, nombres, apellidos), recogido:recogido_por_id(id, nombres, apellidos), grupo:grupo_id(id, nombre)")
+          .or(`fecha.eq.${targetFecha},and(hora_salida.is.null,hora_entrada.gte.${hace24h})`)
+          .order("hora_entrada", { ascending: false });
+
+        if (!error && data) {
+          const uniqueMap = new Map();
+          data.forEach((item: any) => uniqueMap.set(item.id, item));
+          return Array.from(uniqueMap.values());
+        }
+      } catch (e) {
+        console.warn("Fallback en useInfantilAsistencias:", e);
+      }
+
       const { data, error } = await supabase
         .from("infantil_asistencia_checkin")
         .select("*, nino:nino_id(id, nombres, apellidos, documento), entregado:entregado_por_id(id, nombres, apellidos), recogido:recogido_por_id(id, nombres, apellidos), grupo:grupo_id(id, nombre)")
-        .eq("fecha", fecha)
+        .eq("fecha", targetFecha)
         .order("hora_entrada", { ascending: false });
       if (error) throw error;
       return data;

@@ -12,6 +12,7 @@ import {
   useInfantilCheckIn,
   useInfantilCheckOut,
   useInfantilAsistencias,
+  getLocalTodayDateString,
 } from "@/hooks/useInfantil";
 import { useNinos, matchInfantilGrupoByAge, getSavedInfantilGrupoMap, saveInfantilGrupoForNino } from "../hooks/useNinos";
 import { supabase } from "@/integrations/supabase/client";
@@ -68,7 +69,7 @@ export default function CarnesView() {
   const { ninos, isLoading: isLoadingNinos } = useNinos();
   const { data: acudientes } = useInfantilAcudientes();
   const { data: grupos } = useInfantilGrupos();
-  const todayIso = useMemo(() => new Date().toISOString().split("T")[0], []);
+  const todayIso = useMemo(() => getLocalTodayDateString(), []);
   const { data: asistenciasHoy = [] } = useInfantilAsistencias(todayIso);
   const checkIn = useInfantilCheckIn();
   const checkOut = useInfantilCheckOut();
@@ -233,7 +234,24 @@ export default function CarnesView() {
   };
 
   const handleCheckOutFromScan = async (ninoTarget: any) => {
-    const asis = (asistenciasHoy || []).find(a => a.nino_id === ninoTarget.id && !a.hora_salida);
+    let asis = (asistenciasHoy || []).find(a => a.nino_id === ninoTarget.id && !a.hora_salida);
+    if (!asis) {
+      const hace24h = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+      const { data: dbAsis } = await supabase
+        .from("infantil_asistencia_checkin")
+        .select("id, nino_id, hora_salida")
+        .eq("nino_id", ninoTarget.id)
+        .is("hora_salida", null)
+        .gte("hora_entrada", hace24h)
+        .order("hora_entrada", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (dbAsis) {
+        asis = dbAsis;
+      }
+    }
+
     if (!asis) {
       toast.error("Sin entrada activa hoy", {
         description: `${ninoTarget.nombres} no tiene un Check-In activo pendiente de salida.`

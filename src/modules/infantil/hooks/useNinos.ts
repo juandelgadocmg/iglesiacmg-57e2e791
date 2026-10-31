@@ -26,6 +26,45 @@ export function saveInfantilGrupoForNino(ninoId: string, grupoId: string) {
 }
 
 /**
+ * Asigna de forma SEGURA el grupo infantil en personas.grupo_id.
+ * Solo escribe en la base de datos si el niño NO tiene grupo o si su grupo actual
+ * ya es un grupo infantil. Nunca saca a un niño de su Casa de Paz (u otro grupo
+ * no infantil): en ese caso el grupo infantil se guarda solo como referencia local
+ * y en las asistencias infantiles (infantil_asistencia_checkin.grupo_id).
+ */
+export async function assignInfantilGrupoSafely(personaId: string, targetGrupoId: string): Promise<boolean> {
+  if (!personaId || !targetGrupoId) return false;
+  saveInfantilGrupoForNino(personaId, targetGrupoId);
+  try {
+    const { data: persona } = await supabase
+      .from("personas")
+      .select("grupo_id")
+      .eq("id", personaId)
+      .maybeSingle();
+    const currentGrupoId = (persona as any)?.grupo_id as string | null | undefined;
+    if (currentGrupoId === targetGrupoId) return true;
+
+    if (currentGrupoId) {
+      const { data: currentGrupo } = await supabase
+        .from("grupos")
+        .select("tipo")
+        .eq("id", currentGrupoId)
+        .maybeSingle();
+      // Si pertenece a una Casa de Paz u otro grupo no infantil, NO se modifica su membresía.
+      if (currentGrupo && (currentGrupo as any).tipo !== TIPO_GRUPO_INFANTIL) return false;
+    }
+
+    const { error } = await supabase
+      .from("personas")
+      .update({ grupo_id: targetGrupoId })
+      .eq("id", personaId);
+    return !error;
+  } catch {
+    return false;
+  }
+}
+
+/**
  * Calcula el grupo infantil que corresponde a un niño según su fecha de nacimiento
  * o devuelve el primer grupo infantil disponible como respaldo.
  */
@@ -126,7 +165,7 @@ export const useNinos = () => {
       throw error;
     }
 
-    const toRepair: Array<{ ninoId: string; targetGrupoId: string }> = [];
+    const toRepair: Array<{ ninoId: string; targetGrupoId: string; sinGrupo: boolean }> = [];
 
     const result = (personas || []).map(p => {
       let effectiveGrupoId = p.grupo_id;
@@ -145,8 +184,9 @@ export const useNinos = () => {
         }
 
         if (effectiveGrupoId && effectiveGrupoId !== p.grupo_id) {
+          // Solo en memoria/local: NO se mueve al niño fuera de su Casa de Paz.
           saveInfantilGrupoForNino(p.id, effectiveGrupoId);
-          toRepair.push({ ninoId: p.id, targetGrupoId: effectiveGrupoId });
+          toRepair.push({ ninoId: p.id, targetGrupoId: effectiveGrupoId, sinGrupo: !p.grupo_id });
         }
       }
 
@@ -160,11 +200,15 @@ export const useNinos = () => {
     // Reparar en segundo plano los registros de niños vinculados desde membresía y sus asistencias sin grupo infantil
     if (toRepair.length > 0) {
       Promise.allSettled(
-        toRepair.map(async ({ ninoId, targetGrupoId }) => {
-          await supabase
-            .from("personas")
-            .update({ grupo_id: targetGrupoId })
-            .eq("id", ninoId);
+        toRepair.map(async ({ ninoId, targetGrupoId, sinGrupo }) => {
+          // Solo se asigna grupo en personas cuando el niño no tenía ninguno.
+          if (sinGrupo) {
+            await supabase
+              .from("personas")
+              .update({ grupo_id: targetGrupoId })
+              .eq("id", ninoId)
+              .is("grupo_id", null);
+          }
 
           // Reparar asistencias cuyo grupo_id no sea un grupo infantil válido
           const { data: asisRows } = await supabase

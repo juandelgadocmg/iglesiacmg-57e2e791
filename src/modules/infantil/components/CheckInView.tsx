@@ -16,7 +16,8 @@ import {
   useInfantilCheckIn,
   useInfantilCheckOut,
   useInfantilGrupos,
-  useInfantilAcudientes
+  useInfantilAcudientes,
+  getLocalTodayDateString,
 } from "@/hooks/useInfantil";
 import { usePersonas } from "@/hooks/useDatabase";
 import { useNinos, matchInfantilGrupoByAge, getSavedInfantilGrupoMap, saveInfantilGrupoForNino } from "../hooks/useNinos";
@@ -41,7 +42,7 @@ export default function CheckInView() {
   const [incluirTalonPadre, setIncluirTalonPadre] = useState(true);
   const handledUrlQrRef = useRef<string | null>(null);
 
-  const today = useMemo(() => new Date().toISOString().split("T")[0], []);
+  const today = useMemo(() => getLocalTodayDateString(), []);
   const fechaHoyTexto = useMemo(() => {
     try {
       return format(new Date(), "d 'de' MMMM, yyyy", { locale: es });
@@ -217,12 +218,34 @@ export default function CheckInView() {
   };
 
   // Procesar Check-Out mediante la lectura del código QR
-  const procesarCheckOutConQr = (child: any) => {
+  const procesarCheckOutConQr = async (child: any) => {
     setMode("salida");
-    const asis = (asistencias || []).find(a => a.nino_id === child.id && !a.hora_salida);
+
+    // 1. Buscar en la lista de asistencias en memoria (que incluye los niños sin hora_salida)
+    let asis = (asistencias || []).find(a => a.nino_id === child.id && !a.hora_salida);
+
+    // 2. Si no se encontró en la lista en memoria (ej. desfase de fecha o pantalla abierta previa),
+    // buscar directamente en la base de datos cualquier entrada activa de las últimas 24 horas
+    if (!asis) {
+      const hace24h = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+      const { data: dbAsis } = await supabase
+        .from("infantil_asistencia_checkin")
+        .select("id, nino_id, hora_salida")
+        .eq("nino_id", child.id)
+        .is("hora_salida", null)
+        .gte("hora_entrada", hace24h)
+        .order("hora_entrada", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (dbAsis) {
+        asis = dbAsis;
+      }
+    }
+
     if (!asis) {
       toast.error("Sin entrada activa hoy", {
-        description: `${child.nombres} ${child.apellidos} no tiene un registro de entrada activo hoy para hacer Check-Out.`
+        description: `${child.nombres} ${child.apellidos} no tiene un registro de entrada activo pendiente de salida.`
       });
       return;
     }
