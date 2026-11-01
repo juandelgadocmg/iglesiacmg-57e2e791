@@ -179,9 +179,8 @@ export default function CheckInView() {
     }
 
     saveInfantilGrupoForNino(child.id, grupoTargetId);
-    if (child.grupo_id !== grupoTargetId) {
-      supabase.from("personas").update({ grupo_id: grupoTargetId }).eq("id", child.id).then(() => {});
-    }
+    // IMPORTANTE: NO sobreescribir personas.grupo_id en base de datos.
+    // El niño pertenece a su Casa de Paz; su salón infantil solo aplica a la asistencia y stickers.
 
     const rels = (acudientes || []).filter(a => a.nino_id === child.id);
     const acuPrincipal = rels.find(a => a.es_principal) || rels[0] || null;

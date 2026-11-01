@@ -19,11 +19,40 @@ export function useGruposMap() {
   return useQuery({
     queryKey: ["grupos_map"],
     queryFn: async () => {
-      const { data: grupos, error } = await supabase
-        .from("grupos")
-        .select("id, nombre, tipo, estado, latitud, longitud, ubicacion, dia_reunion, hora_reunion, lider_id, personas!grupos_lider_id_fkey(nombres, apellidos)")
-        .eq("estado", "Activo") as any;
-      if (error) throw error;
+      let grupos: any[] = [];
+      try {
+        const { data, error } = await supabase
+          .from("grupos")
+          .select("id, nombre, tipo, estado, latitud, longitud, ubicacion, dia_reunion, hora_reunion, lider_id, personas!grupos_lider_id_fkey(nombres, apellidos)")
+          .eq("estado", "Activo") as any;
+        if (!error && data) {
+          grupos = data;
+        } else {
+          throw error;
+        }
+      } catch (e) {
+        console.warn("Fallo join en useGruposMap, usando fallback:", e);
+        const { data: gData, error: gError } = await supabase
+          .from("grupos")
+          .select("id, nombre, tipo, estado, latitud, longitud, ubicacion, dia_reunion, hora_reunion, lider_id")
+          .eq("estado", "Activo");
+        if (gError) throw gError;
+
+        const liderIds = Array.from(new Set((gData || []).map((g: any) => g.lider_id).filter(Boolean)));
+        const pMap = new Map();
+        if (liderIds.length > 0) {
+          const { data: pData } = await supabase
+            .from("personas")
+            .select("id, nombres, apellidos")
+            .in("id", liderIds);
+          (pData || []).forEach((p: any) => pMap.set(p.id, p));
+        }
+
+        grupos = (gData || []).map((g: any) => ({
+          ...g,
+          personas: g.lider_id ? pMap.get(g.lider_id) || null : null,
+        }));
+      }
 
       // Get member counts
       const { data: miembros, error: mError } = await supabase

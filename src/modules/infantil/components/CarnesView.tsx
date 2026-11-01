@@ -213,9 +213,8 @@ export default function CarnesView() {
     const grp = resolveGrupoForNino(ninoTarget);
     if (!grp?.id) return;
     saveInfantilGrupoForNino(ninoTarget.id, grp.id);
-    if (ninoTarget.grupo_id !== grp.id) {
-      supabase.from("personas").update({ grupo_id: grp.id }).eq("id", ninoTarget.id).then(() => {});
-    }
+    // IMPORTANTE: NO sobreescribir personas.grupo_id en base de datos.
+    // El niño pertenece a su Casa de Paz familiar; el grupo infantil solo aplica a asistencias y stickers.
     const rels = (acudientes || []).filter(a => a.nino_id === ninoTarget.id);
     const acu = rels.find(a => a.es_principal) || rels[0] || null;
     try {
@@ -875,6 +874,50 @@ export default function CarnesView() {
             </>
           )}
 
+          {selectedNino && printMode === "carne" && (
+            <div className="traditional-carne-print-page">
+              <div className="traditional-carne-card">
+                <div className="bg-navy text-white p-4 text-center">
+                  <Shield className="h-6 w-6 mx-auto mb-1 text-blue-200" />
+                  <h3 className="font-black tracking-widest uppercase text-xs text-blue-200">DOXA Kids</h3>
+                  <p className="text-[10px] opacity-80">Centro Mundial de Gloria</p>
+                </div>
+                <div className="p-4 flex flex-col items-center">
+                  <h2 className="text-lg font-black text-navy text-center leading-tight mb-1">
+                    {selectedNino.nombres} {selectedNino.apellidos}
+                  </h2>
+                  {grupoNino && (
+                    <span className="inline-block mt-0.5 px-2.5 py-0.5 rounded-full bg-blue-100 text-blue-800 font-bold text-[11px]">
+                      {grupoNino.nombre}
+                    </span>
+                  )}
+                  <div className="bg-white p-2 rounded-xl border border-slate-300 my-2.5">
+                    <QRCodeSVG
+                      value={getInfantilQrValue(selectedNino)}
+                      size={130}
+                      level="M"
+                      includeMargin={true}
+                    />
+                  </div>
+                  <p className="text-[9.5px] text-slate-500 font-mono tracking-wider mb-2">
+                    ID: #{getSecurityCode(selectedNino.id)}
+                  </p>
+                  <div className="w-full space-y-1 text-left border-t border-slate-200 pt-2">
+                    {acudientesNino.slice(0, 2).map((a: any) => (
+                      <div key={a.id} className="text-[10px] text-slate-700 flex justify-between">
+                        <span className="font-bold truncate max-w-[140px]">{a.acudiente?.nombres} {a.acudiente?.apellidos}</span>
+                        <span className="text-slate-500">{a.relacion || "Acudiente"}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <div className="bg-coral p-2 text-center text-white text-[9px] font-bold uppercase tracking-wider">
+                  Identificación Intransferible
+                </div>
+              </div>
+            </div>
+          )}
+
           {printMode === "planilla" && (
             ninosPlanilla.map((n) => {
               const rels = (acudientes || []).filter(a => a.nino_id === n.id);
@@ -998,6 +1041,24 @@ export default function CarnesView() {
             break-inside: avoid !important;
             page-break-after: avoid !important;
             break-after: avoid !important;
+          }
+          .traditional-carne-print-page {
+            width: 100mm !important;
+            min-height: 140mm !important;
+            display: flex !important;
+            justify-content: center !important;
+            align-items: flex-start !important;
+            padding: 5mm !important;
+            page-break-inside: avoid !important;
+            break-inside: avoid !important;
+          }
+          .traditional-carne-card {
+            width: 82mm !important;
+            border: 2px solid #0f172a !important;
+            border-radius: 12px !important;
+            overflow: hidden !important;
+            background: #ffffff !important;
+            box-shadow: none !important;
           }
         }
       `}} />

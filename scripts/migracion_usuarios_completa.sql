@@ -612,3 +612,27 @@ LEFT JOIN public.profiles p ON p.user_id = u.id
 LEFT JOIN public.personas per ON per.id = p.persona_id
 ORDER BY u.created_at ASC;
 
+
+-- =============================================================================
+-- PARTE 6: PRESERVACIÓN DEL VÍNCULO GRUPO - LÍDER (grupos_lider_id_fkey)
+-- Asegura que la migración conserve la foreign key entre grupos y su líder en personas(id)
+-- =============================================================================
+
+DO $$
+BEGIN
+  -- Limpiar cualquier lider_id que no exista en personas antes de agregar la FK
+  UPDATE public.grupos
+  SET lider_id = NULL
+  WHERE lider_id IS NOT NULL
+    AND NOT EXISTS (SELECT 1 FROM public.personas p WHERE p.id = grupos.lider_id);
+
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint WHERE conname = 'grupos_lider_id_fkey'
+  ) THEN
+    ALTER TABLE public.grupos
+      ADD CONSTRAINT grupos_lider_id_fkey
+      FOREIGN KEY (lider_id) REFERENCES public.personas(id) ON DELETE SET NULL;
+  END IF;
+END $$;
+
+

@@ -35,3 +35,4 @@ UPDATE public.infantil_asistencia_checkin
 SET fecha = (hora_entrada AT TIME ZONE 'America/Bogota')::date
 WHERE hora_entrada IS NOT NULL
   AND fecha != (hora_entrada AT TIME ZONE 'America/Bogota')::date;
+

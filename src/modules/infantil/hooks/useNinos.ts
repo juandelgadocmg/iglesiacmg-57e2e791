@@ -197,18 +197,11 @@ export const useNinos = () => {
       };
     }) as Nino[];
 
-    // Reparar en segundo plano los registros de niños vinculados desde membresía y sus asistencias sin grupo infantil
+    // Reparar en segundo plano únicamente las asistencias infantiles desfasadas sin grupo
     if (toRepair.length > 0) {
       Promise.allSettled(
-        toRepair.map(async ({ ninoId, targetGrupoId, sinGrupo }) => {
-          // Solo se asigna grupo en personas cuando el niño no tenía ninguno.
-          if (sinGrupo) {
-            await supabase
-              .from("personas")
-              .update({ grupo_id: targetGrupoId })
-              .eq("id", ninoId)
-              .is("grupo_id", null);
-          }
+        toRepair.map(async ({ ninoId, targetGrupoId }) => {
+          // NUNCA sobreescribir personas.grupo_id: el niño pertenece a su Casa de Paz familiar.
 
           // Reparar asistencias cuyo grupo_id no sea un grupo infantil válido
           const { data: asisRows } = await supabase
@@ -370,11 +363,8 @@ export const useNinos = () => {
   const actualizarGrupoNino = useMutation({
     mutationFn: async ({ ninoId, grupoId }: { ninoId: string; grupoId: string }) => {
       saveInfantilGrupoForNino(ninoId, grupoId);
-      const { error: errPersona } = await supabase
-        .from("personas")
-        .update({ grupo_id: grupoId })
-        .eq("id", ninoId);
-      if (errPersona) throw errPersona;
+      // Asignar grupo de forma segura sin remover de Casas de Paz
+      await assignInfantilGrupoSafely(ninoId, grupoId);
 
       await supabase
         .from("infantil_asistencia_checkin")

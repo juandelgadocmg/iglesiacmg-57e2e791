@@ -906,7 +906,7 @@ const FALLBACK_DIPLOMADOS: DiplomadoCMS[] = [
   },
 ];
 
-const FALLBACK_FACULTADES: FacultadCMS[] = [
+export const FALLBACK_FACULTADES: FacultadCMS[] = [
   {
     id: "3c452d30-71e2-45aa-88f8-0b5b24032bfd",
     nombre: "Facultad de Liderazgo",
@@ -937,6 +937,8 @@ const FALLBACK_FACULTADES: FacultadCMS[] = [
   },
 ];
 
+export { FALLBACK_DIPLOMADOS };
+
 export function useAcademyCMS() {
   return useQuery({
     queryKey: ["academy_cms_data"],
@@ -960,7 +962,9 @@ export function useAcademyCMS() {
           .order("orden", { ascending: true });
         if (mError) throw mError;
 
-        if (!diplomados || diplomados.length === 0) {
+        // Si la base de datos no tiene los 6 diplomados o sus módulos completos,
+        // usar el catálogo integrado oficial completo para garantizar que nunca aparezca vacía.
+        if (!diplomados || diplomados.length < 6 || !modulos || modulos.length < 10) {
           return {
             facultades: FALLBACK_FACULTADES,
             diplomados: FALLBACK_DIPLOMADOS,

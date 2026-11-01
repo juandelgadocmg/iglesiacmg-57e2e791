@@ -43,15 +43,45 @@ export default function CasasDePazPage() {
   const { data: casas, isLoading } = useQuery({
     queryKey: ["casas-de-paz-directorio"],
     queryFn: async () => {
-      // 1. Obtener grupos tipo 'Casas de paz'
-      const { data: gruposData, error: gruposErr } = await supabase
-        .from("grupos")
-        .select("*, personas:lider_id(id, nombres, apellidos, telefono, foto_url)")
-        .eq("tipo", "Casas de paz")
-        .eq("estado", "Activo")
-        .order("nombre");
+      // 1. Obtener grupos tipo 'Casas de paz' con soporte resiliente de líder
+      let gruposData: any[] = [];
+      try {
+        const { data, error: gruposErr } = await supabase
+          .from("grupos")
+          .select("*, personas:lider_id(id, nombres, apellidos, telefono, foto_url)")
+          .eq("tipo", "Casas de paz")
+          .eq("estado", "Activo")
+          .order("nombre");
+        if (!gruposErr && data) {
+          gruposData = data;
+        } else {
+          throw gruposErr;
+        }
+      } catch (e) {
+        console.warn("Fallo join en CasasDePazPage, usando fallback:", e);
+        const { data: rawGrupos, error: rawErr } = await supabase
+          .from("grupos")
+          .select("*")
+          .eq("tipo", "Casas de paz")
+          .eq("estado", "Activo")
+          .order("nombre");
+        if (rawErr) throw rawErr;
 
-      if (gruposErr) throw gruposErr;
+        const liderIds = Array.from(new Set((rawGrupos || []).map((g: any) => g.lider_id).filter(Boolean)));
+        const pMap = new Map();
+        if (liderIds.length > 0) {
+          const { data: pData } = await supabase
+            .from("personas")
+            .select("id, nombres, apellidos, telefono, foto_url")
+            .in("id", liderIds);
+          (pData || []).forEach((p: any) => pMap.set(p.id, p));
+        }
+
+        gruposData = (rawGrupos || []).map((g: any) => ({
+          ...g,
+          personas: g.lider_id ? pMap.get(g.lider_id) || null : null,
+        }));
+      }
 
       return (gruposData || []).map((g: any) => {
         const lider = g.personas;

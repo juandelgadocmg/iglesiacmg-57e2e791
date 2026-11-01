@@ -56,15 +56,43 @@ export function useGrupoDetalle(grupoId: string | null) {
     queryKey: ["grupo_detalle", grupoId],
     enabled: !!grupoId,
     queryFn: async () => {
-      const { data, error } = await supabase
+      try {
+        const { data, error } = await supabase
+          .from("grupos")
+          .select("*, personas!grupos_lider_id_fkey(id, nombres, apellidos, foto_url, telefono)")
+          .eq("id", grupoId!)
+          .single();
+        if (!error && data) {
+          return {
+            ...data,
+            lider: (data as any).personas || null,
+          } as unknown as GrupoDetalle;
+        }
+      } catch (e) {
+        console.warn("Fallo join en useGrupoPerfil, ejecutando fallback:", e);
+      }
+
+      // Fallback sin foreign key explícita
+      const { data: gData, error: gError } = await supabase
         .from("grupos")
-        .select("*, personas!grupos_lider_id_fkey(id, nombres, apellidos, foto_url, telefono)")
+        .select("*")
         .eq("id", grupoId!)
         .single();
-      if (error) throw error;
+      if (gError) throw gError;
+
+      let liderData = null;
+      if (gData?.lider_id) {
+        const { data: pData } = await supabase
+          .from("personas")
+          .select("id, nombres, apellidos, foto_url, telefono")
+          .eq("id", gData.lider_id)
+          .maybeSingle();
+        liderData = pData || null;
+      }
+
       return {
-        ...data,
-        lider: (data as any).personas || null,
+        ...gData,
+        lider: liderData,
       } as unknown as GrupoDetalle;
     },
   });

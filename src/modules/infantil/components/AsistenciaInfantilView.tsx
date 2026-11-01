@@ -69,10 +69,7 @@ export default function AsistenciaInfantilView() {
           .from("infantil_asistencia_checkin")
           .update({ grupo_id: grupo.id })
           .eq("id", asis.id);
-        await supabase
-          .from("personas")
-          .update({ grupo_id: grupo.id })
-          .eq("id", asis.nino_id);
+        // NO actualizar personas.grupo_id: el niño pertenece a su Casa de Paz familiar, no se debe sobreescribir
       })
     ).then(() => {
       queryClient.invalidateQueries({ queryKey: ["infantil_asistencias_lista"] });

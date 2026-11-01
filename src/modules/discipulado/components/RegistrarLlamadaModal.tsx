@@ -62,9 +62,10 @@ export function RegistrarLlamadaModal({
 
   const quickOptions = [
     "Contestó y oró",
+    "No contestó",
+    "Buzón de mensajes",
     "Seguimiento y palabra",
     "Invitación a casa de paz",
-    "No contestó / Dejó mensaje",
     "Línea ocupada"
   ];
 

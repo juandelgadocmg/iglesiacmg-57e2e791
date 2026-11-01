@@ -234,6 +234,38 @@ export function RegistrarLlamadaConsolidacionDialog({
                 ))}
               </SelectContent>
             </Select>
+
+            {/* Accesos rápidos a los resultados más comunes */}
+            <div className="flex flex-wrap gap-1.5 pt-1">
+              <Button
+                type="button"
+                variant={codificacion === "Contestó y atendió" ? "default" : "outline"}
+                size="sm"
+                className="h-7 text-[11px] px-2.5 rounded-lg"
+                onClick={() => setCodificacion("Contestó y atendió")}
+              >
+                ✓ Contestó y atendió
+              </Button>
+              <Button
+                type="button"
+                variant={codificacion === "No contestó" ? "default" : "outline"}
+                size="sm"
+                className="h-7 text-[11px] px-2.5 rounded-lg text-amber-700 border-amber-300 hover:bg-amber-50"
+                onClick={() => setCodificacion("No contestó")}
+              >
+                ✗ No contestó
+              </Button>
+              <Button
+                type="button"
+                variant={codificacion === "Buzón de mensajes" ? "default" : "outline"}
+                size="sm"
+                className="h-7 text-[11px] px-2.5 rounded-lg text-slate-700 border-slate-300 hover:bg-slate-50"
+                onClick={() => setCodificacion("Buzón de mensajes")}
+              >
+                ✉ Buzón de mensajes
+              </Button>
+            </div>
+
             <p className="text-[10.5px] text-muted-foreground">
               Debe seleccionar objetivamente la codificación predeterminada correspondiente.
             </p>

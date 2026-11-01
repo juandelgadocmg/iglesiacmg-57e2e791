@@ -49,8 +49,10 @@ export default function IsoProgramacionPreview({ open, onOpenChange, ministerio,
   const [addValue, setAddValue] = useState("");
 
   const estacionesTextoSet = useMemo(() => {
-    const explicit = (template.estacionesTexto || []).map((e) => normKey(e));
-    const set = new Set(explicit);
+    if (template.estacionesTexto && Array.isArray(template.estacionesTexto)) {
+      return new Set(template.estacionesTexto.map((e) => normKey(e)));
+    }
+    const set = new Set<string>();
     (template.estaciones || []).forEach((est) => {
       if (isEstacionTextoPorDefecto(est)) {
         set.add(normKey(est));
@@ -462,6 +464,18 @@ export default function IsoProgramacionPreview({ open, onOpenChange, ministerio,
                           if (isTexto) {
                             return (
                               <td key={est} className="border border-black p-1 align-top bg-white">
+                                {arr.length > 0 && (
+                                  <div className="flex flex-wrap gap-1 mb-1">
+                                    {arr.map((c) => (
+                                      <Badge key={c.id} variant="secondary" className="justify-between gap-1 font-normal text-[10px] py-0.5">
+                                        <span className="truncate">{c.nombre}</span>
+                                        <button onClick={() => removePersona(c.id)} className="hover:text-destructive">
+                                          <X className="h-2.5 w-2.5" />
+                                        </button>
+                                      </Badge>
+                                    ))}
+                                  </div>
+                                )}
                                 <textarea
                                   value={textos.get(e.id, `estacion:${key}`)}
                                   onChange={(ev) => textos.setValor(e.id, `estacion:${key}`, ev.target.value)}

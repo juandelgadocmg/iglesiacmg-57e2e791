@@ -231,20 +231,24 @@ export default function IsoTemplateEditorDialog({ open, onOpenChange, ministerio
             </div>
             <div className="grid gap-2">
               {form.estaciones.map((est) => {
-                const isAutoText = isEstacionTextoPorDefecto(est);
-                const selected = (form.estacionesTexto || []).includes(est) || isAutoText;
+                const isConfigured = form.estacionesTexto !== undefined;
+                const selected = isConfigured
+                  ? (form.estacionesTexto || []).includes(est)
+                  : isEstacionTextoPorDefecto(est);
                 return (
                   <button
                     key={est}
                     type="button"
                     className={`w-full rounded-md border px-3 py-2 text-left text-sm transition ${selected ? "border-primary bg-primary/10" : "border-border bg-background hover:border-primary/80"}`}
                     onClick={() => {
-                      const currentlySelected = (form.estacionesTexto || []).includes(est) || isAutoText;
+                      const currentList = form.estacionesTexto !== undefined
+                        ? form.estacionesTexto
+                        : form.estaciones.filter((e) => isEstacionTextoPorDefecto(e));
                       let next: string[];
-                      if (currentlySelected) {
-                        next = (form.estacionesTexto || []).filter((e) => e !== est);
+                      if (currentList.includes(est)) {
+                        next = currentList.filter((e) => e !== est);
                       } else {
-                        next = [...(form.estacionesTexto || []), est];
+                        next = [...currentList, est];
                       }
                       setF("estacionesTexto", next);
                     }}

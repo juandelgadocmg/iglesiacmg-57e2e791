@@ -339,43 +339,51 @@ export const ISO_TEMPLATES: IsoMinisterioTemplate[] = [
 /** Palabras clave que por su naturaleza corresponden a texto libre a digitar y no a una persona */
 export const TEXT_ESTACION_KEYWORDS = [
   "texto",
-  "alabanza",
   "dinamica",
-  "dinámica",
   "decoracion",
-  "decoración",
   "objetivo",
   "refrigerio",
   "tema",
   "material",
   "leccion",
-  "lección",
-  "actividad",
-  "cancion",
-  "canción",
   "merienda",
-  "comida",
   "menu",
-  "menú",
-  "canciones",
-  "orden",
-  "mensaje",
-  "versiculo",
-  "versículo",
-  "devocional",
-  "bosquejo",
   "apuntes",
   "notas",
-  "grupo",
 ];
 
 /** Comprueba si una estación debe ser de texto libre por defecto según su nombre */
 export function isEstacionTextoPorDefecto(estacionNombre: string): boolean {
   if (!estacionNombre) return false;
   const n = norm(estacionNombre);
+
+  // Nunca considerar roles de personas o cargos técnicos como estaciones de texto libre
+  if (
+    n.includes("camara") ||
+    n.includes("camarografo") ||
+    n.includes("director") ||
+    n.includes("sonido") ||
+    n.includes("video") ||
+    n.includes("streaming") ||
+    n.includes("maestro") ||
+    n.includes("lider") ||
+    n.includes("pastor") ||
+    n.includes("servidor") ||
+    n.includes("ujier") ||
+    n.includes("seguridad") ||
+    n.includes("coordinador") ||
+    n.includes("devocional") ||
+    n.includes("grupo") ||
+    n.includes("oracion") ||
+    n.includes("intercesion")
+  ) {
+    return false;
+  }
+
+  // Coincidencia exacta o palabra delimitada para estaciones puramente textuales
   return TEXT_ESTACION_KEYWORDS.some((kw) => {
     const kwNorm = norm(kw);
-    return n.includes(kwNorm);
+    return n === kwNorm || n.startsWith(kwNorm + " ") || n.endsWith(" " + kwNorm);
   });
 }
 

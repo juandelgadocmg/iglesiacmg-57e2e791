@@ -324,12 +324,37 @@ export function useGrupos() {
   return useQuery({
     queryKey: ["grupos"],
     queryFn: async () => {
-      const { data, error } = await supabase
+      try {
+        const { data, error } = await supabase
+          .from("grupos")
+          .select("*, grupo_miembros(count), personas!grupos_lider_id_fkey(id, nombres, apellidos, foto_url, tipo_persona)")
+          .order("created_at", { ascending: false });
+        if (!error && data) return data;
+      } catch (e) {
+        console.warn("Fallo join grupos con personas!grupos_lider_id_fkey, ejecutando fallback:", e);
+      }
+
+      // Fallback tolerante si la foreign key está desincronizada en el schema cache de PostgREST
+      const { data: gruposData, error: errG } = await supabase
         .from("grupos")
-        .select("*, grupo_miembros(count), personas!grupos_lider_id_fkey(id, nombres, apellidos, foto_url, tipo_persona)")
+        .select("*, grupo_miembros(count)")
         .order("created_at", { ascending: false });
-      if (error) throw error;
-      return data;
+      if (errG) throw errG;
+
+      const liderIds = Array.from(new Set((gruposData || []).map((g: any) => g.lider_id).filter(Boolean)));
+      const personasMap = new Map();
+      if (liderIds.length > 0) {
+        const { data: pData } = await supabase
+          .from("personas")
+          .select("id, nombres, apellidos, foto_url, tipo_persona")
+          .in("id", liderIds);
+        (pData || []).forEach((p: any) => personasMap.set(p.id, p));
+      }
+
+      return (gruposData || []).map((g: any) => ({
+        ...g,
+        personas: g.lider_id ? personasMap.get(g.lider_id) || null : null,
+      }));
     },
   });
 }

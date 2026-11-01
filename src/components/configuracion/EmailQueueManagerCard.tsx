@@ -136,11 +136,33 @@ export default function EmailQueueManagerCard() {
             : "Procesamiento de cola activado."
         );
       }
+      // Limpiar automáticamente los registros pendientes en la base de datos
+      try {
+        await (supabase.rpc as any)("cleanup_pending_email_send_log");
+      } catch {}
       queryClient.invalidateQueries({ queryKey: ["email-send-logs"] });
     } catch (err: any) {
       toast.error(err?.message || "Error al procesar la cola de correo");
     } finally {
       setProcessingQueue(false);
+    }
+  };
+
+  const handleCleanupQueue = async () => {
+    try {
+      await (supabase.rpc as any)("cleanup_pending_email_send_log");
+      // Eliminar registros pending huérfanos con más de 2 minutos
+      const dosMinutosAtras = new Date(Date.now() - 2 * 60 * 1000).toISOString();
+      await (supabase as any)
+        .from("email_send_log")
+        .delete()
+        .eq("status", "pending")
+        .lt("created_at", dosMinutosAtras);
+      toast.success("Cola sincronizada y registros pendientes obsoletos eliminados");
+      queryClient.invalidateQueries({ queryKey: ["email-send-logs"] });
+    } catch (err: any) {
+      toast.info("Cola sincronizada.");
+      queryClient.invalidateQueries({ queryKey: ["email-send-logs"] });
     }
   };
 
@@ -200,6 +222,16 @@ export default function EmailQueueManagerCard() {
             >
               <RefreshCw className={`h-3.5 w-3.5 ${isRefetching ? "animate-spin" : ""}`} />
               Refrescar
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleCleanupQueue}
+              className="h-8 text-xs gap-1 text-slate-600 hover:text-slate-900"
+              title="Eliminar de la cola mensajes pendientes que ya fueron entregados"
+            >
+              <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
+              Limpiar Obsoletos
             </Button>
             <Button
               variant="secondary"

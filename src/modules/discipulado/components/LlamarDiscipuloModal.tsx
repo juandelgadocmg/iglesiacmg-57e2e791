@@ -314,12 +314,22 @@ export function LlamarDiscipuloModal({
 
               <button
                 type="button"
-                onClick={() => handleGuardarRegistro("Llamé pero no contestó o teléfono ocupado")}
+                onClick={() => handleGuardarRegistro("No contestó")}
                 disabled={loading || guardado}
                 className="p-2 rounded-lg bg-white border border-slate-200 hover:border-amber-400 hover:bg-amber-50/50 text-left text-xs font-medium text-slate-700 transition-all flex items-center gap-1.5"
               >
                 <PhoneMissed className="w-3.5 h-3.5 text-amber-500 shrink-0" />
-                <span className="truncate">No contestó / Ocupado</span>
+                <span className="truncate">No contestó</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleGuardarRegistro("Buzón de mensajes")}
+                disabled={loading || guardado}
+                className="p-2 rounded-lg bg-white border border-slate-200 hover:border-purple-400 hover:bg-purple-50/50 text-left text-xs font-medium text-slate-700 transition-all flex items-center gap-1.5"
+              >
+                <MessageSquare className="w-3.5 h-3.5 text-purple-500 shrink-0" />
+                <span className="truncate">Buzón de mensajes</span>
               </button>
 
               <button
@@ -330,16 +340,6 @@ export function LlamarDiscipuloModal({
               >
                 <Clock className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
                 <span className="truncate">Volver a llamar</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleGuardarRegistro("Se dejó mensaje de bendición")}
-                disabled={loading || guardado}
-                className="p-2 rounded-lg bg-white border border-slate-200 hover:border-purple-400 hover:bg-purple-50/50 text-left text-xs font-medium text-slate-700 transition-all flex items-center gap-1.5"
-              >
-                <MessageCircle className="w-3.5 h-3.5 text-purple-500 shrink-0" />
-                <span className="truncate">Mensaje enviado</span>
               </button>
             </div>
 

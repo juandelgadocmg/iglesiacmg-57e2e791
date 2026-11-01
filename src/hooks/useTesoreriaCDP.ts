@@ -96,15 +96,47 @@ export function useTesoreriaSemana(semanaInicio: string, semanaFin: string) {
         .single();
       const diasConfigurados = Number((cfg as any)?.tesoreria_cdp_dias_mora ?? 7);
 
-      // 1. Casas de paz activas
-      const { data: grupos, error: errGrupos } = await supabase
-        .from("grupos")
-        .select("id, nombre, red, personas:lider_id(nombres, apellidos)")
-        .eq("tipo", "Casas de paz")
-        .eq("estado", "Activo")
-        .order("red", { ascending: true })
-        .order("nombre", { ascending: true });
-      if (errGrupos) throw errGrupos;
+      // 1. Casas de paz activas con fallback de líder
+      let grupos: any[] = [];
+      try {
+        const { data: gData, error: errGrupos } = await supabase
+          .from("grupos")
+          .select("id, nombre, red, lider_id, personas:lider_id(nombres, apellidos)")
+          .eq("tipo", "Casas de paz")
+          .eq("estado", "Activo")
+          .order("red", { ascending: true })
+          .order("nombre", { ascending: true });
+        if (!errGrupos && gData) {
+          grupos = gData;
+        } else {
+          throw errGrupos;
+        }
+      } catch (e) {
+        console.warn("Fallo join en useTesoreriaCDP, usando fallback:", e);
+        const { data: gData, error: errGruposFallback } = await supabase
+          .from("grupos")
+          .select("id, nombre, red, lider_id")
+          .eq("tipo", "Casas de paz")
+          .eq("estado", "Activo")
+          .order("red", { ascending: true })
+          .order("nombre", { ascending: true });
+        if (errGruposFallback) throw errGruposFallback;
+
+        const liderIds = Array.from(new Set((gData || []).map((g: any) => g.lider_id).filter(Boolean)));
+        const pMap = new Map();
+        if (liderIds.length > 0) {
+          const { data: pData } = await supabase
+            .from("personas")
+            .select("id, nombres, apellidos")
+            .in("id", liderIds);
+          (pData || []).forEach((p: any) => pMap.set(p.id, p));
+        }
+
+        grupos = (gData || []).map((g: any) => ({
+          ...g,
+          personas: g.lider_id ? pMap.get(g.lider_id) || null : null,
+        }));
+      }
 
       // 2. Reportes de la semana
       const { data: reportes, error: errReportes } = await supabase

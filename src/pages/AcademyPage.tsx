@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { Link } from "react-router-dom";
 import doxaWordmarkNavy from "@/assets/doxa-wordmark-navy.png";
-import { useAcademyCMS } from "@/hooks/useAcademyCms";
+import { useAcademyCMS, FALLBACK_FACULTADES, FALLBACK_DIPLOMADOS } from "@/hooks/useAcademyCms";
 import { Loader2 } from "lucide-react";
 
 /**
@@ -23,8 +23,8 @@ export default function AcademyPage() {
     }
   }, []);
   const { data, isLoading } = useAcademyCMS();
-  const facultades = data?.facultades || [];
-  const diplomados = data?.diplomados || [];
+  const facultades = (data?.facultades && data.facultades.length > 0) ? data.facultades : FALLBACK_FACULTADES;
+  const diplomados = (data?.diplomados && data.diplomados.length > 0) ? data.diplomados : FALLBACK_DIPLOMADOS;
 
   if (isLoading) {
     return (
